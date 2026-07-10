@@ -1,61 +1,63 @@
-import { View, Text, Pressable, StyleSheet } from 'react-native'
-import { Colors } from '@/constants/colors'
+import React from 'react';
+import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
+import colors from '@/constants/colors';
 
-interface AuthTabsProps {
-  active: 'login' | 'register'
-  onChange: (mode: 'login' | 'register') => void
+interface Props {
+  active: 'login' | 'register';
+  onChange: (s: 'login' | 'register') => void;
 }
 
-const AuthTabs = ({ active, onChange }: AuthTabsProps) => {
+const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
   return (
     <View style={styles.container}>
-      <Pressable
+      <TouchableOpacity
         style={[styles.tab, active === 'login' && styles.activeTab]}
         onPress={() => onChange('login')}
       >
-        <Text style={active === 'login' ? styles.activeText : styles.inactiveText}>
-          Log In
-        </Text>
-      </Pressable>
-      <Pressable
+        <Text style={[styles.tabText, active === 'login' && styles.activeText]}>Log In</Text>
+      </TouchableOpacity>
+      <TouchableOpacity
         style={[styles.tab, active === 'register' && styles.activeTab]}
         onPress={() => onChange('register')}
       >
-        <Text style={active === 'register' ? styles.activeText : styles.inactiveText}>
-          Register
-        </Text>
-      </Pressable>
+        <Text style={[styles.tabText, active === 'register' && styles.activeText]}>Register</Text>
+      </TouchableOpacity>
     </View>
-  )
-}
-
-export default AuthTabs
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 28,
+    backgroundColor: colors.surface,
+    borderRadius: 16,
+    marginBottom: 18,
+    padding: 6,
+    alignSelf: 'center',
+    width: '62%',
   },
   tab: {
-    flex: 1,
     paddingVertical: 12,
-    borderRadius: 9,
+    paddingHorizontal: 18,
     alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 12,
   },
   activeTab: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: colors.input,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  tabText: {
+    color: colors.textMuted,
+    fontWeight: '600',
   },
   activeText: {
-    color: Colors.background,
-    fontWeight: '600',
-    fontSize: 14,
+    color: colors.textPrimary,
   },
-  inactiveText: {
-    color: Colors.textMuted,
-    fontWeight: '500',
-    fontSize: 14,
-  },
-})
+});
+
+export default AuthTabs;

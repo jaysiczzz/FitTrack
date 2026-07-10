@@ -1,44 +1,47 @@
-import { View, Text, TextInput, TextInputProps, StyleSheet } from 'react-native'
-import { Colors } from '@/constants/colors'
+import React from 'react';
+import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native';
+import colors from '@/constants/colors';
 
-interface InputProps extends TextInputProps {
-  label: string
+interface Props extends TextInputProps {
+  label?: string;
 }
 
-const Input = ({ label, style, ...props }: InputProps) => {
+const Input: React.FC<Props> = ({ label, style, ...rest }) => {
   return (
-    <View style={styles.group}>
-      <Text style={styles.label}>{label}</Text>
+    <View style={styles.wrapper}>
+      {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         style={[styles.input, style]}
-        placeholderTextColor="#5C6370"
-        {...props}
+        placeholderTextColor={colors.textMuted}
+        {...rest}
       />
     </View>
-  )
-}
-
-export default Input
+  );
+};
 
 const styles = StyleSheet.create({
-  group: {
+  wrapper: {
+    width: '100%',
     marginBottom: 18,
   },
   label: {
+    color: colors.textMuted,
+    marginBottom: 6,
     fontSize: 11,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
     fontWeight: '600',
-    color: Colors.textMuted,
-    letterSpacing: 0.5,
-    marginBottom: 8,
   },
   input: {
-    backgroundColor: Colors.surface,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    color: Colors.text,
-    fontSize: 15,
+    backgroundColor: colors.input,
+    borderColor: colors.inputBorder,
     borderWidth: 1,
-    borderColor: Colors.border,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    borderRadius: 18,
+    color: colors.textPrimary,
+    minHeight: 50,
   },
-})
+});
+
+export default Input;

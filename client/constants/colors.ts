@@ -1,8 +1,10 @@
-export const Colors = {
-  background: '#0E1015',
-  surface: '#1A1E29',
-  border: '#252A38',
-  text: '#FFFFFF',
-  textMuted: '#8B93A6',
-  accent: '#12E8A0',
+const colors = {
+  background: '#0B0F1A',
+  surface: '#111726',
+  input: '#1B2333',
+  inputBorder: '#2A3346',
+  accent: '#00E5A0',
+  textPrimary: '#FFFFFF',
+  textMuted: '#8A93A6',
 }
+export default colors
