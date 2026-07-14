@@ -13,10 +13,10 @@ model User {
   password  String
   firstName String
   lastName  String
-  height    Int?     // cm
-  weight    Int?     // kg
-  age       Int?
-  goal      Goal?
+  height    Int     // cm
+  weight    Float  // kg
+  age       Int
+  goal      Goal
   createdAt DateTime @default(now())
 }
 
