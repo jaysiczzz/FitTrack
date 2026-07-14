@@ -39,10 +39,11 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit }) => {
       </View>
 
       <View style={styles.createButton}>
-        <Button title="Create My Plan" disabled={disabled} onPress={() => onSubmit({ height, weight, age, goal })} />
+        <Button title="Create My Plan" onPress={() => onSubmit({ height, weight, age, goal })} />
       </View>
 
       <Text style={styles.footerText}>You can update this anytime</Text>
+      
     </KeyboardAvoidingView>
   );
 };
@@ -74,13 +75,23 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   createButton: {
+  
     marginTop: 22,
+
   },
   footerText: {
     color: colors.textMuted,
     textAlign: 'center',
     marginTop: 12,
     fontSize: 12,
+  },
+  debugRow: {
+    marginTop: 8,
+    alignItems: 'center',
+  },
+  debugText: {
+    color: colors.textMuted,
+    fontSize: 11,
   },
 });
 
