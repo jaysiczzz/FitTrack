@@ -3,8 +3,9 @@ import * as userModel from '../models/user.model'
 import { Goal } from '../generated/prisma'
 import { hashPassword, comparePassword } from '../utils/password.utils'
 import { signToken } from '../utils/jwt.utils'
+import { asyncHandler } from '../utils/asyncHandler.utils'
 
-export const login = async (req: Request, res: Response) => {
+export const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body
 
     if (!email || !password) {
@@ -32,21 +33,36 @@ export const login = async (req: Request, res: Response) => {
             lastName: user.lastName,
         },
     })
-}
+})
 
-export const register = async (req: Request, res: Response) => {
-    const { firstName, lastName, email, password, height, weight, age, goal } = req.body
+export const register = asyncHandler(async (req: Request, res: Response) => {
+    const { firstName, lastName, email, password, goal } = req.body
 
-    if (!firstName || !lastName || !email || !password || !height || !weight || !age || !goal) {
-        return res.status(400).json({ error: 'All fields are required'})
+    if (!firstName || !lastName || !email || !password ||
+        req.body.height === undefined || req.body.weight === undefined ||
+        req.body.age === undefined || !goal) {
+        return res.status(400).json({ error: 'All fields are required' })
     }
 
-    if(goal != "MUSCLE_GAIN" && goal != "WEIGHT_LOSS") {
-        return res.status(400).json({ error: "Invalid goal value"})
+    const height = Number(req.body.height)
+    const weight = Number(req.body.weight)
+    const age = Number(req.body.age)
+
+    if (!Number.isInteger(height) || height <= 0) {
+        return res.status(400).json({ error: 'Height must be a positive whole number' })
+    }
+    if (Number.isNaN(weight) || weight <= 0) {
+        return res.status(400).json({ error: 'Weight must be a positive number' })
+    }
+    if (!Number.isInteger(age) || age <= 0) {
+        return res.status(400).json({ error: 'Age must be a positive whole number' })
+    }
+
+    if (goal !== 'MUSCLE_GAIN' && goal !== 'WEIGHT_LOSS') {
+        return res.status(400).json({ error: 'Invalid goal value' })
     }
 
     const existingUser = await userModel.findByEmail(email)
-
     if (existingUser) {
         return res.status(409).json({ error: 'Email already in use' })
     }
@@ -54,14 +70,14 @@ export const register = async (req: Request, res: Response) => {
     const hashedPassword = await hashPassword(password)
 
     const user = await userModel.createUser({
-        firstName: firstName,
-        lastName: lastName,
-        email: email,
+        firstName,
+        lastName,
+        email,
         password: hashedPassword,
-        height: height,
-        weight: weight,
-        age: age,
-        goal: goal as Goal
+        height,
+        weight,
+        age,
+        goal: goal as Goal,
     })
 
     const token = signToken({ id: user.id })
@@ -79,4 +95,4 @@ export const register = async (req: Request, res: Response) => {
             goal: user.goal,
         },
     })
-}
+})
