@@ -6,5 +6,6 @@ const colors = {
   accent: '#00E5A0',
   textPrimary: '#FFFFFF',
   textMuted: '#8A93A6',
+  danger: '#FF4D4D',
 }
 export default colors

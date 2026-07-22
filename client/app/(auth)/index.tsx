@@ -11,7 +11,9 @@ export default function AuthIndex() {
   const [active, setActive] = useState<'login' | 'register'>('login');
   const router = useRouter();
 
-  const handleLogin = (data: { email: string; password: string }) => {}
+  const handleLogin = (data: { email: string; password: string }) => {
+    router.replace('/(app)/dashboard');
+  }
 
   const handleRegister = (data: { firstName: string; lastName: string; email: string; password: string }) => {
     router.replace('/(auth)/onboarding');
