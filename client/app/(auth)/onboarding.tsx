@@ -3,9 +3,15 @@ import { SafeAreaView, StyleSheet, View } from 'react-native';
 import OnboardingForm from '@/components/auth/OnboardingForm';
 import OnboardingHeader from '@/components/auth/OnboardingHeader';
 import colors from '@/constants/colors';
+import { useRouter } from 'expo-router';
 
 export default function OnboardingScreen() {
-  const handleCreate = (data: { height: string; weight: string; age: string; goal: string }) => {}
+  const router = useRouter();
+
+  const handleCreate = (data: { height: string; weight: string; age: string; goal: string }) => {
+    // Save onboarding data and go to main app
+    router.replace('/(app)/home');
+  }
 
   return (
     <SafeAreaView style={styles.safe}>
