@@ -1,6 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, StyleSheet } from 'react-native';
-import colors from '@/constants/colors';
+import { View, TouchableOpacity, Text } from 'react-native';
 
 interface Props {
   active: 'login' | 'register';
@@ -9,55 +8,63 @@ interface Props {
 
 const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
   return (
-    <View style={styles.container}>
+    <View className="flex-row bg-surface dark:bg-surface-dark rounded-2xl mb-[18px] p-1.5 self-center w-[62%]">
       <TouchableOpacity
-        style={[styles.tab, active === 'login' && styles.activeTab]}
+        className={`py-3 px-[18px] items-center justify-center rounded-xl ${
+          active === 'login' ? 'bg-input dark:bg-input-dark' : ''
+        }`}
+        style={
+          active === 'login'
+            ? {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              }
+            : undefined
+        }
         onPress={() => onChange('login')}
       >
-        <Text style={[styles.tabText, active === 'login' && styles.activeText]}>Log In</Text>
+        <Text
+          className={`font-semibold ${
+            active === 'login'
+              ? 'text-text-primary dark:text-text-primary-dark'
+              : 'text-text-muted dark:text-text-muted-dark'
+          }`}
+        >
+          Log In
+        </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        style={[styles.tab, active === 'register' && styles.activeTab]}
+        className={`py-3 px-[18px] items-center justify-center rounded-xl ${
+          active === 'register' ? 'bg-input dark:bg-input-dark' : ''
+        }`}
+        style={
+          active === 'register'
+            ? {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.3,
+                shadowRadius: 4,
+                elevation: 4,
+              }
+            : undefined
+        }
         onPress={() => onChange('register')}
       >
-        <Text style={[styles.tabText, active === 'register' && styles.activeText]}>Register</Text>
+        <Text
+          className={`font-semibold ${
+            active === 'register'
+              ? 'text-text-primary dark:text-text-primary-dark'
+              : 'text-text-muted dark:text-text-muted-dark'
+          }`}
+        >
+          Register
+        </Text>
       </TouchableOpacity>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderRadius: 16,
-    marginBottom: 18,
-    padding: 6,
-    alignSelf: 'center',
-    width: '62%',
-  },
-  tab: {
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRadius: 12,
-  },
-  activeTab: {
-    backgroundColor: colors.input,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  tabText: {
-    color: colors.textMuted,
-    fontWeight: '600',
-  },
-  activeText: {
-    color: colors.textPrimary,
-  },
-});
 
 export default AuthTabs;
