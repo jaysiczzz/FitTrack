@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import ForgotPasswordLink from '@/components/auth/ForgotPasswordLink';
@@ -15,7 +15,7 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
   const handleSubmit = () => onSubmit({ email, password });
 
   return (
-    <View style={styles.container}>
+    <View className="w-full mt-2">
       <Input
         label="Email"
         placeholder="you@example.com"
@@ -36,12 +36,5 @@ const LoginForm: React.FC<Props> = ({ onSubmit }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-    marginTop: 8,
-  },
-});
 
 export default LoginForm;

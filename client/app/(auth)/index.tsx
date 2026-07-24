@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { View, SafeAreaView, StyleSheet } from 'react-native';
+import { View, SafeAreaView } from 'react-native';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
-import colors from '@/constants/colors';
 import { useRouter } from 'expo-router';
 
 export default function AuthIndex() {
@@ -18,8 +17,8 @@ export default function AuthIndex() {
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <View style={styles.container}>
+    <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
+      <View className="px-6 pt-3 flex-1 items-center">
         <AuthHeader />
         <AuthTabs active={active} onChange={setActive} />
 
@@ -32,16 +31,3 @@ export default function AuthIndex() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.background,
-  },
-  container: {
-    paddingHorizontal: 24,
-    paddingTop: 12,
-    flex: 1,
-    alignItems: 'center',
-  },
-});
