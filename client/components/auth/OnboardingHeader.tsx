@@ -4,22 +4,27 @@ import { useRouter } from 'expo-router';
 
 const OnboardingHeader: React.FC = () => {
   const router = useRouter();
+
   const handleBack = () => {
-    try {
-      if (typeof router.canGoBack === 'function' && router.canGoBack()) {
-        router.back();
-        return;
-      }
-    } catch (e) {
-      
+    if (router.canGoBack()) {
+      router.back();
+    } else {
+      router.replace('/(auth)');
     }
-    if (typeof router.replace === 'function') router.replace('/');
   };
+
   return (
-    <View className="mb-6 relative pt-1">
-      <TouchableOpacity onPress={handleBack} className="absolute left-0 top-0 mb-0">
-        <Text className="text-text-muted dark:text-text-muted-dark text-xl">←</Text>
+    <View className="mb-6">
+      <TouchableOpacity
+        onPress={handleBack}
+        className="flex-row items-center self-start mb-4 py-1 pr-3"
+        activeOpacity={0.7}
+        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+      >
+        <Text className="text-accent dark:text-accent-dark text-xl mr-1.5 font-semibold">←</Text>
+        <Text className="text-text-muted dark:text-text-muted-dark text-sm font-medium">Back to Login</Text>
       </TouchableOpacity>
+
       <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-bold mb-1.5">
         Almost done!
       </Text>
