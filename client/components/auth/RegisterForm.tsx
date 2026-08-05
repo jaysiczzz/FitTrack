@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ViewStyle } from 'react-native';
+import { View } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
@@ -16,12 +16,12 @@ const RegisterForm: React.FC<Props> = ({ onSubmit }) => {
   const handleSubmit = () => onSubmit({ firstName, lastName, email, password });
 
   return (
-    <View style={styles.container}>
-      <View style={styles.row}>
-        <View style={styles.half}>
+    <View className="w-full">
+      <View className="flex-row justify-between">
+        <View className="w-[48%]">
           <Input label="First Name" placeholder="John" value={firstName} onChangeText={setFirstName} />
         </View>
-        <View style={styles.half}>
+        <View className="w-[48%]">
           <Input label="Last Name" placeholder="Doe" value={lastName} onChangeText={setLastName} />
         </View>
       </View>
@@ -33,18 +33,5 @@ const RegisterForm: React.FC<Props> = ({ onSubmit }) => {
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  half: {
-    width: '48%',
-  } as ViewStyle,
-});
 
 export default RegisterForm;

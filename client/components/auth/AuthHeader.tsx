@@ -1,32 +1,17 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
-import colors from '@/constants/colors';
+import { View, Text } from 'react-native';
 
 const AuthHeader: React.FC = () => {
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Welcome to FitTrack</Text>
-      <Text style={styles.subtitle}>Your intelligent fitness companion powered by AI</Text>
+    <View className="items-center mb-6 mt-14">
+      <Text className="text-text-primary dark:text-text-primary-dark text-4xl font-bold mb-1.5">
+        Welcome to FitTrack
+      </Text>
+      <Text className="text-text-muted dark:text-text-muted-dark text-[13px]">
+        Your intelligent fitness companion powered by AI
+      </Text>
     </View>
   );
 };
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    marginBottom: 24,
-    marginTop: 56,
-  },
-  title: {
-    color: colors.textPrimary,
-    fontSize: 40,
-    fontWeight: '700',
-    marginBottom: 6,
-  },
-  subtitle: {
-    color: colors.textMuted,
-    fontSize: 13,
-  },
-});
 
 export default AuthHeader;
