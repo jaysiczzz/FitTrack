@@ -1,0 +1,71 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install Dependencies",
+      "type": "shell",
+      "command": "cd client && npm install",
+      "inAgents": true,
+      "runOptions": {
+        "runOn": "worktreeCreated"
+      },
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Expo (Web)",
+      "type": "shell",
+      "command": "cd client && npm start",
+      "inAgents": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new",
+        "focus": true
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    },
+    {
+      "label": "Start Expo (Android)",
+      "type": "shell",
+      "command": "cd client && npm run android",
+      "inAgents": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Expo (iOS)",
+      "type": "shell",
+      "command": "cd client && npm run ios",
+      "inAgents": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start Web Server",
+      "type": "shell",
+      "command": "cd client && npm run web",
+      "inAgents": true,
+      "presentation": {
+        "echo": true,
+        "reveal": "always",
+        "panel": "new"
+      },
+      "problemMatcher": [],
+      "isBackground": true
+    }
+  ]
+}
