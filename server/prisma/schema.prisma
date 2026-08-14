@@ -8,19 +8,66 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  height    Int     // cm
-  weight    Float  // kg
-  age       Int
-  goal      Goal
-  createdAt DateTime @default(now())
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  firstName       String
+  lastName        String
+  height          Int              // cm
+  weight          Float            // kg
+  age             Int
+  goal            Goal
+  createdAt       DateTime         @default(now())
+  workoutSessions WorkoutSession[]
 }
 
 enum Goal {
   MUSCLE_GAIN
   WEIGHT_LOSS
+}
+
+model Exercise {
+  id          String   @id @default(uuid())
+  name        String
+  category    String
+  muscleGroup String
+  type        String
+  defaultSets Json?
+  createdAt   DateTime @default(now())
+}
+
+model WorkoutSession {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  duration       Int               @default(0) // minutes
+  caloriesBurned Int               @default(0)
+  completed      Boolean           @default(false)
+  startedAt      DateTime          @default(now())
+  completedAt    DateTime?
+  exercises      WorkoutExercise[]
+  createdAt      DateTime          @default(now())
+}
+
+model WorkoutExercise {
+  id               String         @id @default(uuid())
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exerciseId       String?
+  name             String
+  category         String?
+  type             String?
+  sets             ExerciseSet[]
+}
+
+model ExerciseSet {
+  id                String          @id @default(uuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  setNumber         Int
+  weight            Float?
+  reps              Int?
+  bodyweight        Boolean         @default(false)
+  done              Boolean         @default(false)
 }

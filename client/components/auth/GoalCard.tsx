@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, View } from 'react-native';
 
 interface Props {
   label: string;
@@ -13,25 +13,38 @@ const GoalCard: React.FC<Props> = ({ label, icon, selected, onPress }) => {
     <TouchableOpacity
       onPress={onPress}
       activeOpacity={0.8}
-      className={`py-[18px] px-3 rounded-xl items-center justify-center w-[48%] border ${
+      className={`py-4 px-3 rounded-2xl items-center justify-center w-[48%] border relative ${
         selected
-          ? 'bg-input dark:bg-input-dark border-accent dark:border-accent-dark'
-          : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
+          ? 'bg-accent/10 dark:bg-accent-dark/15 border-accent dark:border-accent-dark'
+          : 'bg-surface dark:bg-surface-dark border-input-border/70 dark:border-input-border-dark/70'
       }`}
       style={
         selected
           ? {
               shadowColor: '#00E5A0',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: 0.12,
-              shadowRadius: 12,
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.2,
+              shadowRadius: 8,
               elevation: 4,
             }
           : undefined
       }
     >
-      <Text className="text-xl mb-2">{icon}</Text>
-      <Text className="text-text-primary dark:text-text-primary-dark font-bold">{label}</Text>
+      {selected ? (
+        <View className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-accent dark:bg-accent-dark items-center justify-center">
+          <Text className="text-black text-[10px] font-bold">✓</Text>
+        </View>
+      ) : null}
+      <Text className="text-2xl mb-2">{icon}</Text>
+      <Text
+        className={`font-bold text-sm text-center ${
+          selected
+            ? 'text-accent dark:text-accent-dark'
+            : 'text-text-primary dark:text-text-primary-dark'
+        }`}
+      >
+        {label}
+      </Text>
     </TouchableOpacity>
   );
 };

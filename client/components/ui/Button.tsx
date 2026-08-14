@@ -1,40 +1,47 @@
 import React from 'react';
-import { TouchableOpacity, Text, ViewStyle } from 'react-native';
+import { TouchableOpacity, Text, ViewStyle, ActivityIndicator } from 'react-native';
 
 interface Props {
   title: string;
   onPress?: () => void;
   disabled?: boolean;
+  loading?: boolean;
   style?: ViewStyle;
 }
 
-const Button: React.FC<Props> = ({ title, onPress, disabled, style }) => {
+const Button: React.FC<Props> = ({ title, onPress, disabled, loading, style }) => {
+  const isDisabled = disabled || loading;
+
   return (
     <TouchableOpacity
       activeOpacity={0.9}
       onPress={onPress}
-      disabled={disabled}
+      disabled={isDisabled}
       className={`h-14 rounded-2xl items-center justify-center w-full ${
-        disabled ? 'bg-input-border dark:bg-input-border-dark' : 'bg-accent dark:bg-accent-dark'
+        isDisabled ? 'bg-input-border dark:bg-input-border-dark opacity-80' : 'bg-accent dark:bg-accent-dark'
       }`}
       style={[
         {
-          shadowColor: disabled ? '#00E5A0' : '#00E5A0',
+          shadowColor: '#00E5A0',
           shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: disabled ? 0.06 : 0.12,
+          shadowOpacity: isDisabled ? 0.06 : 0.12,
           shadowRadius: 12,
-          elevation: disabled ? 2 : 6,
+          elevation: isDisabled ? 2 : 6,
         },
         style,
       ]}
     >
-      <Text
-        className={`font-bold text-base ${
-          disabled ? 'text-text-muted dark:text-text-muted-dark' : 'text-black'
-        }`}
-      >
-        {title}
-      </Text>
+      {loading ? (
+        <ActivityIndicator color="#000000" size="small" />
+      ) : (
+        <Text
+          className={`font-bold text-base ${
+            isDisabled ? 'text-text-muted dark:text-text-muted-dark' : 'text-black'
+          }`}
+        >
+          {title}
+        </Text>
+      )}
     </TouchableOpacity>
   );
 };

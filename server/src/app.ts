@@ -1,9 +1,10 @@
-import dotenv from 'dotenv'
-dotenv.config()
+import 'dotenv/config'
 
 import express from 'express'
 import cors from 'cors'
 import authRoutes from './routes/auth.routes'
+import userRoutes from './routes/user.routes'
+import workoutRoutes from './routes/workout.routes'
 import { errorHandler } from './middleware/error.middleware'
 
 const app = express()
@@ -16,6 +17,8 @@ app.get('/', (req, res) => {
 })
 
 app.use('/api/auth', authRoutes)
+app.use('/api/user', userRoutes)
+app.use('/api/workouts', workoutRoutes)
 
 app.use(errorHandler)
 
