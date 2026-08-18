@@ -7,43 +7,26 @@ import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayW
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
 import { LibraryExercise } from '@/components/workouts/mockData';
+import { ExerciseDetailsModal, getDifficultyPreset } from '@/components/workouts/ExerciseDetailsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
   getTodayWorkoutSession,
   addExerciseToTodaySession,
   toggleExerciseSetApi,
+  updateExerciseSetValuesApi,
+  addSetToWorkoutExerciseApi,
+  deleteExerciseSetApi,
   deleteWorkoutExerciseApi,
   completeWorkoutSessionApi,
+  getWorkoutHistory,
   ApiWorkoutExercise,
 } from '@/api/workout';
 
-const INITIAL_TODAY_EXERCISES: TodayExerciseItem[] = [
-  {
-    key: 'bench-press',
-    name: 'Bench Press',
-    category: 'Chest · Primary',
-    type: 'Strength',
-    sets: [
-      { id: '1', weight: '60', reps: '10', done: true },
-      { id: '2', weight: '65', reps: '8', done: true },
-      { id: '3', weight: '', reps: '', done: false },
-    ],
-  },
-  {
-    key: 'pull-ups',
-    name: 'Pull-ups',
-    category: 'Back · Primary',
-    type: 'Strength',
-    sets: [
-      { id: '1', bodyweight: true, reps: '12', done: true },
-      { id: '2', bodyweight: true, reps: '', done: false },
-    ],
-  },
-];
-
 export default function Workouts() {
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
-  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>(INITIAL_TODAY_EXERCISES);
+  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
+  const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [sessionCompleted, setSessionCompleted] = useState(false);
@@ -53,13 +36,22 @@ export default function Workouts() {
       setLoading(true);
       const res = await getTodayWorkoutSession();
       if (res.session && res.session.exercises) {
-        const formatted: TodayExerciseItem[] = res.session.exercises.map((e: ApiWorkoutExercise) => ({
+        const formatted: TodayExerciseItem[] = res.session.exercises.map((e: any) => ({
           key: e.id,
+          exerciseId: e.exerciseId || e.id,
           name: e.name,
-          category: e.category || undefined,
-          type: e.type || 'Strength',
-          sets: (e.sets || []).map((s) => ({
+          category: e.category || 'Strength',
+          type: e.type || 'Compound',
+          difficulty: e.difficulty || 'Intermediate',
+          primaryMuscle: e.primaryMuscle || 'Chest',
+          secondaryMuscles: e.secondaryMuscles,
+          equipment: e.equipment || 'Barbell',
+          recommendedSets: e.recommendedSets || 3,
+          recommendedReps: e.recommendedReps || 10,
+          recommendedRest: e.recommendedRest || 90,
+          sets: (e.sets || []).map((s: any, idx: number) => ({
             id: s.id,
+            setNumber: s.setNumber || idx + 1,
             weight: s.weight ? String(s.weight) : undefined,
             reps: s.reps ? String(s.reps) : undefined,
             bodyweight: s.bodyweight || false,
@@ -67,16 +59,41 @@ export default function Workouts() {
           })),
         }));
         setTodayExercises(formatted);
+      } else {
+        setTodayExercises([]);
       }
     } catch (err) {
-      console.log('Using default today session exercises');
+      console.log('Using clean active session state');
+      setTodayExercises([]);
     } finally {
       setLoading(false);
     }
   };
 
+  const fetchHistoryCount = async () => {
+    try {
+      const res = await getWorkoutHistory();
+      if (res.sessions) {
+        setCompletedSessionsCount(res.sessions.length);
+        if (res.sessions.length > 0) {
+          const lastSession = res.sessions[0];
+          setCompletedStats({
+            duration: lastSession.duration || 35,
+            caloriesBurned: lastSession.caloriesBurned || 240,
+          });
+        } else {
+          setCompletedStats(null);
+        }
+      }
+    } catch (err) {
+      setCompletedSessionsCount(0);
+      setCompletedStats(null);
+    }
+  };
+
   useEffect(() => {
     fetchTodaySession();
+    fetchHistoryCount();
   }, []);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {
@@ -100,6 +117,73 @@ export default function Workouts() {
     }
   };
 
+  const handleUpdateSet = async (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((set) =>
+            set.id === setId ? { ...set, [field]: String(newValue) } : set
+          ),
+        };
+      })
+    );
+
+    try {
+      await updateExerciseSetValuesApi(setId, { [field]: newValue });
+    } catch (err) {
+      console.log('Failed to update set values on API server');
+    }
+  };
+
+  const handleAddSet = async (exerciseKey: string) => {
+    try {
+      const res = await addSetToWorkoutExerciseApi(exerciseKey);
+      if (res.set) {
+        setTodayExercises((prev) =>
+          prev.map((ex) => {
+            if (ex.key !== exerciseKey) return ex;
+            return {
+              ...ex,
+              sets: [
+                ...ex.sets,
+                {
+                  id: res.set.id,
+                  setNumber: res.set.setNumber,
+                  weight: res.set.weight ? String(res.set.weight) : '20',
+                  reps: res.set.reps ? String(res.set.reps) : '10',
+                  bodyweight: res.set.bodyweight,
+                  done: false,
+                },
+              ],
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.log('Failed to add set on API server');
+    }
+  };
+
+  const handleDeleteSet = async (exerciseKey: string, setId: string) => {
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.filter((set) => set.id !== setId),
+        };
+      })
+    );
+
+    try {
+      await deleteExerciseSetApi(setId);
+    } catch (err) {
+      console.log('Failed to delete set on API server');
+    }
+  };
+
   const handleRemoveExercise = async (exerciseKey: string) => {
     setTodayExercises((prev) => prev.filter((ex) => ex.key !== exerciseKey));
     try {
@@ -109,24 +193,97 @@ export default function Workouts() {
     }
   };
 
+  const [addedNotice, setAddedNotice] = useState<string | null>(null);
+
+  const handleUpdateExercisePreset = async (exerciseKey: string, customized: LibraryExercise) => {
+    const targetTier = ((customized.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
+    const preset = getDifficultyPreset(customized, targetTier);
+    const targetSets = preset.defaultSets;
+
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        // Match strictly by unique instance key
+        if (ex.key !== exerciseKey) {
+          return ex;
+        }
+
+        const newSets = targetSets.map((s: any, idx: number) => ({
+          id: ex.sets[idx]?.id || `${ex.key}-preset-${idx + 1}`,
+          setNumber: idx + 1,
+          weight: s.weight !== undefined && s.weight !== null ? String(s.weight) : undefined,
+          reps: s.reps !== undefined && s.reps !== null ? String(s.reps) : undefined,
+          bodyweight: Boolean(s.bodyweight),
+          done: false,
+        }));
+
+        return {
+          ...ex,
+          difficulty: preset.difficulty,
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: preset.recommendedRest,
+          sets: newSets,
+        };
+      })
+    );
+
+    // Sync set values to backend only for this specific workout instance
+    const targetEx = todayExercises.find((ex) => ex.key === exerciseKey);
+
+    if (targetEx) {
+      targetEx.sets.forEach((setRow, idx) => {
+        const pSet = targetSets[idx];
+        if (pSet && setRow.id) {
+          updateExerciseSetValuesApi(setRow.id, {
+            weight: pSet.weight ? Number(pSet.weight) : undefined,
+            reps: pSet.reps ? Number(pSet.reps) : undefined,
+            done: false,
+          }).catch(() => {});
+        }
+      });
+    }
+
+    setAddedNotice(`✓ ${customized.name} updated to ${preset.difficulty.toUpperCase()} preset!`);
+    setTimeout(() => {
+      setAddedNotice(null);
+    }, 3500);
+  };
+
   const handleAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
+    const targetTier = ((libEx.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
+    const preset = getDifficultyPreset(libEx, targetTier);
+    const activeDefaultSets = preset.defaultSets;
+
     try {
       const res = await addExerciseToTodaySession({
         exerciseId: libEx.id,
         name: libEx.name,
         category: libEx.category,
         type: libEx.type,
-        defaultSets: libEx.defaultSets,
+        defaultSets: activeDefaultSets.map((s) => ({
+          weight: s.weight ? Number(s.weight) : undefined,
+          reps: s.reps ? Number(s.reps) : undefined,
+          bodyweight: Boolean(s.bodyweight),
+        })),
       });
 
       if (res.exercise) {
         const newEx: TodayExerciseItem = {
           key: res.exercise.id,
+          exerciseId: libEx.id,
           name: res.exercise.name,
-          category: res.exercise.category || undefined,
-          type: res.exercise.type || 'Strength',
-          sets: (res.exercise.sets || []).map((s: any) => ({
+          category: res.exercise.category || libEx.category,
+          difficulty: libEx.difficulty || preset.difficulty,
+          type: res.exercise.type || libEx.type || 'Compound',
+          primaryMuscle: libEx.primaryMuscle || libEx.muscleGroup || 'Chest',
+          secondaryMuscles: libEx.secondaryMuscles,
+          equipment: Array.isArray(libEx.equipment) ? libEx.equipment.join(', ') : libEx.equipment || 'Barbell',
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: libEx.recommendedRest || preset.recommendedRest,
+          sets: (res.exercise.sets || []).map((s: any, idx: number) => ({
             id: s.id,
+            setNumber: s.setNumber || idx + 1,
             weight: s.weight ? String(s.weight) : undefined,
             reps: s.reps ? String(s.reps) : undefined,
             bodyweight: s.bodyweight || false,
@@ -144,20 +301,35 @@ export default function Workouts() {
         ...prev,
         {
           key: fallbackKey,
+          exerciseId: libEx.id,
           name: libEx.name,
           category: libEx.category,
-          type: libEx.type,
-          sets: (libEx.defaultSets || []).map((s, idx) => ({
+          difficulty: preset.difficulty,
+          type: libEx.type || 'Compound',
+          primaryMuscle: libEx.primaryMuscle || libEx.muscleGroup || 'Chest',
+          secondaryMuscles: libEx.secondaryMuscles,
+          equipment: Array.isArray(libEx.equipment) ? libEx.equipment.join(', ') : libEx.equipment || 'Barbell',
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: libEx.recommendedRest || preset.recommendedRest,
+          sets: activeDefaultSets.map((s, idx) => ({
             id: String(idx + 1),
+            setNumber: idx + 1,
             weight: s.weight ? String(s.weight) : '',
             reps: s.reps ? String(s.reps) : '',
-            bodyweight: s.bodyweight || false,
+            bodyweight: Boolean(s.bodyweight),
             done: false,
           })),
         },
       ]);
     }
-    setActiveTab('today');
+
+    const currentCount = todayExercises.filter((ex) => ex.name.toLowerCase() === libEx.name.toLowerCase() || ex.exerciseId === libEx.id).length + 1;
+    const countSuffix = currentCount > 1 ? ` (${currentCount}x)` : '';
+    setAddedNotice(`✓ ${libEx.name}${countSuffix} added to Today's Workout!`);
+    setTimeout(() => {
+      setAddedNotice(null);
+    }, 3000);
   };
 
   const handleConfirmCompleteSession = async () => {
@@ -166,6 +338,7 @@ export default function Workouts() {
       await completeWorkoutSessionApi();
       setSessionCompleted(true);
       fetchTodaySession();
+      fetchHistoryCount();
     } catch (err) {
       setSessionCompleted(true);
     }
@@ -188,6 +361,15 @@ export default function Workouts() {
         {/* Top Segmented Tabs */}
         <WorkoutTabs activeTab={activeTab} onChange={setActiveTab} />
 
+        {/* Added Notification Toast */}
+        {addedNotice ? (
+          <View className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/15 dark:bg-emerald-500/20 p-3 items-center">
+            <Text className="text-xs font-bold text-emerald-400 text-center">
+              {addedNotice}
+            </Text>
+          </View>
+        ) : null}
+
         {/* Feedback Alert Banner */}
         {sessionCompleted ? (
           <View className="mb-4 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
@@ -201,8 +383,14 @@ export default function Workouts() {
         {activeTab === 'today' && (
           <TodayWorkoutTab
             exercises={todayExercises}
+            completedSessionsCount={completedSessionsCount}
+            completedStats={completedStats}
             onToggleSet={handleToggleSet}
+            onUpdateSet={handleUpdateSet}
+            onAddSet={handleAddSet}
+            onDeleteSet={handleDeleteSet}
             onRemoveExercise={handleRemoveExercise}
+            onUpdateExercisePreset={handleUpdateExercisePreset}
             onNavigateToLibrary={() => setActiveTab('library')}
             onCompleteSession={() => setShowCompleteModal(true)}
           />

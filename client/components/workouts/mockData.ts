@@ -1,10 +1,40 @@
 export interface LibraryExercise {
   id: string;
   name: string;
+  description?: string | null;
   category: string;
-  muscleGroup: 'Chest' | 'Back' | 'Legs' | 'Shoulders' | 'Arms' | 'Core';
-  type: 'Strength' | 'Cardio' | 'Flexibility' | 'Calisthenics';
-  defaultSets: { weight?: string; reps?: string; bodyweight?: boolean }[];
+  type: string;
+  difficulty?: string;
+  primaryMuscle?: string;
+  muscleGroup: string;
+  secondaryMuscles?: string[] | any;
+  bodyPart?: string;
+  equipment?: string[] | any;
+  equipmentAlternatives?: string[] | any;
+  startingPosition?: string | null;
+  instructions?: string[] | any;
+  formTips?: string[] | any;
+  commonMistakes?: string[] | any;
+  breathingTechnique?: string | null;
+  recommendedSets?: number;
+  recommendedReps?: number;
+  recommendedDuration?: number;
+  recommendedRest?: number;
+  recommendedTempo?: string | null;
+  defaultSets: { weight?: string | number; reps?: string | number; bodyweight?: boolean }[];
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
+  gifUrl?: string | null;
+  videoUrl?: string | null;
+  safetyInstructions?: string | null;
+  injuryPreventionTips?: string | null;
+  beginnerModification?: string | null;
+  advancedVariation?: string | null;
+  easierAlternative?: string | null;
+  harderAlternative?: string | null;
+  equipmentFreeAlternative?: string | null;
+  similarExercises?: string[] | any;
+  tags?: string[] | any;
 }
 
 export interface CompletedSession {
@@ -21,159 +51,114 @@ export const MOCK_LIBRARY: LibraryExercise[] = [
   {
     id: 'lib-1',
     name: 'Bench Press',
-    category: 'Chest · Primary',
+    description: 'A classic upper-body compound exercise that builds chest strength, shoulder power, and tricep stability.',
+    category: 'Strength',
+    type: 'Compound',
+    difficulty: 'Intermediate',
+    primaryMuscle: 'Chest',
     muscleGroup: 'Chest',
-    type: 'Strength',
+    secondaryMuscles: ['Triceps', 'Shoulders'],
+    bodyPart: 'Upper Body',
+    equipment: ['Barbell', 'Bench'],
+    equipmentAlternatives: ['Dumbbells', 'Chest Press Machine'],
+    startingPosition: 'Lie flat on the bench with your feet firmly planted on the floor and eyes directly underneath the bar.',
+    instructions: [
+      'Grip the bar slightly wider than shoulder-width with wrists straight.',
+      'Unrack the bar and balance it directly over your mid-chest.',
+      'Slowly lower the bar toward your sternum under strict control.',
+      'Press the bar upward explosively while driving feet into the ground.',
+      'Re-rack safely upon completing the prescribed repetitions.',
+    ],
+    formTips: ['Keep feet planted flat on the floor.', 'Maintain a slight natural arch in lower back.'],
+    commonMistakes: ['Bouncing the bar off the chest.', 'Flaring elbows out to 90 degrees.'],
+    breathingTechnique: 'Inhale deeply as you lower the bar; exhale forcefully as you press up.',
+    recommendedSets: 3,
+    recommendedReps: 10,
+    recommendedRest: 90,
     defaultSets: [
       { weight: '60', reps: '10' },
       { weight: '65', reps: '8' },
       { weight: '70', reps: '6' },
     ],
+    imageUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=60',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&auto=format&fit=crop&q=60',
+    safetyInstructions: 'Always use a spotter or safety pin arms when attempting heavy sets.',
+    injuryPreventionTips: 'Warm up shoulders and wrists before pressing heavy loads.',
+    beginnerModification: 'Push-ups or Machine Chest Press',
+    advancedVariation: 'Incline Barbell Bench Press',
+    easierAlternative: 'Machine Chest Press',
+    harderAlternative: 'Incline Barbell Bench Press',
+    equipmentFreeAlternative: 'Push-ups',
+    similarExercises: ['Dumbbell Bench Press', 'Incline Dumbbell Press'],
+    tags: ['chest', 'push', 'barbell', 'upper-body', 'strength'],
   },
   {
     id: 'lib-2',
     name: 'Incline Dumbbell Press',
-    category: 'Chest · Secondary',
+    description: 'Targets the upper clavicular portion of the chest.',
+    category: 'Strength',
+    type: 'Compound',
+    difficulty: 'Intermediate',
+    primaryMuscle: 'Chest',
     muscleGroup: 'Chest',
-    type: 'Strength',
+    secondaryMuscles: ['Shoulders', 'Triceps'],
+    bodyPart: 'Upper Body',
+    equipment: ['Dumbbells', 'Incline Bench'],
+    equipmentAlternatives: ['Incline Barbell Press'],
+    startingPosition: 'Sit on an incline bench set to 30-45 degrees holding dumbbells.',
+    instructions: [
+      'Press the dumbbells straight up directly above your upper chest.',
+      'Lower the dumbbells with control until palms are near chest height.',
+      'Press back up converging dumbbells slightly at the top.',
+    ],
+    formTips: ['Keep bench angle at 30-45 degrees.', 'Drive shoulders back.'],
+    commonMistakes: ['Setting bench angle too high.'],
+    breathingTechnique: 'Inhale on the descent; exhale on the push.',
+    recommendedSets: 3,
+    recommendedReps: 10,
+    recommendedRest: 75,
     defaultSets: [
       { weight: '22', reps: '10' },
       { weight: '24', reps: '10' },
       { weight: '24', reps: '8' },
     ],
+    imageUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&auto=format&fit=crop&q=60',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&auto=format&fit=crop&q=60',
+    tags: ['chest', 'incline', 'dumbbells', 'push'],
   },
   {
     id: 'lib-3',
     name: 'Pull-ups',
-    category: 'Back · Primary',
+    description: 'King of upper-body pull exercises targeting latissimus dorsi.',
+    category: 'Strength',
+    type: 'Bodyweight',
+    difficulty: 'Intermediate',
+    primaryMuscle: 'Back',
     muscleGroup: 'Back',
-    type: 'Calisthenics',
+    secondaryMuscles: ['Biceps', 'Forearms'],
+    bodyPart: 'Upper Body',
+    equipment: ['Pull-up Bar'],
+    equipmentAlternatives: ['Lat Pulldown Machine'],
+    startingPosition: 'Hang from pull-up bar with overhand grip wider than shoulders.',
+    instructions: [
+      'Pull up until chin clears over top of bar.',
+      'Lower smoothly to full arm extension.',
+    ],
+    formTips: ['Initiate movement by pulling shoulder blades down.'],
+    commonMistakes: ['Swinging lower body.'],
+    breathingTechnique: 'Exhale while pulling up; inhale lowering down.',
+    recommendedSets: 3,
+    recommendedReps: 10,
+    recommendedRest: 90,
     defaultSets: [
       { bodyweight: true, reps: '12' },
       { bodyweight: true, reps: '10' },
       { bodyweight: true, reps: '8' },
     ],
-  },
-  {
-    id: 'lib-4',
-    name: 'Bent-Over Barbell Row',
-    category: 'Back · Secondary',
-    muscleGroup: 'Back',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '50', reps: '10' },
-      { weight: '55', reps: '8' },
-      { weight: '60', reps: '8' },
-    ],
-  },
-  {
-    id: 'lib-5',
-    name: 'Barbell Squat',
-    category: 'Legs · Primary',
-    muscleGroup: 'Legs',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '80', reps: '8' },
-      { weight: '90', reps: '6' },
-      { weight: '100', reps: '5' },
-    ],
-  },
-  {
-    id: 'lib-6',
-    name: 'Romanian Deadlift',
-    category: 'Legs · Hamstrings',
-    muscleGroup: 'Legs',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '70', reps: '10' },
-      { weight: '75', reps: '8' },
-    ],
-  },
-  {
-    id: 'lib-7',
-    name: 'Overhead Shoulder Press',
-    category: 'Shoulders · Primary',
-    muscleGroup: 'Shoulders',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '40', reps: '10' },
-      { weight: '45', reps: '8' },
-    ],
-  },
-  {
-    id: 'lib-8',
-    name: 'Lateral Dumbbell Raises',
-    category: 'Shoulders · Isolation',
-    muscleGroup: 'Shoulders',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '10', reps: '15' },
-      { weight: '12', reps: '12' },
-    ],
-  },
-  {
-    id: 'lib-9',
-    name: 'Barbell Bicep Curl',
-    category: 'Arms · Biceps',
-    muscleGroup: 'Arms',
-    type: 'Strength',
-    defaultSets: [
-      { weight: '25', reps: '12' },
-      { weight: '30', reps: '10' },
-    ],
-  },
-  {
-    id: 'lib-10',
-    name: 'Hanging Leg Raise',
-    category: 'Core · Abs',
-    muscleGroup: 'Core',
-    type: 'Calisthenics',
-    defaultSets: [
-      { bodyweight: true, reps: '15' },
-      { bodyweight: true, reps: '15' },
-    ],
+    imageUrl: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&auto=format&fit=crop&q=60',
+    thumbnailUrl: 'https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=200&auto=format&fit=crop&q=60',
+    tags: ['back', 'pull', 'bodyweight', 'upper-body'],
   },
 ];
 
-export const MOCK_HISTORY: CompletedSession[] = [
-  {
-    id: 'hist-1',
-    date: 'Yesterday, Aug 4',
-    title: 'Upper Body Power',
-    duration: '45 min',
-    caloriesBurned: 320,
-    exercisesCount: 4,
-    exercises: [
-      { name: 'Bench Press', setsSummary: '3 sets · Max 70kg' },
-      { name: 'Pull-ups', setsSummary: '3 sets · Bodyweight' },
-      { name: 'Barbell Bicep Curl', setsSummary: '2 sets · Max 30kg' },
-      { name: 'Overhead Shoulder Press', setsSummary: '2 sets · Max 45kg' },
-    ],
-  },
-  {
-    id: 'hist-2',
-    date: 'Aug 2, 2026',
-    title: 'Lower Body & Core',
-    duration: '52 min',
-    caloriesBurned: 410,
-    exercisesCount: 3,
-    exercises: [
-      { name: 'Barbell Squat', setsSummary: '3 sets · Max 100kg' },
-      { name: 'Romanian Deadlift', setsSummary: '2 sets · Max 75kg' },
-      { name: 'Hanging Leg Raise', setsSummary: '2 sets · Bodyweight' },
-    ],
-  },
-  {
-    id: 'hist-3',
-    date: 'Jul 31, 2026',
-    title: 'Back & Biceps Focus',
-    duration: '40 min',
-    caloriesBurned: 280,
-    exercisesCount: 3,
-    exercises: [
-      { name: 'Pull-ups', setsSummary: '3 sets · Bodyweight' },
-      { name: 'Bent-Over Barbell Row', setsSummary: '3 sets · Max 60kg' },
-      { name: 'Barbell Bicep Curl', setsSummary: '2 sets · Max 25kg' },
-    ],
-  },
-];
+export const MOCK_HISTORY: CompletedSession[] = [];
