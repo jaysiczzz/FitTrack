@@ -1,279 +1,231 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
+import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
+import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
+import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
+import { LibraryExercise } from '@/components/workouts/mockData';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Pressable,
-} from 'react-native';
+  getTodayWorkoutSession,
+  addExerciseToTodaySession,
+  toggleExerciseSetApi,
+  deleteWorkoutExerciseApi,
+  completeWorkoutSessionApi,
+  ApiWorkoutExercise,
+} from '@/api/workout';
 
-type SetRow = {
-  id: string;
-  weight?: string;
-  reps?: string;
-  bodyweight?: boolean;
-  done?: boolean;
-};
-
-const ExerciseCard: React.FC<{
-  name: string;
-  category?: string;
-  type?: string;
-  sets: SetRow[];
-  onToggle: (setId: string) => void;
-}> = ({
-  name,
-  category,
-  type = 'Strength',
-  sets,
-  onToggle,
-}) => {
-  return (
-    <View className="mb-3 rounded-2xl border border-[#0F2B3A] bg-surface p-4">
-      <View className="mb-3 flex-row items-center justify-between">
-        <View>
-          <Text className="text-base font-extrabold text-text-primary">
-            {name}
-          </Text>
-          {category && (
-            <Text className="text-xs text-text-muted">
-              {category}
-            </Text>
-          )}
-        </View>
-        <View className="rounded-lg border border-[#202830] px-2 py-1">
-          <Text className="text-xs text-[#9BB0CA]">
-            {type}
-          </Text>
-        </View>
-      </View>
-      <View>
-        <View className="mb-2 flex-row justify-between">
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Set
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Weight (kg)
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Reps
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted" />
-        </View>
-        {sets.map((s) => (
-          <View
-            key={s.id}
-            className="mb-2 flex-row items-center"
-          >
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.id}
-              </Text>
-            </View>
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.bodyweight ? 'BW' : s.weight ?? ''}
-              </Text>
-            </View>
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.reps ?? ''}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => onToggle(s.id)}
-              className={`h-9 w-9 items-center justify-center rounded-full ${
-                s.done
-                  ? 'bg-accent'
-                  : 'border border-[#1F2A35] bg-input'
-              }`}
-            >
-              <Text
-                className={
-                  s.done
-                    ? 'font-extrabold text-[#071018]'
-                    : 'text-[#9BB0CA]'
-                }
-              >
-                {s.done ? '✓' : '○'}
-              </Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-};
+const INITIAL_TODAY_EXERCISES: TodayExerciseItem[] = [
+  {
+    key: 'bench-press',
+    name: 'Bench Press',
+    category: 'Chest · Primary',
+    type: 'Strength',
+    sets: [
+      { id: '1', weight: '60', reps: '10', done: true },
+      { id: '2', weight: '65', reps: '8', done: true },
+      { id: '3', weight: '', reps: '', done: false },
+    ],
+  },
+  {
+    key: 'pull-ups',
+    name: 'Pull-ups',
+    category: 'Back · Primary',
+    type: 'Strength',
+    sets: [
+      { id: '1', bodyweight: true, reps: '12', done: true },
+      { id: '2', bodyweight: true, reps: '', done: false },
+    ],
+  },
+];
 
 export default function Workouts() {
-  const [benchSets, setBenchSets] = React.useState<SetRow[]>([
-    { id: '1', weight: '60', reps: '10', done: true },
-    { id: '2', weight: '65', reps: '8', done: true },
-    { id: '3', weight: '', reps: '', done: false },
-  ]);
-  const [pullSets, setPullSets] = React.useState<SetRow[]>([
-    { id: '1', bodyweight: true, reps: '12', done: true },
-    { id: '2', bodyweight: true, reps: '', done: false },
-  ]);
-  const toggleSet = (
-    exercise: 'bench' | 'pull',
-    id: string
-  ) => {
-    const updater = (sets: SetRow[]) =>
-      sets.map((set) =>
-        set.id === id
-          ? { ...set, done: !set.done }
-          : set
-      );
-    if (exercise === 'bench') {
-      setBenchSets(updater);
-    }
-    if (exercise === 'pull') {
-      setPullSets(updater);
+  const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
+  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>(INITIAL_TODAY_EXERCISES);
+  const [loading, setLoading] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+
+  const fetchTodaySession = async () => {
+    try {
+      setLoading(true);
+      const res = await getTodayWorkoutSession();
+      if (res.session && res.session.exercises) {
+        const formatted: TodayExerciseItem[] = res.session.exercises.map((e: ApiWorkoutExercise) => ({
+          key: e.id,
+          name: e.name,
+          category: e.category || undefined,
+          type: e.type || 'Strength',
+          sets: (e.sets || []).map((s) => ({
+            id: s.id,
+            weight: s.weight ? String(s.weight) : undefined,
+            reps: s.reps ? String(s.reps) : undefined,
+            bodyweight: s.bodyweight || false,
+            done: s.done,
+          })),
+        }));
+        setTodayExercises(formatted);
+      }
+    } catch (err) {
+      console.log('Using default today session exercises');
+    } finally {
+      setLoading(false);
     }
   };
+
+  useEffect(() => {
+    fetchTodaySession();
+  }, []);
+
+  const handleToggleSet = async (exerciseKey: string, setId: string) => {
+    // Optimistic UI update
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((set) =>
+            set.id === setId ? { ...set, done: !set.done } : set
+          ),
+        };
+      })
+    );
+
+    try {
+      await toggleExerciseSetApi(setId);
+    } catch (err) {
+      console.log('Failed to toggle set on API server');
+    }
+  };
+
+  const handleRemoveExercise = async (exerciseKey: string) => {
+    setTodayExercises((prev) => prev.filter((ex) => ex.key !== exerciseKey));
+    try {
+      await deleteWorkoutExerciseApi(exerciseKey);
+    } catch (err) {
+      console.log('Failed to delete exercise on API server');
+    }
+  };
+
+  const handleAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
+    try {
+      const res = await addExerciseToTodaySession({
+        exerciseId: libEx.id,
+        name: libEx.name,
+        category: libEx.category,
+        type: libEx.type,
+        defaultSets: libEx.defaultSets,
+      });
+
+      if (res.exercise) {
+        const newEx: TodayExerciseItem = {
+          key: res.exercise.id,
+          name: res.exercise.name,
+          category: res.exercise.category || undefined,
+          type: res.exercise.type || 'Strength',
+          sets: (res.exercise.sets || []).map((s: any) => ({
+            id: s.id,
+            weight: s.weight ? String(s.weight) : undefined,
+            reps: s.reps ? String(s.reps) : undefined,
+            bodyweight: s.bodyweight || false,
+            done: s.done,
+          })),
+        };
+        setTodayExercises((prev) => [...prev, newEx]);
+      } else {
+        fetchTodaySession();
+      }
+    } catch (err) {
+      // Fallback local addition if server offline
+      const fallbackKey = `${libEx.id}-${Date.now()}`;
+      setTodayExercises((prev) => [
+        ...prev,
+        {
+          key: fallbackKey,
+          name: libEx.name,
+          category: libEx.category,
+          type: libEx.type,
+          sets: (libEx.defaultSets || []).map((s, idx) => ({
+            id: String(idx + 1),
+            weight: s.weight ? String(s.weight) : '',
+            reps: s.reps ? String(s.reps) : '',
+            bodyweight: s.bodyweight || false,
+            done: false,
+          })),
+        },
+      ]);
+    }
+    setActiveTab('today');
+  };
+
+  const handleConfirmCompleteSession = async () => {
+    setShowCompleteModal(false);
+    try {
+      await completeWorkoutSessionApi();
+      setSessionCompleted(true);
+      fetchTodaySession();
+    } catch (err) {
+      setSessionCompleted(true);
+    }
+    setTimeout(() => {
+      setSessionCompleted(false);
+    }, 4000);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
-        <Text className="mb-3 text-sm text-text-muted">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
+        {/* Header */}
+        <Text className="mb-1 text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
+          Workouts
+        </Text>
+        <Text className="mb-4 text-xs text-text-muted dark:text-text-muted-dark">
           Track your exercise completion and performance
         </Text>
-        <View className="mt-1">
-          <Pressable
-            className="mb-3 self-end rounded-lg border border-[#14333E] bg-input px-3 py-2"
-          >
-            <Text className="text-accent font-bold">
-              + Add Workout
+
+        {/* Top Segmented Tabs */}
+        <WorkoutTabs activeTab={activeTab} onChange={setActiveTab} />
+
+        {/* Feedback Alert Banner */}
+        {sessionCompleted ? (
+          <View className="mb-4 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
+            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
+              🎉 Workout session completed and saved to history!
             </Text>
-          </Pressable>
-          <ExerciseCard
-            name="Bench Press"
-            category="Chest · Primary"
-            type="Strength"
-            sets={benchSets}
-            onToggle={(id) =>
-              toggleSet('bench', id)
-            }
+          </View>
+        ) : null}
+
+        {/* Tab Content */}
+        {activeTab === 'today' && (
+          <TodayWorkoutTab
+            exercises={todayExercises}
+            onToggleSet={handleToggleSet}
+            onRemoveExercise={handleRemoveExercise}
+            onNavigateToLibrary={() => setActiveTab('library')}
+            onCompleteSession={() => setShowCompleteModal(true)}
           />
-          <ExerciseCard
-            name="Pull-ups"
-            category="Back · Primary"
-            type="Strength"
-            sets={pullSets}
-            onToggle={(id) =>
-              toggleSet('pull', id)
-            }
-          />
-          <Pressable
-            onPress={() =>
-              console.log('Complete Workout Session')
-            }
-            className="mt-2 items-center rounded-xl bg-accent py-4"
-          >
-            <Text className="text-base font-extrabold text-[#071018]">
-              Complete Workout Session
-            </Text>
-          </Pressable>
-          {/* AI PLAN */}
-          <View className="mt-3 rounded-xl border border-[#15323B] bg-surface p-3">
-            <View className="mb-2 flex-row items-center">
-              <Text className="mr-2 text-xl">
-                🤖
-              </Text>
-              <View className="flex-1">
-                <Text className="font-bold text-text-primary">
-                  Today's AI-Generated Plan
-                </Text>
-                <View className="mt-1 self-start rounded-full bg-accent px-2 py-1">
-                  <Text className="text-xs font-bold text-[#071018]">
-                    Personalized
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <Text className="leading-5 text-[#CFE8FF]">
-              <Text className="font-bold text-accent">
-                Based on your muscle gain goal
-              </Text>
-              {' '}and yesterday's cardio, today is optimized for Upper Body Strength.
-              Estimated calorie burn:
-              <Text className="font-bold text-accent">
-                {' '}380–420 kcal
-              </Text>
-              .
-            </Text>
-          </View>
-          {/* SESSION STATS */}
-          <View className="mt-4">
-            <Text className="mb-2 text-base font-bold text-text-primary">
-              Session Stats
-            </Text>
-            <View>
-              <View className="mb-3 rounded-xl border border-[#0F2B3A] bg-surface p-3">
-                <Text className="mb-1 text-xs text-text-muted">
-                  DURATION
-                </Text>
-                <Text className="text-[22px] font-black text-[#00E5A0]">
-                  34
-                  <Text className="text-sm text-text-muted">
-                    {' '}min
-                  </Text>
-                </Text>
-              </View>
-              <View className="rounded-xl border border-[#0F2B3A] bg-surface p-3">
-                <Text className="mb-1 text-xs text-text-muted">
-                  ESTIMATED BURN
-                </Text>
-                <Text className="text-[22px] font-black text-[#3B9EFF]">
-                  210
-                  <Text className="text-sm text-text-muted">
-                    {' '}kcal
-                  </Text>
-                </Text>
-              </View>
-            </View>
-          </View>
-          {/* PERSONAL RECORDS */}
-          <View className="mt-4">
-            <Text className="mb-2 text-base font-bold text-text-primary">
-              Personal Records
-            </Text>
-            <View className="rounded-xl border border-[#0F2B3A] bg-surface p-3">
-              {[
-                ['🏆', '#FFD166', 'Bench Press', 'PR: 80kg × 6 reps'],
-                ['🏆', '#9AD3FF', 'Pull-ups', 'PR: 15 reps'],
-                ['🏆', '#E6B89C', 'Squat', 'PR: 100kg × 5 reps'],
-              ].map(([icon, color, name, record], index) => (
-                <React.Fragment key={name}>
-                  <View className="flex-row items-center py-2">
-                    <View
-                      style={{
-                        backgroundColor: color,
-                      }}
-                      className="mr-3 h-10 w-10 items-center justify-center rounded-lg"
-                    >
-                      <Text>
-                        {icon}
-                      </Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="font-bold text-text-primary">
-                        {name}
-                      </Text>
-                      <Text className="text-xs text-text-muted">
-                        {record}
-                      </Text>
-                    </View>
-                  </View>
-                  {index !== 2 && (
-                    <View className="h-px bg-[#0F2B3A]" />
-                  )}
-                </React.Fragment>
-              ))}
-            </View>
-          </View>
-        </View>
+        )}
+
+        {activeTab === 'library' && (
+          <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
+        )}
+
+        {activeTab === 'history' && <WorkoutHistoryTab />}
       </ScrollView>
+
+      {/* Completion Modal */}
+      <ConfirmModal
+        visible={showCompleteModal}
+        title="Complete Session"
+        message="Great job! Ready to log and complete today's workout session?"
+        icon="🏆"
+        confirmText="Finish & Save"
+        cancelText="Keep Training"
+        onConfirm={handleConfirmCompleteSession}
+        onCancel={() => setShowCompleteModal(false)}
+      />
     </SafeAreaView>
   );
 }

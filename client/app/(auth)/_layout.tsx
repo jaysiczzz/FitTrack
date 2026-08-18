@@ -1,6 +1,10 @@
-import React from 'react';
 import { Stack } from 'expo-router';
+import { RegistrationProvider } from '../../context/RegistrationContext';
 
 export default function AuthLayout() {
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <RegistrationProvider>
+      <Stack screenOptions={{ headerShown: false }} />
+    </RegistrationProvider>
+  );
 }

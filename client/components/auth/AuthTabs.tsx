@@ -8,56 +8,62 @@ interface Props {
 
 const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
   return (
-    <View className="flex-row bg-surface dark:bg-surface-dark rounded-2xl mb-[18px] p-1.5 self-center w-[62%]">
+    <View className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-6 p-1.5 w-full">
       <TouchableOpacity
-        className={`py-3 px-[18px] items-center justify-center rounded-xl ${
-          active === 'login' ? 'bg-input dark:bg-input-dark' : ''
+        activeOpacity={0.8}
+        className={`flex-1 py-3 items-center justify-center rounded-xl ${
+          active === 'login'
+            ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+            : ''
         }`}
         style={
           active === 'login'
             ? {
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
+                shadowOpacity: 0.15,
                 shadowRadius: 4,
-                elevation: 4,
+                elevation: 3,
               }
             : undefined
         }
         onPress={() => onChange('login')}
       >
         <Text
-          className={`font-semibold ${
+          className={`font-bold text-sm ${
             active === 'login'
               ? 'text-text-primary dark:text-text-primary-dark'
-              : 'text-text-muted dark:text-text-muted-dark'
+              : 'text-text-muted dark:text-text-muted-dark font-medium'
           }`}
         >
           Log In
         </Text>
       </TouchableOpacity>
       <TouchableOpacity
-        className={`py-3 px-[18px] items-center justify-center rounded-xl ${
-          active === 'register' ? 'bg-input dark:bg-input-dark' : ''
+        activeOpacity={0.8}
+        className={`flex-1 py-3 items-center justify-center rounded-xl ${
+          active === 'register'
+            ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+            : ''
         }`}
         style={
           active === 'register'
             ? {
                 shadowColor: '#000',
                 shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.3,
+                shadowOpacity: 0.15,
                 shadowRadius: 4,
-                elevation: 4,
+                elevation: 3,
               }
             : undefined
         }
         onPress={() => onChange('register')}
       >
         <Text
-          className={`font-semibold ${
+          className={`font-bold text-sm ${
             active === 'register'
               ? 'text-text-primary dark:text-text-primary-dark'
-              : 'text-text-muted dark:text-text-muted-dark'
+              : 'text-text-muted dark:text-text-muted-dark font-medium'
           }`}
         >
           Register
