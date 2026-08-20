@@ -2,7 +2,8 @@ import jwt from 'jsonwebtoken'
 import { jwtSecret, jwtExpiresIn } from '../config/env'
 
 export interface jwtPayload {
-    id: string
+  id: string
+  role?: string
 }
 
 export const signToken = (payload: jwtPayload): string => {

@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 
 const OnboardingHeader: React.FC = () => {
   const router = useRouter();
+
   const handleBack = () => {
     try {
       if (typeof router.canGoBack === 'function' && router.canGoBack()) {
@@ -11,7 +12,7 @@ const OnboardingHeader: React.FC = () => {
         return;
       }
     } catch (e) {}
-    if (typeof router.replace === 'function') router.replace('/');
+    if (typeof router.replace === 'function') router.replace('/(auth)');
   };
 
   return (
