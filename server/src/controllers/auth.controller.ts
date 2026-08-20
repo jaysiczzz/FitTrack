@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
-import { Goal } from '../generated/prisma'
+import { Goal } from '@prisma/client'
 import { hashPassword, comparePassword } from '../utils/password.utils'
 import { signToken } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
