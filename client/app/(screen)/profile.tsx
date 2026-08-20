@@ -1,41 +1,100 @@
-import React from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  SafeAreaView,
   ScrollView,
   View,
   Text,
   TouchableOpacity,
   TextInput,
   useColorScheme,
+  ActivityIndicator,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getUserProfile, updateUserProfile } from '@/api/user';
 
-const INITIAL = {
-  firstName: 'John',
-  lastName: 'Doe',
-  height: '178',
-  weight: '74.5',
-  age: '28',
-  goal: 'muscle' as 'muscle' | 'loss',
-};
+interface UserData {
+  id?: string;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  height?: number;
+  weight?: number;
+  age?: number;
+  goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
+}
 
 export default function Profile() {
   const isDark = useColorScheme() === 'dark';
   const placeholderColor = isDark ? '#8A93A6' : '#5C6478';
 
-  const [firstName, setFirstName] = React.useState(INITIAL.firstName);
-  const [lastName, setLastName] = React.useState(INITIAL.lastName);
-  const [height, setHeight] = React.useState(INITIAL.height);
-  const [weight, setWeight] = React.useState(INITIAL.weight);
-  const [age, setAge] = React.useState(INITIAL.age);
-  const [goal, setGoal] = React.useState<'muscle' | 'loss'>(INITIAL.goal);
+  const [savedUser, setSavedUser] = useState<UserData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+
+  // Form states
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
+  const [height, setHeight] = useState('');
+  const [weight, setWeight] = useState('');
+  const [age, setAge] = useState('');
+  const [goal, setGoal] = useState<'muscle' | 'loss'>('muscle');
 
   const calendarDays = new Set([1, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21]);
   const partialDays = new Set([11]);
 
-  const bmi = React.useMemo(() => {
+  const applyUserData = (u: UserData) => {
+    setSavedUser(u);
+    if (u.firstName) setFirstName(u.firstName);
+    if (u.lastName) setLastName(u.lastName);
+    if (u.email) setEmail(u.email);
+    if (u.height !== undefined) setHeight(String(u.height));
+    if (u.weight !== undefined) setWeight(String(u.weight));
+    if (u.age !== undefined) setAge(String(u.age));
+    if (u.goal) {
+      setGoal(u.goal === 'MUSCLE_GAIN' ? 'muscle' : 'loss');
+    }
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadProfile = async () => {
+      // 1. Instant render from local AsyncStorage
+      try {
+        const cachedUserStr = await AsyncStorage.getItem('user');
+        if (cachedUserStr && isMounted) {
+          const cachedUser = JSON.parse(cachedUserStr);
+          applyUserData(cachedUser);
+        }
+      } catch (e) {}
+
+      // 2. Fetch fresh user profile from API server
+      try {
+        const res = await getUserProfile();
+        if (res.user && isMounted) {
+          applyUserData(res.user);
+          await AsyncStorage.setItem('user', JSON.stringify(res.user));
+        }
+      } catch (err: any) {
+        console.log('Profile fetch error:', err.message);
+      } finally {
+        if (isMounted) setLoading(false);
+      }
+    };
+
+    loadProfile();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const bmi = useMemo(() => {
     const h = parseFloat(height) / 100;
     const w = parseFloat(weight);
-    if (!h || !w) return null;
+    if (!h || !w || h <= 0 || w <= 0) return null;
     const value = w / (h * h);
     const category =
       value < 18.5 ? 'Underweight' : value < 25 ? 'Normal Weight' : value < 30 ? 'Overweight' : 'Obese';
@@ -43,30 +102,79 @@ export default function Profile() {
   }, [height, weight]);
 
   const handleDiscard = () => {
-    setFirstName(INITIAL.firstName);
-    setLastName(INITIAL.lastName);
-    setHeight(INITIAL.height);
-    setWeight(INITIAL.weight);
-    setAge(INITIAL.age);
-    setGoal(INITIAL.goal);
+    if (savedUser) {
+      applyUserData(savedUser);
+      setMessage(null);
+    }
   };
 
-  const handleSave = () => {
-    console.log('Save profile', { firstName, lastName, height, weight, age, goal });
+  const handleSave = async () => {
+    setMessage(null);
+
+    const hNum = Number(height);
+    const wNum = Number(weight);
+    const aNum = Number(age);
+
+    if (!firstName.trim() || !lastName.trim()) {
+      setMessage({ type: 'error', text: 'First and last names are required.' });
+      return;
+    }
+    if (isNaN(hNum) || hNum <= 0 || hNum > 300) {
+      setMessage({ type: 'error', text: 'Please enter a valid height between 1 and 300 cm.' });
+      return;
+    }
+    if (isNaN(wNum) || wNum <= 0 || wNum > 500) {
+      setMessage({ type: 'error', text: 'Please enter a valid weight between 1 and 500 kg.' });
+      return;
+    }
+    if (isNaN(aNum) || aNum <= 0 || aNum > 120) {
+      setMessage({ type: 'error', text: 'Please enter a valid age between 1 and 120.' });
+      return;
+    }
+
+    try {
+      setSaving(true);
+      const mappedGoal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' = goal === 'muscle' ? 'MUSCLE_GAIN' : 'WEIGHT_LOSS';
+
+      const res = await updateUserProfile({
+        firstName: firstName.trim(),
+        lastName: lastName.trim(),
+        height: hNum,
+        weight: wNum,
+        age: aNum,
+        goal: mappedGoal,
+      });
+
+      if (res.user) {
+        applyUserData(res.user);
+        await AsyncStorage.setItem('user', JSON.stringify(res.user));
+        setMessage({ type: 'success', text: 'Profile updated successfully!' });
+      }
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Failed to update profile' });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
+        {/* User Card Header */}
         <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-3">
           <Text className="text-text-primary dark:text-text-primary-dark text-xl font-extrabold text-center">
-            {firstName} {lastName}
+            {firstName || 'User'} {lastName || ''}
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-center mt-1.5">
+          {email ? (
+            <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5">
+              {email}
+            </Text>
+          ) : null}
+          <Text className="text-text-muted dark:text-text-muted-dark text-center mt-1.5 text-xs font-medium">
             🎯 Goal: {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
           </Text>
 
-          <View className="flex-row justify-around mt-3">
+          <View className="flex-row justify-around mt-3 pt-3 border-t border-input-border/60 dark:border-input-border-dark/60">
             <View className="items-center">
               <Text className="text-accent dark:text-accent-dark text-lg font-extrabold">12</Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">Day Streak</Text>
@@ -82,18 +190,40 @@ export default function Profile() {
           </View>
         </View>
 
+        {/* Feedback Alert Message */}
+        {message ? (
+          <View
+            className={`w-full rounded-xl p-3 mb-3 border ${
+              message.type === 'error'
+                ? 'bg-red-500/10 border-red-500/30'
+                : 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40'
+            }`}
+          >
+            <Text
+              className={`text-xs font-semibold text-center ${
+                message.type === 'error'
+                  ? 'text-red-500 dark:text-red-400'
+                  : 'text-accent dark:text-accent-dark'
+              }`}
+            >
+              {message.text}
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Personal Information Edit Form */}
         <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-4">
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-2">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-3">
             Personal Information
           </Text>
 
           <View className="flex-row justify-between">
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">
                 FIRST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="First"
@@ -101,11 +231,11 @@ export default function Profile() {
               />
             </View>
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">
                 LAST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Last"
@@ -116,26 +246,28 @@ export default function Profile() {
 
           <View className="flex-row justify-between">
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">
                 HEIGHT (CM)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="numeric"
+                placeholder="170"
                 placeholderTextColor={placeholderColor}
               />
             </View>
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">
-                CURRENT WEIGHT (KG)
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">
+                WEIGHT (KG)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
+                placeholder="70"
                 placeholderTextColor={placeholderColor}
               />
             </View>
@@ -143,76 +275,88 @@ export default function Profile() {
 
           <View className="flex-row justify-between">
             <View className="flex-1 mb-3 mr-2">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">AGE</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">AGE</Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
                 value={age}
                 onChangeText={setAge}
                 keyboardType="numeric"
+                placeholder="25"
                 placeholderTextColor={placeholderColor}
               />
             </View>
             <View className="flex-1 mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5">BMI</Text>
-              <View className="bg-input dark:bg-input-dark p-2.5 rounded-[10px] border border-input-border dark:border-input-border-dark">
-                <Text className="text-text-primary dark:text-text-primary-dark">
-                  {bmi ?? 'Enter height & weight'}
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">BMI</Text>
+              <View className="bg-input dark:bg-input-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark justify-center">
+                <Text className="text-text-primary dark:text-text-primary-dark text-xs font-bold" numberOfLines={1}>
+                  {bmi ?? 'N/A'}
                 </Text>
               </View>
             </View>
           </View>
 
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-2 mt-[18px]">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-2 mt-3">
             Select Fitness Goal
           </Text>
-          <View className="flex-row justify-between">
+          <View className="flex-row justify-between mb-4">
             <TouchableOpacity
-              className={`flex-1 p-3 rounded-xl mr-2.5 border items-center ${
+              activeOpacity={0.8}
+              className={`flex-1 p-3 rounded-2xl mr-2.5 border items-center ${
                 goal === 'muscle'
-                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10'
+                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
               }`}
               onPress={() => setGoal('muscle')}
             >
               <Text className="text-2xl">💪</Text>
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold mt-1.5">
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold mt-1.5 text-xs">
                 Muscle Gain
               </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs">Build lean muscle mass</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] text-center mt-0.5">Build lean muscle mass</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
-              className={`flex-1 p-3 rounded-xl border items-center ${
+              activeOpacity={0.8}
+              className={`flex-1 p-3 rounded-2xl border items-center ${
                 goal === 'loss'
-                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/10'
+                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
               }`}
               onPress={() => setGoal('loss')}
             >
               <Text className="text-2xl">🔥</Text>
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold mt-1.5">
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold mt-1.5 text-xs">
                 Weight Loss
               </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs">Burn fat efficiently</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] text-center mt-0.5">Burn fat efficiently</Text>
             </TouchableOpacity>
           </View>
 
-          <View className="flex-row justify-between mt-3.5">
+          {/* Form Action Buttons */}
+          <View className="flex-row justify-between items-center gap-x-2 pt-2 border-t border-input-border/60 dark:border-input-border-dark/60">
             <TouchableOpacity
-              className="bg-transparent border border-input-border dark:border-input-border-dark py-2.5 px-3 rounded-[10px]"
+              activeOpacity={0.8}
+              className="bg-transparent border border-input-border dark:border-input-border-dark py-3 px-4 rounded-xl flex-1 items-center"
               onPress={handleDiscard}
             >
-              <Text className="text-text-muted dark:text-text-muted-dark">Discard Changes</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark font-semibold text-xs">Discard Changes</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              className="bg-accent dark:bg-accent-dark py-2.5 px-4 rounded-[10px]"
+              activeOpacity={0.9}
+              disabled={saving}
+              className="bg-accent dark:bg-accent-dark py-3 px-4 rounded-xl flex-1 items-center justify-center"
               onPress={handleSave}
             >
-              <Text className="text-background dark:text-background-dark font-bold">Save Profile</Text>
+              {saving ? (
+                <ActivityIndicator color="#000000" size="small" />
+              ) : (
+                <Text className="text-background dark:text-background-dark font-bold text-xs">Save Profile</Text>
+              )}
             </TouchableOpacity>
           </View>
         </View>
 
+        {/* Calendar & Tracker */}
         <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-2">
           Calendar & Tracker
         </Text>
@@ -260,42 +404,20 @@ export default function Profile() {
           <View className="flex-row justify-around mt-2">
             <View className="flex-row items-center">
               <View className="w-2.5 h-2.5 rounded-full mr-1.5 bg-accent dark:bg-accent-dark" />
-              <Text className="text-text-muted dark:text-text-muted-dark">Done</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">Done</Text>
             </View>
             <View className="flex-row items-center">
               <View className="w-2.5 h-2.5 rounded-full mr-1.5 bg-[#FFD166]" />
-              <Text className="text-text-muted dark:text-text-muted-dark">Partial</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">Partial</Text>
             </View>
             <View className="flex-row items-center">
               <View className="w-2.5 h-2.5 rounded-full mr-1.5 bg-input dark:bg-input-dark" />
-              <Text className="text-text-muted dark:text-text-muted-dark">Rest</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">Rest</Text>
             </View>
           </View>
         </View>
 
-        <View className="flex-row justify-between mb-3">
-          <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 items-center flex-1 mr-2">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-lg">12</Text>
-            <Text className="text-text-muted dark:text-text-muted-dark">Day Streak</Text>
-          </View>
-          <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 items-center flex-1 mr-2">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-lg">18</Text>
-            <Text className="text-text-muted dark:text-text-muted-dark">Completed</Text>
-          </View>
-          <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 items-center flex-1">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-lg">4</Text>
-            <Text className="text-text-muted dark:text-text-muted-dark">Rest Days</Text>
-          </View>
-        </View>
-
-        <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 border border-input-border dark:border-input-border-dark mb-3">
-          <Text className="text-text-muted dark:text-text-muted-dark font-bold mb-1.5">Weekly Goal</Text>
-          <View className="h-2 bg-input dark:bg-input-dark rounded-lg overflow-hidden">
-            <View className="h-2 w-[71%] bg-accent dark:bg-accent-dark" />
-          </View>
-          <Text className="text-text-muted dark:text-text-muted-dark mt-2">5 / 7 days completed · 71%</Text>
-        </View>
-
+        {/* Schedule */}
         <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 border border-input-border dark:border-input-border-dark mb-3">
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-2">
             Today's Schedule
@@ -306,8 +428,8 @@ export default function Profile() {
               <Text>🏃‍♂️</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold">Morning Run</Text>
-              <Text className="text-text-muted dark:text-text-muted-dark">7:00 AM · 30 min</Text>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">Morning Run</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">7:00 AM · 30 min</Text>
             </View>
             <Text className="text-accent dark:text-accent-dark font-extrabold ml-2">✓</Text>
           </View>
@@ -317,8 +439,8 @@ export default function Profile() {
               <Text>💪</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold">Upper Body</Text>
-              <Text className="text-text-muted dark:text-text-muted-dark">10:00 AM · 45 min</Text>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">Upper Body</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">10:00 AM · 45 min</Text>
             </View>
             <Text className="text-accent dark:text-accent-dark font-extrabold ml-2">✓</Text>
           </View>
@@ -328,16 +450,14 @@ export default function Profile() {
               <Text>🧘</Text>
             </View>
             <View className="flex-1">
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold">Evening Yoga</Text>
-              <Text className="text-text-muted dark:text-text-muted-dark">6:00 PM · 20 min</Text>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">Evening Yoga</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs">6:00 PM · 20 min</Text>
             </View>
             <TouchableOpacity className="bg-accent dark:bg-accent-dark px-2.5 py-1.5 rounded-lg">
-              <Text className="text-background dark:text-background-dark font-bold">Log</Text>
+              <Text className="text-background dark:text-background-dark font-bold text-xs">Log</Text>
             </TouchableOpacity>
           </View>
         </View>
-
-        <View className="h-10" />
       </ScrollView>
     </SafeAreaView>
   );

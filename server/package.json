@@ -13,6 +13,7 @@
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@google/genai": "^2.17.1",
     "@prisma/adapter-neon": "^7.8.0",
     "@prisma/client": "^7.8.0",
     "@types/bcrypt": "^6.0.0",
@@ -27,8 +28,6 @@
     "jsonwebtoken": "^9.0.3",
     "prisma": "^7.8.0",
     "typescript": "^7.0.2"
-<<<<<<< Updated upstream
-=======
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
@@ -39,6 +38,5 @@
     "@prisma/engines@7.8.0": true,
     "bcrypt@6.0.0": true,
     "esbuild@0.28.1": true
->>>>>>> Stashed changes
   }
 }

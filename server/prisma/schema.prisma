@@ -8,19 +8,104 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(uuid())
-  email     String   @unique
-  password  String
-  firstName String
-  lastName  String
-  height    Int     // cm
-  weight    Float  // kg
-  age       Int
-  goal      Goal
-  createdAt DateTime @default(now())
+  id              String           @id @default(uuid())
+  email           String           @unique
+  password        String
+  firstName       String
+  lastName        String
+  role            Role             @default(USER)
+  height          Int              // cm
+  weight          Float            // kg
+  age             Int
+  goal            Goal
+  createdAt       DateTime         @default(now())
+  workoutSessions WorkoutSession[]
 }
 
 enum Goal {
   MUSCLE_GAIN
   WEIGHT_LOSS
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model Exercise {
+  id                       String   @id @default(uuid())
+  name                     String
+  description              String?
+  category                 String   @default("Strength")
+  type                     String   @default("Compound")
+  difficulty               String   @default("Beginner")
+  primaryMuscle            String   @default("Chest")
+  muscleGroup              String   @default("Chest")
+  secondaryMuscles         Json?
+  bodyPart                 String   @default("Upper Body")
+  equipment                Json?
+  equipmentAlternatives    Json?
+  startingPosition         String?
+  instructions             Json?
+  formTips                 Json?
+  commonMistakes           Json?
+  breathingTechnique       String?
+  recommendedSets          Int?
+  recommendedReps          Int?
+  recommendedDuration      Int?
+  recommendedRest          Int?
+  recommendedTempo         String?
+  defaultSets              Json?
+  imageUrl                 String?
+  thumbnailUrl             String?
+  gifUrl                   String?
+  videoUrl                 String?
+  safetyInstructions       String?
+  injuryPreventionTips     String?
+  beginnerModification     String?
+  advancedVariation        String?
+  easierAlternative        String?
+  harderAlternative        String?
+  equipmentFreeAlternative String?
+  similarExercises         Json?
+  tags                     Json?
+  difficultyPresets        Json?
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @default(now()) @updatedAt
+}
+
+model WorkoutSession {
+  id             String            @id @default(uuid())
+  userId         String
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title          String
+  duration       Int               @default(0) // minutes
+  caloriesBurned Int               @default(0)
+  completed      Boolean           @default(false)
+  startedAt      DateTime          @default(now())
+  completedAt    DateTime?
+  exercises      WorkoutExercise[]
+  createdAt      DateTime          @default(now())
+}
+
+model WorkoutExercise {
+  id               String         @id @default(uuid())
+  workoutSessionId String
+  workoutSession   WorkoutSession @relation(fields: [workoutSessionId], references: [id], onDelete: Cascade)
+  exerciseId       String?
+  name             String
+  category         String?
+  type             String?
+  sets             ExerciseSet[]
+}
+
+model ExerciseSet {
+  id                String          @id @default(uuid())
+  workoutExerciseId String
+  workoutExercise   WorkoutExercise @relation(fields: [workoutExerciseId], references: [id], onDelete: Cascade)
+  setNumber         Int
+  weight            Float?
+  reps              Int?
+  bodyweight        Boolean         @default(false)
+  done              Boolean         @default(false)
 }

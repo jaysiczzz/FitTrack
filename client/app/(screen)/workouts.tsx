@@ -1,279 +1,419 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+
+import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
+import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
+import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
+import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
+import { LibraryExercise } from '@/components/workouts/mockData';
+import { ExerciseDetailsModal, getDifficultyPreset } from '@/components/workouts/ExerciseDetailsModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import {
-  SafeAreaView,
-  ScrollView,
-  View,
-  Text,
-  Pressable,
-} from 'react-native';
-
-type SetRow = {
-  id: string;
-  weight?: string;
-  reps?: string;
-  bodyweight?: boolean;
-  done?: boolean;
-};
-
-const ExerciseCard: React.FC<{
-  name: string;
-  category?: string;
-  type?: string;
-  sets: SetRow[];
-  onToggle: (setId: string) => void;
-}> = ({
-  name,
-  category,
-  type = 'Strength',
-  sets,
-  onToggle,
-}) => {
-  return (
-    <View className="mb-3 rounded-2xl border border-[#0F2B3A] bg-surface p-4">
-      <View className="mb-3 flex-row items-center justify-between">
-        <View>
-          <Text className="text-base font-extrabold text-text-primary">
-            {name}
-          </Text>
-          {category && (
-            <Text className="text-xs text-text-muted">
-              {category}
-            </Text>
-          )}
-        </View>
-        <View className="rounded-lg border border-[#202830] px-2 py-1">
-          <Text className="text-xs text-[#9BB0CA]">
-            {type}
-          </Text>
-        </View>
-      </View>
-      <View>
-        <View className="mb-2 flex-row justify-between">
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Set
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Weight (kg)
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted">
-            Reps
-          </Text>
-          <Text className="w-1/4 text-center text-[11px] text-text-muted" />
-        </View>
-        {sets.map((s) => (
-          <View
-            key={s.id}
-            className="mb-2 flex-row items-center"
-          >
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.id}
-              </Text>
-            </View>
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.bodyweight ? 'BW' : s.weight ?? ''}
-              </Text>
-            </View>
-            <View className="mr-1 flex-1 items-center rounded-lg border border-[#152330] bg-input py-2">
-              <Text className="text-text-primary">
-                {s.reps ?? ''}
-              </Text>
-            </View>
-            <Pressable
-              onPress={() => onToggle(s.id)}
-              className={`h-9 w-9 items-center justify-center rounded-full ${
-                s.done
-                  ? 'bg-accent'
-                  : 'border border-[#1F2A35] bg-input'
-              }`}
-            >
-              <Text
-                className={
-                  s.done
-                    ? 'font-extrabold text-[#071018]'
-                    : 'text-[#9BB0CA]'
-                }
-              >
-                {s.done ? '✓' : '○'}
-              </Text>
-            </Pressable>
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-};
+  getTodayWorkoutSession,
+  addExerciseToTodaySession,
+  toggleExerciseSetApi,
+  updateExerciseSetValuesApi,
+  addSetToWorkoutExerciseApi,
+  deleteExerciseSetApi,
+  deleteWorkoutExerciseApi,
+  completeWorkoutSessionApi,
+  getWorkoutHistory,
+  ApiWorkoutExercise,
+} from '@/api/workout';
 
 export default function Workouts() {
-  const [benchSets, setBenchSets] = React.useState<SetRow[]>([
-    { id: '1', weight: '60', reps: '10', done: true },
-    { id: '2', weight: '65', reps: '8', done: true },
-    { id: '3', weight: '', reps: '', done: false },
-  ]);
-  const [pullSets, setPullSets] = React.useState<SetRow[]>([
-    { id: '1', bodyweight: true, reps: '12', done: true },
-    { id: '2', bodyweight: true, reps: '', done: false },
-  ]);
-  const toggleSet = (
-    exercise: 'bench' | 'pull',
-    id: string
-  ) => {
-    const updater = (sets: SetRow[]) =>
-      sets.map((set) =>
-        set.id === id
-          ? { ...set, done: !set.done }
-          : set
-      );
-    if (exercise === 'bench') {
-      setBenchSets(updater);
-    }
-    if (exercise === 'pull') {
-      setPullSets(updater);
+  const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
+  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
+  const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [sessionCompleted, setSessionCompleted] = useState(false);
+
+  const fetchTodaySession = async () => {
+    try {
+      setLoading(true);
+      const res = await getTodayWorkoutSession();
+      if (res.session && res.session.exercises) {
+        const formatted: TodayExerciseItem[] = res.session.exercises.map((e: any) => ({
+          key: e.id,
+          exerciseId: e.exerciseId || e.id,
+          name: e.name,
+          category: e.category || 'Strength',
+          type: e.type || 'Compound',
+          difficulty: e.difficulty || 'Intermediate',
+          primaryMuscle: e.primaryMuscle || 'Chest',
+          secondaryMuscles: e.secondaryMuscles,
+          equipment: e.equipment || 'Barbell',
+          recommendedSets: e.recommendedSets || 3,
+          recommendedReps: e.recommendedReps || 10,
+          recommendedRest: e.recommendedRest || 90,
+          sets: (e.sets || []).map((s: any, idx: number) => ({
+            id: s.id,
+            setNumber: s.setNumber || idx + 1,
+            weight: s.weight ? String(s.weight) : undefined,
+            reps: s.reps ? String(s.reps) : undefined,
+            bodyweight: s.bodyweight || false,
+            done: s.done,
+          })),
+        }));
+        setTodayExercises(formatted);
+      } else {
+        setTodayExercises([]);
+      }
+    } catch (err) {
+      console.log('Using clean active session state');
+      setTodayExercises([]);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const fetchHistoryCount = async () => {
+    try {
+      const res = await getWorkoutHistory();
+      if (res.sessions) {
+        setCompletedSessionsCount(res.sessions.length);
+        if (res.sessions.length > 0) {
+          const lastSession = res.sessions[0];
+          setCompletedStats({
+            duration: lastSession.duration || 35,
+            caloriesBurned: lastSession.caloriesBurned || 240,
+          });
+        } else {
+          setCompletedStats(null);
+        }
+      }
+    } catch (err) {
+      setCompletedSessionsCount(0);
+      setCompletedStats(null);
+    }
+  };
+
+  useEffect(() => {
+    fetchTodaySession();
+    fetchHistoryCount();
+  }, []);
+
+  const handleToggleSet = async (exerciseKey: string, setId: string) => {
+    // Optimistic UI update
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((set) =>
+            set.id === setId ? { ...set, done: !set.done } : set
+          ),
+        };
+      })
+    );
+
+    try {
+      await toggleExerciseSetApi(setId);
+    } catch (err) {
+      console.log('Failed to toggle set on API server');
+    }
+  };
+
+  const handleUpdateSet = async (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.map((set) =>
+            set.id === setId ? { ...set, [field]: String(newValue) } : set
+          ),
+        };
+      })
+    );
+
+    try {
+      await updateExerciseSetValuesApi(setId, { [field]: newValue });
+    } catch (err) {
+      console.log('Failed to update set values on API server');
+    }
+  };
+
+  const handleAddSet = async (exerciseKey: string) => {
+    try {
+      const res = await addSetToWorkoutExerciseApi(exerciseKey);
+      if (res.set) {
+        setTodayExercises((prev) =>
+          prev.map((ex) => {
+            if (ex.key !== exerciseKey) return ex;
+            return {
+              ...ex,
+              sets: [
+                ...ex.sets,
+                {
+                  id: res.set.id,
+                  setNumber: res.set.setNumber,
+                  weight: res.set.weight ? String(res.set.weight) : '20',
+                  reps: res.set.reps ? String(res.set.reps) : '10',
+                  bodyweight: res.set.bodyweight,
+                  done: false,
+                },
+              ],
+            };
+          })
+        );
+      }
+    } catch (err) {
+      console.log('Failed to add set on API server');
+    }
+  };
+
+  const handleDeleteSet = async (exerciseKey: string, setId: string) => {
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        if (ex.key !== exerciseKey) return ex;
+        return {
+          ...ex,
+          sets: ex.sets.filter((set) => set.id !== setId),
+        };
+      })
+    );
+
+    try {
+      await deleteExerciseSetApi(setId);
+    } catch (err) {
+      console.log('Failed to delete set on API server');
+    }
+  };
+
+  const handleRemoveExercise = async (exerciseKey: string) => {
+    setTodayExercises((prev) => prev.filter((ex) => ex.key !== exerciseKey));
+    try {
+      await deleteWorkoutExerciseApi(exerciseKey);
+    } catch (err) {
+      console.log('Failed to delete exercise on API server');
+    }
+  };
+
+  const [addedNotice, setAddedNotice] = useState<string | null>(null);
+
+  const handleUpdateExercisePreset = async (exerciseKey: string, customized: LibraryExercise) => {
+    const targetTier = ((customized.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
+    const preset = getDifficultyPreset(customized, targetTier);
+    const targetSets = preset.defaultSets;
+
+    setTodayExercises((prev) =>
+      prev.map((ex) => {
+        // Match strictly by unique instance key
+        if (ex.key !== exerciseKey) {
+          return ex;
+        }
+
+        const newSets = targetSets.map((s: any, idx: number) => ({
+          id: ex.sets[idx]?.id || `${ex.key}-preset-${idx + 1}`,
+          setNumber: idx + 1,
+          weight: s.weight !== undefined && s.weight !== null ? String(s.weight) : undefined,
+          reps: s.reps !== undefined && s.reps !== null ? String(s.reps) : undefined,
+          bodyweight: Boolean(s.bodyweight),
+          done: false,
+        }));
+
+        return {
+          ...ex,
+          difficulty: preset.difficulty,
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: preset.recommendedRest,
+          sets: newSets,
+        };
+      })
+    );
+
+    // Sync set values to backend only for this specific workout instance
+    const targetEx = todayExercises.find((ex) => ex.key === exerciseKey);
+
+    if (targetEx) {
+      targetEx.sets.forEach((setRow, idx) => {
+        const pSet = targetSets[idx];
+        if (pSet && setRow.id) {
+          updateExerciseSetValuesApi(setRow.id, {
+            weight: pSet.weight ? Number(pSet.weight) : undefined,
+            reps: pSet.reps ? Number(pSet.reps) : undefined,
+            done: false,
+          }).catch(() => {});
+        }
+      });
+    }
+
+    setAddedNotice(`✓ ${customized.name} updated to ${preset.difficulty.toUpperCase()} preset!`);
+    setTimeout(() => {
+      setAddedNotice(null);
+    }, 3500);
+  };
+
+  const handleAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
+    const targetTier = ((libEx.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
+    const preset = getDifficultyPreset(libEx, targetTier);
+    const activeDefaultSets = preset.defaultSets;
+
+    try {
+      const res = await addExerciseToTodaySession({
+        exerciseId: libEx.id,
+        name: libEx.name,
+        category: libEx.category,
+        type: libEx.type,
+        defaultSets: activeDefaultSets.map((s) => ({
+          weight: s.weight ? Number(s.weight) : undefined,
+          reps: s.reps ? Number(s.reps) : undefined,
+          bodyweight: Boolean(s.bodyweight),
+        })),
+      });
+
+      if (res.exercise) {
+        const newEx: TodayExerciseItem = {
+          key: res.exercise.id,
+          exerciseId: libEx.id,
+          name: res.exercise.name,
+          category: res.exercise.category || libEx.category,
+          difficulty: libEx.difficulty || preset.difficulty,
+          type: res.exercise.type || libEx.type || 'Compound',
+          primaryMuscle: libEx.primaryMuscle || libEx.muscleGroup || 'Chest',
+          secondaryMuscles: libEx.secondaryMuscles,
+          equipment: Array.isArray(libEx.equipment) ? libEx.equipment.join(', ') : libEx.equipment || 'Barbell',
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: libEx.recommendedRest || preset.recommendedRest,
+          sets: (res.exercise.sets || []).map((s: any, idx: number) => ({
+            id: s.id,
+            setNumber: s.setNumber || idx + 1,
+            weight: s.weight ? String(s.weight) : undefined,
+            reps: s.reps ? String(s.reps) : undefined,
+            bodyweight: s.bodyweight || false,
+            done: s.done,
+          })),
+        };
+        setTodayExercises((prev) => [...prev, newEx]);
+      } else {
+        fetchTodaySession();
+      }
+    } catch (err) {
+      // Fallback local addition if server offline
+      const fallbackKey = `${libEx.id}-${Date.now()}`;
+      setTodayExercises((prev) => [
+        ...prev,
+        {
+          key: fallbackKey,
+          exerciseId: libEx.id,
+          name: libEx.name,
+          category: libEx.category,
+          difficulty: preset.difficulty,
+          type: libEx.type || 'Compound',
+          primaryMuscle: libEx.primaryMuscle || libEx.muscleGroup || 'Chest',
+          secondaryMuscles: libEx.secondaryMuscles,
+          equipment: Array.isArray(libEx.equipment) ? libEx.equipment.join(', ') : libEx.equipment || 'Barbell',
+          recommendedSets: preset.recommendedSets,
+          recommendedReps: preset.recommendedReps,
+          recommendedRest: libEx.recommendedRest || preset.recommendedRest,
+          sets: activeDefaultSets.map((s, idx) => ({
+            id: String(idx + 1),
+            setNumber: idx + 1,
+            weight: s.weight ? String(s.weight) : '',
+            reps: s.reps ? String(s.reps) : '',
+            bodyweight: Boolean(s.bodyweight),
+            done: false,
+          })),
+        },
+      ]);
+    }
+
+    const currentCount = todayExercises.filter((ex) => ex.name.toLowerCase() === libEx.name.toLowerCase() || ex.exerciseId === libEx.id).length + 1;
+    const countSuffix = currentCount > 1 ? ` (${currentCount}x)` : '';
+    setAddedNotice(`✓ ${libEx.name}${countSuffix} added to Today's Workout!`);
+    setTimeout(() => {
+      setAddedNotice(null);
+    }, 3000);
+  };
+
+  const handleConfirmCompleteSession = async () => {
+    setShowCompleteModal(false);
+    try {
+      await completeWorkoutSessionApi();
+      setSessionCompleted(true);
+      fetchTodaySession();
+      fetchHistoryCount();
+    } catch (err) {
+      setSessionCompleted(true);
+    }
+    setTimeout(() => {
+      setSessionCompleted(false);
+    }, 4000);
+  };
+
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
-        <Text className="mb-3 text-sm text-text-muted">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
+        {/* Header */}
+        <Text className="mb-1 text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
+          Workouts
+        </Text>
+        <Text className="mb-4 text-xs text-text-muted dark:text-text-muted-dark">
           Track your exercise completion and performance
         </Text>
-        <View className="mt-1">
-          <Pressable
-            className="mb-3 self-end rounded-lg border border-[#14333E] bg-input px-3 py-2"
-          >
-            <Text className="text-accent font-bold">
-              + Add Workout
+
+        {/* Top Segmented Tabs */}
+        <WorkoutTabs activeTab={activeTab} onChange={setActiveTab} />
+
+        {/* Added Notification Toast */}
+        {addedNotice ? (
+          <View className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/15 dark:bg-emerald-500/20 p-3 items-center">
+            <Text className="text-xs font-bold text-emerald-400 text-center">
+              {addedNotice}
             </Text>
-          </Pressable>
-          <ExerciseCard
-            name="Bench Press"
-            category="Chest · Primary"
-            type="Strength"
-            sets={benchSets}
-            onToggle={(id) =>
-              toggleSet('bench', id)
-            }
+          </View>
+        ) : null}
+
+        {/* Feedback Alert Banner */}
+        {sessionCompleted ? (
+          <View className="mb-4 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
+            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
+              🎉 Workout session completed and saved to history!
+            </Text>
+          </View>
+        ) : null}
+
+        {/* Tab Content */}
+        {activeTab === 'today' && (
+          <TodayWorkoutTab
+            exercises={todayExercises}
+            completedSessionsCount={completedSessionsCount}
+            completedStats={completedStats}
+            onToggleSet={handleToggleSet}
+            onUpdateSet={handleUpdateSet}
+            onAddSet={handleAddSet}
+            onDeleteSet={handleDeleteSet}
+            onRemoveExercise={handleRemoveExercise}
+            onUpdateExercisePreset={handleUpdateExercisePreset}
+            onNavigateToLibrary={() => setActiveTab('library')}
+            onCompleteSession={() => setShowCompleteModal(true)}
           />
-          <ExerciseCard
-            name="Pull-ups"
-            category="Back · Primary"
-            type="Strength"
-            sets={pullSets}
-            onToggle={(id) =>
-              toggleSet('pull', id)
-            }
-          />
-          <Pressable
-            onPress={() =>
-              console.log('Complete Workout Session')
-            }
-            className="mt-2 items-center rounded-xl bg-accent py-4"
-          >
-            <Text className="text-base font-extrabold text-[#071018]">
-              Complete Workout Session
-            </Text>
-          </Pressable>
-          {/* AI PLAN */}
-          <View className="mt-3 rounded-xl border border-[#15323B] bg-surface p-3">
-            <View className="mb-2 flex-row items-center">
-              <Text className="mr-2 text-xl">
-                🤖
-              </Text>
-              <View className="flex-1">
-                <Text className="font-bold text-text-primary">
-                  Today's AI-Generated Plan
-                </Text>
-                <View className="mt-1 self-start rounded-full bg-accent px-2 py-1">
-                  <Text className="text-xs font-bold text-[#071018]">
-                    Personalized
-                  </Text>
-                </View>
-              </View>
-            </View>
-            <Text className="leading-5 text-[#CFE8FF]">
-              <Text className="font-bold text-accent">
-                Based on your muscle gain goal
-              </Text>
-              {' '}and yesterday's cardio, today is optimized for Upper Body Strength.
-              Estimated calorie burn:
-              <Text className="font-bold text-accent">
-                {' '}380–420 kcal
-              </Text>
-              .
-            </Text>
-          </View>
-          {/* SESSION STATS */}
-          <View className="mt-4">
-            <Text className="mb-2 text-base font-bold text-text-primary">
-              Session Stats
-            </Text>
-            <View>
-              <View className="mb-3 rounded-xl border border-[#0F2B3A] bg-surface p-3">
-                <Text className="mb-1 text-xs text-text-muted">
-                  DURATION
-                </Text>
-                <Text className="text-[22px] font-black text-[#00E5A0]">
-                  34
-                  <Text className="text-sm text-text-muted">
-                    {' '}min
-                  </Text>
-                </Text>
-              </View>
-              <View className="rounded-xl border border-[#0F2B3A] bg-surface p-3">
-                <Text className="mb-1 text-xs text-text-muted">
-                  ESTIMATED BURN
-                </Text>
-                <Text className="text-[22px] font-black text-[#3B9EFF]">
-                  210
-                  <Text className="text-sm text-text-muted">
-                    {' '}kcal
-                  </Text>
-                </Text>
-              </View>
-            </View>
-          </View>
-          {/* PERSONAL RECORDS */}
-          <View className="mt-4">
-            <Text className="mb-2 text-base font-bold text-text-primary">
-              Personal Records
-            </Text>
-            <View className="rounded-xl border border-[#0F2B3A] bg-surface p-3">
-              {[
-                ['🏆', '#FFD166', 'Bench Press', 'PR: 80kg × 6 reps'],
-                ['🏆', '#9AD3FF', 'Pull-ups', 'PR: 15 reps'],
-                ['🏆', '#E6B89C', 'Squat', 'PR: 100kg × 5 reps'],
-              ].map(([icon, color, name, record], index) => (
-                <React.Fragment key={name}>
-                  <View className="flex-row items-center py-2">
-                    <View
-                      style={{
-                        backgroundColor: color,
-                      }}
-                      className="mr-3 h-10 w-10 items-center justify-center rounded-lg"
-                    >
-                      <Text>
-                        {icon}
-                      </Text>
-                    </View>
-                    <View className="flex-1">
-                      <Text className="font-bold text-text-primary">
-                        {name}
-                      </Text>
-                      <Text className="text-xs text-text-muted">
-                        {record}
-                      </Text>
-                    </View>
-                  </View>
-                  {index !== 2 && (
-                    <View className="h-px bg-[#0F2B3A]" />
-                  )}
-                </React.Fragment>
-              ))}
-            </View>
-          </View>
-        </View>
+        )}
+
+        {activeTab === 'library' && (
+          <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
+        )}
+
+        {activeTab === 'history' && <WorkoutHistoryTab />}
       </ScrollView>
+
+      {/* Completion Modal */}
+      <ConfirmModal
+        visible={showCompleteModal}
+        title="Complete Session"
+        message="Great job! Ready to log and complete today's workout session?"
+        icon="🏆"
+        confirmText="Finish & Save"
+        cancelText="Keep Training"
+        onConfirm={handleConfirmCompleteSession}
+        onCancel={() => setShowCompleteModal(false)}
+      />
     </SafeAreaView>
   );
 }
