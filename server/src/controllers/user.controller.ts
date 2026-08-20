@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import * as userModel from '../models/user.model'
-import { Goal } from '../generated/prisma'
+import { Goal } from '@prisma/client'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 
 export const getProfile = asyncHandler(async (req: AuthRequest, res: Response) => {

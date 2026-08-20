@@ -1,5 +1,5 @@
 import { prisma } from '../config/db'
-import { Goal } from '../generated/prisma'
+import { Goal } from '@prisma/client'
 
 export const findByEmail = (email: string) => {
     return prisma.user.findUnique({ where: { email } })

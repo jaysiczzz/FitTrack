@@ -11,7 +11,7 @@
       "supportsTablet": true
     },
     "android": {
-      "package": "com.fittrack.app",                                                                            
+      "package": "com.fittrack.app",
       "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
@@ -29,7 +29,13 @@
       "expo-router",
       "expo-status-bar",
       "expo-font",
-      "expo-splash-screen"  
-    ]
+      "expo-splash-screen"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "5b6eca05-53a5-4057-a149-508beaf6be25"
+      }
+    }
   }
 }
