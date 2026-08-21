@@ -31,7 +31,7 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
         <Text className="mb-1 text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
           Settings

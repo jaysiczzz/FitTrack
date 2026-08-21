@@ -7,6 +7,7 @@ import {
   Modal,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 type BurgerMenuProps = {
   title?: string;
@@ -17,30 +18,43 @@ const MENU_ITEMS = [
   { key: 'food', label: 'Food Log', route: '/foodlog', icon: '🍽️' },
   { key: 'workouts', label: 'Workouts', route: '/workouts', icon: '🏋️' },
   { key: 'profile', label: 'Profile', route: '/profile', icon: '👤' },
-  { key: 'notifications', label: 'Notifications', route: '/notifications', icon: '🔔' },
   { key: 'settings', label: 'Settings', route: '/settings', icon: '⚙️' },
 ];
 
 export default function BurgerMenu({ title }: BurgerMenuProps) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
 
   const handleMenuItem = (route: string) => {
     setMenuOpen(false);
-    router.push(route);
+    router.push(route as any);
   };
 
   return (
-    <View className="h-14 flex-row items-center bg-background px-10 dark:bg-background-dark">
-      <TouchableOpacity onPress={() => setMenuOpen(true)} hitSlop={10}>
-        <Text className="text-xl text-text-primary dark:text-white">
-          ☰
-        </Text>
-      </TouchableOpacity>
+    <View
+      style={{ paddingTop: insets.top }}
+      className="bg-background dark:bg-background-dark border-b border-input-border/20 dark:border-input-border-dark/20 z-50"
+    >
+      <View className="h-14 flex-row items-center px-5">
+        <TouchableOpacity
+          onPress={() => setMenuOpen(true)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+          accessibilityLabel="Open navigation menu"
+          accessibilityRole="button"
+          className="w-10 h-10 items-center justify-center rounded-lg active:bg-surface dark:active:bg-surface-dark"
+        >
+          <Text className="text-2xl text-text-primary dark:text-white">
+            ☰
+          </Text>
+        </TouchableOpacity>
 
-      <Text className="ml-4 text-lg font-bold text-text-primary dark:text-white">
-        {title}
-      </Text>
+        {title ? (
+          <Text className="ml-3 text-lg font-bold text-text-primary dark:text-white">
+            {title}
+          </Text>
+        ) : null}
+      </View>
 
       <Modal
         visible={menuOpen}
@@ -53,17 +67,18 @@ export default function BurgerMenu({ title }: BurgerMenuProps) {
           onPress={() => setMenuOpen(false)}
         >
           <Pressable
-            className="mt-14 ml-3 w-56 rounded-xl bg-white py-2 shadow-lg dark:bg-neutral-900"
+            style={{ marginTop: insets.top + 56 }}
+            className="ml-5 w-60 rounded-2xl bg-surface p-2 shadow-xl border border-input-border dark:border-input-border-dark dark:bg-surface-dark"
             onPress={(e) => e.stopPropagation()}
           >
             {MENU_ITEMS.map((item) => (
               <TouchableOpacity
                 key={item.key}
                 onPress={() => handleMenuItem(item.route)}
-                className="flex-row items-center px-4 py-3"
+                className="flex-row items-center rounded-xl px-4 py-3 active:bg-input dark:active:bg-input-dark"
               >
                 <Text className="mr-3 text-lg">{item.icon}</Text>
-                <Text className="text-base text-text-primary dark:text-white">
+                <Text className="text-base font-semibold text-text-primary dark:text-white">
                   {item.label}
                 </Text>
               </TouchableOpacity>
