@@ -121,7 +121,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
           setPassword(text);
           if (passwordError) setPasswordError('');
         }}
-        secureTextEntry
+        isPassword
         autoCapitalize="none"
         error={passwordError}
       />
