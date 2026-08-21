@@ -67,7 +67,7 @@ const LoginForm: React.FC<Props> = ({ onSubmit, loading }) => {
         placeholder="••••••••"
         value={password}
         onChangeText={handlePasswordChange}
-        secureTextEntry
+        isPassword
         autoCapitalize="none"
         error={passwordError}
       />
