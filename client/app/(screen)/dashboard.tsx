@@ -236,7 +236,7 @@ export default function Dashboard() {
   const fatPercent = Math.min(100, Math.round((fatLogged / targetFat) * 100));
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
         {/* Header Greeting */}
         <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-bold mt-2">
