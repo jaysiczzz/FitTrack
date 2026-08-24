@@ -32,5 +32,5 @@ export const errorHandler = (
     return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' })
   }
 
-  res.status(500).json({ error: 'Something went wrong on our end. Please try again.' })
+  res.status(500).json({ error: err.message || 'Something went wrong on our end. Please try again.' })
 }

@@ -19,6 +19,7 @@ model User {
   goal            Goal
   createdAt       DateTime         @default(now())
   workoutSessions WorkoutSession[]
+  dailyFoodLogs   DailyFoodLog[]
 }
 
 enum Goal {
@@ -108,3 +109,37 @@ model ExerciseSet {
   bodyweight        Boolean         @default(false)
   done              Boolean         @default(false)
 }
+
+model DailyFoodLog {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date          String        // "YYYY-MM-DD" e.g. "2026-08-24"
+  totalCalories Int           @default(0)
+  totalProtein  Float         @default(0)
+  totalCarbs    Float         @default(0)
+  totalFat      Float         @default(0)
+  waterMl       Int           @default(0)
+  meals         FoodLogMeal[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([userId, date])
+}
+
+model FoodLogMeal {
+  id             String       @id @default(uuid())
+  dailyFoodLogId String
+  dailyFoodLog   DailyFoodLog @relation(fields: [dailyFoodLogId], references: [id], onDelete: Cascade)
+  mealType       String       // "breakfast" | "lunch" | "dinner" | "snack"
+  title          String
+  subtitle       String?
+  calories       Int          @default(0)
+  protein        Float        @default(0)
+  carbs          Float        @default(0)
+  fat            Float        @default(0)
+  goalBadge      String?
+  healthNotes    String?
+  imageUri       String?
+  createdAt      DateTime     @default(now())
+}

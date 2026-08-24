@@ -53,3 +53,28 @@ export const generateAIWorkout = async (payload?: { targetArea?: string }): Prom
     body: payload || {},
   });
 };
+
+export interface MealSuggestion {
+  title: string;
+  category: 'breakfast' | 'lunch' | 'dinner' | 'snack';
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  prepTime: string;
+  ingredients: string[];
+  reason: string;
+  icon: string;
+}
+
+export const getAIMealSuggestions = async (payload: {
+  goal: string;
+  remainingCalories: number;
+  remainingProtein: number;
+}): Promise<{ success: boolean; suggestions: MealSuggestion[] }> => {
+  return apiRequest('/api/ai/suggest-meals', {
+    method: 'POST',
+    body: payload,
+  });
+};
+

@@ -1,274 +1,480 @@
-import React, { useState, useEffect } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, TextInput, ActivityIndicator, Alert } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
+import { useFocusEffect } from 'expo-router';
 
-export interface FoodLogItem {
-  id: string;
-  mealType: 'breakfast' | 'lunch' | 'dinner';
-  title: string;
-  subtitle?: string;
-  macros: string[];
-}
+import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
+import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
+import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
+import WaterTrackerCard from '@/components/foodlog/WaterTrackerCard';
+import QuickStaplesModal from '@/components/foodlog/QuickStaplesModal';
+import AiScanModal from '@/components/foodlog/AiScanModal';
+import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
+import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
+import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
+import ConfirmModal from '@/components/ui/ConfirmModal';
+import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString } from '@/components/foodlog/foodLogTypes';
+import { saveDailyFoodLogApi } from '@/api/foodlog';
 
-const FoodItem: React.FC<{
-  title: string;
-  subtitle?: string;
-  macros: string[];
-  onDelete?: () => void;
-}> = ({ title, subtitle, macros, onDelete }) => (
-  <View className="bg-surface dark:bg-surface-dark rounded-[14px] p-3.5 mb-2.5 border border-input-border dark:border-input-border-dark flex-row justify-between items-center">
-    <View className="flex-1 pr-3">
-      <Text className="text-text-primary dark:text-text-primary-dark text-sm font-semibold mb-1.5">
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs">{subtitle}</Text>
-      ) : null}
-    </View>
-    <View className="items-end flex-row items-center gap-3">
-      <View className="items-end">
-        {macros.map((line, index) => (
-          <Text key={index} className="text-text-primary dark:text-text-primary-dark text-xs text-right">
-            {line}
-          </Text>
-        ))}
-      </View>
-      {onDelete ? (
-        <TouchableOpacity onPress={onDelete} className="p-1">
-          <Text className="text-red-500/70 text-xs font-bold">✕</Text>
-        </TouchableOpacity>
-      ) : null}
-    </View>
-  </View>
-);
+export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
-  const [prompt, setPrompt] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [aiResult, setAiResult] = useState<MealAnalysisResult | null>(null);
-  const [selectedMeal, setSelectedMeal] = useState<'breakfast' | 'lunch' | 'dinner'>('breakfast');
+  const [activeTab, setActiveTab] = useState<FoodLogTabType>('today');
+  const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
+  const [items, setItems] = useState<FoodLogItem[]>([]);
+  const [waterMl, setWaterMl] = useState(0);
+  const [notice, setNotice] = useState<string | null>(null);
 
-  const [items, setItems] = useState<FoodLogItem[]>([
-    { id: '1', mealType: 'breakfast', title: 'Greek Yogurt with Granola', subtitle: '1 cup · 180g (280 kcal)', macros: ['18g Protein', '32g Carbs', '8g Fat'] },
-    { id: '2', mealType: 'breakfast', title: 'Banana', subtitle: '1 medium · 120g (105 kcal)', macros: ['1g Protein', '27g Carbs', '0g Fat'] },
-    { id: '3', mealType: 'lunch', title: 'Grilled Chicken Salad', subtitle: '1 bowl · 350g (380 kcal)', macros: ['45g Protein', '18g Carbs', '14g Fat'] },
-    { id: '4', mealType: 'lunch', title: 'Whole Wheat Bread', subtitle: '2 slices · 60g (140 kcal)', macros: ['6g Protein', '24g Carbs', '2g Fat'] },
-    { id: '5', mealType: 'dinner', title: 'Baked Salmon', subtitle: '200g fillet (410 kcal)', macros: ['40g Protein', '0g Carbs', '22g Fat'] },
-    { id: '6', mealType: 'dinner', title: 'Brown Rice', subtitle: '1 cup cooked · 200g (215 kcal)', macros: ['5g Protein', '45g Carbs', '2g Fat'] },
-  ]);
+  // Modals state
+  const [showScanModal, setShowScanModal] = useState(false);
+  const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
+  const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
+  const [showStaplesModal, setShowStaplesModal] = useState(false);
+  const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
+  const [showResetModal, setShowResetModal] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
 
-  useEffect(() => {
-    const loadSavedItems = async () => {
-      try {
-        const saved = await AsyncStorage.getItem('food_log_today');
-        if (saved) {
-          setItems(JSON.parse(saved));
-        }
-      } catch (err) {
-        console.log('Error loading saved food log:', err);
-      }
-    };
-    loadSavedItems();
-  }, []);
+  // Targets computed dynamically based on goal
+  const targets: MacroTargets =
+    goal === 'MUSCLE_GAIN'
+      ? { calories: 2400, protein: 160, carbs: 260, fat: 75 }
+      : { calories: 1900, protein: 145, carbs: 180, fat: 55 };
 
-  const saveFoodLogToStorage = async (updatedItems: FoodLogItem[]) => {
-    setItems(updatedItems);
+  // Load user profile & cached food log
+  const loadInitialData = async () => {
     try {
-      await AsyncStorage.setItem('food_log_today', JSON.stringify(updatedItems));
+      const uStr = await AsyncStorage.getItem('user');
+      if (uStr) {
+        const u = JSON.parse(uStr);
+        if (u.goal) {
+          setGoal(u.goal === 'WEIGHT_LOSS' ? 'WEIGHT_LOSS' : 'MUSCLE_GAIN');
+        }
+      }
+
+      const savedFood = await AsyncStorage.getItem('food_log_today');
+      if (savedFood) {
+        const parsed = JSON.parse(savedFood);
+        if (Array.isArray(parsed)) {
+          // Normalize items with default calories/macros if missing
+          const normalized = parsed.map((it: any) => ({
+            ...it,
+            calories: it.calories || extractCalories(it.subtitle) || 200,
+            protein: it.protein || extractMacro(it.macros, 'protein') || 15,
+            carbs: it.carbs || extractMacro(it.macros, 'carbs') || 25,
+            fat: it.fat || extractMacro(it.macros, 'fat') || 8,
+          }));
+          setItems(normalized);
+        }
+      }
+
+      const savedWater = await AsyncStorage.getItem('water_log_today');
+      if (savedWater) {
+        setWaterMl(parseInt(savedWater, 10) || 0);
+      }
+    } catch (err) {
+      console.log('Error loading initial food log:', err);
+    }
+  };
+
+  useFocusEffect(
+    useCallback(() => {
+      loadInitialData();
+    }, [])
+  );
+
+  const extractCalories = (subtitle?: string): number => {
+    if (!subtitle) return 0;
+    const match = subtitle.match(/(\d+)\s*kcal/i);
+    return match ? parseInt(match[1], 10) : 0;
+  };
+
+  const extractMacro = (macros: string[] | undefined, key: string): number => {
+    if (!macros || !Array.isArray(macros)) return 0;
+    const regex = new RegExp(`(\\d+)g\\s*${key}`, 'i');
+    for (const m of macros) {
+      const match = m.match(regex);
+      if (match) return parseInt(match[1], 10);
+    }
+    return 0;
+  };
+
+  const saveFoodLog = async (newItems: FoodLogItem[]) => {
+    setItems(newItems);
+    try {
+      // Format macros array for backward compatibility with dashboard
+      const formatted = newItems.map((item) => ({
+        ...item,
+        macros: [
+          `${item.protein}g Protein`,
+          `${item.carbs}g Carbs`,
+          `${item.fat}g Fat`,
+        ],
+      }));
+      await AsyncStorage.setItem('food_log_today', JSON.stringify(formatted));
     } catch (err) {
       console.log('Error saving food log:', err);
     }
   };
 
-  const handleAnalyzeMeal = async () => {
-    if (!prompt.trim()) {
-      Alert.alert('Empty Input', 'Please describe what you ate to analyze it with AI.');
+  const saveWater = async (newWater: number) => {
+    const clamped = Math.max(0, newWater);
+    setWaterMl(clamped);
+    try {
+      await AsyncStorage.setItem('water_log_today', clamped.toString());
+    } catch (err) {
+      console.log('Error saving water:', err);
+    }
+  };
+
+  // Add Item handler
+  const handleAddMealItem = (item: FoodLogItem) => {
+    const updated = [...items, item];
+    saveFoodLog(updated);
+    showNotice(`✓ Added ${item.title} to ${item.mealType}!`);
+  };
+
+  // Quick Staple Selection
+  const handleSelectStaple = (staple: BeginnerStaple, targetMeal: MealType) => {
+    const newItem: FoodLogItem = {
+      id: Date.now().toString(),
+      mealType: targetMeal,
+      title: staple.title,
+      subtitle: staple.subtitle,
+      calories: staple.calories,
+      protein: staple.protein,
+      carbs: staple.carbs,
+      fat: staple.fat,
+      goalBadge: staple.badge,
+      goalBadgeColor: staple.recommendedFor === 'MUSCLE_GAIN' ? 'green' : 'blue',
+    };
+    handleAddMealItem(newItem);
+  };
+
+  // Delete Item
+  const handleConfirmDelete = () => {
+    if (!itemToDelete) return;
+    const updated = items.filter((i) => i.id !== itemToDelete);
+    saveFoodLog(updated);
+    setItemToDelete(null);
+    showNotice('✓ Item removed from food log');
+  };
+
+  // Reset / Clear Today's Active Workspace (Leaves permanent History untouched)
+  const handleResetLog = async () => {
+    setItems([]);
+    setWaterMl(0);
+    try {
+      await AsyncStorage.removeItem('food_log_today');
+      await AsyncStorage.removeItem('water_log_today');
+    } catch (err) {
+      console.log('Error resetting today log:', err);
+    }
+    setShowResetModal(false);
+    showNotice('✓ Today\'s current meals have been cleared');
+  };
+
+  // Save & Complete Daily Intake -> Commits snapshot into History and resets active day
+  const handleSaveAndCompleteDay = async () => {
+    if (items.length === 0 && waterMl === 0) {
+      Alert.alert(
+        'No Meals Logged',
+        'Please scan or log at least one meal or water intake before saving to History.'
+      );
       return;
     }
 
-    setLoading(true);
-    setAiResult(null);
+    const todayStr = getTodayDateString();
+    const formatted = items.map((item) => ({
+      ...item,
+      macros: [
+        `${item.protein}g Protein`,
+        `${item.carbs}g Carbs`,
+        `${item.fat}g Fat`,
+      ],
+    }));
 
     try {
-      const res = await analyzeMeal({ description: prompt });
-      if (res.success && res.data) {
-        setAiResult(res.data);
+      // 1. Save to PostgreSQL Database via API
+      try {
+        await saveDailyFoodLogApi({
+          date: todayStr,
+          items,
+          waterMl,
+        });
+      } catch (apiErr) {
+        console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
       }
-    } catch (err: any) {
-      Alert.alert('AI Error', err.message || 'Failed to analyze meal with AI.');
-    } finally {
-      setLoading(false);
+
+      // 2. Commit snapshot into local date-keyed storage
+      await AsyncStorage.setItem(`food_log_${todayStr}`, JSON.stringify(formatted));
+      await AsyncStorage.setItem(`water_log_${todayStr}`, waterMl.toString());
+
+      // 3. Register date in history dates array
+      const rawDates = await AsyncStorage.getItem('food_log_history_dates');
+      let datesArr: string[] = [];
+      if (rawDates) {
+        try {
+          const parsed = JSON.parse(rawDates);
+          if (Array.isArray(parsed)) datesArr = parsed;
+        } catch {}
+      }
+      if (!datesArr.includes(todayStr)) {
+        datesArr.unshift(todayStr);
+        await AsyncStorage.setItem('food_log_history_dates', JSON.stringify(datesArr));
+      }
+
+      // 4. Reset active today workspace since it is now safely stored in History & Database
+      setItems([]);
+      setWaterMl(0);
+      await AsyncStorage.removeItem('food_log_today');
+      await AsyncStorage.removeItem('water_log_today');
+
+      // 4. Show rewarding feedback notification & modal
+      showNotice(`🎉 Successfully archived ${loggedCalories} kcal to History!`);
+
+      Alert.alert(
+        '🎉 Daily Intake Saved to History!',
+        `Awesome job! Logged ${loggedCalories} kcal · ${loggedProtein}g Protein.\n\nToday's log is now saved into your History & Trends and reset for your next meals.`,
+        [
+          { text: 'Stay in Today', style: 'cancel' },
+          {
+            text: 'View History 📅',
+            onPress: () => setActiveTab('history'),
+          },
+        ]
+      );
+    } catch (err) {
+      console.log('Error saving daily intake to history:', err);
+      Alert.alert('Error', 'Could not save to history. Please try again.');
     }
   };
 
-  const handleAddAiMeal = () => {
-    if (!aiResult) return;
-
-    const newItem: FoodLogItem = {
-      id: Date.now().toString(),
-      mealType: selectedMeal,
-      title: aiResult.foodName,
-      subtitle: `${aiResult.servingSize} (${aiResult.calories} kcal)`,
-      macros: [
-        `${aiResult.protein}g Protein`,
-        `${aiResult.carbs}g Carbs`,
-        `${aiResult.fat}g Fat`,
-      ],
-    };
-
-    const updated = [...items, newItem];
-    saveFoodLogToStorage(updated);
-    setPrompt('');
-    setAiResult(null);
-    Alert.alert('Success', `Added ${aiResult.foodName} to ${selectedMeal}!`);
+  const showNotice = (msg: string) => {
+    setNotice(msg);
+    setTimeout(() => {
+      setNotice(null);
+    }, 3000);
   };
 
-  const handleDeleteItem = (id: string) => {
-    const updated = items.filter((i) => i.id !== id);
-    saveFoodLogToStorage(updated);
-  };
+  // Aggregated logged macros
+  const loggedCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0);
+  const loggedProtein = items.reduce((sum, item) => sum + (item.protein || 0), 0);
+  const loggedCarbs = items.reduce((sum, item) => sum + (item.carbs || 0), 0);
+  const loggedFat = items.reduce((sum, item) => sum + (item.fat || 0), 0);
 
+  const remainingCalories = Math.max(0, targets.calories - loggedCalories);
+  const remainingProtein = Math.max(0, targets.protein - loggedProtein);
+
+  // Grouped by Meal Category
   const breakfastItems = items.filter((i) => i.mealType === 'breakfast');
   const lunchItems = items.filter((i) => i.mealType === 'lunch');
   const dinnerItems = items.filter((i) => i.mealType === 'dinner');
+  const snackItems = items.filter((i) => i.mealType === 'snack');
+
+  const openScanForMeal = (meal: MealType) => {
+    setScanTargetMeal(meal);
+    setScanInitialMode('photo');
+    setShowScanModal(true);
+  };
 
   return (
     <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
-        <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-bold mt-2">
-          Nutrition Tracker 🥗
-        </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark mt-0.5 mb-4 text-sm">
-          Track your daily meals with AI-powered nutritional analysis
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}>
+        {/* Screen Header */}
+        <View className="flex-row justify-between items-center mt-2 mb-1">
+          <Text className="text-[28px] font-black text-text-primary dark:text-text-primary-dark">
+            Nutrition Log 🥗
+          </Text>
+        </View>
+        <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-3.5">
+          Beginner nutrition tracker powered by Google Gemini AI
         </Text>
 
-        {/* AI Quick Meal Log Card */}
-        <View className="bg-surface dark:bg-surface-dark p-4 rounded-[20px] mb-5 border border-accent/30 dark:border-accent-dark/30">
-          <Text className="text-accent dark:text-accent-dark font-bold text-base mb-1">
-            ✨ AI Fast Meal Analyzer
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-3">
-            Describe your meal (e.g. "2 poached eggs, 1 avocado toast and orange juice"):
-          </Text>
+        {/* Top Navigation Tabs (Today's Log | History & Trends) */}
+        <FoodLogTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+        />
 
-          <TextInput
-            className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl mb-3 border border-input-border dark:border-input-border-dark text-sm"
-            placeholder="Type your meal description..."
-            placeholderTextColor="#8E8E93"
-            value={prompt}
-            onChangeText={setPrompt}
-            multiline
+        {/* Feedback Toast Notice */}
+        {notice ? (
+          <View className="mb-3.5 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
+            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
+              {notice}
+            </Text>
+          </View>
+        ) : null}
+
+        {activeTab === 'history' ? (
+          /* History & Trends Tab View */
+          <FoodHistoryTab
+            targets={targets}
+            onReLogItem={handleAddMealItem}
+            onSwitchToToday={() => setActiveTab('today')}
           />
+        ) : (
+          /* Today's Log Tab View */
+          <>
+            {/* 1. Daily Macro & Calorie Budget Summary Card */}
+            <MacroSummaryCard
+              targets={targets}
+              loggedCalories={loggedCalories}
+              loggedProtein={loggedProtein}
+              loggedCarbs={loggedCarbs}
+              loggedFat={loggedFat}
+              goal={goal}
+            />
 
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row gap-1">
-              {(['breakfast', 'lunch', 'dinner'] as const).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => setSelectedMeal(m)}
-                  className={`px-2.5 py-1 rounded-lg ${
-                    selectedMeal === m
-                      ? 'bg-accent dark:bg-accent-dark'
-                      : 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs capitalize font-medium ${
-                      selectedMeal === m
-                        ? 'text-background dark:text-background-dark'
-                        : 'text-text-muted dark:text-text-muted-dark'
-                    }`}
-                  >
-                    {m}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            {/* 2. Quick Action Toolbar (Photo Scan, AI Suggest, Staples, Describe) */}
+            <QuickActionToolbar
+              onScanPhoto={() => {
+                setScanTargetMeal(undefined);
+                setScanInitialMode('photo');
+                setShowScanModal(true);
+              }}
+              onAiSuggest={() => setShowAiSuggestModal(true)}
+              onQuickStaples={() => {
+                setScanTargetMeal(undefined);
+                setShowStaplesModal(true);
+              }}
+              onTextLog={() => {
+                setScanTargetMeal(undefined);
+                setScanInitialMode('text');
+                setShowScanModal(true);
+              }}
+            />
+
+            {/* 3. Meal Category Cards */}
+            <View className="mb-2">
+              <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-3">
+                Today's Logged Meals 🍽️
+              </Text>
+
+              {/* Breakfast */}
+              <MealCategoryCard
+                type="breakfast"
+                title="Breakfast"
+                icon="🍳"
+                items={breakfastItems}
+                onAddPress={openScanForMeal}
+                onDeleteItem={(id) => setItemToDelete(id)}
+              />
+
+              {/* Lunch */}
+              <MealCategoryCard
+                type="lunch"
+                title="Lunch"
+                icon="🍽️"
+                items={lunchItems}
+                onAddPress={openScanForMeal}
+                onDeleteItem={(id) => setItemToDelete(id)}
+              />
+
+              {/* Dinner */}
+              <MealCategoryCard
+                type="dinner"
+                title="Dinner"
+                icon="🌙"
+                items={dinnerItems}
+                onAddPress={openScanForMeal}
+                onDeleteItem={(id) => setItemToDelete(id)}
+              />
+
+              {/* Snacks & Drinks */}
+              <MealCategoryCard
+                type="snack"
+                title="Snacks & Drinks"
+                icon="🥪"
+                items={snackItems}
+                onAddPress={openScanForMeal}
+                onDeleteItem={(id) => setItemToDelete(id)}
+              />
             </View>
 
-            <TouchableOpacity
-              className="bg-accent dark:bg-accent-dark px-4 py-2 rounded-xl flex-row items-center justify-center"
-              onPress={handleAnalyzeMeal}
-              disabled={loading}
-            >
-              {loading ? (
-                <ActivityIndicator size="small" color="#101828" />
-              ) : (
-                <Text className="text-background dark:text-background-dark font-bold text-xs">
-                  Analyze with AI
-                </Text>
-              )}
-            </TouchableOpacity>
-          </View>
+            {/* 4. Hydration Water Tracker */}
+            <WaterTrackerCard
+              waterMl={waterMl}
+              targetMl={2000}
+              onAddWater={(delta) => saveWater(waterMl + delta)}
+            />
 
-          {/* AI Result preview */}
-          {aiResult ? (
-            <View className="mt-4 p-3 bg-input dark:bg-input-dark rounded-xl border border-accent/40">
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mb-1">
-                {aiResult.foodName} ({aiResult.calories} kcal)
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-2">
-                Portion: {aiResult.servingSize} | {aiResult.protein}g Protein | {aiResult.carbs}g Carbs | {aiResult.fat}g Fat
-              </Text>
-              {aiResult.healthNotes ? (
-                <Text className="text-accent dark:text-accent-dark text-xs italic mb-2">
-                  💡 {aiResult.healthNotes}
-                </Text>
-              ) : null}
+            {/* 5. Daily Summary Completion & Reset Controls */}
+            <View className="mt-2 flex-row gap-2">
               <TouchableOpacity
-                className="bg-accent dark:bg-accent-dark py-2 rounded-lg items-center mt-1"
-                onPress={handleAddAiMeal}
+                onPress={() => setShowResetModal(true)}
+                activeOpacity={0.8}
+                className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-3.5 rounded-2xl items-center justify-center"
               >
-                <Text className="text-background dark:text-background-dark font-bold text-xs">
-                  + Add to {selectedMeal.toUpperCase()}
+                <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
+                  🔄 Clear Today's Log
+                </Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={handleSaveAndCompleteDay}
+                activeOpacity={0.8}
+                className="flex-1 bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-xs"
+              >
+                <Text className="text-background dark:text-background-dark font-black text-xs">
+                  ✓ Save & Complete
                 </Text>
               </TouchableOpacity>
             </View>
-          ) : null}
-        </View>
-
-        {/* Breakfast */}
-        <View className="flex-row justify-between items-center mt-2 mb-2">
-          <Text className="text-text-primary dark:text-text-primary-dark text-[15px] font-bold">
-            🍳 Breakfast
-          </Text>
-        </View>
-        {breakfastItems.map((item) => (
-          <FoodItem key={item.id} title={item.title} subtitle={item.subtitle} macros={item.macros} onDelete={() => handleDeleteItem(item.id)} />
-        ))}
-
-        {/* Lunch */}
-        <View className="flex-row justify-between items-center mt-4 mb-2">
-          <Text className="text-text-primary dark:text-text-primary-dark text-[15px] font-bold">
-            🍽️ Lunch
-          </Text>
-        </View>
-        {lunchItems.map((item) => (
-          <FoodItem key={item.id} title={item.title} subtitle={item.subtitle} macros={item.macros} onDelete={() => handleDeleteItem(item.id)} />
-        ))}
-
-        {/* Dinner */}
-        <View className="flex-row justify-between items-center mt-4 mb-2">
-          <Text className="text-text-primary dark:text-text-primary-dark text-[15px] font-bold">
-            🌙 Dinner
-          </Text>
-        </View>
-        {dinnerItems.map((item) => (
-          <FoodItem key={item.id} title={item.title} subtitle={item.subtitle} macros={item.macros} onDelete={() => handleDeleteItem(item.id)} />
-        ))}
-
-        <View className="h-7" />
-        <TouchableOpacity
-          className="bg-accent dark:bg-accent-dark mx-2 py-3 rounded-xl items-center mt-1.5"
-          onPress={() => Alert.alert('Daily Log', 'Your daily nutrition log has been saved!')}
-        >
-          <Text className="text-background dark:text-background-dark font-bold text-base">
-            Complete Daily Log
-          </Text>
-        </TouchableOpacity>
-        <View className="h-10" />
+          </>
+        )}
       </ScrollView>
+
+      {/* AI Scan & Photo Modal */}
+      <AiScanModal
+        visible={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onAddMealItem={handleAddMealItem}
+        initialMealType={scanTargetMeal}
+        initialMode={scanInitialMode}
+      />
+
+      {/* Beginner Quick Staples Modal */}
+      <QuickStaplesModal
+        visible={showStaplesModal}
+        onClose={() => setShowStaplesModal(false)}
+        onSelectStaple={handleSelectStaple}
+        defaultMeal={scanTargetMeal}
+      />
+
+      {/* AI "What should I eat next?" Suggestions Modal */}
+      <AiSuggestionModal
+        visible={showAiSuggestModal}
+        onClose={() => setShowAiSuggestModal(false)}
+        onSelectSuggestion={handleAddMealItem}
+        goal={goal}
+        remainingCalories={remainingCalories}
+        remainingProtein={remainingProtein}
+      />
+
+      {/* Delete Item Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(itemToDelete)}
+        title="Remove Item"
+        message="Are you sure you want to delete this food item from your log?"
+        icon="🗑️"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setItemToDelete(null)}
+      />
+
+      {/* Reset Daily Log Modal */}
+      <ConfirmModal
+        visible={showResetModal}
+        title="Reset Today's Log"
+        message="This will clear all meals and water logged for today. Are you sure?"
+        icon="⚠️"
+        confirmText="Reset All"
+        cancelText="Keep Log"
+        onConfirm={handleResetLog}
+        onCancel={() => setShowResetModal(false)}
+      />
     </SafeAreaView>
   );
 }
