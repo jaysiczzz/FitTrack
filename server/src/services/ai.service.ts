@@ -22,7 +22,7 @@ export async function analyzeMealWithAI(params: {
   imageBase64?: string
   mimeType?: string
 }): Promise<MealAnalysisResult> {
-  const modelName = 'gemini-2.5-flash'
+  const modelName = 'gemini-3.6-flash'
 
   const promptText = `Analyze this meal (from text description and/or image) and provide accurate nutritional estimation.
   User Description: ${params.description || 'Not provided'}
@@ -39,9 +39,13 @@ export async function analyzeMealWithAI(params: {
   const contents: any[] = []
 
   if (params.imageBase64 && params.mimeType) {
+    let cleanBase64 = params.imageBase64
+    if (cleanBase64.includes(',')) {
+      cleanBase64 = cleanBase64.split(',')[1]
+    }
     contents.push({
       inlineData: {
-        data: params.imageBase64,
+        data: cleanBase64,
         mimeType: params.mimeType,
       },
     })
@@ -91,7 +95,7 @@ export async function generateAIInsights(userProfile: {
   workoutCount?: number
   caloriesLoggedToday?: number
 }): Promise<AIInsight[]> {
-  const modelName = 'gemini-2.5-flash'
+  const modelName = 'gemini-3.6-flash'
 
   const prompt = `You are FitTrack's AI fitness and nutrition coach.
 Generate 3 dynamic, personalized health insights/predictions for user ${userProfile.firstName}:
@@ -151,7 +155,7 @@ export async function generateAIWorkout(userProfile: {
   goal: string
   targetArea?: string
 }): Promise<AIWorkoutPlan> {
-  const modelName = 'gemini-2.5-flash'
+  const modelName = 'gemini-3.6-flash'
 
   const prompt = `Design a customized workout routine for a user with:
 - Fitness Goal: ${userProfile.goal}
@@ -201,3 +205,90 @@ Return a JSON object containing:
 
   return JSON.parse(response.text) as AIWorkoutPlan
 }
+
+export interface MealSuggestion {
+  title: string
+  category: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  prepTime: string
+  ingredients: string[]
+  reason: string
+  icon: string
+}
+
+export async function generateAIMealSuggestions(params: {
+  goal: string
+  remainingCalories: number
+  remainingProtein: number
+}): Promise<MealSuggestion[]> {
+  const modelName = 'gemini-3.6-flash'
+
+  const prompt = `You are FitTrack's AI Nutrition Coach.
+Recommend 3 distinct, delicious, practical meals or snacks for a beginner user with:
+- Fitness Goal: ${params.goal} (e.g. MUSCLE_GAIN or WEIGHT_LOSS)
+- Remaining Calories Today: ${params.remainingCalories} kcal
+- Remaining Protein Target: ${params.remainingProtein}g
+
+Return a JSON array of 3 meal objects:
+- title: Name of the meal
+- category: one of "breakfast", "lunch", "dinner", "snack"
+- calories: Estimated calories (integer)
+- protein: Protein in grams (integer)
+- carbs: Carbs in grams (integer)
+- fat: Fat in grams (integer)
+- prepTime: Preparation time string (e.g., "10 mins")
+- ingredients: Array of 3-5 simple key ingredient strings
+- reason: 1-sentence explanation of why this fits their current goal and remaining macros
+- icon: 1 relevant food emoji (e.g., "🥗", "🍗", "🥪", "🍳", "🥣")`
+
+  const response = await ai.models.generateContent({
+    model: modelName,
+    contents: prompt,
+    config: {
+      responseMimeType: 'application/json',
+      responseSchema: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            title: { type: Type.STRING },
+            category: { type: Type.STRING },
+            calories: { type: Type.NUMBER },
+            protein: { type: Type.NUMBER },
+            carbs: { type: Type.NUMBER },
+            fat: { type: Type.NUMBER },
+            prepTime: { type: Type.STRING },
+            ingredients: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            reason: { type: Type.STRING },
+            icon: { type: Type.STRING },
+          },
+          required: [
+            'title',
+            'category',
+            'calories',
+            'protein',
+            'carbs',
+            'fat',
+            'prepTime',
+            'ingredients',
+            'reason',
+            'icon',
+          ],
+        },
+      },
+    },
+  })
+
+  if (!response.text) {
+    throw new Error('Failed to generate meal suggestions from Gemini API')
+  }
+
+  return JSON.parse(response.text) as MealSuggestion[]
+}
+

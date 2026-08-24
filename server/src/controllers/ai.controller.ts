@@ -2,7 +2,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import * as userModel from '../models/user.model'
-import { analyzeMealWithAI, generateAIInsights, generateAIWorkout } from '../services/ai.service'
+import { analyzeMealWithAI, generateAIInsights, generateAIWorkout, generateAIMealSuggestions } from '../services/ai.service'
 
 export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { description, imageBase64, mimeType } = req.body
@@ -60,3 +60,16 @@ export const generateWorkout = asyncHandler(async (req: AuthRequest, res: Respon
 
   res.json({ success: true, workoutPlan })
 })
+
+export const suggestMeals = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { goal, remainingCalories, remainingProtein } = req.body
+
+  const suggestions = await generateAIMealSuggestions({
+    goal: goal || 'FITNESS',
+    remainingCalories: Number(remainingCalories) || 2000,
+    remainingProtein: Number(remainingProtein) || 120,
+  })
+
+  res.json({ success: true, suggestions })
+})
+
