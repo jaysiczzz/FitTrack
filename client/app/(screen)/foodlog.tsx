@@ -14,7 +14,8 @@ import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
 import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString } from '@/components/foodlog/foodLogTypes';
+import NotificationToast, { NotificationType } from '@/components/ui/NotificationToast';
+import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString, MEAL_LABELS, MEAL_ICONS } from '@/components/foodlog/foodLogTypes';
 import { saveDailyFoodLogApi } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
@@ -24,7 +25,18 @@ export default function FoodLog() {
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [toast, setToast] = useState<{
+    visible: boolean;
+    message: string;
+    description?: string;
+    type?: NotificationType;
+    icon?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  }>({
+    visible: false,
+    message: '',
+  });
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
@@ -127,11 +139,34 @@ export default function FoodLog() {
     }
   };
 
+  const showNotification = (opts: {
+    message: string;
+    description?: string;
+    type?: NotificationType;
+    icon?: string;
+    actionLabel?: string;
+    onAction?: () => void;
+  }) => {
+    setToast({
+      visible: true,
+      ...opts,
+    });
+  };
+
+  const hideNotification = () => {
+    setToast((prev) => ({ ...prev, visible: false }));
+  };
+
   // Add Item handler
   const handleAddMealItem = (item: FoodLogItem) => {
     const updated = [...items, item];
     saveFoodLog(updated);
-    showNotice(`✓ Added ${item.title} to ${item.mealType}!`);
+    showNotification({
+      message: `Added ${item.title}`,
+      description: `${item.calories} kcal · ${item.protein}g Protein to ${MEAL_LABELS[item.mealType] || item.mealType}`,
+      type: 'success',
+      icon: MEAL_ICONS[item.mealType] || '🥗',
+    });
   };
 
   // Quick Staple Selection
@@ -157,7 +192,11 @@ export default function FoodLog() {
     const updated = items.filter((i) => i.id !== itemToDelete);
     saveFoodLog(updated);
     setItemToDelete(null);
-    showNotice('✓ Item removed from food log');
+    showNotification({
+      message: 'Item removed from food log',
+      type: 'info',
+      icon: '🗑️',
+    });
   };
 
   // Reset / Clear Today's Active Workspace (Leaves permanent History untouched)
@@ -171,16 +210,23 @@ export default function FoodLog() {
       console.log('Error resetting today log:', err);
     }
     setShowResetModal(false);
-    showNotice('✓ Today\'s current meals have been cleared');
+    showNotification({
+      message: "Today's log cleared",
+      description: 'Active meals and water intake have been reset.',
+      type: 'info',
+      icon: '🔄',
+    });
   };
 
   // Save & Complete Daily Intake -> Commits snapshot into History and resets active day
   const handleSaveAndCompleteDay = async () => {
     if (items.length === 0 && waterMl === 0) {
-      Alert.alert(
-        'No Meals Logged',
-        'Please scan or log at least one meal or water intake before saving to History.'
-      );
+      showNotification({
+        message: 'No Meals Logged',
+        description: 'Please scan or log at least one meal or water intake before completing.',
+        type: 'warning',
+        icon: '⚠️',
+      });
       return;
     }
 
@@ -193,6 +239,9 @@ export default function FoodLog() {
         `${item.fat}g Fat`,
       ],
     }));
+
+    const archivedCalories = loggedCalories;
+    const archivedProtein = loggedProtein;
 
     try {
       // 1. Save to PostgreSQL Database via API
@@ -230,31 +279,24 @@ export default function FoodLog() {
       await AsyncStorage.removeItem('food_log_today');
       await AsyncStorage.removeItem('water_log_today');
 
-      // 4. Show rewarding feedback notification & modal
-      showNotice(`🎉 Successfully archived ${loggedCalories} kcal to History!`);
-
-      Alert.alert(
-        '🎉 Daily Intake Saved to History!',
-        `Awesome job! Logged ${loggedCalories} kcal · ${loggedProtein}g Protein.\n\nToday's log is now saved into your History & Trends and reset for your next meals.`,
-        [
-          { text: 'Stay in Today', style: 'cancel' },
-          {
-            text: 'View History 📅',
-            onPress: () => setActiveTab('history'),
-          },
-        ]
-      );
+      // 5. Show rewarding bottom notification toast with quick action to view history
+      showNotification({
+        message: '🎉 Daily Intake Completed!',
+        description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
+        type: 'success',
+        icon: '🎉',
+        actionLabel: 'View History 📅',
+        onAction: () => setActiveTab('history'),
+      });
     } catch (err) {
       console.log('Error saving daily intake to history:', err);
-      Alert.alert('Error', 'Could not save to history. Please try again.');
+      showNotification({
+        message: 'Could not save to history',
+        description: 'An unexpected error occurred. Please try again.',
+        type: 'error',
+        icon: '✕',
+      });
     }
-  };
-
-  const showNotice = (msg: string) => {
-    setNotice(msg);
-    setTimeout(() => {
-      setNotice(null);
-    }, 3000);
   };
 
   // Aggregated logged macros
@@ -296,15 +338,6 @@ export default function FoodLog() {
           activeTab={activeTab}
           onChange={setActiveTab}
         />
-
-        {/* Feedback Toast Notice */}
-        {notice ? (
-          <View className="mb-3.5 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
-            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
-              {notice}
-            </Text>
-          </View>
-        ) : null}
 
         {activeTab === 'history' ? (
           /* History & Trends Tab View */
@@ -474,6 +507,19 @@ export default function FoodLog() {
         cancelText="Keep Log"
         onConfirm={handleResetLog}
         onCancel={() => setShowResetModal(false)}
+      />
+
+      {/* Floating Bottom Notification Toast */}
+      <NotificationToast
+        visible={toast.visible}
+        message={toast.message}
+        description={toast.description}
+        type={toast.type}
+        icon={toast.icon}
+        actionLabel={toast.actionLabel}
+        onAction={toast.onAction}
+        onDismiss={hideNotification}
+        bottomOffset={16}
       />
     </SafeAreaView>
   );

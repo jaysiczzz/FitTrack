@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, View } from 'react-native';
+import { TouchableOpacity, Text, View, Platform } from 'react-native';
 
 interface Props {
   label: string;
@@ -20,13 +20,18 @@ const GoalCard: React.FC<Props> = ({ label, icon, selected, onPress }) => {
       }`}
       style={
         selected
-          ? {
-              shadowColor: '#00E5A0',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: 0.2,
-              shadowRadius: 8,
-              elevation: 4,
-            }
+          ? Platform.select({
+              web: {
+                boxShadow: '0 4px 12px rgba(0, 229, 160, 0.2)',
+              } as any,
+              default: {
+                shadowColor: '#00E5A0',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.2,
+                shadowRadius: 8,
+                elevation: 4,
+              },
+            })
           : undefined
       }
     >

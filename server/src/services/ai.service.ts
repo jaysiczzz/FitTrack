@@ -1,11 +1,43 @@
+import 'dotenv/config'
 import { GoogleGenAI, Type } from '@google/genai'
 
-const apiKey = process.env.GEMINI_API_KEY
-if (!apiKey) {
-  console.warn('Warning: GEMINI_API_KEY environment variable is not set!')
+function getAI() {
+  const apiKey = process.env.GEMINI_API_KEY
+  if (!apiKey) {
+    throw new Error('GEMINI_API_KEY is not configured on the server. Please set GEMINI_API_KEY in your environment variables.')
+  }
+  return new GoogleGenAI({ apiKey })
 }
 
-const ai = new GoogleGenAI({ apiKey: apiKey || '' })
+const CANDIDATE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.5-flash']
+
+async function generateWithFallback(
+  contents: any,
+  config: any
+) {
+  const ai = getAI()
+  const primaryModel = process.env.GEMINI_MODEL || CANDIDATE_MODELS[0]
+  const modelsToTry = [primaryModel, ...CANDIDATE_MODELS.filter((m) => m !== primaryModel)]
+
+  let lastError: any = null
+  for (const model of modelsToTry) {
+    try {
+      const response = await ai.models.generateContent({
+        model,
+        contents,
+        config,
+      })
+      if (response && response.text) {
+        return response.text
+      }
+    } catch (err: any) {
+      lastError = err
+      console.warn(`[AI Service] Model ${model} failed: ${err.message || err}. Trying next fallback if available...`)
+    }
+  }
+
+  throw lastError || new Error('All AI models failed to generate content.')
+}
 
 export interface MealAnalysisResult {
   foodName: string
@@ -22,8 +54,6 @@ export async function analyzeMealWithAI(params: {
   imageBase64?: string
   mimeType?: string
 }): Promise<MealAnalysisResult> {
-  const modelName = 'gemini-3.6-flash'
-
   const promptText = `Analyze this meal (from text description and/or image) and provide accurate nutritional estimation.
   User Description: ${params.description || 'Not provided'}
   
@@ -53,32 +83,24 @@ export async function analyzeMealWithAI(params: {
 
   contents.push(promptText)
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          foodName: { type: Type.STRING },
-          servingSize: { type: Type.STRING },
-          calories: { type: Type.NUMBER },
-          protein: { type: Type.NUMBER },
-          carbs: { type: Type.NUMBER },
-          fat: { type: Type.NUMBER },
-          healthNotes: { type: Type.STRING },
-        },
-        required: ['foodName', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
+  const text = await generateWithFallback(contents, {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        foodName: { type: Type.STRING },
+        servingSize: { type: Type.STRING },
+        calories: { type: Type.NUMBER },
+        protein: { type: Type.NUMBER },
+        carbs: { type: Type.NUMBER },
+        fat: { type: Type.NUMBER },
+        healthNotes: { type: Type.STRING },
       },
+      required: ['foodName', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
     },
   })
 
-  if (!response.text) {
-    throw new Error('Failed to get response from Gemini API')
-  }
-
-  return JSON.parse(response.text) as MealAnalysisResult
+  return JSON.parse(text) as MealAnalysisResult
 }
 
 export interface AIInsight {
@@ -95,8 +117,6 @@ export async function generateAIInsights(userProfile: {
   workoutCount?: number
   caloriesLoggedToday?: number
 }): Promise<AIInsight[]> {
-  const modelName = 'gemini-3.6-flash'
-
   const prompt = `You are FitTrack's AI fitness and nutrition coach.
 Generate 3 dynamic, personalized health insights/predictions for user ${userProfile.firstName}:
 - User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old.
@@ -107,33 +127,25 @@ Return a JSON array of 3 insights, each having:
 - title: Short catchphrase (e.g., "Trend prediction", "Meal timing", "Recovery", "Hydration strategy")
 - lines: Array of 2 concise, actionable bullet point strings giving realistic calculations or tips for their specific goal.`
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            lines: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
+  const text = await generateWithFallback(prompt, {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          lines: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
-          required: ['title', 'lines'],
         },
+        required: ['title', 'lines'],
       },
     },
   })
 
-  if (!response.text) {
-    throw new Error('Failed to generate insights from Gemini API')
-  }
-
-  return JSON.parse(response.text) as AIInsight[]
+  return JSON.parse(text) as AIInsight[]
 }
 
 export interface AIWorkoutPlan {
@@ -155,8 +167,6 @@ export async function generateAIWorkout(userProfile: {
   goal: string
   targetArea?: string
 }): Promise<AIWorkoutPlan> {
-  const modelName = 'gemini-3.6-flash'
-
   const prompt = `Design a customized workout routine for a user with:
 - Fitness Goal: ${userProfile.goal}
 - Target focus: ${userProfile.targetArea || 'Full Body'}
@@ -168,42 +178,34 @@ Return a JSON object containing:
 - targetMuscleGroup: Main muscle group targeted
 - exercises: Array of 4-5 exercises with name, category, sets, reps, and optional suggestedWeightKg.`
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.OBJECT,
-        properties: {
-          title: { type: Type.STRING },
-          estimatedDurationMinutes: { type: Type.NUMBER },
-          targetMuscleGroup: { type: Type.STRING },
-          exercises: {
-            type: Type.ARRAY,
-            items: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                category: { type: Type.STRING },
-                sets: { type: Type.NUMBER },
-                reps: { type: Type.NUMBER },
-                suggestedWeightKg: { type: Type.NUMBER },
-              },
-              required: ['name', 'category', 'sets', 'reps'],
+  const text = await generateWithFallback(prompt, {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.OBJECT,
+      properties: {
+        title: { type: Type.STRING },
+        estimatedDurationMinutes: { type: Type.NUMBER },
+        targetMuscleGroup: { type: Type.STRING },
+        exercises: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              category: { type: Type.STRING },
+              sets: { type: Type.NUMBER },
+              reps: { type: Type.NUMBER },
+              suggestedWeightKg: { type: Type.NUMBER },
             },
+            required: ['name', 'category', 'sets', 'reps'],
           },
         },
-        required: ['title', 'estimatedDurationMinutes', 'targetMuscleGroup', 'exercises'],
       },
+      required: ['title', 'estimatedDurationMinutes', 'targetMuscleGroup', 'exercises'],
     },
   })
 
-  if (!response.text) {
-    throw new Error('Failed to generate workout plan from Gemini API')
-  }
-
-  return JSON.parse(response.text) as AIWorkoutPlan
+  return JSON.parse(text) as AIWorkoutPlan
 }
 
 export interface MealSuggestion {
@@ -224,8 +226,6 @@ export async function generateAIMealSuggestions(params: {
   remainingCalories: number
   remainingProtein: number
 }): Promise<MealSuggestion[]> {
-  const modelName = 'gemini-3.6-flash'
-
   const prompt = `You are FitTrack's AI Nutrition Coach.
 Recommend 3 distinct, delicious, practical meals or snacks for a beginner user with:
 - Fitness Goal: ${params.goal} (e.g. MUSCLE_GAIN or WEIGHT_LOSS)
@@ -244,51 +244,43 @@ Return a JSON array of 3 meal objects:
 - reason: 1-sentence explanation of why this fits their current goal and remaining macros
 - icon: 1 relevant food emoji (e.g., "🥗", "🍗", "🥪", "🍳", "🥣")`
 
-  const response = await ai.models.generateContent({
-    model: modelName,
-    contents: prompt,
-    config: {
-      responseMimeType: 'application/json',
-      responseSchema: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: {
-            title: { type: Type.STRING },
-            category: { type: Type.STRING },
-            calories: { type: Type.NUMBER },
-            protein: { type: Type.NUMBER },
-            carbs: { type: Type.NUMBER },
-            fat: { type: Type.NUMBER },
-            prepTime: { type: Type.STRING },
-            ingredients: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            reason: { type: Type.STRING },
-            icon: { type: Type.STRING },
+  const text = await generateWithFallback(prompt, {
+    responseMimeType: 'application/json',
+    responseSchema: {
+      type: Type.ARRAY,
+      items: {
+        type: Type.OBJECT,
+        properties: {
+          title: { type: Type.STRING },
+          category: { type: Type.STRING },
+          calories: { type: Type.NUMBER },
+          protein: { type: Type.NUMBER },
+          carbs: { type: Type.NUMBER },
+          fat: { type: Type.NUMBER },
+          prepTime: { type: Type.STRING },
+          ingredients: {
+            type: Type.ARRAY,
+            items: { type: Type.STRING },
           },
-          required: [
-            'title',
-            'category',
-            'calories',
-            'protein',
-            'carbs',
-            'fat',
-            'prepTime',
-            'ingredients',
-            'reason',
-            'icon',
-          ],
+          reason: { type: Type.STRING },
+          icon: { type: Type.STRING },
         },
+        required: [
+          'title',
+          'category',
+          'calories',
+          'protein',
+          'carbs',
+          'fat',
+          'prepTime',
+          'ingredients',
+          'reason',
+          'icon',
+        ],
       },
     },
   })
 
-  if (!response.text) {
-    throw new Error('Failed to generate meal suggestions from Gemini API')
-  }
-
-  return JSON.parse(response.text) as MealSuggestion[]
+  return JSON.parse(text) as MealSuggestion[]
 }
 
