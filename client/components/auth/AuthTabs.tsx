@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text } from 'react-native';
+import { View, TouchableOpacity, Text, Platform } from 'react-native';
 
 interface Props {
   active: 'login' | 'register';
@@ -18,13 +18,18 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         }`}
         style={
           active === 'login'
-            ? {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.15,
-                shadowRadius: 4,
-                elevation: 3,
-              }
+            ? Platform.select({
+                web: {
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                } as any,
+                default: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 4,
+                  elevation: 3,
+                },
+              })
             : undefined
         }
         onPress={() => onChange('login')}
@@ -48,13 +53,18 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         }`}
         style={
           active === 'register'
-            ? {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.15,
-                shadowRadius: 4,
-                elevation: 3,
-              }
+            ? Platform.select({
+                web: {
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                } as any,
+                default: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.15,
+                  shadowRadius: 4,
+                  elevation: 3,
+                },
+              })
             : undefined
         }
         onPress={() => onChange('register')}

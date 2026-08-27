@@ -10,6 +10,7 @@ import {
   Baloo2_600SemiBold,
   Baloo2_700Bold,
 } from "@expo-google-fonts/baloo-2";
+import { ToastProvider } from "../context/ToastContext";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
@@ -34,11 +35,13 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
-        <View className="flex-1 min-h-0 w-full max-w-[480px] self-center">
-          <Slot />
+      <ToastProvider>
+        <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
+          <View className="flex-1 min-h-0 w-full max-w-[480px] self-center">
+            <Slot />
+          </View>
         </View>
-      </View>
+      </ToastProvider>
     </SafeAreaProvider>
   );
 }

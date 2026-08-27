@@ -9,6 +9,7 @@ import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
 import { LibraryExercise } from '@/components/workouts/mockData';
 import { ExerciseDetailsModal, getDifficultyPreset } from '@/components/workouts/ExerciseDetailsModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useToast } from '@/context/ToastContext';
 import {
   getTodayWorkoutSession,
   addExerciseToTodaySession,
@@ -23,13 +24,13 @@ import {
 } from '@/api/workout';
 
 export default function Workouts() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
   const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
   const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
   const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
-  const [sessionCompleted, setSessionCompleted] = useState(false);
 
   const fetchTodaySession = async () => {
     try {
@@ -185,15 +186,20 @@ export default function Workouts() {
   };
 
   const handleRemoveExercise = async (exerciseKey: string) => {
+    const exToRemove = todayExercises.find((e) => e.key === exerciseKey);
     setTodayExercises((prev) => prev.filter((ex) => ex.key !== exerciseKey));
     try {
       await deleteWorkoutExerciseApi(exerciseKey);
     } catch (err) {
       console.log('Failed to delete exercise on API server');
     }
+    showToast({
+      message: 'Exercise Removed',
+      description: exToRemove ? `Removed "${exToRemove.name}" from today's session` : undefined,
+      type: 'info',
+      icon: '🗑️',
+    });
   };
-
-  const [addedNotice, setAddedNotice] = useState<string | null>(null);
 
   const handleUpdateExercisePreset = async (exerciseKey: string, customized: LibraryExercise) => {
     const targetTier = ((customized.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
@@ -243,10 +249,12 @@ export default function Workouts() {
       });
     }
 
-    setAddedNotice(`✓ ${customized.name} updated to ${preset.difficulty.toUpperCase()} preset!`);
-    setTimeout(() => {
-      setAddedNotice(null);
-    }, 3500);
+    showToast({
+      message: `${customized.name} Updated`,
+      description: `Preset set to ${preset.difficulty.toUpperCase()} (${targetSets.length} sets)`,
+      type: 'info',
+      icon: '⚙️',
+    });
   };
 
   const handleAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
@@ -326,25 +334,41 @@ export default function Workouts() {
 
     const currentCount = todayExercises.filter((ex) => ex.name.toLowerCase() === libEx.name.toLowerCase() || ex.exerciseId === libEx.id).length + 1;
     const countSuffix = currentCount > 1 ? ` (${currentCount}x)` : '';
-    setAddedNotice(`✓ ${libEx.name}${countSuffix} added to Today's Workout!`);
-    setTimeout(() => {
-      setAddedNotice(null);
-    }, 3000);
+    showToast({
+      message: `Added ${libEx.name}${countSuffix}`,
+      description: `Added to Today's Workout (${preset.difficulty.toUpperCase()} preset)`,
+      type: 'success',
+      icon: '🏋️‍♂️',
+    });
   };
 
   const handleConfirmCompleteSession = async () => {
     setShowCompleteModal(false);
+    const exerciseCount = todayExercises.length;
+    const totalSets = todayExercises.reduce((acc, ex) => acc + ex.sets.length, 0);
+
+    // 1. Instantly clear active UI state & show notification (0ms delay)
+    setTodayExercises([]);
+
+    showToast({
+      message: '🎉 Workout Session Completed!',
+      description: `Great job! Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
+      type: 'success',
+      icon: '🔥',
+      actionLabel: 'View History 📅',
+      onAction: () => setActiveTab('history'),
+    });
+
+    // 2. Perform API sync and refresh counts in the background
     try {
       await completeWorkoutSessionApi();
-      setSessionCompleted(true);
       fetchTodaySession();
       fetchHistoryCount();
     } catch (err) {
-      setSessionCompleted(true);
+      console.log('Error completing workout session on server:', err);
+      fetchTodaySession();
+      fetchHistoryCount();
     }
-    setTimeout(() => {
-      setSessionCompleted(false);
-    }, 4000);
   };
 
   return (
@@ -360,24 +384,6 @@ export default function Workouts() {
 
         {/* Top Segmented Tabs */}
         <WorkoutTabs activeTab={activeTab} onChange={setActiveTab} />
-
-        {/* Added Notification Toast */}
-        {addedNotice ? (
-          <View className="mb-4 rounded-xl border border-emerald-500/40 bg-emerald-500/15 dark:bg-emerald-500/20 p-3 items-center">
-            <Text className="text-xs font-bold text-emerald-400 text-center">
-              {addedNotice}
-            </Text>
-          </View>
-        ) : null}
-
-        {/* Feedback Alert Banner */}
-        {sessionCompleted ? (
-          <View className="mb-4 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
-            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
-              🎉 Workout session completed and saved to history!
-            </Text>
-          </View>
-        ) : null}
 
         {/* Tab Content */}
         {activeTab === 'today' && (

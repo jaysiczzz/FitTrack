@@ -14,17 +14,18 @@ import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
 import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString } from '@/components/foodlog/foodLogTypes';
+import { useToast } from '@/context/ToastContext';
+import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString, MEAL_LABELS, MEAL_ICONS } from '@/components/foodlog/foodLogTypes';
 import { saveDailyFoodLogApi } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
+  const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<FoodLogTabType>('today');
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
-  const [notice, setNotice] = useState<string | null>(null);
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
@@ -131,7 +132,12 @@ export default function FoodLog() {
   const handleAddMealItem = (item: FoodLogItem) => {
     const updated = [...items, item];
     saveFoodLog(updated);
-    showNotice(`✓ Added ${item.title} to ${item.mealType}!`);
+    showToast({
+      message: `Added ${item.title}`,
+      description: `${item.calories} kcal · ${item.protein}g Protein to ${MEAL_LABELS[item.mealType] || item.mealType}`,
+      type: 'success',
+      icon: MEAL_ICONS[item.mealType] || '🥗',
+    });
   };
 
   // Quick Staple Selection
@@ -157,7 +163,11 @@ export default function FoodLog() {
     const updated = items.filter((i) => i.id !== itemToDelete);
     saveFoodLog(updated);
     setItemToDelete(null);
-    showNotice('✓ Item removed from food log');
+    showToast({
+      message: 'Item removed from food log',
+      type: 'info',
+      icon: '🗑️',
+    });
   };
 
   // Reset / Clear Today's Active Workspace (Leaves permanent History untouched)
@@ -171,21 +181,47 @@ export default function FoodLog() {
       console.log('Error resetting today log:', err);
     }
     setShowResetModal(false);
-    showNotice('✓ Today\'s current meals have been cleared');
+    showToast({
+      message: "Today's log cleared",
+      description: 'Active meals and water intake have been reset.',
+      type: 'info',
+      icon: '🔄',
+    });
   };
 
   // Save & Complete Daily Intake -> Commits snapshot into History and resets active day
   const handleSaveAndCompleteDay = async () => {
     if (items.length === 0 && waterMl === 0) {
-      Alert.alert(
-        'No Meals Logged',
-        'Please scan or log at least one meal or water intake before saving to History.'
-      );
+      showToast({
+        message: 'No Meals Logged',
+        description: 'Please scan or log at least one meal or water intake before completing.',
+        type: 'warning',
+        icon: '⚠️',
+      });
       return;
     }
 
     const todayStr = getTodayDateString();
-    const formatted = items.map((item) => ({
+    const currentItems = [...items];
+    const currentWater = waterMl;
+    const archivedCalories = loggedCalories;
+    const archivedProtein = loggedProtein;
+
+    // 1. Instantly reset active UI state & show notification (0ms delay)
+    setItems([]);
+    setWaterMl(0);
+
+    showToast({
+      message: '🎉 Daily Intake Completed!',
+      description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
+      type: 'success',
+      icon: '🎉',
+      actionLabel: 'View History 📅',
+      onAction: () => setActiveTab('history'),
+    });
+
+    // 2. Persist to storage & cloud API concurrently in the background
+    const formatted = currentItems.map((item) => ({
       ...item,
       macros: [
         `${item.protein}g Protein`,
@@ -195,66 +231,36 @@ export default function FoodLog() {
     }));
 
     try {
-      // 1. Save to PostgreSQL Database via API
-      try {
-        await saveDailyFoodLogApi({
+      await Promise.all([
+        AsyncStorage.setItem(`food_log_${todayStr}`, JSON.stringify(formatted)),
+        AsyncStorage.setItem(`water_log_${todayStr}`, currentWater.toString()),
+        AsyncStorage.removeItem('food_log_today'),
+        AsyncStorage.removeItem('water_log_today'),
+        (async () => {
+          const rawDates = await AsyncStorage.getItem('food_log_history_dates');
+          let datesArr: string[] = [];
+          if (rawDates) {
+            try {
+              const parsed = JSON.parse(rawDates);
+              if (Array.isArray(parsed)) datesArr = parsed;
+            } catch {}
+          }
+          if (!datesArr.includes(todayStr)) {
+            datesArr.unshift(todayStr);
+            await AsyncStorage.setItem('food_log_history_dates', JSON.stringify(datesArr));
+          }
+        })(),
+        saveDailyFoodLogApi({
           date: todayStr,
-          items,
-          waterMl,
-        });
-      } catch (apiErr) {
-        console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
-      }
-
-      // 2. Commit snapshot into local date-keyed storage
-      await AsyncStorage.setItem(`food_log_${todayStr}`, JSON.stringify(formatted));
-      await AsyncStorage.setItem(`water_log_${todayStr}`, waterMl.toString());
-
-      // 3. Register date in history dates array
-      const rawDates = await AsyncStorage.getItem('food_log_history_dates');
-      let datesArr: string[] = [];
-      if (rawDates) {
-        try {
-          const parsed = JSON.parse(rawDates);
-          if (Array.isArray(parsed)) datesArr = parsed;
-        } catch {}
-      }
-      if (!datesArr.includes(todayStr)) {
-        datesArr.unshift(todayStr);
-        await AsyncStorage.setItem('food_log_history_dates', JSON.stringify(datesArr));
-      }
-
-      // 4. Reset active today workspace since it is now safely stored in History & Database
-      setItems([]);
-      setWaterMl(0);
-      await AsyncStorage.removeItem('food_log_today');
-      await AsyncStorage.removeItem('water_log_today');
-
-      // 4. Show rewarding feedback notification & modal
-      showNotice(`🎉 Successfully archived ${loggedCalories} kcal to History!`);
-
-      Alert.alert(
-        '🎉 Daily Intake Saved to History!',
-        `Awesome job! Logged ${loggedCalories} kcal · ${loggedProtein}g Protein.\n\nToday's log is now saved into your History & Trends and reset for your next meals.`,
-        [
-          { text: 'Stay in Today', style: 'cancel' },
-          {
-            text: 'View History 📅',
-            onPress: () => setActiveTab('history'),
-          },
-        ]
-      );
+          items: currentItems,
+          waterMl: currentWater,
+        }).catch((apiErr) => {
+          console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
+        }),
+      ]);
     } catch (err) {
-      console.log('Error saving daily intake to history:', err);
-      Alert.alert('Error', 'Could not save to history. Please try again.');
+      console.log('Error in background food log archiving:', err);
     }
-  };
-
-  const showNotice = (msg: string) => {
-    setNotice(msg);
-    setTimeout(() => {
-      setNotice(null);
-    }, 3000);
   };
 
   // Aggregated logged macros
@@ -296,15 +302,6 @@ export default function FoodLog() {
           activeTab={activeTab}
           onChange={setActiveTab}
         />
-
-        {/* Feedback Toast Notice */}
-        {notice ? (
-          <View className="mb-3.5 rounded-xl border border-accent/40 bg-accent/15 dark:bg-accent-dark/20 p-3 items-center">
-            <Text className="text-xs font-bold text-accent dark:text-accent-dark text-center">
-              {notice}
-            </Text>
-          </View>
-        ) : null}
 
         {activeTab === 'history' ? (
           /* History & Trends Tab View */
