@@ -119,7 +119,7 @@ export default function FoodLog() {
   };
 
   const saveWater = async (newWater: number) => {
-    const clamped = Math.max(0, newWater);
+    const clamped = Math.min(2000, Math.max(0, newWater));
     setWaterMl(clamped);
     try {
       await AsyncStorage.setItem('water_log_today', clamped.toString());
