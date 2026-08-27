@@ -285,8 +285,8 @@ export default function FoodLog() {
   };
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}>
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}>
         {/* Screen Header */}
         <View className="flex-row justify-between items-center mt-2 mb-1">
           <Text className="text-[28px] font-black text-text-primary dark:text-text-primary-dark">

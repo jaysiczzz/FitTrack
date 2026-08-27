@@ -288,10 +288,10 @@ export default function Dashboard() {
   const completedExercisesCount = todayExercises.filter((e) => e.isCompleted).length;
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 100 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
