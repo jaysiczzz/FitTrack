@@ -1,12 +1,17 @@
+import React from 'react';
+import { View } from 'react-native';
 import { Stack } from 'expo-router';
-import BurgerMenu from '@/components/ui/BurgerMenu';
+import FloatingNavBar from '@/components/ui/FloatingNavBar';
 
 export default function Layout() {
   return (
-    <Stack
-      screenOptions={{
-        header: (props) => <BurgerMenu title={props.options.title} />,
-      }}
-    />
+    <View className="flex-1 bg-background dark:bg-background-dark">
+      <Stack
+        screenOptions={{
+          headerShown: false,
+        }}
+      />
+      <FloatingNavBar />
+    </View>
   );
 }

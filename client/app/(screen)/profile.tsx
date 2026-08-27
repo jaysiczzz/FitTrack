@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useRouter } from 'expo-router';
 import { getUserProfile, updateUserProfile } from '@/api/user';
 
 interface UserData {
@@ -24,6 +25,7 @@ interface UserData {
 }
 
 export default function Profile() {
+  const router = useRouter();
   const isDark = useColorScheme() === 'dark';
   const placeholderColor = isDark ? '#8A93A6' : '#5C6478';
 
@@ -59,33 +61,27 @@ export default function Profile() {
 
   useEffect(() => {
     let isMounted = true;
-
-    const loadProfile = async () => {
-      // 1. Instant render from local AsyncStorage
+    const fetchProfile = async () => {
       try {
-        const cachedUserStr = await AsyncStorage.getItem('user');
-        if (cachedUserStr && isMounted) {
-          const cachedUser = JSON.parse(cachedUserStr);
-          applyUserData(cachedUser);
+        setLoading(true);
+        const cachedUser = await AsyncStorage.getItem('user');
+        if (cachedUser && isMounted) {
+          applyUserData(JSON.parse(cachedUser));
         }
-      } catch (e) {}
 
-      // 2. Fetch fresh user profile from API server
-      try {
         const res = await getUserProfile();
         if (res.user && isMounted) {
           applyUserData(res.user);
           await AsyncStorage.setItem('user', JSON.stringify(res.user));
         }
-      } catch (err: any) {
-        console.log('Profile fetch error:', err.message);
+      } catch (err) {
+        console.log('Error fetching user profile:', err);
       } finally {
         if (isMounted) setLoading(false);
       }
     };
 
-    loadProfile();
-
+    fetchProfile();
     return () => {
       isMounted = false;
     };
@@ -158,18 +154,30 @@ export default function Profile() {
   };
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
         {/* User Card Header */}
         <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-3">
-          <Text className="text-text-primary dark:text-text-primary-dark text-xl font-extrabold text-center">
-            {firstName || 'User'} {lastName || ''}
-          </Text>
-          {email ? (
-            <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5">
-              {email}
-            </Text>
-          ) : null}
+          <View className="flex-row justify-between items-start">
+            <View className="w-8" />
+            <View className="flex-1 items-center">
+              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-extrabold text-center">
+                {firstName || 'User'} {lastName || ''}
+              </Text>
+              {email ? (
+                <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5">
+                  {email}
+                </Text>
+              ) : null}
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/settings' as any)}
+              activeOpacity={0.7}
+              className="w-8 h-8 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border/50"
+            >
+              <Text className="text-sm">⚙️</Text>
+            </TouchableOpacity>
+          </View>
           <Text className="text-text-muted dark:text-text-muted-dark text-center mt-1.5 text-xs font-medium">
             🎯 Goal: {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
           </Text>
@@ -458,6 +466,28 @@ export default function Profile() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Account & App Settings Shortcut Card */}
+        <TouchableOpacity
+          onPress={() => router.push('/(screen)/settings' as any)}
+          activeOpacity={0.75}
+          className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark flex-row items-center justify-between mb-4"
+        >
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border/40">
+              <Text className="text-lg">⚙️</Text>
+            </View>
+            <View>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+                Account & App Settings
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+                Preferences, theme, security & logout
+              </Text>
+            </View>
+          </View>
+          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-base mr-1">→</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

@@ -288,10 +288,10 @@ export default function Dashboard() {
   const completedExercisesCount = todayExercises.filter((e) => e.isCompleted).length;
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}
+        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -302,7 +302,7 @@ export default function Dashboard() {
         }
       >
         {/* Header Greeting */}
-        <View className="mt-2 mb-3">
+        <View className="mb-3">
           <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black">
             {getGreeting()}, {userName} 👋
           </Text>

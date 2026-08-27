@@ -31,11 +31,20 @@ export default function Settings() {
   };
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 80 }}>
-        <Text className="mb-1 text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
-          Settings
-        </Text>
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
+        {/* Back Button & Header */}
+        <View className="flex-row items-center mb-1">
+          <Pressable
+            onPress={() => router.back()}
+            className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border/50"
+          >
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">←</Text>
+          </Pressable>
+          <Text className="text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
+            Settings
+          </Text>
+        </View>
 
         <Text className="mb-5 text-sm text-text-muted dark:text-text-muted-dark">
           Manage your account preferences
