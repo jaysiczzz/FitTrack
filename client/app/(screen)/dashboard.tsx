@@ -1,103 +1,84 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
-import { getAIInsights, AIInsight } from '../../api/ai';
-import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '../../api/workout';
-import { FoodLogItem } from './foodlog';
+import { useFocusEffect, useRouter } from 'expo-router';
 
-type StatCardProps = {
-  title: string;
-  value: string;
-  subtitle?: string;
-};
+import DailyCheckInCard, { MoodOption } from '@/components/dashboard/DailyCheckInCard';
+import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
+import QuickActionsRow from '@/components/dashboard/QuickActionsRow';
+import StatCard from '@/components/dashboard/StatCard';
+import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
+import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
+import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
+import AiScanModal from '@/components/foodlog/AiScanModal';
 
-const StatCard = ({ title, value, subtitle }: StatCardProps) => (
-  <View className="flex-1 bg-surface dark:bg-surface-dark p-[18px] rounded-[20px] mr-3 border border-input-border dark:border-input-border-dark">
-    <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-2.5">{title}</Text>
-    <Text className="text-accent dark:text-accent-dark text-xl font-bold">{value}</Text>
-    {subtitle ? (
-      <Text className="text-text-muted dark:text-text-muted-dark mt-2 text-xs">{subtitle}</Text>
-    ) : null}
-  </View>
-);
-
-type ProgressBarProps = {
-  label: string;
-  value: string;
-  percentage: number;
-  color: string;
-};
-
-const ProgressBar = ({ label, value, percentage, color }: ProgressBarProps) => {
-  const fillWidth = `${Math.min(100, Math.max(0, percentage))}%` as import('react-native').DimensionValue;
-
-  return (
-    <View className="mb-3.5">
-      <View className="flex-row justify-between mb-1.5">
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs">{label}</Text>
-        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">{value}</Text>
-      </View>
-      <View className="h-2.5 bg-input dark:bg-input-dark rounded-lg overflow-hidden border border-input-border/40">
-        <View className="h-2.5 rounded-lg" style={{ width: fillWidth, backgroundColor: color }} />
-      </View>
-    </View>
-  );
-};
-
-type BoostCardProps = {
-  title: string;
-  lines: string[];
-};
-
-const BoostCard = ({ title, lines }: BoostCardProps) => (
-  <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 mb-3 border border-input-border dark:border-input-border-dark">
-    <Text className="text-accent dark:text-accent-dark font-semibold mb-2.5 text-[13px]">{title}</Text>
-    {lines.map((line, index) => (
-      <Text key={index} className="text-text-muted dark:text-text-muted-dark text-[13px] mb-2 leading-5">
-        {line}
-      </Text>
-    ))}
-  </View>
-);
+import { getAIInsights, AIInsight } from '@/api/ai';
+import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
+import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
+import { useToast } from '@/context/ToastContext';
 
 export default function Dashboard() {
-  const [userName, setUserName] = useState('User');
+  const router = useRouter();
+  const { showSuccess, showToast } = useToast();
+
+  const [userName, setUserName] = useState('Athlete');
+  const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
+  const [refreshing, setRefreshing] = useState(false);
   const [loadingAi, setLoadingAi] = useState(false);
+  const [showScanModal, setShowScanModal] = useState(false);
 
-  // Dynamic Food & Nutrition Progress States
+  // Check-In state
+  const [isCheckedIn, setIsCheckedIn] = useState(false);
+
+  // Nutrition Progress States
   const [caloriesLogged, setCaloriesLogged] = useState(0);
-  const [targetCalories] = useState(2000);
   const [proteinLogged, setProteinLogged] = useState(0);
-  const [targetProtein] = useState(140);
   const [carbsLogged, setCarbsLogged] = useState(0);
-  const [targetCarbs] = useState(230);
   const [fatLogged, setFatLogged] = useState(0);
-  const [targetFat] = useState(65);
+  const [waterMl, setWaterMl] = useState(0);
 
-  // Dynamic Workout Progress States
+  // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
   const [workoutsThisWeek, setWorkoutsThisWeek] = useState(0);
   const [targetWorkoutsThisWeek] = useState(5);
   const [currentStreak, setCurrentStreak] = useState(0);
-  const [todayExercises, setTodayExercises] = useState<{ id: string; name: string; isCompleted: boolean }[]>([]);
+  const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
+  const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
+
+  // Custom daily stretch/recovery goal toggle
+  const [customGoalDone, setCustomGoalDone] = useState(false);
 
   // AI Insights State
   const [insights, setInsights] = useState<AIInsight[]>([
     {
-      title: 'Workout & Nutrition Correlation',
+      title: 'Workout & Nutrition Synergy',
       lines: [
-        'Log your daily meals and workout sessions to generate personalized AI performance insights.',
+        'Log your meals and completed sets to unlock customized AI performance & recovery recommendations.',
       ],
     },
     {
-      title: 'Meal Timing',
+      title: 'Post-Workout Anabolic Window',
       lines: [
-        'Consuming protein within 45 minutes after your workout accelerates muscle recovery.',
+        'Consuming 25-35g of high quality protein within 60 minutes after exercise accelerates muscle protein synthesis.',
       ],
     },
   ]);
+
+  // Dynamic targets based on goal
+  const targetCalories = userGoal === 'MUSCLE_GAIN' ? 2400 : 1900;
+  const targetProtein = userGoal === 'MUSCLE_GAIN' ? 160 : 145;
+  const targetCarbs = userGoal === 'MUSCLE_GAIN' ? 260 : 180;
+  const targetFat = userGoal === 'MUSCLE_GAIN' ? 75 : 55;
+  const targetWater = 2000;
+
+  // Time-aware greeting
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  };
 
   const loadUserData = async () => {
     try {
@@ -105,9 +86,25 @@ export default function Dashboard() {
       if (uStr) {
         const user = JSON.parse(uStr);
         if (user.firstName) setUserName(user.firstName);
+        if (user.goal) setUserGoal(user.goal);
       }
     } catch (err) {
-      console.log('Error loading cached user:', err);
+      console.log('Error loading user data:', err);
+    }
+  };
+
+  const getTodayDateKey = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const loadDailyCheckIn = async () => {
+    try {
+      const todayKey = getTodayDateKey();
+      const checkin = await AsyncStorage.getItem(`daily_checkin_${todayKey}`);
+      setIsCheckedIn(!!checkin);
+    } catch (e) {
+      console.log('Error checking daily checkin:', e);
     }
   };
 
@@ -122,25 +119,10 @@ export default function Dashboard() {
         let totalFat = 0;
 
         items.forEach((item) => {
-          // Extract calories from subtitle e.g. "(380 kcal)"
-          if (item.subtitle) {
-            const calMatch = item.subtitle.match(/(\d+)\s*kcal/i);
-            if (calMatch) totalCals += parseInt(calMatch[1], 10);
-          }
-
-          // Extract macros e.g. ["18g Protein", "32g Carbs", "8g Fat"]
-          if (item.macros && Array.isArray(item.macros)) {
-            item.macros.forEach((m) => {
-              const pMatch = m.match(/(\d+)g\s*Protein/i);
-              if (pMatch) totalProt += parseInt(pMatch[1], 10);
-
-              const cMatch = m.match(/(\d+)g\s*Carbs/i);
-              if (cMatch) totalCarbs += parseInt(cMatch[1], 10);
-
-              const fMatch = m.match(/(\d+)g\s*Fat/i);
-              if (fMatch) totalFat += parseInt(fMatch[1], 10);
-            });
-          }
+          totalCals += item.calories || 0;
+          totalProt += item.protein || 0;
+          totalCarbs += item.carbs || 0;
+          totalFat += item.fat || 0;
         });
 
         setCaloriesLogged(totalCals);
@@ -153,6 +135,14 @@ export default function Dashboard() {
         setCarbsLogged(0);
         setFatLogged(0);
       }
+
+      // Load Water
+      const waterSaved = await AsyncStorage.getItem('water_log_today');
+      if (waterSaved) {
+        setWaterMl(parseInt(waterSaved, 10) || 0);
+      } else {
+        setWaterMl(0);
+      }
     } catch (err) {
       console.log('Error calculating food progress:', err);
     }
@@ -163,8 +153,8 @@ export default function Dashboard() {
       // 1. Fetch today's active session exercises
       const todayRes = await getTodayWorkoutSession();
       if (todayRes.session && todayRes.session.exercises) {
-        const formatted = todayRes.session.exercises.map((ex: ApiWorkoutExercise) => {
-          const allSetsDone = ex.sets && ex.sets.length > 0 && ex.sets.every((s) => s.done);
+        const formatted: DashboardWorkoutExercise[] = todayRes.session.exercises.map((ex: ApiWorkoutExercise) => {
+          const allSetsDone = Boolean(ex.sets && ex.sets.length > 0 && ex.sets.every((s) => s.done));
           return {
             id: ex.id,
             name: ex.name,
@@ -173,16 +163,17 @@ export default function Dashboard() {
         });
         setTodayExercises(formatted);
 
-        // Estimate active minutes from completed sets today
         const completedSetsCount = todayRes.session.exercises.reduce(
           (acc: number, ex: ApiWorkoutExercise) =>
             acc + (ex.sets ? ex.sets.filter((s) => s.done).length : 0),
           0
         );
-        setActiveMinutesToday(completedSetsCount * 5); // ~5 min per completed set
+        setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
+        setWorkoutSessionDone(formatted.length > 0 && formatted.every((e) => e.isCompleted));
       } else {
         setTodayExercises([]);
         setActiveMinutesToday(0);
+        setWorkoutSessionDone(false);
       }
 
       // 2. Fetch completed workout history for streak and weekly count
@@ -192,6 +183,7 @@ export default function Dashboard() {
         const now = new Date();
         const startOfWeek = new Date(now);
         startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+        startOfWeek.setHours(0, 0, 0, 0);
 
         const completedThisWeek = sessions.filter((s) => {
           if (!s.completedAt) return false;
@@ -207,13 +199,55 @@ export default function Dashboard() {
     }
   };
 
+  const loadAll = async () => {
+    await Promise.all([
+      loadUserData(),
+      loadDailyCheckIn(),
+      loadFoodProgress(),
+      loadWorkoutProgress(),
+    ]);
+  };
+
   useFocusEffect(
     useCallback(() => {
-      loadUserData();
-      loadFoodProgress();
-      loadWorkoutProgress();
+      loadAll();
     }, [])
   );
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadAll();
+    setRefreshing(false);
+  };
+
+  const handleQuickAddWater = async (amount: number = 250) => {
+    const newTotal = waterMl + amount;
+    setWaterMl(newTotal);
+    try {
+      await AsyncStorage.setItem('water_log_today', newTotal.toString());
+    } catch (e) {
+      console.log('Error saving quick water:', e);
+    }
+    showToast({
+      message: `💧 Logged +${amount}ml Water!`,
+      description: `Total today: ${newTotal.toLocaleString()} / ${targetWater.toLocaleString()} ml`,
+      type: 'info',
+      icon: '💧',
+    });
+  };
+
+  const handleAddMealFromScan = async (item: FoodLogItem) => {
+    try {
+      const saved = await AsyncStorage.getItem('food_log_today');
+      let arr: FoodLogItem[] = saved ? JSON.parse(saved) : [];
+      arr.push(item);
+      await AsyncStorage.setItem('food_log_today', JSON.stringify(arr));
+      loadFoodProgress();
+      showSuccess(`Added ${item.title}`, `${item.calories} kcal logged to ${item.mealType}`);
+    } catch (e) {
+      console.log('Error adding food from dashboard scan:', e);
+    }
+  };
 
   const refreshAIInsights = async () => {
     setLoadingAi(true);
@@ -221,167 +255,136 @@ export default function Dashboard() {
       const res = await getAIInsights();
       if (res.success && res.insights?.length) {
         setInsights(res.insights);
+        showSuccess('AI Insights Refreshed', 'Generated latest performance predictions.');
       }
-    } catch (err) {
-      console.log('Using default insights:', err);
+    } catch (err: any) {
+      console.log('AI Insights Error:', err.message);
     } finally {
       setLoadingAi(false);
     }
   };
 
-  // Nutrition progress ratios
-  const caloriePercent = Math.min(100, Math.round((caloriesLogged / targetCalories) * 100));
-  const proteinPercent = Math.min(100, Math.round((proteinLogged / targetProtein) * 100));
-  const carbsPercent = Math.min(100, Math.round((carbsLogged / targetCarbs) * 100));
-  const fatPercent = Math.min(100, Math.round((fatLogged / targetFat) * 100));
+  const completedExercisesCount = todayExercises.filter((e) => e.isCompleted).length;
 
   return (
     <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerClassName="px-5 pb-20">
+      <ScrollView
+        className="flex-1"
+        contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor="#00E5A0"
+            colors={['#00E5A0']}
+          />
+        }
+      >
         {/* Header Greeting */}
-        <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-bold mt-2">
-          Good morning, {userName} 👋
-        </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark mt-1 mb-4 text-sm">
-          Here's your live progress on foods & workouts today
-        </Text>
+        <View className="mt-2 mb-3">
+          <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black">
+            {getGreeting()}, {userName} 👋
+          </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark mt-0.5 text-xs font-medium">
+            Your live fitness & daily accountability hub
+          </Text>
+        </View>
 
-        {/* Top Metric Cards */}
-        <View className="flex-row justify-between mt-1">
+        {/* 1-Tap Quick Actions Row */}
+        <QuickActionsRow
+          onScanFoodPress={() => setShowScanModal(true)}
+          onQuickAddWater={() => handleQuickAddWater(250)}
+        />
+
+        {/* Motivation-Based Daily Check-In */}
+        <DailyCheckInCard
+          streakCount={currentStreak}
+          onCheckInCompleted={(mood) => {
+            setIsCheckedIn(true);
+          }}
+        />
+
+        {/* Interactive Daily Goals Checklist */}
+        <DailyGoalsCard
+          isCheckedIn={isCheckedIn}
+          caloriesLogged={caloriesLogged}
+          targetCalories={targetCalories}
+          activeMinutes={activeMinutesToday}
+          completedExercisesCount={completedExercisesCount}
+          totalExercisesCount={todayExercises.length}
+          workoutSessionDone={workoutSessionDone}
+          waterMl={waterMl}
+          targetWaterMl={targetWater}
+          onQuickAddWater={handleQuickAddWater}
+          customGoalDone={customGoalDone}
+          onToggleCustomGoal={() => setCustomGoalDone((prev) => !prev)}
+        />
+
+        {/* Key Metrics Grid */}
+        <View className="flex-row gap-3 mb-3">
           <StatCard
-            title="Calories Today"
-            value={`${caloriesLogged.toLocaleString()} / ${targetCalories.toLocaleString()}`}
-            subtitle={caloriesLogged > 0 ? `↑ ${caloriePercent}% of daily goal` : 'No meals logged yet'}
+            title="Calories Logged"
+            value={`${caloriesLogged.toLocaleString()} kcal`}
+            subtitle={`Target: ${targetCalories.toLocaleString()} kcal`}
+            icon="🔥"
           />
           <StatCard
-            title="Active Minutes"
-            value={`${activeMinutesToday} min`}
-            subtitle={activeMinutesToday > 0 ? 'Logged from today\'s workout' : 'No active minutes yet'}
+            title="Hydration"
+            value={`${waterMl.toLocaleString()} ml`}
+            subtitle={`Target: ${targetWater.toLocaleString()} ml`}
+            icon="💧"
           />
         </View>
 
-        <View className="flex-row justify-between mt-3">
+        <View className="flex-row gap-3 mb-4">
           <StatCard
             title="Workouts This Week"
             value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-            subtitle={workoutsThisWeek > 0 ? 'Keep pushing!' : 'Start your first session'}
+            subtitle={workoutsThisWeek > 0 ? 'Consistent progress!' : 'Start your first routine'}
+            icon="🏋️‍♂️"
           />
           <StatCard
-            title="Current Streak"
+            title="Active Streak"
             value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-            subtitle={currentStreak > 0 ? 'Workout streak active!' : 'Complete workouts to build streak'}
+            subtitle={currentStreak > 0 ? '🔥 Streak active' : 'Complete goals to build'}
+            icon="⚡"
           />
         </View>
 
-        {/* Dynamic Daily Nutrition Progress Bar Section */}
-        <View className="bg-surface dark:bg-surface-dark rounded-[20px] p-[18px] mt-[18px] border border-input-border dark:border-input-border-dark">
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-3.5 text-base">
-            Daily Nutrition Progress
-          </Text>
-          <View className="flex-row items-center">
-            <View className="w-[104px] h-[104px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-[18px] border-2 border-accent/40 dark:border-accent-dark/40 shadow-xs">
-              <Text className="text-accent dark:text-accent-dark text-center font-black text-xl leading-6">
-                {caloriePercent}%
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[10px] uppercase tracking-wider">
-                Complete
-              </Text>
-            </View>
-            <View className="flex-1">
-              <ProgressBar
-                label="Protein"
-                value={`${proteinLogged}g / ${targetProtein}g`}
-                percentage={proteinPercent}
-                color="#00E5A0"
-              />
-              <ProgressBar
-                label="Carbs"
-                value={`${carbsLogged}g / ${targetCarbs}g`}
-                percentage={carbsPercent}
-                color="#4BB4FF"
-              />
-              <ProgressBar
-                label="Fats"
-                value={`${fatLogged}g / ${targetFat}g`}
-                percentage={fatPercent}
-                color="#A16BFF"
-              />
-            </View>
-          </View>
-        </View>
+        {/* Daily Nutrition Macro Breakdown */}
+        <MacroProgressCard
+          caloriesLogged={caloriesLogged}
+          targetCalories={targetCalories}
+          proteinLogged={proteinLogged}
+          targetProtein={targetProtein}
+          carbsLogged={carbsLogged}
+          targetCarbs={targetCarbs}
+          fatLogged={fatLogged}
+          targetFat={targetFat}
+          goalLabel={userGoal === 'MUSCLE_GAIN' ? 'Muscle Gain Goal' : 'Weight Loss Goal'}
+        />
 
-        {/* AI Insights Section */}
-        <View className="flex-row justify-between items-center mt-[22px] mb-3">
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">
-            AI Insights & Predictions ✨
-          </Text>
-          <TouchableOpacity
-            onPress={refreshAIInsights}
-            disabled={loadingAi}
-            className="bg-input dark:bg-input-dark px-3 py-1 rounded-lg border border-input-border dark:border-input-border-dark"
-          >
-            {loadingAi ? (
-              <ActivityIndicator size="small" color="#00E5A0" />
-            ) : (
-              <Text className="text-accent dark:text-accent-dark text-xs font-semibold">
-                Refresh AI
-              </Text>
-            )}
-          </TouchableOpacity>
-        </View>
+        {/* Today's Workout Session Card */}
+        <TodayWorkoutCard
+          exercises={todayExercises}
+          completedSessionsCount={workoutsThisWeek}
+          activeMinutes={activeMinutesToday}
+        />
 
-        <View>
-          {insights.map((item, index) => (
-            <BoostCard key={index} title={item.title} lines={item.lines} />
-          ))}
-        </View>
-
-        {/* Dynamic Today's Workout Goals Checklist Section */}
-        <Text className="text-text-primary dark:text-text-primary-dark mt-[22px] mb-3 font-bold text-base">
-          Today's Workout Goals 🏋️‍♂️
-        </Text>
-        <View className="bg-surface dark:bg-surface-dark rounded-[20px] p-[18px] border border-input-border dark:border-input-border-dark">
-          <View className="mb-[14px]">
-            <Text className="text-accent dark:text-accent-dark text-[11px] font-extrabold mb-1 tracking-wider uppercase">
-              DAILY MOTIVATION
-            </Text>
-            <Text className="text-text-primary dark:text-text-primary-dark text-sm font-semibold leading-5">
-              “The only bad workout is the one that didn't happen.”
-            </Text>
-          </View>
-
-          <View className="mt-2 border-t border-input-border/40 dark:border-input-border-dark/40 pt-3">
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-3 text-[14px]">
-              Active Workout Checklist ({todayExercises.filter((e) => e.isCompleted).length} / {todayExercises.length})
-            </Text>
-
-            {todayExercises.length === 0 ? (
-              <View className="py-3 items-center">
-                <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
-                  No exercises added to today's session yet.
-                </Text>
-                <Text className="text-accent dark:text-accent-dark text-xs font-bold mt-1">
-                  Go to Workouts tab to add exercises!
-                </Text>
-              </View>
-            ) : (
-              todayExercises.map((ex) => (
-                <View key={ex.id} className="flex-row items-center mb-2.5">
-                  <Text className={`mr-2.5 text-sm ${ex.isCompleted ? 'text-accent dark:text-accent-dark font-bold' : 'text-text-muted dark:text-text-muted-dark'}`}>
-                    {ex.isCompleted ? '✔︎' : '○'}
-                  </Text>
-                  <Text className={`text-[13px] leading-5 flex-1 ${ex.isCompleted ? 'line-through text-text-muted dark:text-text-muted-dark' : 'text-text-primary dark:text-text-primary-dark font-medium'}`}>
-                    {ex.name}
-                  </Text>
-                  <Text className={`text-[10px] font-semibold uppercase px-2 py-0.5 rounded-md ${ex.isCompleted ? 'bg-accent/15 text-accent dark:text-accent-dark' : 'bg-input text-text-muted'}`}>
-                    {ex.isCompleted ? 'Completed' : 'In Progress'}
-                  </Text>
-                </View>
-              ))
-            )}
-          </View>
-        </View>
+        {/* AI Insights & Predictions */}
+        <AiInsightsCard
+          insights={insights}
+          loading={loadingAi}
+          onRefresh={refreshAIInsights}
+        />
       </ScrollView>
+
+      {/* AI Food Scan Modal (Accessible right from Dashboard) */}
+      <AiScanModal
+        visible={showScanModal}
+        onClose={() => setShowScanModal(false)}
+        onAddMealItem={handleAddMealFromScan}
+      />
     </SafeAreaView>
   );
 }
