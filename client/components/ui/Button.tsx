@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ViewStyle, ActivityIndicator } from 'react-native';
+import { TouchableOpacity, Text, ViewStyle, ActivityIndicator, Platform } from 'react-native';
 
 interface Props {
   title: string;
@@ -21,13 +21,18 @@ const Button: React.FC<Props> = ({ title, onPress, disabled, loading, style }) =
         isDisabled ? 'bg-input-border dark:bg-input-border-dark opacity-80' : 'bg-accent dark:bg-accent-dark'
       }`}
       style={[
-        {
-          shadowColor: '#00E5A0',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: isDisabled ? 0.06 : 0.12,
-          shadowRadius: 12,
-          elevation: isDisabled ? 2 : 6,
-        },
+        Platform.select({
+          web: {
+            boxShadow: isDisabled ? '0 2px 8px rgba(0, 229, 160, 0.06)' : '0 6px 16px rgba(0, 229, 160, 0.18)',
+          } as any,
+          default: {
+            shadowColor: '#00E5A0',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDisabled ? 0.06 : 0.12,
+            shadowRadius: 12,
+            elevation: isDisabled ? 2 : 6,
+          },
+        }),
         style,
       ]}
     >
