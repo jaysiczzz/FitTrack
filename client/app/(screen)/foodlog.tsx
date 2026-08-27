@@ -202,7 +202,26 @@ export default function FoodLog() {
     }
 
     const todayStr = getTodayDateString();
-    const formatted = items.map((item) => ({
+    const currentItems = [...items];
+    const currentWater = waterMl;
+    const archivedCalories = loggedCalories;
+    const archivedProtein = loggedProtein;
+
+    // 1. Instantly reset active UI state & show notification (0ms delay)
+    setItems([]);
+    setWaterMl(0);
+
+    showToast({
+      message: '🎉 Daily Intake Completed!',
+      description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
+      type: 'success',
+      icon: '🎉',
+      actionLabel: 'View History 📅',
+      onAction: () => setActiveTab('history'),
+    });
+
+    // 2. Persist to storage & cloud API concurrently in the background
+    const formatted = currentItems.map((item) => ({
       ...item,
       macros: [
         `${item.protein}g Protein`,
@@ -211,62 +230,36 @@ export default function FoodLog() {
       ],
     }));
 
-    const archivedCalories = loggedCalories;
-    const archivedProtein = loggedProtein;
-
     try {
-      // 1. Save to PostgreSQL Database via API
-      try {
-        await saveDailyFoodLogApi({
+      await Promise.all([
+        AsyncStorage.setItem(`food_log_${todayStr}`, JSON.stringify(formatted)),
+        AsyncStorage.setItem(`water_log_${todayStr}`, currentWater.toString()),
+        AsyncStorage.removeItem('food_log_today'),
+        AsyncStorage.removeItem('water_log_today'),
+        (async () => {
+          const rawDates = await AsyncStorage.getItem('food_log_history_dates');
+          let datesArr: string[] = [];
+          if (rawDates) {
+            try {
+              const parsed = JSON.parse(rawDates);
+              if (Array.isArray(parsed)) datesArr = parsed;
+            } catch {}
+          }
+          if (!datesArr.includes(todayStr)) {
+            datesArr.unshift(todayStr);
+            await AsyncStorage.setItem('food_log_history_dates', JSON.stringify(datesArr));
+          }
+        })(),
+        saveDailyFoodLogApi({
           date: todayStr,
-          items,
-          waterMl,
-        });
-      } catch (apiErr) {
-        console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
-      }
-
-      // 2. Commit snapshot into local date-keyed storage
-      await AsyncStorage.setItem(`food_log_${todayStr}`, JSON.stringify(formatted));
-      await AsyncStorage.setItem(`water_log_${todayStr}`, waterMl.toString());
-
-      // 3. Register date in history dates array
-      const rawDates = await AsyncStorage.getItem('food_log_history_dates');
-      let datesArr: string[] = [];
-      if (rawDates) {
-        try {
-          const parsed = JSON.parse(rawDates);
-          if (Array.isArray(parsed)) datesArr = parsed;
-        } catch {}
-      }
-      if (!datesArr.includes(todayStr)) {
-        datesArr.unshift(todayStr);
-        await AsyncStorage.setItem('food_log_history_dates', JSON.stringify(datesArr));
-      }
-
-      // 4. Reset active today workspace since it is now safely stored in History & Database
-      setItems([]);
-      setWaterMl(0);
-      await AsyncStorage.removeItem('food_log_today');
-      await AsyncStorage.removeItem('water_log_today');
-
-      // 5. Show rewarding bottom notification toast with quick action to view history
-      showToast({
-        message: '🎉 Daily Intake Completed!',
-        description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
-        type: 'success',
-        icon: '🎉',
-        actionLabel: 'View History 📅',
-        onAction: () => setActiveTab('history'),
-      });
+          items: currentItems,
+          waterMl: currentWater,
+        }).catch((apiErr) => {
+          console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
+        }),
+      ]);
     } catch (err) {
-      console.log('Error saving daily intake to history:', err);
-      showToast({
-        message: 'Could not save to history',
-        description: 'An unexpected error occurred. Please try again.',
-        type: 'error',
-        icon: '✕',
-      });
+      console.log('Error in background food log archiving:', err);
     }
   };
 

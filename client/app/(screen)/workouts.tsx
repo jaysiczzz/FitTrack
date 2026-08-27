@@ -347,32 +347,27 @@ export default function Workouts() {
     const exerciseCount = todayExercises.length;
     const totalSets = todayExercises.reduce((acc, ex) => acc + ex.sets.length, 0);
 
+    // 1. Instantly clear active UI state & show notification (0ms delay)
+    setTodayExercises([]);
+
+    showToast({
+      message: '🎉 Workout Session Completed!',
+      description: `Great job! Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
+      type: 'success',
+      icon: '🔥',
+      actionLabel: 'View History 📅',
+      onAction: () => setActiveTab('history'),
+    });
+
+    // 2. Perform API sync and refresh counts in the background
     try {
       await completeWorkoutSessionApi();
       fetchTodaySession();
       fetchHistoryCount();
-
-      showToast({
-        message: '🎉 Workout Session Completed!',
-        description: `Great job! Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
-        type: 'success',
-        icon: '🔥',
-        actionLabel: 'View History 📅',
-        onAction: () => setActiveTab('history'),
-      });
     } catch (err) {
-      console.log('Fallback complete session');
+      console.log('Error completing workout session on server:', err);
       fetchTodaySession();
       fetchHistoryCount();
-
-      showToast({
-        message: '🎉 Workout Session Completed!',
-        description: `Great job! Logged ${exerciseCount} exercises into your History.`,
-        type: 'success',
-        icon: '🔥',
-        actionLabel: 'View History 📅',
-        onAction: () => setActiveTab('history'),
-      });
     }
   };
 
