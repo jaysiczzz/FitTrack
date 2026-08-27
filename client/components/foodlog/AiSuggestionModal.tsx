@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { MealType, FoodLogItem } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
+import { useToast } from '../../context/ToastContext';
 
 interface AiSuggestionModalProps {
   visible: boolean;
@@ -20,6 +21,7 @@ export default function AiSuggestionModal({
   remainingCalories,
   remainingProtein,
 }: AiSuggestionModalProps) {
+  const { showWarning, showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<MealSuggestion[]>([]);
 
@@ -37,11 +39,11 @@ export default function AiSuggestionModal({
       if (res.success && res.suggestions && res.suggestions.length > 0) {
         setRecommendations(res.suggestions);
       } else {
-        Alert.alert('AI Notice', 'No recommendations returned. Please try again.');
+        showWarning('AI Notice', 'No meal recommendations returned. Please try again.');
       }
     } catch (err: any) {
       console.log('AI Suggest Error:', err.message);
-      Alert.alert('AI Connection', err.message || 'Could not fetch Gemini AI meal suggestions.');
+      showError('AI Connection', err.message || 'Could not fetch Gemini AI meal suggestions.');
     } finally {
       setLoading(false);
     }

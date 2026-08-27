@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { Modal, View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LibraryExercise } from './mockData';
 import { createLibraryExercise, updateLibraryExercise } from '../../api/workout';
+import { useToast } from '../../context/ToastContext';
 
 interface AdminExerciseModalProps {
   visible: boolean;
@@ -16,6 +17,7 @@ export const AdminExerciseModal: React.FC<AdminExerciseModalProps> = ({
   onClose,
   onSaveSuccess,
 }) => {
+  const { showSuccess, showError } = useToast();
   const [name, setName] = useState('');
   const [category, setCategory] = useState('Strength');
   const [type, setType] = useState('Compound');
@@ -143,15 +145,16 @@ export const AdminExerciseModal: React.FC<AdminExerciseModalProps> = ({
     try {
       if (exerciseToEdit?.id) {
         await updateLibraryExercise(exerciseToEdit.id, payload);
-        Alert.alert('Success', 'Exercise updated successfully!');
+        showSuccess('Exercise Updated', `Successfully updated "${payload.name}"`);
       } else {
         await createLibraryExercise(payload);
-        Alert.alert('Success', 'Exercise created successfully!');
+        showSuccess('Exercise Created', `Added "${payload.name}" to exercise library`);
       }
       onSaveSuccess();
       onClose();
     } catch (err: any) {
       setErrorMsg(err.message || 'Failed to save exercise.');
+      showError('Failed to Save Exercise', err.message || 'Please try again.');
     } finally {
       setLoading(false);
     }
