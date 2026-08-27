@@ -155,7 +155,7 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 95 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 115 }}>
         {/* User Card Header */}
         <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-3">
           <View className="flex-row justify-between items-start">
@@ -466,6 +466,28 @@ export default function Profile() {
             </TouchableOpacity>
           </View>
         </View>
+
+        {/* Account & App Settings Shortcut Card */}
+        <TouchableOpacity
+          onPress={() => router.push('/(screen)/settings' as any)}
+          activeOpacity={0.75}
+          className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark flex-row items-center justify-between mb-4"
+        >
+          <View className="flex-row items-center">
+            <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border/40">
+              <Text className="text-lg">⚙️</Text>
+            </View>
+            <View>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+                Account & App Settings
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+                Preferences, theme, security & logout
+              </Text>
+            </View>
+          </View>
+          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-base mr-1">→</Text>
+        </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
   );

@@ -30,31 +30,33 @@ export default function FloatingNavBar() {
     return pathname.includes(route.replace('/', ''));
   };
 
+  const bottomInset = Math.max(10, insets.bottom);
+
   return (
     <View
-      pointerEvents="box-none"
       style={[
-        styles.container,
-        { bottom: Math.max(14, insets.bottom + 6) },
-      ]}
-    >
-      <View
-        className="flex-row items-center justify-between bg-surface/90 dark:bg-[#121824]/90 border border-input-border/60 dark:border-white/10 rounded-full px-2.5 py-2 w-full max-w-[390px] shadow-2xl backdrop-blur-xl"
-        style={Platform.select({
+        styles.navBarContainer,
+        {
+          paddingBottom: bottomInset,
+        },
+        Platform.select({
           web: {
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            boxShadow: '0 10px 30px rgba(0, 0, 0, 0.35), 0 2px 8px rgba(0, 0, 0, 0.2)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            boxShadow: '0 -4px 25px rgba(0, 0, 0, 0.25), 0 -1px 4px rgba(0, 0, 0, 0.1)',
           } as any,
           default: {
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: 0.35,
-            shadowRadius: 16,
-            elevation: 12,
+            shadowOffset: { width: 0, height: -4 },
+            shadowOpacity: 0.25,
+            shadowRadius: 12,
+            elevation: 16,
           },
-        })}
-      >
+        }),
+      ]}
+      className="w-full bg-surface/95 dark:bg-[#0E131F]/95 border-t border-input-border/70 dark:border-white/10"
+    >
+      <View className="flex-row items-center justify-around w-full max-w-[480px] self-center pt-2 px-3">
         {NAV_ITEMS.map((item) => {
           const isActive = getIsActive(item.route);
 
@@ -67,25 +69,36 @@ export default function FloatingNavBar() {
                   router.push(item.route as any);
                 }
               }}
-              className={`flex-row items-center py-2 px-3.5 rounded-full ${
-                isActive
-                  ? 'bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40'
-                  : 'bg-transparent border border-transparent'
-              }`}
+              className="flex-1 items-center justify-center py-1"
             >
-              <Text
-                className={`text-lg ${
-                  isActive ? 'scale-110' : 'opacity-70'
+              {/* Icon Container with subtle active pill glow */}
+              <View
+                className={`w-12 h-8 rounded-full items-center justify-center mb-1 ${
+                  isActive
+                    ? 'bg-accent/15 dark:bg-accent-dark/25'
+                    : 'bg-transparent'
                 }`}
               >
-                {item.icon}
-              </Text>
-
-              {isActive ? (
-                <Text className="ml-1.5 text-xs font-black text-accent dark:text-accent-dark">
-                  {item.label}
+                <Text
+                  className={`text-xl ${
+                    isActive ? 'scale-110' : 'opacity-65'
+                  }`}
+                >
+                  {item.icon}
                 </Text>
-              ) : null}
+              </View>
+
+              {/* Text Label Below Icon (Always Visible) */}
+              <Text
+                className={`text-[11px] text-center tracking-tight ${
+                  isActive
+                    ? 'text-accent dark:text-accent-dark font-black'
+                    : 'text-text-muted dark:text-text-muted-dark font-semibold opacity-80'
+                }`}
+                numberOfLines={1}
+              >
+                {item.label}
+              </Text>
             </TouchableOpacity>
           );
         })}
@@ -95,12 +108,11 @@ export default function FloatingNavBar() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  navBarContainer: {
     position: 'absolute',
+    bottom: 0,
     left: 0,
     right: 0,
-    alignItems: 'center',
     zIndex: 999,
-    paddingHorizontal: 16,
   },
 });
