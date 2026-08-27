@@ -4,6 +4,7 @@ import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
 import { LibraryExercise } from './mockData';
 import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
+import { useToast } from '@/context/ToastContext';
 
 export interface TodayExerciseItem {
   key: string;
@@ -23,7 +24,8 @@ export interface TodayExerciseItem {
 
 export interface PersonalRecordItem {
   name: string;
-  record: string;
+  value: string;
+  date: string;
 }
 
 interface TodayWorkoutTabProps {
@@ -53,6 +55,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onNavigateToLibrary,
   onCompleteSession,
 }) => {
+  const { showWarning } = useToast();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
   const [loadingPrs, setLoadingPrs] = useState(false);
 
@@ -139,10 +142,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
 
   const handleCompleteSessionPress = () => {
     if (!allSetsDone) {
-      Alert.alert(
+      showWarning(
         'Incomplete Exercises',
-        `You have completed ${completedSetsCount} of ${totalSetsCount} sets.\n\nPlease mark all exercise sets as done before completing your workout session!`,
-        [{ text: 'Got it', style: 'default' }]
+        `Completed ${completedSetsCount} of ${totalSetsCount} sets. Mark all sets as done to finish!`
       );
       return;
     }

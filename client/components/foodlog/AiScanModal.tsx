@@ -14,6 +14,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_ICONS } from './foodLogTypes';
 import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
+import { useToast } from '../../context/ToastContext';
 
 interface AiScanModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export default function AiScanModal({
   initialMealType,
   initialMode = 'photo',
 }: AiScanModalProps) {
+  const { showWarning, showError } = useToast();
   const [activeTab, setActiveTab] = useState<'photo' | 'text'>(initialMode);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(initialMealType || getSmartMealType());
   const [description, setDescription] = useState('');
@@ -135,12 +137,12 @@ export default function AiScanModal({
 
   const handleAnalyze = async () => {
     if (activeTab === 'text' && !description.trim()) {
-      Alert.alert('Empty Description', 'Please type what you ate to analyze it with Gemini AI.');
+      showWarning('Empty Description', 'Please type what you ate to analyze it with Gemini AI.');
       return;
     }
 
     if (activeTab === 'photo' && !imageBase64 && !description.trim()) {
-      Alert.alert('No Image', 'Please take or pick a photo of your meal first.');
+      showWarning('No Image', 'Please take or pick a photo of your meal first.');
       return;
     }
 
@@ -157,11 +159,11 @@ export default function AiScanModal({
       if (res.success && res.data) {
         setAnalysisResult(res.data);
       } else {
-        Alert.alert('AI Notice', 'Could not analyze meal. Please try again with a clearer image or description.');
+        showWarning('AI Notice', 'Could not analyze meal. Please try again with a clearer image or description.');
       }
     } catch (err: any) {
       console.error('Analysis Error:', err);
-      Alert.alert('AI Error', err.message || 'Failed to analyze meal with Gemini AI.');
+      showError('AI Error', err.message || 'Failed to analyze meal with Gemini AI.');
     } finally {
       setLoading(false);
     }

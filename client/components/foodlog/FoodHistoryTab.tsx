@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
+import { useToast } from '../../context/ToastContext';
 import {
   DailyFoodHistorySummary,
   FoodLogItem,
@@ -35,6 +36,7 @@ export default function FoodHistoryTab({
   onReLogItem,
   onSwitchToToday,
 }: FoodHistoryTabProps) {
+  const { showSuccess } = useToast();
   const [loading, setLoading] = useState(true);
   const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>([]);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
@@ -202,7 +204,7 @@ export default function FoodHistoryTab({
       id: Date.now().toString(),
       loggedAt: new Date().toISOString(),
     });
-    Alert.alert('Meal Re-logged', `Added "${item.title}" to today's ${MEAL_LABELS[item.mealType] || 'log'}!`);
+    showSuccess(`Re-logged "${item.title}"`, `Added to today's ${MEAL_LABELS[item.mealType] || 'log'}`);
   };
 
   // Generate the 15-day rolling calendar strip

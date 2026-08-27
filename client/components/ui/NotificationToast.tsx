@@ -79,13 +79,14 @@ export default function NotificationToast({
       Animated.parallel([
         Animated.timing(opacityAnim, {
           toValue: 1,
-          duration: 250,
+          duration: 160,
           useNativeDriver: true,
         }),
         Animated.spring(translateYAnim, {
           toValue: 0,
-          damping: 15,
-          stiffness: 180,
+          damping: 18,
+          stiffness: 240,
+          mass: 0.8,
           useNativeDriver: true,
         }),
       ]).start();
@@ -233,9 +234,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 9999,
     paddingHorizontal: 16,
+    borderRadius: 12,
   },
   toastWrapper: {
     width: '100%',
     maxWidth: 440,
+    borderRadius: 16,
   },
 });
