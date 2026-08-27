@@ -119,7 +119,7 @@ export default function FoodLog() {
   };
 
   const saveWater = async (newWater: number) => {
-    const clamped = Math.max(0, newWater);
+    const clamped = Math.min(2000, Math.max(0, newWater));
     setWaterMl(clamped);
     try {
       await AsyncStorage.setItem('water_log_today', clamped.toString());
@@ -285,10 +285,10 @@ export default function FoodLog() {
   };
 
   return (
-    <SafeAreaView edges={['bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 90 }}>
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
         {/* Screen Header */}
-        <View className="flex-row justify-between items-center mt-2 mb-1">
+        <View className="flex-row justify-between items-center mb-1">
           <Text className="text-[28px] font-black text-text-primary dark:text-text-primary-dark">
             Nutrition Log 🥗
           </Text>
