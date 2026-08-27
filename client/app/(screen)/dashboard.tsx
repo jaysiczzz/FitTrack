@@ -221,19 +221,40 @@ export default function Dashboard() {
   };
 
   const handleQuickAddWater = async (amount: number = 250) => {
-    const newTotal = waterMl + amount;
+    if (waterMl >= targetWater) {
+      showToast({
+        message: '🏆 Daily Hydration Complete!',
+        description: `You've already reached your ${targetWater.toLocaleString()}ml daily target!`,
+        type: 'success',
+        icon: '🎉',
+      });
+      return;
+    }
+
+    const newTotal = Math.min(targetWater, waterMl + amount);
     setWaterMl(newTotal);
+
     try {
       await AsyncStorage.setItem('water_log_today', newTotal.toString());
     } catch (e) {
       console.log('Error saving quick water:', e);
     }
-    showToast({
-      message: `💧 Logged +${amount}ml Water!`,
-      description: `Total today: ${newTotal.toLocaleString()} / ${targetWater.toLocaleString()} ml`,
-      type: 'info',
-      icon: '💧',
-    });
+
+    if (newTotal >= targetWater) {
+      showToast({
+        message: '🏆 Daily Hydration Goal Met!',
+        description: `Reached ${targetWater.toLocaleString()} / ${targetWater.toLocaleString()} ml!`,
+        type: 'success',
+        icon: '🎉',
+      });
+    } else {
+      showToast({
+        message: `💧 Logged +${amount}ml Water!`,
+        description: `Total today: ${newTotal.toLocaleString()} / ${targetWater.toLocaleString()} ml (${Math.round((newTotal / targetWater) * 100)}%)`,
+        type: 'info',
+        icon: '💧',
+      });
+    }
   };
 
   const handleAddMealFromScan = async (item: FoodLogItem) => {
@@ -294,6 +315,8 @@ export default function Dashboard() {
         <QuickActionsRow
           onScanFoodPress={() => setShowScanModal(true)}
           onQuickAddWater={() => handleQuickAddWater(250)}
+          waterMl={waterMl}
+          targetWater={targetWater}
         />
 
         {/* Motivation-Based Daily Check-In */}
