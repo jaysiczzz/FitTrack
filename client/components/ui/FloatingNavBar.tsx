@@ -30,7 +30,7 @@ export default function FloatingNavBar() {
     return pathname.includes(route.replace('/', ''));
   };
 
-  const bottomInset = Math.max(10, insets.bottom);
+  const bottomInset = Math.max(6, Math.min(24, insets.bottom));
 
   return (
     <View
@@ -41,22 +41,22 @@ export default function FloatingNavBar() {
         },
         Platform.select({
           web: {
-            backdropFilter: 'blur(24px)',
-            WebkitBackdropFilter: 'blur(24px)',
-            boxShadow: '0 -4px 25px rgba(0, 0, 0, 0.25), 0 -1px 4px rgba(0, 0, 0, 0.1)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: '0 -2px 15px rgba(0, 0, 0, 0.18)',
           } as any,
           default: {
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: -4 },
-            shadowOpacity: 0.25,
-            shadowRadius: 12,
-            elevation: 16,
+            shadowOffset: { width: 0, height: -2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 8,
+            elevation: 10,
           },
         }),
       ]}
-      className="w-full bg-surface/95 dark:bg-[#0E131F]/95 border-t border-input-border/70 dark:border-white/10"
+      className="w-full bg-surface/95 dark:bg-[#0E131F]/95 border-t border-input-border/60 dark:border-white/10"
     >
-      <View className="flex-row items-center justify-around w-full max-w-[480px] self-center pt-2 px-3">
+      <View className="flex-row items-center justify-around w-full max-w-[440px] self-center pt-1.5 px-2">
         {NAV_ITEMS.map((item) => {
           const isActive = getIsActive(item.route);
 
@@ -69,19 +69,19 @@ export default function FloatingNavBar() {
                   router.push(item.route as any);
                 }
               }}
-              className="flex-1 items-center justify-center py-1"
+              className="flex-1 items-center justify-center py-0.5"
             >
               {/* Icon Container with subtle active pill glow */}
               <View
-                className={`w-12 h-8 rounded-full items-center justify-center mb-1 ${
+                className={`w-9 h-6 rounded-full items-center justify-center mb-0.5 ${
                   isActive
                     ? 'bg-accent/15 dark:bg-accent-dark/25'
                     : 'bg-transparent'
                 }`}
               >
                 <Text
-                  className={`text-xl ${
-                    isActive ? 'scale-110' : 'opacity-65'
+                  className={`text-[17px] ${
+                    isActive ? 'scale-105' : 'opacity-60'
                   }`}
                 >
                   {item.icon}
@@ -90,10 +90,10 @@ export default function FloatingNavBar() {
 
               {/* Text Label Below Icon (Always Visible) */}
               <Text
-                className={`text-[11px] text-center tracking-tight ${
+                className={`text-[10px] text-center tracking-tight leading-3 ${
                   isActive
-                    ? 'text-accent dark:text-accent-dark font-black'
-                    : 'text-text-muted dark:text-text-muted-dark font-semibold opacity-80'
+                    ? 'text-accent dark:text-accent-dark font-extrabold'
+                    : 'text-text-muted dark:text-text-muted-dark font-medium opacity-75'
                 }`}
                 numberOfLines={1}
               >
