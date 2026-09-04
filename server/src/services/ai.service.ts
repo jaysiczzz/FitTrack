@@ -9,7 +9,12 @@ function getAI() {
   return new GoogleGenAI({ apiKey })
 }
 
-const CANDIDATE_MODELS = ['gemini-3.6-flash', 'gemini-flash-latest', 'gemini-3.5-flash']
+const CANDIDATE_MODELS = [
+  'gemini-3.6-flash',
+  'gemini-3.1-flash-lite',
+  'gemini-3.5-flash',
+  'gemini-flash-latest',
+]
 
 async function generateWithFallback(
   contents: any,
@@ -21,19 +26,33 @@ async function generateWithFallback(
 
   let lastError: any = null
   for (const model of modelsToTry) {
-    try {
-      const response = await ai.models.generateContent({
-        model,
-        contents,
-        config,
-      })
-      if (response && response.text) {
-        return response.text
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const response = await ai.models.generateContent({
+          model,
+          contents,
+          config,
+        })
+        if (response && response.text) {
+          return response.text
+        }
+      } catch (err: any) {
+        lastError = err
+        const is503 = err?.status === 503 || (err?.message && (err.message.includes('503') || err.message.includes('high demand')))
+        console.warn(`[AI Service] Model ${model} (attempt ${attempt}) failed: ${err.message || err}`)
+        if (is503 && attempt === 1) {
+          await new Promise((resolve) => setTimeout(resolve, 1500))
+        } else {
+          break
+        }
       }
-    } catch (err: any) {
-      lastError = err
-      console.warn(`[AI Service] Model ${model} failed: ${err.message || err}. Trying next fallback if available...`)
     }
+    // Brief pause before trying next fallback model
+    await new Promise((resolve) => setTimeout(resolve, 600))
+  }
+
+  if (lastError?.message && (lastError.message.includes('503') || lastError.message.includes('high demand'))) {
+    throw new Error('The AI service is temporarily experiencing high demand from Google. Please try again in a few moments.')
   }
 
   throw lastError || new Error('All AI models failed to generate content.')
