@@ -4,15 +4,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import OnboardingForm from '@/components/auth/OnboardingForm';
 import OnboardingHeader from '@/components/auth/OnboardingHeader';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { registerUser } from '@/api/auth';
 import { useRegistration } from '../../context/RegistrationContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function OnboardingScreen() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { data, clear } = useRegistration();
+  const { login } = useAuth();
 
   const handleCreate = async (formData: { height: string; weight: string; age: string; goal: string }) => {
     if (!data) {
@@ -41,10 +42,8 @@ export default function OnboardingScreen() {
         goal: mappedGoal,
       });
 
-      await AsyncStorage.setItem('token', res.token);
-      await AsyncStorage.setItem('user', JSON.stringify(res.user));
       clear();
-      router.replace('/(screen)/dashboard');
+      await login(res.token, res.user);
     } catch (err: any) {
       setError(err.message || 'Registration failed. Please try again.');
     } finally {

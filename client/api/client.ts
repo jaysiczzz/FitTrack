@@ -1,4 +1,5 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { DeviceEventEmitter } from 'react-native';
+import { authStorage } from '../utils/authStorage';
 import { API_URL } from '../config';
 
 export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
@@ -6,7 +7,7 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 export async function apiRequest(endpoint: string, options: ApiRequestOptions = {}) {
-  const token = await AsyncStorage.getItem('token');
+  const token = await authStorage.getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -32,6 +33,11 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
     throw new Error(`Unable to connect to server at ${API_URL}. Please check your connection or server status.`);
   }
 
+  if (response.status === 401) {
+    await authStorage.clearAuth();
+    DeviceEventEmitter.emit('AUTH_UNAUTHORIZED');
+  }
+
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
@@ -40,4 +46,5 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   }
 
   return data;
-}
+}
+
