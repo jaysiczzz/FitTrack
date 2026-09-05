@@ -1,17 +1,15 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, RefreshControl } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, RefreshControl, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import DailyCheckInCard, { MoodOption } from '@/components/dashboard/DailyCheckInCard';
 import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
-import QuickActionsRow from '@/components/dashboard/QuickActionsRow';
 import StatCard from '@/components/dashboard/StatCard';
 import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
 import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
-import AiScanModal from '@/components/foodlog/AiScanModal';
 
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
@@ -26,7 +24,6 @@ export default function Dashboard() {
   const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [refreshing, setRefreshing] = useState(false);
   const [loadingAi, setLoadingAi] = useState(false);
-  const [showScanModal, setShowScanModal] = useState(false);
 
   // Check-In state
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -214,6 +211,15 @@ export default function Dashboard() {
     }, [])
   );
 
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
+      loadFoodProgress();
+    });
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
   const onRefresh = async () => {
     setRefreshing(true);
     await loadAll();
@@ -257,19 +263,6 @@ export default function Dashboard() {
     }
   };
 
-  const handleAddMealFromScan = async (item: FoodLogItem) => {
-    try {
-      const saved = await AsyncStorage.getItem('food_log_today');
-      let arr: FoodLogItem[] = saved ? JSON.parse(saved) : [];
-      arr.push(item);
-      await AsyncStorage.setItem('food_log_today', JSON.stringify(arr));
-      loadFoodProgress();
-      showSuccess(`Added ${item.title}`, `${item.calories} kcal logged to ${item.mealType}`);
-    } catch (e) {
-      console.log('Error adding food from dashboard scan:', e);
-    }
-  };
-
   const refreshAIInsights = async () => {
     setLoadingAi(true);
     try {
@@ -310,14 +303,6 @@ export default function Dashboard() {
             Your live fitness & daily accountability hub
           </Text>
         </View>
-
-        {/* 1-Tap Quick Actions Row */}
-        <QuickActionsRow
-          onScanFoodPress={() => setShowScanModal(true)}
-          onQuickAddWater={() => handleQuickAddWater(250)}
-          waterMl={waterMl}
-          targetWater={targetWater}
-        />
 
         {/* Motivation-Based Daily Check-In */}
         <DailyCheckInCard
@@ -401,13 +386,6 @@ export default function Dashboard() {
           onRefresh={refreshAIInsights}
         />
       </ScrollView>
-
-      {/* AI Food Scan Modal (Accessible right from Dashboard) */}
-      <AiScanModal
-        visible={showScanModal}
-        onClose={() => setShowScanModal(false)}
-        onAddMealItem={handleAddMealFromScan}
-      />
     </SafeAreaView>
   );
 }
