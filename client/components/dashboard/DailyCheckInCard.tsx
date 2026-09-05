@@ -103,7 +103,7 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
 
   return (
     <View
-      className="bg-surface dark:bg-surface-dark rounded-[24px] p-5 mb-4 border border-input-border dark:border-input-border-dark"
+      className="bg-surface dark:bg-surface-dark rounded-[28px] p-6 mb-4 border border-input-border dark:border-input-border-dark"
       style={Platform.select({
         web: { boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)' } as any,
         default: {
@@ -116,29 +116,29 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
       })}
     >
       {/* Header Row */}
-      <View className="flex-row justify-between items-center mb-3">
+      <View className="flex-row justify-between items-center mb-4">
         <View className="flex-row items-center">
-          <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2.5">
-            <Text className="text-base">⚡</Text>
+          <View className="w-10 h-10 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-3">
+            <Text className="text-xl">⚡</Text>
           </View>
           <View>
-            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
+            <Text className="text-text-primary dark:text-text-primary-dark font-black text-base">
               Daily Motivation Check-In
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
               {isCheckedIn ? 'Status recorded for today' : 'How are you feeling today?'}
             </Text>
           </View>
         </View>
 
         {isCheckedIn ? (
-          <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2.5 py-1 rounded-full flex-row items-center border border-emerald-500/30">
-            <Text className="text-emerald-400 font-extrabold text-[10px] mr-1">✓</Text>
-            <Text className="text-emerald-400 font-bold text-[10px]">Checked In</Text>
+          <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-3 py-1.5 rounded-full flex-row items-center border border-emerald-500/30">
+            <Text className="text-emerald-400 font-extrabold text-[11px] mr-1">✓</Text>
+            <Text className="text-emerald-400 font-bold text-[11px]">Checked In</Text>
           </View>
         ) : (
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-full flex-row items-center">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
+          <View className="bg-accent/15 dark:bg-accent-dark/20 px-3 py-1.5 rounded-full flex-row items-center">
+            <Text className="text-accent dark:text-accent-dark font-extrabold text-[11px]">
               🔥 Streak Active
             </Text>
           </View>
@@ -146,10 +146,10 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
       </View>
 
       {/* Mood Selector Buttons */}
-      <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase tracking-wider mb-2">
+      <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold uppercase tracking-wider mb-2.5">
         Energy & Readiness:
       </Text>
-      <View className="flex-row justify-between gap-1.5 mb-3.5">
+      <View className="flex-row justify-between gap-1.5 mb-4">
         {MOODS.map((mood) => {
           const isSelected = selectedMoodId === mood.id;
           return (
@@ -157,15 +157,15 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
               key={mood.id}
               activeOpacity={0.8}
               onPress={() => handleSelectMood(mood)}
-              className={`flex-1 py-2.5 px-1 rounded-2xl items-center border ${
+              className={`flex-1 py-4 px-1.5 rounded-2xl items-center justify-center border min-h-[76px] ${
                 isSelected
                   ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
                   : 'bg-input dark:bg-input-dark border-input-border/70 dark:border-input-border-dark/70'
               }`}
             >
-              <Text className="text-xl mb-0.5">{mood.emoji}</Text>
+              <Text className="text-2xl mb-1.5">{mood.emoji}</Text>
               <Text
-                className={`text-[10px] font-extrabold text-center ${
+                className={`text-[11px] font-extrabold text-center ${
                   isSelected
                     ? 'text-accent dark:text-accent-dark'
                     : 'text-text-muted dark:text-text-muted-dark'
@@ -179,31 +179,38 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
         })}
       </View>
 
-      {/* Tailored Coach Advice if selected */}
+      {/* Tailored Coach Advice if selected, or Guidance banner if not */}
       {selectedMood ? (
-        <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-3 mb-3 border border-input-border/50 dark:border-input-border-dark/50 flex-row items-start">
-          <Text className="text-base mr-2">💡</Text>
+        <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-4 mb-4 border border-input-border/50 dark:border-input-border-dark/50 flex-row items-start">
+          <Text className="text-lg mr-2.5">💡</Text>
           <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-0.5">
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-1">
               Coach Tip for Today ({selectedMood.label}):
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-4">
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-5">
               {selectedMood.coachTip}
             </Text>
           </View>
         </View>
-      ) : null}
+      ) : (
+        <View className="bg-input/40 dark:bg-input-dark/40 rounded-2xl p-3.5 mb-4 border border-input-border/40 dark:border-input-border-dark/40 flex-row items-center">
+          <Text className="text-base mr-2.5">🎯</Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs flex-1 leading-4">
+            Select your energy level above to receive personalized AI workout and nutrition guidance for today.
+          </Text>
+        </View>
+      )}
 
       {/* Dynamic Motivation Quote of the Day */}
-      <View className="bg-surface-variant/40 dark:bg-input-dark/30 rounded-2xl p-3.5 border border-input-border/40 dark:border-input-border-dark/40">
-        <View className="flex-row justify-between items-center mb-1">
+      <View className="bg-surface-variant/40 dark:bg-input-dark/30 rounded-2xl p-4 border border-input-border/40 dark:border-input-border-dark/40">
+        <View className="flex-row justify-between items-center mb-2">
           <Text className="text-accent dark:text-accent-dark text-[10px] font-black uppercase tracking-wider">
             Daily Spark ✨
           </Text>
           <TouchableOpacity
             onPress={handleNextQuote}
             activeOpacity={0.7}
-            className="flex-row items-center bg-input dark:bg-input-dark px-2 py-0.5 rounded-lg"
+            className="flex-row items-center bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg"
           >
             <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold mr-1">
               Shuffle
@@ -211,10 +218,10 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
             <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">🔀</Text>
           </TouchableOpacity>
         </View>
-        <Text className="text-text-primary dark:text-text-primary-dark text-xs font-semibold italic leading-4 mb-1">
+        <Text className="text-text-primary dark:text-text-primary-dark text-[13px] font-semibold italic leading-5 mb-1.5">
           “{currentQuote.quote}”
         </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] text-right font-medium">
+        <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-right font-medium">
           — {currentQuote.author}
         </Text>
       </View>

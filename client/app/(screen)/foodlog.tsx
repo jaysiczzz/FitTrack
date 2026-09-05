@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Alert, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -84,6 +84,15 @@ export default function FoodLog() {
     }, [])
   );
 
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
+      loadInitialData();
+    });
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
   const extractCalories = (subtitle?: string): number => {
     if (!subtitle) return 0;
     const match = subtitle.match(/(\d+)\s*kcal/i);
@@ -113,6 +122,7 @@ export default function FoodLog() {
         ],
       }));
       await AsyncStorage.setItem('food_log_today', JSON.stringify(formatted));
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -177,6 +187,7 @@ export default function FoodLog() {
     try {
       await AsyncStorage.removeItem('food_log_today');
       await AsyncStorage.removeItem('water_log_today');
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (err) {
       console.log('Error resetting today log:', err);
     }
@@ -258,6 +269,7 @@ export default function FoodLog() {
           console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
         }),
       ]);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (err) {
       console.log('Error in background food log archiving:', err);
     }
