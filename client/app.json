@@ -35,7 +35,8 @@
           "photosPermission": "FitTrack needs access to your photos to analyze meal nutrition with AI.",
           "cameraPermission": "FitTrack needs access to your camera to scan meal dishes with AI."
         }
-      ]
+      ],
+      "expo-secure-store"
     ],
     "extra": {
       "router": {},
