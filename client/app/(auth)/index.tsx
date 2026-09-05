@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/auth/AuthHeader';
@@ -6,9 +6,9 @@ import AuthTabs from '@/components/auth/AuthTabs';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { loginUser } from '@/api/auth';
 import { useRegistration } from '../../context/RegistrationContext';
+import { useAuth } from '../../context/AuthContext';
 
 export default function AuthIndex() {
   const [active, setActive] = useState<'login' | 'register'>('login');
@@ -16,6 +16,14 @@ export default function AuthIndex() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const { setData } = useRegistration();
+  const { login, isAuthenticated } = useAuth();
+
+  // If already authenticated, redirect to dashboard
+  useEffect(() => {
+    if (isAuthenticated) {
+      router.replace('/(screen)/dashboard');
+    }
+  }, [isAuthenticated, router]);
 
   const handleTabChange = (tab: 'login' | 'register') => {
     setError('');
@@ -28,9 +36,7 @@ export default function AuthIndex() {
       setError('');
       setLoading(true);
       const res = await loginUser(data);
-      await AsyncStorage.setItem('token', res.token);
-      await AsyncStorage.setItem('user', JSON.stringify(res.user));
-      router.replace('/(screen)/dashboard');
+      await login(res.token, res.user);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {

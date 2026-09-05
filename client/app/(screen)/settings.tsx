@@ -8,22 +8,21 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useColorScheme } from 'nativewind';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import { useAuth } from '@/context/AuthContext';
 
 export default function Settings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
+  const { logout } = useAuth();
 
   const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
     try {
-      await AsyncStorage.removeItem('token');
-      await AsyncStorage.removeItem('user');
-      router.replace('/(auth)');
+      await logout();
     } catch (err) {
       console.error('Logout error:', err);
       router.replace('/(auth)');
