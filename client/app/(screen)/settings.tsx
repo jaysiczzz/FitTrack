@@ -5,12 +5,14 @@ import {
   Pressable,
   Switch,
   ScrollView,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useAuth } from '@/context/AuthContext';
+import { COLORS } from '@/constants/colors';
 
 export default function Settings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
@@ -31,7 +33,7 @@ export default function Settings() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
         {/* Back Button & Header */}
         <View className="flex-row items-center mb-1">
           <Pressable
@@ -40,17 +42,23 @@ export default function Settings() {
           >
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">←</Text>
           </Pressable>
-          <Text className="text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
             Settings
           </Text>
         </View>
 
-        <Text className="mb-5 text-sm text-text-muted dark:text-text-muted-dark">
+        <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
           Manage your account preferences
         </Text>
 
         {/* Account & Security Section */}
-        <View className="rounded-xl border border-input-border bg-surface p-3 dark:border-input-border-dark dark:bg-surface-dark">
+        <View
+          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
             Account & Security
           </Text>
@@ -59,7 +67,7 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => {}}
           >
-            <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg bg-input dark:bg-input-dark">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
               <Text className="text-lg">🔒</Text>
             </View>
 
@@ -79,7 +87,7 @@ export default function Settings() {
           </Pressable>
 
           <View className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg bg-input dark:bg-input-dark">
+            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
               <Text className="text-lg">🛡️</Text>
             </View>
 
@@ -96,17 +104,23 @@ export default function Settings() {
             <Switch
               value={twoFactorEnabled}
               onValueChange={setTwoFactorEnabled}
-              thumbColor="#FFFFFF"
+              thumbColor={COLORS.surface.light}
               trackColor={{
-                false: '#2A3346',
-                true: '#00E5A0',
+                false: colorScheme === 'dark' ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
+                true: colorScheme === 'dark' ? COLORS.accent.dark : COLORS.accent.light,
               }}
             />
           </View>
         </View>
 
         {/* Support Section */}
-        <View className="mt-3 rounded-xl border border-input-border bg-surface p-3 dark:border-input-border-dark dark:bg-surface-dark">
+        <View
+          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
             Support
           </Text>
@@ -120,7 +134,7 @@ export default function Settings() {
               key={title}
               className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             >
-              <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg bg-input dark:bg-input-dark">
+              <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
                 <Text className="text-lg">{icon}</Text>
               </View>
 
@@ -141,18 +155,20 @@ export default function Settings() {
           ))}
         </View>
 
-        {/* Appearance / Theme Section */}
-        <View className="mt-3 rounded-xl border border-input-border bg-surface p-3 dark:border-input-border-dark dark:bg-surface-dark">
+        {/* Preferences Section */}
+        <View
+          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
-            Appearance
+            Preferences
           </Text>
 
-          <View className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="mr-3 h-11 w-11 items-center justify-center rounded-lg bg-input dark:bg-input-dark">
-              <Text className="text-lg">{colorScheme === 'dark' ? '🌙' : '☀️'}</Text>
-            </View>
-
-            <View className="flex-1">
+          <View className="flex-row items-center justify-between">
+            <View>
               <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
                 Dark Mode
               </Text>
@@ -165,23 +181,23 @@ export default function Settings() {
             <Switch
               value={colorScheme === 'dark'}
               onValueChange={(isDark) => setColorScheme(isDark ? 'dark' : 'light')}
-              thumbColor="#FFFFFF"
+              thumbColor={COLORS.surface.light}
               trackColor={{
-                false: '#2A3346',
-                true: '#00E5A0',
+                false: colorScheme === 'dark' ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
+                true: colorScheme === 'dark' ? COLORS.accent.dark : COLORS.accent.light,
               }}
             />
           </View>
         </View>
 
         {/* Log Out Section (Below everything else) */}
-        <View className="mt-6">
+        <View className="mt-4">
           <Pressable
-            className="flex-row items-center justify-center rounded-xl bg-red-500/15 dark:bg-red-500/20 border border-red-500/30 p-4 active:opacity-80"
+            className="flex-row items-center justify-center rounded-xl bg-danger/15 dark:bg-danger-dark/20 border border-danger/30 dark:border-danger-dark/30 p-3.5 active:opacity-80"
             onPress={() => setShowLogoutModal(true)}
           >
             <Text className="mr-2 text-lg">🚪</Text>
-            <Text className="text-base font-bold text-red-500 dark:text-red-400">
+            <Text className="text-base font-bold text-danger dark:text-danger-dark">
               Log Out
             </Text>
           </Pressable>

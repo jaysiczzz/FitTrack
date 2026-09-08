@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
 
 export type SetRow = {
   id: string;
@@ -57,7 +57,13 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const isStretch = type.toLowerCase() === 'stretch' || type.toLowerCase() === 'mobility';
 
   return (
-    <View className="mb-4 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4 shadow-sm">
+    <View
+      className="mb-4 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
+      style={Platform.select({
+        web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+        default: { elevation: 1 },
+      })}
+    >
       {/* Top Header: Exercise Name & Badges */}
       <View className="mb-2.5 flex-row items-start justify-between">
         <TouchableOpacity
@@ -91,19 +97,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <View
             className={`rounded-lg border px-2 py-0.5 ${
               (difficulty || '').toLowerCase() === 'beginner'
-                ? 'bg-emerald-500/15 border-emerald-500/40'
+                ? 'bg-accent/15 border-accent/40'
                 : (difficulty || '').toLowerCase() === 'advanced'
-                ? 'bg-rose-500/15 border-rose-500/40'
-                : 'bg-amber-500/15 border-amber-500/40'
+                ? 'bg-danger/15 border-danger/40'
+                : 'bg-warning/15 border-warning/40'
             }`}
           >
             <Text
               className={`text-[10px] font-extrabold uppercase ${
                 (difficulty || '').toLowerCase() === 'beginner'
-                  ? 'text-emerald-400'
+                  ? 'text-accent dark:text-accent-dark'
                   : (difficulty || '').toLowerCase() === 'advanced'
-                  ? 'text-rose-400'
-                  : 'text-amber-400'
+                  ? 'text-danger dark:text-danger-dark'
+                  : 'text-warning dark:text-warning-dark'
               }`}
             >
               {difficulty}
@@ -118,10 +124,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {onRemoveExercise ? (
             <TouchableOpacity
               onPress={onRemoveExercise}
-              className="w-7 h-7 rounded-full bg-red-500/10 items-center justify-center border border-red-500/20 ml-1"
+              className="w-7 h-7 rounded-full bg-danger/10 items-center justify-center border border-danger/20 ml-1"
               activeOpacity={0.7}
             >
-              <Text className="text-red-500 text-xs font-bold">✕</Text>
+              <Text className="text-danger dark:text-danger-dark text-xs font-bold">✕</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -294,10 +300,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 {onDeleteSet && sets.length > 1 ? (
                   <TouchableOpacity
                     onPress={() => onDeleteSet(s.id)}
-                    className="w-6 h-10 items-center justify-center rounded-lg bg-red-500/10 border border-red-500/20"
+                    className="w-6 h-10 items-center justify-center rounded-lg bg-danger/10 border border-danger/20"
                     activeOpacity={0.7}
                   >
-                    <Text className="text-red-400 font-bold text-xs">✕</Text>
+                    <Text className="text-danger dark:text-danger-dark font-bold text-xs">✕</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>

@@ -38,6 +38,22 @@ module.exports = {
           DEFAULT: '#5C6478',
           dark: '#8A93A6',
         },
+        danger: {
+          DEFAULT: '#EF4444',
+          dark: '#F87171',
+        },
+        info: {
+          DEFAULT: '#0EA5E9',
+          dark: '#38BDF8',
+        },
+        warning: {
+          DEFAULT: '#F59E0B',
+          dark: '#FBBF24',
+        },
+        tertiary: {
+          DEFAULT: '#9333EA',
+          dark: '#C084FC',
+        },
       },
     },
   },

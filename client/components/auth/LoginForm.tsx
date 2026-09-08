@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TextInput } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import ForgotPasswordLink from '@/components/auth/ForgotPasswordLink';
@@ -17,6 +17,8 @@ const LoginForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  const passwordRef = useRef<TextInput>(null);
 
   const handleEmailChange = (text: string) => {
     setEmail(text);
@@ -61,8 +63,12 @@ const LoginForm: React.FC<Props> = ({ onSubmit, loading }) => {
         autoCapitalize="none"
         autoCorrect={false}
         error={emailError}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        blurOnSubmit={false}
       />
       <Input
+        ref={passwordRef}
         label="Password"
         placeholder="••••••••"
         value={password}
@@ -70,6 +76,8 @@ const LoginForm: React.FC<Props> = ({ onSubmit, loading }) => {
         isPassword
         autoCapitalize="none"
         error={passwordError}
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
       />
 
       <Button title="Log In" onPress={handleSubmit} loading={loading} />

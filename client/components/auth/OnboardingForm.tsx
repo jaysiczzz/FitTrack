@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, Keyboard } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import GoalCard from '@/components/auth/GoalCard';
@@ -19,6 +19,9 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const [weightError, setWeightError] = useState('');
   const [ageError, setAgeError] = useState('');
   const [goalError, setGoalError] = useState('');
+
+  const weightRef = useRef<TextInput>(null);
+  const ageRef = useRef<TextInput>(null);
 
   const handleSubmit = () => {
     let valid = true;
@@ -64,12 +67,13 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
     }
 
     if (valid) {
+      Keyboard.dismiss();
       onSubmit({ height, weight, age, goal });
     }
   };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined} className="w-full">
+    <View className="w-full">
       <View className="flex-row justify-between">
         <View className="w-[48%]">
           <Input
@@ -83,10 +87,14 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
             }}
             keyboardType="numeric"
             error={heightError}
+            returnKeyType="next"
+            onSubmitEditing={() => weightRef.current?.focus()}
+            blurOnSubmit={false}
           />
         </View>
         <View className="w-[48%]">
           <Input
+            ref={weightRef}
             label="Weight"
             placeholder="70"
             unit="kg"
@@ -97,11 +105,15 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
             }}
             keyboardType="numeric"
             error={weightError}
+            returnKeyType="next"
+            onSubmitEditing={() => ageRef.current?.focus()}
+            blurOnSubmit={false}
           />
         </View>
       </View>
 
       <Input
+        ref={ageRef}
         label="Age"
         placeholder="25"
         value={age}
@@ -111,6 +123,8 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
         }}
         keyboardType="numeric"
         error={ageError}
+        returnKeyType="done"
+        onSubmitEditing={() => Keyboard.dismiss()}
       />
 
       <Text className="text-text-muted dark:text-text-muted-dark mt-2 mb-3 text-xs tracking-wide uppercase font-semibold">
@@ -149,7 +163,7 @@ const OnboardingForm: React.FC<Props> = ({ onSubmit, loading }) => {
       <Text className="text-text-muted dark:text-text-muted-dark text-center mt-3 text-xs">
         You can update this anytime
       </Text>
-    </KeyboardAvoidingView>
+    </View>
   );
 };
 

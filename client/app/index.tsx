@@ -2,6 +2,7 @@ import React from 'react';
 import { View, ActivityIndicator } from 'react-native';
 import { Redirect } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { COLORS } from '@/constants/colors';
 
 export default function Index() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -9,7 +10,7 @@ export default function Index() {
   if (isLoading) {
     return (
       <View className="flex-1 bg-background dark:bg-background-dark items-center justify-center">
-        <ActivityIndicator size="large" color="#00E5A0" />
+        <ActivityIndicator size="large" color={COLORS.accent.dark} />
       </View>
     );
   }

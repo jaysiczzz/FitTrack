@@ -72,15 +72,11 @@ export default function FloatingNavBar() {
                 boxShadow: '0 -2px 15px rgba(0, 0, 0, 0.18)',
               } as any,
               default: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: -2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                elevation: 10,
+                elevation: 8,
               },
             }),
           ]}
-          className="w-full bg-surface/95 dark:bg-[#0E131F]/95 border-t border-input-border/60 dark:border-white/10"
+          className="w-full bg-surface/95 dark:bg-surface-dark/95 border-t border-input-border/60 dark:border-input-border-dark/60"
         >
           <View className="flex-row items-center justify-around w-full max-w-[440px] self-center pt-1.5 px-2">
             {/* Left Nav Items: Dashboard, Nutrition */}
@@ -140,17 +136,13 @@ export default function FloatingNavBar() {
               >
                 {/* Elevated Prominent Circular Scanner Icon */}
                 <View
-                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-[3.5px] border-surface dark:border-[#0E131F]"
+                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-[3.5px] border-surface dark:border-surface-dark"
                   style={Platform.select({
                     web: {
                       boxShadow: '0 4px 14px rgba(0, 229, 160, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15)',
                     } as any,
                     default: {
-                      shadowColor: '#00E5A0',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.45,
-                      shadowRadius: 8,
-                      elevation: 8,
+                      elevation: 6,
                     },
                   })}
                 >

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, TextInput } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 
@@ -20,6 +20,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+
+  const lastNameRef = useRef<TextInput>(null);
+  const emailRef = useRef<TextInput>(null);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleSubmit = () => {
     let valid = true;
@@ -71,9 +75,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
   return (
     <View className="w-full">
-      <View className="flex-row justify-between">
-        <View className="w-[48%]">
+      <View className="flex-row gap-2.5 w-full">
+        <View className="flex-1">
           <Input
+            className="w-full"
             label="First Name"
             placeholder="John"
             value={firstName}
@@ -83,10 +88,15 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
             }}
             autoCapitalize="words"
             error={firstNameError}
+            returnKeyType="next"
+            onSubmitEditing={() => lastNameRef.current?.focus()}
+            blurOnSubmit={false}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="flex-1">
           <Input
+            className="w-full"
+            ref={lastNameRef}
             label="Last Name"
             placeholder="Doe"
             value={lastName}
@@ -96,11 +106,15 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
             }}
             autoCapitalize="words"
             error={lastNameError}
+            returnKeyType="next"
+            onSubmitEditing={() => emailRef.current?.focus()}
+            blurOnSubmit={false}
           />
         </View>
       </View>
 
       <Input
+        ref={emailRef}
         label="Email"
         placeholder="you@example.com"
         value={email}
@@ -112,8 +126,12 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
         autoCapitalize="none"
         autoCorrect={false}
         error={emailError}
+        returnKeyType="next"
+        onSubmitEditing={() => passwordRef.current?.focus()}
+        blurOnSubmit={false}
       />
       <Input
+        ref={passwordRef}
         label="Password"
         placeholder="At least 6 characters"
         value={password}
@@ -124,6 +142,8 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
         isPassword
         autoCapitalize="none"
         error={passwordError}
+        returnKeyType="done"
+        onSubmitEditing={handleSubmit}
       />
 
       <Button title="Proceed" onPress={handleSubmit} loading={loading} />

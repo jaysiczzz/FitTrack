@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, RefreshControl, DeviceEventEmitter } from 'react-native';
+import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 
-import DailyCheckInCard, { MoodOption } from '@/components/dashboard/DailyCheckInCard';
+import DailyCheckInCard from '@/components/dashboard/DailyCheckInCard';
 import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
 import StatCard from '@/components/dashboard/StatCard';
 import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
@@ -15,6 +15,7 @@ import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
 import { useToast } from '@/context/ToastContext';
+import { COLORS } from '@/constants/colors';
 
 export default function Dashboard() {
   const router = useRouter();
@@ -38,13 +39,10 @@ export default function Dashboard() {
   // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
   const [workoutsThisWeek, setWorkoutsThisWeek] = useState(0);
-  const [targetWorkoutsThisWeek] = useState(5);
+  const targetWorkoutsThisWeek = 5;
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
   const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
-
-  // Custom daily stretch/recovery goal toggle
-  const [customGoalDone, setCustomGoalDone] = useState(false);
 
   // AI Insights State
   const [insights, setInsights] = useState<AIInsight[]>([
@@ -284,13 +282,13 @@ export default function Dashboard() {
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor="#00E5A0"
-            colors={['#00E5A0']}
+            tintColor={COLORS.accent.dark}
+            colors={[COLORS.accent.dark]}
           />
         }
       >
@@ -306,10 +304,61 @@ export default function Dashboard() {
 
         {/* Motivation-Based Daily Check-In */}
         <DailyCheckInCard
-          streakCount={currentStreak}
-          onCheckInCompleted={(mood) => {
+          onCheckInCompleted={() => {
             setIsCheckedIn(true);
           }}
+        />
+
+        {/* Key Metrics Grid */}
+        <View className="flex-row gap-2.5 mb-2.5">
+          <StatCard
+            title="Calories"
+            value={`${caloriesLogged.toLocaleString()} kcal`}
+            subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
+            icon="🔥"
+            accentColor="#FF6B4A"
+            onPress={() => router.push('/(screen)/foodlog' as any)}
+          />
+          <StatCard
+            title="Hydration"
+            value={`${waterMl.toLocaleString()} ml`}
+            subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
+            icon="💧"
+            accentColor={COLORS.info.dark}
+          />
+        </View>
+
+        <View className="flex-row gap-2.5 mb-3">
+          <StatCard
+            title="Workouts"
+            value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
+            subtitle={workoutsThisWeek > 0 ? 'Weekly progress' : 'Start a routine'}
+            icon="🏋️‍♂️"
+            accentColor={COLORS.accent.dark}
+            onPress={() => router.push('/(screen)/workouts' as any)}
+          />
+          <StatCard
+            title="Streak"
+            value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
+            subtitle={currentStreak > 0 ? '🔥 Streak active' : 'Check in daily'}
+            icon="⚡"
+            accentColor={COLORS.warning.DEFAULT}
+          />
+        </View>
+
+        {/* Today's Workout Session Card */}
+        <TodayWorkoutCard exercises={todayExercises} />
+
+        {/* Daily Nutrition Macro Breakdown */}
+        <MacroProgressCard
+          caloriesLogged={caloriesLogged}
+          targetCalories={targetCalories}
+          proteinLogged={proteinLogged}
+          targetProtein={targetProtein}
+          carbsLogged={carbsLogged}
+          targetCarbs={targetCarbs}
+          fatLogged={fatLogged}
+          targetFat={targetFat}
         />
 
         {/* Interactive Daily Goals Checklist */}
@@ -324,59 +373,6 @@ export default function Dashboard() {
           waterMl={waterMl}
           targetWaterMl={targetWater}
           onQuickAddWater={handleQuickAddWater}
-          customGoalDone={customGoalDone}
-          onToggleCustomGoal={() => setCustomGoalDone((prev) => !prev)}
-        />
-
-        {/* Key Metrics Grid */}
-        <View className="flex-row gap-3 mb-3">
-          <StatCard
-            title="Calories Logged"
-            value={`${caloriesLogged.toLocaleString()} kcal`}
-            subtitle={`Target: ${targetCalories.toLocaleString()} kcal`}
-            icon="🔥"
-          />
-          <StatCard
-            title="Hydration"
-            value={`${waterMl.toLocaleString()} ml`}
-            subtitle={`Target: ${targetWater.toLocaleString()} ml`}
-            icon="💧"
-          />
-        </View>
-
-        <View className="flex-row gap-3 mb-4">
-          <StatCard
-            title="Workouts This Week"
-            value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-            subtitle={workoutsThisWeek > 0 ? 'Consistent progress!' : 'Start your first routine'}
-            icon="🏋️‍♂️"
-          />
-          <StatCard
-            title="Active Streak"
-            value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-            subtitle={currentStreak > 0 ? '🔥 Streak active' : 'Complete goals to build'}
-            icon="⚡"
-          />
-        </View>
-
-        {/* Daily Nutrition Macro Breakdown */}
-        <MacroProgressCard
-          caloriesLogged={caloriesLogged}
-          targetCalories={targetCalories}
-          proteinLogged={proteinLogged}
-          targetProtein={targetProtein}
-          carbsLogged={carbsLogged}
-          targetCarbs={targetCarbs}
-          fatLogged={fatLogged}
-          targetFat={targetFat}
-          goalLabel={userGoal === 'MUSCLE_GAIN' ? 'Muscle Gain Goal' : 'Weight Loss Goal'}
-        />
-
-        {/* Today's Workout Session Card */}
-        <TodayWorkoutCard
-          exercises={todayExercises}
-          completedSessionsCount={workoutsThisWeek}
-          activeMinutes={activeMinutesToday}
         />
 
         {/* AI Insights & Predictions */}

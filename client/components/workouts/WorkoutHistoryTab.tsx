@@ -1,7 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { MOCK_HISTORY, CompletedSession } from './mockData';
+import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { CompletedSession } from './workoutTypes';
 import { getWorkoutHistory } from '@/api/workout';
+import { COLORS } from '@/constants/colors';
+
+const WORKOUT_HISTORY_CACHE_KEY = 'fittrack_workout_history_cache';
 
 const WorkoutHistoryTab: React.FC = () => {
   const [history, setHistory] = useState<CompletedSession[]>([]);
@@ -12,7 +16,18 @@ const WorkoutHistoryTab: React.FC = () => {
     let isMounted = true;
     const fetchHistory = async () => {
       try {
-        setLoading(true);
+        // Read local offline history cache first
+        const cached = await AsyncStorage.getItem(WORKOUT_HISTORY_CACHE_KEY);
+        if (cached && isMounted) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (Array.isArray(parsed)) {
+              setHistory(parsed);
+            }
+          } catch {}
+        }
+
+        if (history.length === 0) setLoading(true);
         const res = await getWorkoutHistory();
         if (res.sessions && isMounted) {
           const formatted: CompletedSession[] = res.sessions.map((s: any) => ({
@@ -28,10 +43,10 @@ const WorkoutHistoryTab: React.FC = () => {
             })),
           }));
           setHistory(formatted);
+          await AsyncStorage.setItem(WORKOUT_HISTORY_CACHE_KEY, JSON.stringify(formatted));
         }
       } catch (err) {
-        console.log('Failed to fetch history from API');
-        if (isMounted) setHistory([]);
+        console.log('[Workout History] Offline mode - using local history cache');
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -56,15 +71,15 @@ const WorkoutHistoryTab: React.FC = () => {
 
       {loading ? (
         <View className="py-8 items-center">
-          <ActivityIndicator size="small" color="#00E5A0" />
+          <ActivityIndicator size="small" color={COLORS.accent.DEFAULT} />
         </View>
       ) : history.length === 0 ? (
-        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50">
+        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50 dark:bg-surface-dark/50">
           <Text className="text-3xl mb-2">📋</Text>
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
             No workout history yet
           </Text>
-          <Text className="text-text-muted text-xs mt-1 text-center">
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
             Complete your first daily workout to start logging your progress history!
           </Text>
         </View>
@@ -76,7 +91,11 @@ const WorkoutHistoryTab: React.FC = () => {
               key={session.id}
               activeOpacity={0.9}
               onPress={() => toggleExpand(session.id)}
-              className="mb-3 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4 shadow-sm"
+              className="mb-3 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
+              style={Platform.select({
+                web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+                default: { elevation: 1 },
+              })}
             >
               {/* Header: Date & Status */}
               <View className="flex-row items-center justify-between mb-2">
@@ -108,14 +127,14 @@ const WorkoutHistoryTab: React.FC = () => {
                 <View className="h-3 w-px bg-input-border dark:bg-input-border-dark" />
                 <View className="flex-row items-center">
                   <Text className="text-xs mr-1">🔥</Text>
-                  <Text className="text-xs font-bold text-[#3B9EFF]">
+                  <Text className="text-xs font-bold text-info dark:text-info-dark">
                     {session.caloriesBurned} kcal
                   </Text>
                 </View>
                 <View className="h-3 w-px bg-input-border dark:bg-input-border-dark" />
                 <View className="flex-row items-center">
                   <Text className="text-xs mr-1">💪</Text>
-                  <Text className="text-xs font-bold text-text-muted">
+                  <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
                     {session.exercisesCount} Exercises
                   </Text>
                 </View>

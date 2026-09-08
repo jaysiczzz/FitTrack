@@ -16,7 +16,13 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
   ];
 
   return (
-    <View className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-4 p-1.5 w-full">
+    <View
+      className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-4 p-1.5 w-full"
+      style={Platform.select({
+        web: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' } as any,
+        default: { elevation: 1 },
+      })}
+    >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -33,14 +39,10 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
               isActive
                 ? Platform.select({
                     web: {
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
                     } as any,
                     default: {
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      elevation: 3,
+                      elevation: 2,
                     },
                   })
                 : undefined

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
 import { useToast } from '../../context/ToastContext';
+import FoodHistoryDayCard from './FoodHistoryDayCard';
+import { COLORS } from '../../constants/colors';
+import SurfaceCard from '../ui/SurfaceCard';
 import {
   DailyFoodHistorySummary,
   FoodLogItem,
   MacroTargets,
   MEAL_LABELS,
-  MEAL_ICONS,
   getTodayDateString,
   formatDateHeading,
 } from './foodLogTypes';
@@ -274,7 +276,7 @@ export default function FoodHistoryTab({
   if (loading) {
     return (
       <View className="py-12 items-center justify-center">
-        <ActivityIndicator size="large" color="#3B82F6" />
+        <ActivityIndicator size="large" color={COLORS.accent.light} />
         <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
           Loading 15-day nutrition history...
         </Text>
@@ -354,7 +356,7 @@ export default function FoodHistoryTab({
       </View>
 
       {/* 2. 15-Day Interactive Consistency Strip (Mini Heatmap) */}
-      <View className="bg-surface dark:bg-surface-dark rounded-3xl p-4 mb-4 border border-input-border dark:border-input-border-dark shadow-xs">
+      <SurfaceCard className="mb-4">
         <View className="flex-row justify-between items-center mb-2.5">
           <View className="flex-row items-center gap-1.5">
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
@@ -362,8 +364,8 @@ export default function FoodHistoryTab({
             </Text>
             <Text className="text-xs">🔥</Text>
           </View>
-          <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2.5 py-0.5 rounded-full">
-            <Text className="text-emerald-500 dark:text-emerald-400 font-black text-[10px]">
+          <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
+            <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
               {loggedDaysIn15}/15 Days ({consistencyPercent}%)
             </Text>
           </View>
@@ -397,7 +399,7 @@ export default function FoodHistoryTab({
                       ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                       : slot.hasLog
                       ? slot.hitProtein
-                        ? 'bg-emerald-500/10 dark:bg-emerald-500/20 border-emerald-500/40'
+                        ? 'bg-accent/20 dark:bg-accent-dark/25 border-accent/60'
                         : 'bg-accent/10 dark:bg-accent-dark/15 border-accent/30'
                       : 'bg-input dark:bg-input-dark border-input-border/60 dark:border-input-border-dark/60'
                   }`}
@@ -428,8 +430,8 @@ export default function FoodHistoryTab({
                         ? 'bg-background dark:bg-background-dark'
                         : slot.hasLog
                         ? slot.hitProtein
-                          ? 'bg-emerald-500'
-                          : 'bg-accent'
+                          ? 'bg-accent dark:bg-accent-dark'
+                          : 'bg-accent/60 dark:bg-accent-dark/60'
                         : 'bg-input-border dark:bg-input-border-dark'
                     }`}
                   />
@@ -452,10 +454,10 @@ export default function FoodHistoryTab({
             </Text>
           </TouchableOpacity>
         ) : null}
-      </View>
+      </SurfaceCard>
 
       {/* 3. Nutrition Averages & Goal Breakdown Banner */}
-      <View className="bg-surface dark:bg-surface-dark rounded-3xl p-4 mb-4 border border-input-border dark:border-input-border-dark shadow-xs">
+      <SurfaceCard className="mb-4">
         <View className="flex-row justify-between items-center mb-3">
           <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
             {selectedRange === '15days'
@@ -490,7 +492,7 @@ export default function FoodHistoryTab({
             <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase">
               Avg Protein
             </Text>
-            <Text className="text-emerald-500 dark:text-emerald-400 font-black text-base mt-0.5">
+            <Text className="text-accent dark:text-accent-dark font-black text-base mt-0.5">
               {avgProtein}g
             </Text>
             <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
@@ -498,7 +500,7 @@ export default function FoodHistoryTab({
             </Text>
           </View>
         </View>
-      </View>
+      </SurfaceCard>
 
       {/* 4. Filtered Day Cards List */}
       <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-3">
@@ -508,7 +510,7 @@ export default function FoodHistoryTab({
       </Text>
 
       {filteredHistory.length === 0 ? (
-        <View className="bg-surface dark:bg-surface-dark rounded-3xl p-6 items-center justify-center border border-input-border dark:border-input-border-dark my-2 shadow-xs">
+        <SurfaceCard className="p-6 items-center justify-center my-2">
           <Text className="text-4xl mb-2">🗓️</Text>
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center mb-1">
             No Records Found in Selected Range
@@ -525,139 +527,19 @@ export default function FoodHistoryTab({
               + Log Today's Meal
             </Text>
           </TouchableOpacity>
-        </View>
+        </SurfaceCard>
       ) : (
-        filteredHistory.map((day) => {
-          const isExpanded = !!expandedDates[day.date];
-
-          return (
-            <View
-              key={day.date}
-              className="bg-surface dark:bg-surface-dark rounded-3xl p-4 mb-3 border border-input-border dark:border-input-border-dark shadow-xs"
-            >
-              {/* Header Accordion Bar */}
-              <TouchableOpacity
-                onPress={() => toggleExpand(day.date)}
-                activeOpacity={0.7}
-                className="flex-row justify-between items-center"
-              >
-                <View className="flex-1 pr-2">
-                  <View className="flex-row items-center gap-1.5">
-                    <Text className="text-text-primary dark:text-text-primary-dark font-black text-base">
-                      {day.formattedDate}
-                    </Text>
-                    {day.totalProtein >= targets.protein * 0.8 ? (
-                      <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full">
-                        <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-[9px]">
-                          Target Met 🎯
-                        </Text>
-                      </View>
-                    ) : null}
-                  </View>
-
-                  <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-                    {day.items.length} {day.items.length === 1 ? 'meal' : 'meals'} logged
-                    {day.waterMl > 0 ? ` · 💧 ${day.waterMl}ml` : ''}
-                  </Text>
-                </View>
-
-                <View className="items-end">
-                  <View className="flex-row items-baseline">
-                    <Text className="text-accent dark:text-accent-dark font-black text-base">
-                      {day.totalCalories}
-                    </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">
-                      / {targets.calories} kcal
-                    </Text>
-                  </View>
-                  <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold mt-0.5">
-                    {isExpanded ? '▲ Hide' : '▼ View'}
-                  </Text>
-                </View>
-              </TouchableOpacity>
-
-              {/* Quick Macro Pills */}
-              <View className="flex-row gap-1.5 mt-3 pt-2.5 border-t border-input-border/50 dark:border-input-border-dark/50">
-                <View className="flex-1 bg-input dark:bg-input-dark py-1 px-2 rounded-xl items-center">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Protein</Text>
-                  <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-xs">
-                    {day.totalProtein}g
-                  </Text>
-                </View>
-
-                <View className="flex-1 bg-input dark:bg-input-dark py-1 px-2 rounded-xl items-center">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Carbs</Text>
-                  <Text className="text-sky-500 dark:text-sky-400 font-extrabold text-xs">
-                    {day.totalCarbs}g
-                  </Text>
-                </View>
-
-                <View className="flex-1 bg-input dark:bg-input-dark py-1 px-2 rounded-xl items-center">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Fat</Text>
-                  <Text className="text-purple-500 dark:text-purple-400 font-extrabold text-xs">
-                    {day.totalFat}g
-                  </Text>
-                </View>
-              </View>
-
-              {/* Expanded Detailed Items List */}
-              {isExpanded && (
-                <View className="mt-3.5 pt-3 border-t border-input-border/40 dark:border-input-border-dark/40">
-                  <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase mb-2">
-                    Meals Eaten on this day:
-                  </Text>
-
-                  {day.items.map((meal) => (
-                    <View
-                      key={meal.id}
-                      className="bg-input/60 dark:bg-input-dark/60 p-3 rounded-2xl mb-2 flex-row justify-between items-center border border-input-border/40 dark:border-input-border-dark/40"
-                    >
-                      <View className="flex-row items-center flex-1 pr-2">
-                        {meal.imageUri ? (
-                          <Image
-                            source={{ uri: meal.imageUri }}
-                            className="w-10 h-10 rounded-xl mr-2.5 bg-black/10"
-                            resizeMode="cover"
-                          />
-                        ) : (
-                          <View className="w-10 h-10 rounded-xl bg-surface dark:bg-surface-dark items-center justify-center mr-2.5 border border-input-border dark:border-input-border-dark">
-                            <Text className="text-base">{MEAL_ICONS[meal.mealType] || '🥗'}</Text>
-                          </View>
-                        )}
-
-                        <View className="flex-1">
-                          <View className="flex-row items-center gap-1.5 flex-wrap">
-                            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
-                              {meal.title}
-                            </Text>
-                            <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                              ({MEAL_LABELS[meal.mealType] || meal.mealType})
-                            </Text>
-                          </View>
-
-                          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">
-                            {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
-                          </Text>
-                        </View>
-                      </View>
-
-                      {/* 1-Tap Re-log Button */}
-                      <TouchableOpacity
-                        onPress={() => handleReLog(meal)}
-                        activeOpacity={0.7}
-                        className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl flex-row items-center"
-                      >
-                        <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
-                          + Re-log
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </View>
-              )}
-            </View>
-          );
-        })
+        filteredHistory.map((day) => (
+          <FoodHistoryDayCard
+            key={day.date}
+            day={day}
+            targetCalories={targets.calories}
+            targetProtein={targets.protein}
+            isExpanded={Boolean(expandedDates[day.date])}
+            onToggleExpand={() => toggleExpand(day.date)}
+            onReLogItem={handleReLog}
+          />
+        ))
       )}
     </View>
   );

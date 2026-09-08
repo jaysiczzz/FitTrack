@@ -1,5 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import ProgressBar from '@/components/ui/ProgressBar';
+import { COLORS } from '@/constants/colors';
+import SurfaceCard from '../ui/SurfaceCard';
 
 interface WaterTrackerCardProps {
   waterMl: number;
@@ -15,37 +18,41 @@ export default function WaterTrackerCard({
   const percentage = Math.min(100, Math.round((waterMl / targetMl) * 100));
   const glasses = Math.round(waterMl / 250);
   const targetGlasses = Math.round(targetMl / 250);
-  const fillWidth = `${percentage}%` as import('react-native').DimensionValue;
 
   return (
-    <View className="bg-surface dark:bg-surface-dark rounded-[20px] p-4 mb-4 border border-input-border dark:border-input-border-dark shadow-xs">
+    <SurfaceCard className="mb-3">
       <View className="flex-row justify-between items-center mb-2.5">
-        <View className="flex-row items-center">
-          <Text className="text-xl mr-2">💧</Text>
-          <View>
-            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-base">
+        <View className="flex-row items-center flex-1 mr-2">
+          <View className="w-7 h-7 rounded-lg bg-info/15 dark:bg-info-dark/20 items-center justify-center mr-2">
+            <Text className="text-xs">💧</Text>
+          </View>
+          <View className="flex-1">
+            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm" numberOfLines={1}>
               Daily Hydration
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs">
+            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]" numberOfLines={1}>
               {waterMl}ml / {targetMl}ml ({glasses}/{targetGlasses} glasses)
             </Text>
           </View>
         </View>
 
-        <View className="bg-sky-500/10 dark:bg-sky-500/20 px-2.5 py-1 rounded-full border border-sky-500/30">
-          <Text className="text-sky-600 dark:text-sky-400 font-bold text-xs">
+        <View className="bg-info/10 dark:bg-info-dark/20 px-2 py-0.5 rounded-md border border-info/30 dark:border-info-dark/30">
+          <Text className="text-info dark:text-info-dark font-bold text-xs">
             {percentage}%
           </Text>
         </View>
       </View>
 
       {/* Progress Bar */}
-      <View className="h-2.5 bg-input dark:bg-input-dark rounded-full overflow-hidden mb-3 border border-input-border/40 dark:border-input-border-dark/40">
-        <View className="h-2.5 rounded-full bg-sky-400" style={{ width: fillWidth }} />
-      </View>
+      <ProgressBar
+        percentage={percentage}
+        color={COLORS.info.dark}
+        height={8}
+        className="mb-2.5"
+      />
 
       {/* Quick Action Buttons */}
-      <View className="flex-row justify-between gap-2">
+      <View className="flex-row justify-between gap-1.5">
         <TouchableOpacity
           onPress={() => onAddWater(-250)}
           disabled={waterMl <= 0}
@@ -56,25 +63,25 @@ export default function WaterTrackerCard({
               : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
           }`}
         >
-          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">-250 ml</Text>
+          <Text className="text-surface font-bold text-[11px]">-250 ml</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onAddWater(250)}
           activeOpacity={0.8}
-          className="flex-1 py-2 rounded-xl bg-sky-500/15 border border-sky-500/30 items-center justify-center"
+          className="flex-1 py-2 rounded-xl bg-info/15 dark:bg-info-dark/20 border border-info/30 items-center justify-center"
         >
-          <Text className="text-sky-600 dark:text-sky-400 font-bold text-xs">+250 ml (1 glass)</Text>
+          <Text className="text-info dark:text-info-dark font-bold text-[11px]">+250 ml (Glass)</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onAddWater(500)}
           activeOpacity={0.8}
-          className="flex-1 py-2 rounded-xl bg-sky-500/20 border border-sky-500/40 items-center justify-center"
+          className="flex-1 py-2 rounded-xl bg-info/20 dark:bg-info-dark/25 border border-info/40 items-center justify-center"
         >
-          <Text className="text-sky-600 dark:text-sky-400 font-bold text-xs">+500 ml (Bottle)</Text>
+          <Text className="text-info dark:text-info-dark font-bold text-[11px]">+500 ml (Bottle)</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </SurfaceCard>
   );
 }

@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
@@ -14,9 +14,22 @@ export default function AuthIndex() {
   const [active, setActive] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
   const { setData } = useRegistration();
   const { login, isAuthenticated } = useAuth();
+
+  // Listen for keyboard show/hide events to adapt layout dynamically (Android / Web)
+  useEffect(() => {
+    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardOpen(true));
+    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardOpen(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -52,22 +65,27 @@ export default function AuthIndex() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView className="flex-1">
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          ref={scrollViewRef}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: 'center',
+            paddingVertical: 16,
+            paddingBottom: isKeyboardOpen ? 120 : 20,
+          }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <View className="px-6 py-6 w-full max-w-[440px] mx-auto">
-            <AuthHeader />
+          <View className="w-full max-w-[420px] mx-auto px-5">
+            <AuthHeader compact={isKeyboardOpen} />
             <AuthTabs active={active} onChange={handleTabChange} />
 
             {error ? (
-              <View className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
-                <Text className="text-red-500 dark:text-red-400 text-xs font-semibold text-center">
+              <View className="w-full bg-danger/10 border border-danger/30 rounded-xl p-2.5 mb-3">
+                <Text className="text-danger dark:text-danger-dark text-xs font-semibold text-center">
                   {error}
                 </Text>
               </View>

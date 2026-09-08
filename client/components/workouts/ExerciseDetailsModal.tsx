@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
-import { LibraryExercise } from './mockData';
+import { LibraryExercise } from './workoutTypes';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface ExerciseDetailsModalProps {
   visible: boolean;
@@ -11,84 +12,8 @@ interface ExerciseDetailsModalProps {
   onUpdateExercisePreset?: (exercise: LibraryExercise) => void;
 }
 
-export interface DifficultyPreset {
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
-  recommendedSets: number;
-  recommendedReps: number;
-  recommendedDuration?: number;
-  recommendedRest: number;
-  recommendedTempo?: string;
-  cue: string;
-  defaultSets: { weight?: number; reps?: number; bodyweight?: boolean }[];
-}
-
-export const getDifficultyPreset = (
-  exercise: any,
-  tier: 'beginner' | 'intermediate' | 'advanced'
-): DifficultyPreset => {
-  const existingPresets = exercise?.difficultyPresets || {};
-  if (
-    existingPresets[tier] &&
-    Array.isArray(existingPresets[tier].defaultSets) &&
-    existingPresets[tier].defaultSets.length > 0
-  ) {
-    return existingPresets[tier];
-  }
-
-  const baseSets = exercise?.defaultSets || [];
-  const firstSetWeight = baseSets[0]?.weight ? Number(baseSets[0].weight) : 40;
-  const isBW = Boolean(baseSets[0]?.bodyweight);
-
-  if (tier === 'beginner') {
-    const begWeight = Math.max(5, Math.round((firstSetWeight * 0.6) / 2.5) * 2.5);
-    return {
-      difficulty: 'Beginner',
-      recommendedSets: 3,
-      recommendedReps: 12,
-      recommendedRest: 60,
-      recommendedTempo: '3-1-1-0',
-      cue: '🟢 Beginner Focus: Safe light weight, controlled form & full range of motion.',
-      defaultSets: [
-        { weight: isBW ? undefined : begWeight, reps: 12, bodyweight: isBW },
-        { weight: isBW ? undefined : begWeight, reps: 12, bodyweight: isBW },
-        { weight: isBW ? undefined : begWeight, reps: 12, bodyweight: isBW },
-      ],
-    };
-  }
-
-  if (tier === 'advanced') {
-    const advWeight = Math.round((firstSetWeight * 1.35) / 2.5) * 2.5;
-    return {
-      difficulty: 'Advanced',
-      recommendedSets: 4,
-      recommendedReps: 6,
-      recommendedRest: 120,
-      recommendedTempo: '2-0-1-0',
-      cue: '🔴 Advanced Focus: Heavy progressive overload for maximum power & density.',
-      defaultSets: [
-        { weight: isBW ? undefined : advWeight, reps: 6, bodyweight: isBW },
-        { weight: isBW ? undefined : Math.round((advWeight * 1.05) / 2.5) * 2.5, reps: 6, bodyweight: isBW },
-        { weight: isBW ? undefined : Math.round((advWeight * 1.10) / 2.5) * 2.5, reps: 5, bodyweight: isBW },
-        { weight: isBW ? undefined : Math.round((advWeight * 1.15) / 2.5) * 2.5, reps: 4, bodyweight: isBW },
-      ],
-    };
-  }
-
-  const intWeight = firstSetWeight;
-  return {
-    difficulty: 'Intermediate',
-    recommendedSets: 3,
-    recommendedReps: 10,
-    recommendedRest: 90,
-    recommendedTempo: '2-0-1-0',
-    cue: '🟡 Intermediate Focus: Standard working load for steady hypertrophy and stamina.',
-    defaultSets: [
-      { weight: isBW ? undefined : intWeight, reps: 10, bodyweight: isBW },
-      { weight: isBW ? undefined : Math.round((intWeight * 1.08) / 2.5) * 2.5, reps: 10, bodyweight: isBW },
-      { weight: isBW ? undefined : Math.round((intWeight * 1.15) / 2.5) * 2.5, reps: 8, bodyweight: isBW },
-    ],
-  };
-};
+import { DifficultyPreset, getDifficultyPreset } from './workoutPresets';
+export { DifficultyPreset, getDifficultyPreset };
 
 export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   visible,
@@ -182,12 +107,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                 {exercise.category} • {exercise.difficulty || 'Intermediate'}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
-            >
-              <Text className="text-text-primary dark:text-text-primary-dark text-sm font-bold">✕</Text>
-            </TouchableOpacity>
+            <ModalCloseButton onClose={onClose} />
           </View>
 
           <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
@@ -201,7 +121,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             ) : (
               <View className="w-full h-28 rounded-2xl mb-4 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center">
                 <Text className="text-3xl">🏋️‍♂️</Text>
-                <Text className="text-xs text-text-muted mt-1">{exercise.name}</Text>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1">{exercise.name}</Text>
               </View>
             )}
 
@@ -240,16 +160,16 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               </Text>
 
               {/* Segmented Level Selector */}
-              <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60">
+              <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60 dark:border-input-border-dark/60">
                 {(['beginner', 'intermediate', 'advanced'] as const).map((tier) => {
                   const active = activeTier === tier;
                   const label = tier.charAt(0).toUpperCase() + tier.slice(1);
                   const activeColor =
                     tier === 'beginner'
-                      ? 'bg-emerald-500 text-white'
+                      ? 'bg-accent text-white'
                       : tier === 'advanced'
-                      ? 'bg-rose-500 text-white'
-                      : 'bg-amber-500 text-white';
+                      ? 'bg-danger text-white'
+                      : 'bg-warning text-white';
 
                   return (
                     <TouchableOpacity
@@ -276,13 +196,13 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               {/* Dynamic Preset Metrics */}
               <View className="flex-row justify-between mb-2">
                 <View className="items-center flex-1">
-                  <Text className="text-xs text-text-muted">Target Sets</Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">Target Sets</Text>
                   <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
                     {currentPreset.recommendedSets || 3}
                   </Text>
                 </View>
                 <View className="items-center flex-1 border-x border-input-border dark:border-input-border-dark">
-                  <Text className="text-xs text-text-muted">Reps / Duration</Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">Reps / Duration</Text>
                   <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
                     {currentPreset.recommendedDuration
                       ? `${currentPreset.recommendedDuration}s`
@@ -292,7 +212,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                   </Text>
                 </View>
                 <View className="items-center flex-1">
-                  <Text className="text-xs text-text-muted">Rest</Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">Rest</Text>
                   <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
                     {currentPreset.recommendedRest || 60}s
                   </Text>
@@ -306,7 +226,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               ) : null}
 
               {currentPreset.recommendedTempo ? (
-                <Text className="text-[10px] text-text-muted text-center mt-1.5 italic">
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark text-center mt-1.5 italic">
                   Tempo: {currentPreset.recommendedTempo} (Eccentric-Pause-Concentric-Pause)
                 </Text>
               ) : null}
@@ -352,7 +272,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
                       Starting Position:
                     </Text>
-                    <Text className="text-xs text-text-muted leading-4">
+                    <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4">
                       {exercise.startingPosition}
                     </Text>
                   </View>
@@ -374,7 +294,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
                       🫁 Breathing Technique:
                     </Text>
-                    <Text className="text-xs text-text-muted leading-4">
+                    <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4">
                       {exercise.breathingTechnique}
                     </Text>
                   </View>
@@ -391,9 +311,9 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                 {formTipsList.length > 0 ? (
                   <View className="mb-2.5">
-                    <Text className="text-xs font-bold text-emerald-500 mb-1">💡 Proper Form Tips:</Text>
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark mb-1">💡 Proper Form Tips:</Text>
                     {formTipsList.map((tip, idx) => (
-                      <Text key={idx} className="text-xs text-text-muted mb-1 leading-4">
+                      <Text key={idx} className="text-xs text-text-muted dark:text-text-muted-dark mb-1 leading-4">
                         • {tip}
                       </Text>
                     ))}
@@ -402,9 +322,9 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                 {mistakesList.length > 0 ? (
                   <View>
-                    <Text className="text-xs font-bold text-red-400 mb-1">⚠️ Common Mistakes:</Text>
+                    <Text className="text-xs font-bold text-danger dark:text-danger-dark mb-1">⚠️ Common Mistakes:</Text>
                     {mistakesList.map((mistake, idx) => (
-                      <Text key={idx} className="text-xs text-text-muted mb-1 leading-4">
+                      <Text key={idx} className="text-xs text-text-muted dark:text-text-muted-dark mb-1 leading-4">
                         • {mistake}
                       </Text>
                     ))}
@@ -416,27 +336,27 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             {/* Safety & Variations */}
             {(exercise.safetyInstructions || exercise.beginnerModification || exercise.advancedVariation) && (
               <View className="mb-4 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
-                <Text className="text-xs font-bold text-amber-500 uppercase tracking-wider mb-2">
+                <Text className="text-xs font-bold text-warning dark:text-warning-dark uppercase tracking-wider mb-2">
                   Safety & Variations
                 </Text>
 
                 {exercise.safetyInstructions ? (
-                  <Text className="text-xs text-text-muted mb-2 leading-4">
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-4">
                     <Text className="font-bold text-text-primary dark:text-text-primary-dark">Safety: </Text>
                     {exercise.safetyInstructions}
                   </Text>
                 ) : null}
 
                 {exercise.beginnerModification ? (
-                  <Text className="text-xs text-text-muted mb-1.5 leading-4">
-                    <Text className="font-bold text-emerald-400">Easier Modification: </Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1.5 leading-4">
+                    <Text className="font-bold text-accent dark:text-accent-dark">Easier Modification: </Text>
                     {exercise.beginnerModification}
                   </Text>
                 ) : null}
 
                 {exercise.advancedVariation ? (
-                  <Text className="text-xs text-text-muted leading-4">
-                    <Text className="font-bold text-purple-400">Advanced Variation: </Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4">
+                    <Text className="font-bold text-tertiary dark:text-tertiary-dark">Advanced Variation: </Text>
                     {exercise.advancedVariation}
                   </Text>
                 ) : null}
@@ -451,28 +371,28 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                 </Text>
 
                 {exercise.easierAlternative ? (
-                  <Text className="text-xs text-text-muted mb-1">
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
                     <Text className="font-semibold">├── Easier: </Text>
                     {exercise.easierAlternative}
                   </Text>
                 ) : null}
 
                 {exercise.harderAlternative ? (
-                  <Text className="text-xs text-text-muted mb-1">
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
                     <Text className="font-semibold">├── Harder: </Text>
                     {exercise.harderAlternative}
                   </Text>
                 ) : null}
 
                 {exercise.equipmentFreeAlternative ? (
-                  <Text className="text-xs text-text-muted mb-1">
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
                     <Text className="font-semibold">└── Equipment-free: </Text>
                     {exercise.equipmentFreeAlternative}
                   </Text>
                 ) : null}
 
                 {similarList.length > 0 ? (
-                  <Text className="text-xs text-text-muted mt-1.5">
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1.5">
                     <Text className="font-semibold">Similar Exercises: </Text>
                     {similarList.join(', ')}
                   </Text>
@@ -484,8 +404,8 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             {tagsList.length > 0 ? (
               <View className="flex-row flex-wrap gap-1.5 mb-6">
                 {tagsList.map((tag, idx) => (
-                  <View key={idx} className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-md border border-input-border dark:border-input-border-dark">
-                    <Text className="text-[10px] text-text-muted font-medium">#{tag}</Text>
+                  <View key={idx} className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark">
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">#{tag}</Text>
                   </View>
                 ))}
               </View>
