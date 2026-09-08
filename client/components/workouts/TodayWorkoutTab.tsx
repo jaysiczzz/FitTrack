@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
-import { LibraryExercise } from './mockData';
+import { LibraryExercise } from './workoutTypes';
 import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
+import ProgressBar from '@/components/ui/ProgressBar';
+import SurfaceCard from '@/components/ui/SurfaceCard';
 
 export interface TodayExerciseItem {
   key: string;
@@ -219,16 +221,16 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {exercises.length > 0 ? (
         <View className="mt-1 mb-4">
           {!allSetsDone ? (
-            <View className="mb-2.5 p-3 rounded-xl bg-amber-500/10 border border-amber-500/30 flex-row items-center">
+            <View className="mb-2.5 p-3 rounded-xl bg-warning/10 border border-warning/30 flex-row items-center">
               <Text className="text-base mr-2">⚠️</Text>
-              <Text className="flex-1 text-xs text-amber-500 font-semibold leading-4">
+              <Text className="flex-1 text-xs text-warning dark:text-warning-dark font-semibold leading-4">
                 Completion Progress: {completedSetsCount} of {totalSetsCount} sets marked as done. Click "+ Mark Done" on each set before finishing.
               </Text>
             </View>
           ) : (
-            <View className="mb-2.5 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex-row items-center">
+            <View className="mb-2.5 p-2.5 rounded-xl bg-accent/10 border border-accent/30 flex-row items-center">
               <Text className="text-base mr-2">🎉</Text>
-              <Text className="flex-1 text-xs text-emerald-500 font-bold">
+              <Text className="flex-1 text-xs text-accent dark:text-accent-dark font-bold">
                 All sets completed! Ready to finish and save your workout session.
               </Text>
             </View>
@@ -237,7 +239,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           <TouchableOpacity
             onPress={handleCompleteSessionPress}
             activeOpacity={allSetsDone ? 0.9 : 0.6}
-            className={`items-center justify-center rounded-2xl py-4 shadow-md ${
+            className={`items-center justify-center rounded-xl py-4 shadow-md ${
               allSetsDone
                 ? 'bg-accent dark:bg-accent-dark'
                 : 'bg-surface dark:bg-surface-dark border-2 border-input-border dark:border-input-border-dark opacity-80'
@@ -257,7 +259,13 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       ) : null}
 
       {/* AI WORKOUT PLAN CARD */}
-      <View className="mt-2 rounded-2xl border border-accent/25 dark:border-accent-dark/30 bg-surface dark:bg-surface-dark p-4">
+      <View
+        className="mt-2 rounded-2xl border border-accent/25 dark:border-accent-dark/30 bg-surface dark:bg-surface-dark p-4"
+        style={Platform.select({
+          web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+          default: { elevation: 1 },
+        })}
+      >
         <View className="mb-2.5 flex-row items-center">
           <View className="w-10 h-10 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-3 border border-accent/30">
             <Text className="text-xl">🤖</Text>
@@ -289,7 +297,13 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       </View>
 
       {/* TODAY'S TARGET MUSCLE SPLIT */}
-      <View className="mt-5 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4">
+      <View
+        className="mt-5 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
+        style={Platform.select({
+          web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+          default: { elevation: 1 },
+        })}
+      >
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-2">
             <Text className="text-base">💪</Text>
@@ -319,22 +333,14 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
               return Object.entries(muscleCounts).map(([muscle, count]) => {
                 const pct = Math.round((count / total) * 100);
                 return (
-                  <View key={muscle}>
-                    <View className="flex-row justify-between mb-1">
-                      <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
-                        {muscle}
-                      </Text>
-                      <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                        {pct}% ({count} {count === 1 ? 'exercise' : 'exercises'})
-                      </Text>
-                    </View>
-                    <View className="h-2.5 rounded-full bg-input dark:bg-input-dark overflow-hidden border border-input-border/50">
-                      <View
-                        className="h-full bg-accent dark:bg-accent-dark rounded-full"
-                        style={{ width: `${pct}%` }}
-                      />
-                    </View>
-                  </View>
+                  <ProgressBar
+                    key={muscle}
+                    label={muscle}
+                    valueText={`${pct}% (${count} ${count === 1 ? 'exercise' : 'exercises'})`}
+                    percentage={pct}
+                    height={8}
+                    className="mb-2"
+                  />
                 );
               });
             })()}
@@ -347,7 +353,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       </View>
 
       {/* RECOMMENDED 3-STEP WARM-UP & MOBILITY ROUTINE */}
-      <View className="mt-4 mb-2 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4">
+      <SurfaceCard className="mt-4 mb-2">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-2">
             <Text className="text-base">🔥</Text>
@@ -355,7 +361,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
               3-Step Warm-Up Routine
             </Text>
           </View>
-          <Text className="text-[10px] font-bold text-emerald-400 bg-emerald-500/15 px-2 py-0.5 rounded-md border border-emerald-500/30">
+          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark bg-accent/15 px-2 py-0.5 rounded-md border border-accent/30">
             Injury Prevention
           </Text>
         </View>
@@ -397,7 +403,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             </View>
           ))}
         </View>
-      </View>
+      </SurfaceCard>
 
       {/* Exercise Detail Modal */}
       <ExerciseDetailsModal

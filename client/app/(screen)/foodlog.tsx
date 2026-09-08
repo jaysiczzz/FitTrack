@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, Alert, DeviceEventEmitter } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect } from 'expo-router';
@@ -8,14 +8,14 @@ import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
 import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
 import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
 import WaterTrackerCard from '@/components/foodlog/WaterTrackerCard';
-import QuickStaplesModal from '@/components/foodlog/QuickStaplesModal';
+import FoodSearchModal from '@/components/foodlog/FoodSearchModal';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
 import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/context/ToastContext';
-import { FoodLogItem, MacroTargets, MealType, BeginnerStaple, getTodayDateString, MEAL_LABELS, MEAL_ICONS } from '@/components/foodlog/foodLogTypes';
+import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS } from '@/components/foodlog/foodLogTypes';
 import { saveDailyFoodLogApi } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
@@ -31,7 +31,7 @@ export default function FoodLog() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
-  const [showStaplesModal, setShowStaplesModal] = useState(false);
+  const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
   const [showResetModal, setShowResetModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<string | null>(null);
@@ -148,23 +148,6 @@ export default function FoodLog() {
       type: 'success',
       icon: MEAL_ICONS[item.mealType] || '🥗',
     });
-  };
-
-  // Quick Staple Selection
-  const handleSelectStaple = (staple: BeginnerStaple, targetMeal: MealType) => {
-    const newItem: FoodLogItem = {
-      id: Date.now().toString(),
-      mealType: targetMeal,
-      title: staple.title,
-      subtitle: staple.subtitle,
-      calories: staple.calories,
-      protein: staple.protein,
-      carbs: staple.carbs,
-      fat: staple.fat,
-      goalBadge: staple.badge,
-      goalBadgeColor: staple.recommendedFor === 'MUSCLE_GAIN' ? 'green' : 'blue',
-    };
-    handleAddMealItem(newItem);
   };
 
   // Delete Item
@@ -296,18 +279,23 @@ export default function FoodLog() {
     setShowScanModal(true);
   };
 
+  const openSearchForMeal = (meal: MealType) => {
+    setScanTargetMeal(meal);
+    setShowSearchModal(true);
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
         {/* Screen Header */}
-        <View className="flex-row justify-between items-center mb-1">
-          <Text className="text-[28px] font-black text-text-primary dark:text-text-primary-dark">
+        <View className="mb-2.5">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
             Nutrition Log 🥗
           </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+            Real-time daily fuel & macro tracking
+          </Text>
         </View>
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-3.5">
-          Beginner nutrition tracker powered by Google Gemini AI
-        </Text>
 
         {/* Top Navigation Tabs (Today's Log | History & Trends) */}
         <FoodLogTabs
@@ -335,7 +323,7 @@ export default function FoodLog() {
               goal={goal}
             />
 
-            {/* 2. Quick Action Toolbar (Photo Scan, AI Suggest, Staples, Describe) */}
+            {/* 2. Quick Action Toolbar (Photo Scan, AI Suggest, Search Food, Describe) */}
             <QuickActionToolbar
               onScanPhoto={() => {
                 setScanTargetMeal(undefined);
@@ -343,9 +331,9 @@ export default function FoodLog() {
                 setShowScanModal(true);
               }}
               onAiSuggest={() => setShowAiSuggestModal(true)}
-              onQuickStaples={() => {
+              onSearchFood={() => {
                 setScanTargetMeal(undefined);
-                setShowStaplesModal(true);
+                setShowSearchModal(true);
               }}
               onTextLog={() => {
                 setScanTargetMeal(undefined);
@@ -356,7 +344,7 @@ export default function FoodLog() {
 
             {/* 3. Meal Category Cards */}
             <View className="mb-2">
-              <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-3">
+              <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-2.5">
                 Today's Logged Meals 🍽️
               </Text>
 
@@ -366,7 +354,8 @@ export default function FoodLog() {
                 title="Breakfast"
                 icon="🍳"
                 items={breakfastItems}
-                onAddPress={openScanForMeal}
+                onAddPress={openSearchForMeal}
+                onScanPress={openScanForMeal}
                 onDeleteItem={(id) => setItemToDelete(id)}
               />
 
@@ -376,7 +365,8 @@ export default function FoodLog() {
                 title="Lunch"
                 icon="🍽️"
                 items={lunchItems}
-                onAddPress={openScanForMeal}
+                onAddPress={openSearchForMeal}
+                onScanPress={openScanForMeal}
                 onDeleteItem={(id) => setItemToDelete(id)}
               />
 
@@ -386,7 +376,8 @@ export default function FoodLog() {
                 title="Dinner"
                 icon="🌙"
                 items={dinnerItems}
-                onAddPress={openScanForMeal}
+                onAddPress={openSearchForMeal}
+                onScanPress={openScanForMeal}
                 onDeleteItem={(id) => setItemToDelete(id)}
               />
 
@@ -396,7 +387,8 @@ export default function FoodLog() {
                 title="Snacks & Drinks"
                 icon="🥪"
                 items={snackItems}
-                onAddPress={openScanForMeal}
+                onAddPress={openSearchForMeal}
+                onScanPress={openScanForMeal}
                 onDeleteItem={(id) => setItemToDelete(id)}
               />
             </View>
@@ -409,24 +401,24 @@ export default function FoodLog() {
             />
 
             {/* 5. Daily Summary Completion & Reset Controls */}
-            <View className="mt-2 flex-row gap-2">
+            <View className="mt-1 flex-row gap-2">
               <TouchableOpacity
                 onPress={() => setShowResetModal(true)}
                 activeOpacity={0.8}
-                className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-3.5 rounded-2xl items-center justify-center"
+                className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-3 rounded-xl items-center justify-center"
               >
                 <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
-                  🔄 Clear Today's Log
+                  🔄 Clear Log
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={handleSaveAndCompleteDay}
                 activeOpacity={0.8}
-                className="flex-1 bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-xs"
+                className="flex-1 bg-accent dark:bg-accent-dark py-3 rounded-xl items-center justify-center"
               >
                 <Text className="text-background dark:text-background-dark font-black text-xs">
-                  ✓ Save & Complete
+                  ✓ Complete Day
                 </Text>
               </TouchableOpacity>
             </View>
@@ -443,11 +435,11 @@ export default function FoodLog() {
         initialMode={scanInitialMode}
       />
 
-      {/* Beginner Quick Staples Modal */}
-      <QuickStaplesModal
-        visible={showStaplesModal}
-        onClose={() => setShowStaplesModal(false)}
-        onSelectStaple={handleSelectStaple}
+      {/* Search & Log Food Modal (Offline 100+ Catalog + Online Open Food Facts) */}
+      <FoodSearchModal
+        visible={showSearchModal}
+        onClose={() => setShowSearchModal(false)}
+        onAddFood={handleAddMealItem}
         defaultMeal={scanTargetMeal}
       />
 

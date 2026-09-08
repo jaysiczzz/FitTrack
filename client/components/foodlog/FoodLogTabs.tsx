@@ -16,7 +16,7 @@ const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyC
   ];
 
   return (
-    <View className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-4 p-1.5 w-full shadow-xs">
+    <View className="flex-row bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-xl mb-3 p-1 w-full">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -24,24 +24,16 @@ const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyC
             key={tab.id}
             activeOpacity={0.8}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 py-2.5 px-2 items-center justify-center rounded-xl flex-row ${
+            className={`flex-1 py-2 px-2 items-center justify-center rounded-lg flex-row ${
               isActive
-                ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+                ? 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark'
                 : ''
             }`}
             style={
               isActive
                 ? Platform.select({
-                    web: {
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
-                    } as any,
-                    default: {
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.15,
-                      shadowRadius: 4,
-                      elevation: 3,
-                    },
+                    web: { boxShadow: '0 2px 6px rgba(0, 0, 0, 0.06)' } as any,
+                    default: { elevation: 1 },
                   })
                 : undefined
             }
@@ -53,7 +45,6 @@ const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyC
                   ? 'text-accent dark:text-accent-dark'
                   : 'text-text-muted dark:text-text-muted-dark font-medium'
               }`}
-              numberOfLines={1}
             >
               {tab.label}
             </Text>

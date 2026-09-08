@@ -43,7 +43,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           <View
             className={`w-14 h-14 rounded-2xl items-center justify-center mb-4 ${
               isDanger
-                ? 'bg-red-500/15 border border-red-500/30'
+                ? 'bg-danger/15 border border-danger/30'
                 : 'bg-accent/15 dark:bg-accent-dark/20 border border-accent/30'
             }`}
           >
@@ -63,7 +63,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={onCancel}
-              className="flex-1 py-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="flex-1 py-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
             >
               <Text className="font-semibold text-text-primary dark:text-text-primary-dark text-sm">
                 {cancelText}
@@ -73,15 +73,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={onConfirm}
-              className={`flex-1 py-3.5 rounded-2xl items-center justify-center shadow-md ${
+              className={`flex-1 py-3.5 rounded-xl items-center justify-center shadow-md ${
                 isDanger
-                  ? 'bg-red-500'
+                  ? 'bg-danger'
                   : 'bg-accent dark:bg-accent-dark'
               }`}
             >
               <Text
                 className={`font-bold text-sm ${
-                  isDanger ? 'text-white' : 'text-black'
+                  isDanger ? 'text-white' : 'text-white dark:text-background-dark'
                 }`}
               >
                 {confirmText}

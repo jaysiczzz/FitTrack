@@ -3,6 +3,8 @@ import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } fr
 import { MealType, FoodLogItem } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
+import { COLORS } from '@/constants/colors';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface AiSuggestionModalProps {
   visible: boolean;
@@ -76,7 +78,7 @@ export default function AiSuggestionModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-surface dark:bg-surface-dark rounded-t-[28px] max-h-[88%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[88%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
           {/* Header */}
           <View className="flex-row justify-between items-center mb-3">
             <View>
@@ -87,12 +89,7 @@ export default function AiSuggestionModal({
                 AI meal suggestions based on your {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'} goals
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={onClose}
-              className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-            >
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold">✕</Text>
-            </TouchableOpacity>
+            <ModalCloseButton onClose={onClose} />
           </View>
 
           {/* Budget Snapshot Banner */}
@@ -118,7 +115,7 @@ export default function AiSuggestionModal({
 
           {loading ? (
             <View className="py-12 items-center justify-center">
-              <ActivityIndicator size="large" color="#00E5A0" />
+              <ActivityIndicator size="large" color={COLORS.accent.DEFAULT} />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
                 Crafting personalized beginner meal suggestions with Gemini AI...
               </Text>
@@ -170,11 +167,11 @@ export default function AiSuggestionModal({
                   {/* Macros and Action */}
                   <View className="flex-row justify-between items-center pt-2 border-t border-input-border/50 dark:border-input-border-dark/50">
                     <View className="flex-row gap-1.5">
-                      <Text className="text-xs font-bold text-emerald-500">{rec.protein}g P</Text>
-                      <Text className="text-text-muted text-xs">·</Text>
-                      <Text className="text-xs font-bold text-sky-500">{rec.carbs}g C</Text>
-                      <Text className="text-xs font-muted text-xs">·</Text>
-                      <Text className="text-xs font-bold text-purple-500">{rec.fat}g F</Text>
+                      <Text className="text-xs font-bold text-emerald-500 dark:text-emerald-400">{rec.protein}g P</Text>
+                      <Text className="text-text-muted dark:text-text-muted-dark text-xs">·</Text>
+                      <Text className="text-xs font-bold text-sky-500 dark:text-sky-400">{rec.carbs}g C</Text>
+                      <Text className="text-text-muted dark:text-text-muted-dark text-xs">·</Text>
+                      <Text className="text-xs font-bold text-purple-500 dark:text-purple-400">{rec.fat}g F</Text>
                     </View>
 
                     <TouchableOpacity

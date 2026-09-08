@@ -8,10 +8,16 @@ interface Props {
 
 const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
   return (
-    <View className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-6 p-1.5 w-full">
+    <View
+      className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-xl mb-4 p-1 w-full"
+      style={Platform.select({
+        web: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' } as any,
+        default: { elevation: 1 },
+      })}
+    >
       <TouchableOpacity
         activeOpacity={0.8}
-        className={`flex-1 py-3 items-center justify-center rounded-xl ${
+        className={`flex-1 py-2 items-center justify-center rounded-lg ${
           active === 'login'
             ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
             : ''
@@ -20,14 +26,10 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
           active === 'login'
             ? Platform.select({
                 web: {
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
                 } as any,
                 default: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 4,
-                  elevation: 3,
+                  elevation: 2,
                 },
               })
             : undefined
@@ -35,7 +37,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         onPress={() => onChange('login')}
       >
         <Text
-          className={`font-bold text-sm ${
+          className={`font-bold text-xs ${
             active === 'login'
               ? 'text-text-primary dark:text-text-primary-dark'
               : 'text-text-muted dark:text-text-muted-dark font-medium'
@@ -46,7 +48,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
       </TouchableOpacity>
       <TouchableOpacity
         activeOpacity={0.8}
-        className={`flex-1 py-3 items-center justify-center rounded-xl ${
+        className={`flex-1 py-2 items-center justify-center rounded-lg ${
           active === 'register'
             ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
             : ''
@@ -55,14 +57,10 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
           active === 'register'
             ? Platform.select({
                 web: {
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
                 } as any,
                 default: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 4,
-                  elevation: 3,
+                  elevation: 2,
                 },
               })
             : undefined
@@ -70,7 +68,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         onPress={() => onChange('register')}
       >
         <Text
-          className={`font-bold text-sm ${
+          className={`font-bold text-xs ${
             active === 'register'
               ? 'text-text-primary dark:text-text-primary-dark'
               : 'text-text-muted dark:text-text-muted-dark font-medium'

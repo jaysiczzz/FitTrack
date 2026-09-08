@@ -1,8 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
-import { MOCK_LIBRARY, LibraryExercise } from './mockData';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LibraryExercise } from './workoutTypes';
+import { COMMON_EXERCISES_CATALOG } from '../../data/commonExercises';
 import { getWorkoutLibrary } from '../../api/workout';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
+import { COLORS } from '@/constants/colors';
+import FilterChip from '../ui/FilterChip';
 
 interface WorkoutLibraryTabProps {
   onAddExercise: (exercise: LibraryExercise) => void;
@@ -10,9 +14,10 @@ interface WorkoutLibraryTabProps {
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body'];
 const DIFFICULTY_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
+const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache';
 
 const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) => {
-  const [exercises, setExercises] = useState<LibraryExercise[]>(MOCK_LIBRARY);
+  const [exercises, setExercises] = useState<LibraryExercise[]>(COMMON_EXERCISES_CATALOG);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('All');
@@ -25,13 +30,28 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
 
   const fetchLibrary = async () => {
     try {
-      if (exercises.length === 0) setLoading(true);
+      // 1. Read cached exercises from local device storage
+      const cached = await AsyncStorage.getItem(EXERCISE_CACHE_KEY);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setExercises(parsed);
+          }
+        } catch {}
+      }
+
+      // 2. Fetch fresh library from backend API
       const res = await getWorkoutLibrary({});
       if (res.exercises && res.exercises.length > 0) {
-        setExercises(res.exercises);
+        const dbNames = new Set(res.exercises.map((e: any) => (e.name || '').toLowerCase()));
+        const uniqueLocal = COMMON_EXERCISES_CATALOG.filter((c) => !dbNames.has(c.name.toLowerCase()));
+        const merged = [...res.exercises, ...uniqueLocal];
+        setExercises(merged);
+        await AsyncStorage.setItem(EXERCISE_CACHE_KEY, JSON.stringify(merged));
       }
     } catch (err) {
-      console.log('Failed to fetch library exercises from API, using cached templates');
+      console.log('[Exercise Library] Offline mode - using local catalog & cache');
     } finally {
       setLoading(false);
     }
@@ -95,7 +115,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
         <TextInput
           className="flex-1 text-text-primary dark:text-text-primary-dark text-sm font-medium"
           placeholder="Search exercises, muscles, tags..."
-          placeholderTextColor="#8A93A6"
+          placeholderTextColor={COLORS.textMuted.dark}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -153,46 +173,31 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
         className="mb-4 flex-row"
         contentContainerStyle={{ paddingRight: 10 }}
       >
-        {DIFFICULTY_LEVELS.map((diff) => {
-          const active = selectedDifficulty === diff;
-          return (
-            <TouchableOpacity
-              key={diff}
-              activeOpacity={0.8}
-              onPress={() => setSelectedDifficulty(diff)}
-              className={`mr-2 px-3 py-1 rounded-lg border ${
-                active
-                  ? 'bg-accent/20 border-accent text-accent'
-                  : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-              }`}
-            >
-              <Text
-                className={`text-[11px] font-semibold ${
-                  active
-                    ? 'text-accent dark:text-accent-dark'
-                    : 'text-text-muted dark:text-text-muted-dark'
-                }`}
-              >
-                {diff}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+        {DIFFICULTY_LEVELS.map((diff) => (
+          <FilterChip
+            key={diff}
+            label={diff}
+            selected={selectedDifficulty === diff}
+            onPress={() => setSelectedDifficulty(diff)}
+            rounded="xl"
+            className="mr-2"
+          />
+        ))}
       </ScrollView>
 
       {/* Loading Indicator */}
       {loading ? (
         <View className="py-8 items-center">
-          <ActivityIndicator size="small" color="#00E5A0" />
-          <Text className="text-xs text-text-muted mt-2">Loading exercises...</Text>
+          <ActivityIndicator size="small" color={COLORS.accent.DEFAULT} />
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">Loading exercises...</Text>
         </View>
       ) : filteredExercises.length === 0 ? (
-        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50">
+        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50 dark:bg-surface-dark/50">
           <Text className="text-2xl mb-2">🔍</Text>
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
             No exercises match your filter
           </Text>
-          <Text className="text-text-muted text-xs mt-1 text-center">
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
             Try clearing your search query or selecting "All" muscle groups.
           </Text>
         </View>
@@ -204,7 +209,11 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
           return (
             <View
               key={ex.id}
-              className="mb-3 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4 shadow-sm"
+              className="mb-3 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
+              style={Platform.select({
+                web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+                default: { elevation: 1 },
+              })}
             >
               {/* Top Row: Info & Thumbnail */}
               <View className="flex-row items-center justify-between mb-3">
@@ -217,19 +226,19 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                       <View
                         className={`px-2 py-0.5 rounded-md border ${
                           (ex.difficulty || '').toLowerCase() === 'beginner'
-                            ? 'bg-emerald-500/15 border-emerald-500/40'
+                            ? 'bg-accent/15 border-accent/40'
                             : (ex.difficulty || '').toLowerCase() === 'advanced'
-                            ? 'bg-rose-500/15 border-rose-500/40'
-                            : 'bg-amber-500/15 border-amber-500/40'
+                            ? 'bg-danger/15 border-danger/40'
+                            : 'bg-warning/15 border-warning/40'
                         }`}
                       >
                         <Text
                           className={`text-[10px] font-extrabold uppercase ${
                             (ex.difficulty || '').toLowerCase() === 'beginner'
-                              ? 'text-emerald-400'
+                              ? 'text-accent dark:text-accent-dark'
                               : (ex.difficulty || '').toLowerCase() === 'advanced'
-                              ? 'text-rose-400'
-                              : 'text-amber-400'
+                              ? 'text-danger dark:text-danger-dark'
+                              : 'text-warning dark:text-warning-dark'
                           }`}
                         >
                           {ex.difficulty}
@@ -242,7 +251,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                     {ex.category} • {ex.primaryMuscle || ex.muscleGroup}
                   </Text>
 
-                  <Text className="text-[11px] text-text-muted">
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
                     🛠️ {eqStr}
                   </Text>
                 </View>
@@ -265,7 +274,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
               <View className="flex-row items-center justify-between pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60">
                 <TouchableOpacity
                   onPress={() => handleOpenDetails(ex)}
-                  className="px-3 py-1.5 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     View Details
@@ -282,7 +291,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={() => handleAdd(ex)}
-                      className="px-3 py-1.5 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark"
+                      className="px-3.5 py-2 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark"
                     >
                       <Text className="text-xs font-extrabold text-background dark:text-background-dark">
                         + Add Again
@@ -293,7 +302,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   <TouchableOpacity
                     activeOpacity={0.8}
                     onPress={() => handleAdd(ex)}
-                    className="px-3.5 py-1.5 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark flex-row items-center"
+                    className="px-3.5 py-2 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark flex-row items-center"
                   >
                     <Text className="text-xs font-extrabold text-background dark:text-background-dark">
                       + Add to Today

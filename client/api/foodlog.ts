@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './client';
 import { FoodLogItem } from '../components/foodlog/foodLogTypes';
 
@@ -80,4 +81,45 @@ export const deleteDailyFoodLogApi = (date: string) => {
   return apiRequest(`/api/food-logs/${date}`, {
     method: 'DELETE',
   });
+};
+
+// 5. Search Foods Online (Open Food Facts Proxy)
+export interface SearchFoodsResponse {
+  success: boolean;
+  foods: any[];
+}
+
+export const searchFoodsOnlineApi = async (query: string): Promise<SearchFoodsResponse> => {
+  try {
+    return await apiRequest(`/api/food-logs/search?q=${encodeURIComponent(query)}`, {
+      method: 'GET',
+    });
+  } catch (err) {
+    console.log('[Food Search API] Network error, using local fallback:', err);
+    return { success: false, foods: [] };
+  }
+};
+
+const RECENT_FOODS_STORAGE_KEY = 'fittrack_recent_logged_foods';
+
+export const getRecentLoggedFoods = async (): Promise<any[]> => {
+  try {
+    const raw = await AsyncStorage.getItem(RECENT_FOODS_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+};
+
+export const saveFoodToRecentHistory = async (food: any): Promise<void> => {
+  try {
+    const recents = await getRecentLoggedFoods();
+    const filtered = recents.filter((f) => f.name.toLowerCase() !== food.name.toLowerCase());
+    const updated = [food, ...filtered].slice(0, 25);
+    await AsyncStorage.setItem(RECENT_FOODS_STORAGE_KEY, JSON.stringify(updated));
+  } catch (err) {
+    console.log('Error caching recent food:', err);
+  }
 };

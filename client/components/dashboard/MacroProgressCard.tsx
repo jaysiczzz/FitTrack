@@ -1,28 +1,8 @@
 import React from 'react';
-import { View, Text, Platform } from 'react-native';
-
-interface ProgressBarProps {
-  label: string;
-  value: string;
-  percentage: number;
-  color: string;
-}
-
-const ProgressBar = ({ label, value, percentage, color }: ProgressBarProps) => {
-  const fillWidth = `${Math.min(100, Math.max(0, percentage))}%` as import('react-native').DimensionValue;
-
-  return (
-    <View className="mb-3">
-      <View className="flex-row justify-between mb-1.5">
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs">{label}</Text>
-        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">{value}</Text>
-      </View>
-      <View className="h-2.5 bg-input dark:bg-input-dark rounded-lg overflow-hidden border border-input-border/40">
-        <View className="h-2.5 rounded-lg" style={{ width: fillWidth, backgroundColor: color }} />
-      </View>
-    </View>
-  );
-};
+import { View, Text, Platform, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
+import ProgressBar from '@/components/ui/ProgressBar';
+import { COLORS } from '@/constants/colors';
 
 interface MacroProgressCardProps {
   caloriesLogged: number;
@@ -33,7 +13,6 @@ interface MacroProgressCardProps {
   targetCarbs: number;
   fatLogged: number;
   targetFat: number;
-  goalLabel?: string;
 }
 
 export default function MacroProgressCard({
@@ -45,8 +24,8 @@ export default function MacroProgressCard({
   targetCarbs,
   fatLogged,
   targetFat,
-  goalLabel = 'Muscle Gain Target',
 }: MacroProgressCardProps) {
+  const router = useRouter();
   const caloriePercent = Math.min(100, Math.round((caloriesLogged / (targetCalories || 2000)) * 100));
   const proteinPercent = Math.min(100, Math.round((proteinLogged / (targetProtein || 140)) * 100));
   const carbsPercent = Math.min(100, Math.round((carbsLogged / (targetCarbs || 230)) * 100));
@@ -54,37 +33,44 @@ export default function MacroProgressCard({
 
   return (
     <View
-      className="bg-surface dark:bg-surface-dark rounded-[24px] p-5 mb-4 border border-input-border dark:border-input-border-dark"
+      className="bg-surface dark:bg-surface-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark"
       style={Platform.select({
-        web: { boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)' } as any,
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 10,
-          elevation: 3,
-        },
+        web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+        default: { elevation: 1 },
       })}
     >
-      <View className="flex-row justify-between items-center mb-3.5">
-        <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
-          Daily Nutrition Intake 🥗
-        </Text>
-        <View className="bg-input dark:bg-input-dark px-2.5 py-0.5 rounded-full border border-input-border/50">
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold">
-            {goalLabel}
-          </Text>
+      {/* Header */}
+      <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row items-center">
+          <View className="w-7 h-7 rounded-lg bg-emerald-500/15 dark:bg-emerald-500/20 items-center justify-center mr-2">
+            <Text className="text-xs">🥗</Text>
+          </View>
+          <View>
+            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
+              Daily Nutrition Intake
+            </Text>
+          </View>
         </View>
+
+        <TouchableOpacity
+          onPress={() => router.push('/(screen)/foodlog' as any)}
+          activeOpacity={0.7}
+          className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-lg"
+        >
+          <Text className="text-accent dark:text-accent-dark font-bold text-[11px]">
+            + Log Food →
+          </Text>
+        </TouchableOpacity>
       </View>
 
       <View className="flex-row items-center">
-        {/* Circular Percentage Dial */}
-        <View className="w-[100px] h-[100px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-2 border-accent/40 dark:border-accent-dark/40 shadow-xs">
-          <Text className="text-accent dark:text-accent-dark text-center font-black text-xl leading-6">
+        {/* Compact Circular Dial */}
+        <View className="w-[100px] h-[100px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-2 border-accent/40 dark:border-accent-dark/40">
+          <Text className="text-accent dark:text-accent-dark text-center font-black text-lg leading-5">
             {caloriePercent}%
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider">
-            Fuel Complete
+            {caloriesLogged} kcal
           </Text>
         </View>
 
@@ -92,21 +78,22 @@ export default function MacroProgressCard({
         <View className="flex-1">
           <ProgressBar
             label="Protein"
-            value={`${proteinLogged}g / ${targetProtein}g`}
+            valueText={`${proteinLogged}g / ${targetProtein}g`}
             percentage={proteinPercent}
-            color="#00E5A0"
+            color={COLORS.accent.dark}
           />
           <ProgressBar
             label="Carbs"
-            value={`${carbsLogged}g / ${targetCarbs}g`}
+            valueText={`${carbsLogged}g / ${targetCarbs}g`}
             percentage={carbsPercent}
-            color="#4BB4FF"
+            color={COLORS.info.dark}
           />
           <ProgressBar
             label="Fats"
-            value={`${fatLogged}g / ${targetFat}g`}
+            valueText={`${fatLogged}g / ${targetFat}g`}
             percentage={fatPercent}
-            color="#A16BFF"
+            color={COLORS.tertiary.dark}
+            className="mb-0"
           />
         </View>
       </View>
