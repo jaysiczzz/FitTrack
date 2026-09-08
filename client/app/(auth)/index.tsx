@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
@@ -14,9 +14,25 @@ export default function AuthIndex() {
   const [active, setActive] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
   const { setData } = useRegistration();
   const { login, isAuthenticated } = useAuth();
+
+  // Listen for keyboard show/hide events to adapt layout dynamically
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => setIsKeyboardOpen(true));
+    const hideSub = Keyboard.addListener(hideEvent, () => setIsKeyboardOpen(false));
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -54,31 +70,41 @@ export default function AuthIndex() {
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 8 : 0}
         className="flex-1"
       >
         <ScrollView
-          contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
+          ref={scrollViewRef}
+          contentContainerStyle={{
+            flexGrow: 1,
+            justifyContent: isKeyboardOpen ? 'flex-start' : 'center',
+            paddingBottom: isKeyboardOpen ? (Platform.OS === 'ios' ? 120 : 140) : 24,
+          }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <View className="px-6 py-6 w-full max-w-[440px] mx-auto">
-            <AuthHeader />
-            <AuthTabs active={active} onChange={handleTabChange} />
+          <Pressable onPress={Keyboard.dismiss} className="flex-1 justify-center">
+            <View className="px-6 py-4 w-full max-w-[440px] mx-auto">
+              <AuthHeader compact={isKeyboardOpen} />
+              <AuthTabs active={active} onChange={handleTabChange} />
 
-            {error ? (
-              <View className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
-                <Text className="text-red-500 dark:text-red-400 text-xs font-semibold text-center">
-                  {error}
-                </Text>
-              </View>
-            ) : null}
+              {error ? (
+                <View className="w-full bg-red-500/10 border border-red-500/30 rounded-xl p-3 mb-4">
+                  <Text className="text-red-500 dark:text-red-400 text-xs font-semibold text-center">
+                    {error}
+                  </Text>
+                </View>
+              ) : null}
 
-            {active === 'login' ? (
-              <LoginForm onSubmit={handleLogin} loading={loading} />
-            ) : (
-              <RegisterForm onSubmit={handleRegister} loading={loading} />
-            )}
-          </View>
+              {active === 'login' ? (
+                <LoginForm onSubmit={handleLogin} loading={loading} />
+              ) : (
+                <RegisterForm onSubmit={handleRegister} loading={loading} />
+              )}
+            </View>
+          </Pressable>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
