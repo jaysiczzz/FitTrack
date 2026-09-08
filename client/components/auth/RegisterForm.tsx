@@ -75,9 +75,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
   return (
     <View className="w-full">
-      <View className="flex-row justify-between">
-        <View className="w-[48%]">
+      <View className="flex-row gap-2.5 w-full">
+        <View className="flex-1">
           <Input
+            className="w-full"
             label="First Name"
             placeholder="John"
             value={firstName}
@@ -92,8 +93,9 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
             blurOnSubmit={false}
           />
         </View>
-        <View className="w-[48%]">
+        <View className="flex-1">
           <Input
+            className="w-full"
             ref={lastNameRef}
             label="Last Name"
             placeholder="Doe"

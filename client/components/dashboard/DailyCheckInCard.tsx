@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from '../../context/ToastContext';
+import SurfaceCard from '../ui/SurfaceCard';
 
 export interface MoodOption {
   id: string;
@@ -11,11 +12,11 @@ export interface MoodOption {
 }
 
 const MOODS: MoodOption[] = [
-  { id: 'fire', emoji: '⚡', label: 'Fired Up!', coachTip: 'Channel that energy into progressive overload and intense sets today!' },
+  { id: 'fire', emoji: '⚡', label: 'Fired Up', coachTip: 'Channel that energy into progressive overload and intense sets today!' },
   { id: 'strong', emoji: '💪', label: 'Strong', coachTip: 'Great mindset! Focus on strict form and hitting your target reps.' },
   { id: 'good', emoji: '😊', label: 'Balanced', coachTip: 'Consistency is king. A steady, focused workout will keep your momentum.' },
   { id: 'tired', emoji: '😴', label: 'Low Energy', coachTip: 'Take a longer dynamic warmup and stay hydrated. Showing up is 80% of the battle!' },
-  { id: 'rest', emoji: '🧘', label: 'Need Recovery', coachTip: 'Focus on active stretching, foam rolling, and nutrient-dense recovery meals.' },
+  { id: 'rest', emoji: '🧘', label: 'Recovery', coachTip: 'Focus on active stretching, foam rolling, and nutrient-dense recovery meals.' },
 ];
 
 const MOTIVATION_QUOTES = [
@@ -28,15 +29,13 @@ const MOTIVATION_QUOTES = [
 
 interface DailyCheckInCardProps {
   onCheckInCompleted?: (mood: MoodOption) => void;
-  streakCount?: number;
 }
 
-export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }: DailyCheckInCardProps) {
+export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCardProps) {
   const { showToast } = useToast();
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   const getTodayDateKey = () => {
     const d = new Date();
@@ -55,8 +54,6 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
         }
       } catch (e) {
         console.log('Error loading daily check-in:', e);
-      } finally {
-        setLoading(false);
       }
     };
 
@@ -102,129 +99,114 @@ export default function DailyCheckInCard({ onCheckInCompleted, streakCount = 0 }
   const selectedMood = MOODS.find((m) => m.id === selectedMoodId);
 
   return (
-    <View
-      className="bg-surface dark:bg-surface-dark rounded-[28px] p-6 mb-4 border border-input-border dark:border-input-border-dark"
-      style={Platform.select({
-        web: { boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)' } as any,
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 10,
-          elevation: 3,
-        },
-      })}
-    >
+    <SurfaceCard className="mb-3">
       {/* Header Row */}
-      <View className="flex-row justify-between items-center mb-4">
-        <View className="flex-row items-center">
-          <View className="w-10 h-10 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-3">
-            <Text className="text-xl">⚡</Text>
+      <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-row items-center flex-1 mr-2">
+          <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2.5">
+            <Text className="text-base">⚡</Text>
           </View>
-          <View>
-            <Text className="text-text-primary dark:text-text-primary-dark font-black text-base">
-              Daily Motivation Check-In
+          <View className="flex-1">
+            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
+              Daily Readiness
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-              {isCheckedIn ? 'Status recorded for today' : 'How are you feeling today?'}
+            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
+              {isCheckedIn && selectedMood ? `Logged: ${selectedMood.label}` : 'How are you feeling today?'}
             </Text>
           </View>
         </View>
 
         {isCheckedIn ? (
-          <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-3 py-1.5 rounded-full flex-row items-center border border-emerald-500/30">
-            <Text className="text-emerald-400 font-extrabold text-[11px] mr-1">✓</Text>
-            <Text className="text-emerald-400 font-bold text-[11px]">Checked In</Text>
-          </View>
+          <TouchableOpacity
+            onPress={() => setIsCheckedIn(false)}
+            activeOpacity={0.7}
+            className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2.5 py-1 rounded-full flex-row items-center border border-emerald-500/30"
+          >
+            <Text className="text-emerald-400 font-extrabold text-[10px] mr-1">✓</Text>
+            <Text className="text-emerald-400 font-bold text-[10px]">Checked In • Edit</Text>
+          </TouchableOpacity>
         ) : (
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-3 py-1.5 rounded-full flex-row items-center">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-[11px]">
-              🔥 Streak Active
+          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-full flex-row items-center">
+            <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+              🔥 Active Streak
             </Text>
           </View>
         )}
       </View>
 
-      {/* Mood Selector Buttons */}
-      <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold uppercase tracking-wider mb-2.5">
-        Energy & Readiness:
-      </Text>
-      <View className="flex-row justify-between gap-1.5 mb-4">
-        {MOODS.map((mood) => {
-          const isSelected = selectedMoodId === mood.id;
-          return (
-            <TouchableOpacity
-              key={mood.id}
-              activeOpacity={0.8}
-              onPress={() => handleSelectMood(mood)}
-              className={`flex-1 py-4 px-1.5 rounded-2xl items-center justify-center border min-h-[76px] ${
-                isSelected
-                  ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
-                  : 'bg-input dark:bg-input-dark border-input-border/70 dark:border-input-border-dark/70'
-              }`}
-            >
-              <Text className="text-2xl mb-1.5">{mood.emoji}</Text>
-              <Text
-                className={`text-[11px] font-extrabold text-center ${
-                  isSelected
-                    ? 'text-accent dark:text-accent-dark'
-                    : 'text-text-muted dark:text-text-muted-dark'
-                }`}
-                numberOfLines={1}
-              >
-                {mood.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
+      {/* Mood Selector Buttons (Shown when not checked in or when editing) */}
+      {!isCheckedIn ? (
+        <View className="mb-2.5">
+          <View className="flex-row justify-between gap-1.5 mb-2.5">
+            {MOODS.map((mood) => {
+              const isSelected = selectedMoodId === mood.id;
+              return (
+                <TouchableOpacity
+                  key={mood.id}
+                  activeOpacity={0.8}
+                  onPress={() => handleSelectMood(mood)}
+                  className={`flex-1 py-2.5 px-1 rounded-xl items-center justify-center border ${
+                    isSelected
+                      ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
+                      : 'bg-input/70 dark:bg-input-dark/70 border-input-border/60 dark:border-input-border-dark/60'
+                  }`}
+                >
+                  <Text className="text-xl mb-1">{mood.emoji}</Text>
+                  <Text
+                    className={`text-xs font-bold text-center leading-tight ${
+                      isSelected
+                        ? 'text-accent dark:text-accent-dark'
+                        : 'text-text-muted dark:text-text-muted-dark'
+                    }`}
+                  >
+                    {mood.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-      {/* Tailored Coach Advice if selected, or Guidance banner if not */}
-      {selectedMood ? (
-        <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-4 mb-4 border border-input-border/50 dark:border-input-border-dark/50 flex-row items-start">
-          <Text className="text-lg mr-2.5">💡</Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-center">
+            💡 Tap your current energy to customize today's workout intensity.
+          </Text>
+        </View>
+      ) : selectedMood ? (
+        /* Collapsed Compact State when already checked in */
+        <View className="bg-input/50 dark:bg-input-dark/50 rounded-xl p-3 mb-2.5 border border-input-border/40 dark:border-input-border-dark/40 flex-row items-start">
+          <Text className="text-xl mr-2.5">{selectedMood.emoji}</Text>
           <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-1">
-              Coach Tip for Today ({selectedMood.label}):
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-0.5">
+              Coach Recommendation ({selectedMood.label}):
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-5">
+            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] leading-4">
               {selectedMood.coachTip}
             </Text>
           </View>
         </View>
-      ) : (
-        <View className="bg-input/40 dark:bg-input-dark/40 rounded-2xl p-3.5 mb-4 border border-input-border/40 dark:border-input-border-dark/40 flex-row items-center">
-          <Text className="text-base mr-2.5">🎯</Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs flex-1 leading-4">
-            Select your energy level above to receive personalized AI workout and nutrition guidance for today.
-          </Text>
-        </View>
-      )}
+      ) : null}
 
-      {/* Dynamic Motivation Quote of the Day */}
-      <View className="bg-surface-variant/40 dark:bg-input-dark/30 rounded-2xl p-4 border border-input-border/40 dark:border-input-border-dark/40">
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-accent dark:text-accent-dark text-[10px] font-black uppercase tracking-wider">
-            Daily Spark ✨
+      {/* Streamlined Daily Motivation Spark */}
+      <View className="pt-2 border-t border-input-border/30 dark:border-input-border-dark/30 flex-row items-center justify-between">
+        <View className="flex-1 mr-2">
+          <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
+            “{currentQuote.quote}”
           </Text>
-          <TouchableOpacity
-            onPress={handleNextQuote}
-            activeOpacity={0.7}
-            className="flex-row items-center bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg"
-          >
-            <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold mr-1">
-              Shuffle
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">🔀</Text>
-          </TouchableOpacity>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5">
+            — {currentQuote.author}
+          </Text>
         </View>
-        <Text className="text-text-primary dark:text-text-primary-dark text-[13px] font-semibold italic leading-5 mb-1.5">
-          “{currentQuote.quote}”
-        </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-right font-medium">
-          — {currentQuote.author}
-        </Text>
+
+        <TouchableOpacity
+          onPress={handleNextQuote}
+          activeOpacity={0.7}
+          className="bg-input/60 dark:bg-input-dark/60 px-2 py-1 rounded-lg flex-row items-center"
+        >
+          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold mr-1">
+            Spark
+          </Text>
+          <Text className="text-[10px]">✨</Text>
+        </TouchableOpacity>
       </View>
-    </View>
+    </SurfaceCard>
   );
 }

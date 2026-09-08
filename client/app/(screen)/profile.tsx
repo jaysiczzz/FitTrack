@@ -7,11 +7,13 @@ import {
   TextInput,
   useColorScheme,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { getUserProfile, updateUserProfile } from '@/api/user';
+import { COLORS } from '@/constants/colors';
 
 interface UserData {
   id?: string;
@@ -27,7 +29,7 @@ interface UserData {
 export default function Profile() {
   const router = useRouter();
   const isDark = useColorScheme() === 'dark';
-  const placeholderColor = isDark ? '#8A93A6' : '#5C6478';
+  const placeholderColor = isDark ? COLORS.textMuted.dark : COLORS.textMuted.light;
 
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -155,9 +157,15 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
         {/* User Card Header */}
-        <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-3">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-input-border dark:border-input-border-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <View className="flex-row justify-between items-start">
             <View className="w-8" />
             <View className="flex-1 items-center">
@@ -220,7 +228,13 @@ export default function Profile() {
         ) : null}
 
         {/* Personal Information Edit Form */}
-        <View className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark mb-4">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-input-border dark:border-input-border-dark mb-4"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="text-text-primary dark:text-text-primary-dark font-bold mb-3">
             Personal Information
           </Text>
@@ -231,7 +245,7 @@ export default function Profile() {
                 FIRST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark"
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="First"
@@ -243,7 +257,7 @@ export default function Profile() {
                 LAST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark"
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Last"
@@ -258,7 +272,7 @@ export default function Profile() {
                 HEIGHT (CM)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark"
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="numeric"
@@ -271,7 +285,7 @@ export default function Profile() {
                 WEIGHT (KG)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark"
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
@@ -285,7 +299,7 @@ export default function Profile() {
             <View className="flex-1 mb-3 mr-2">
               <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">AGE</Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark"
                 value={age}
                 onChangeText={setAge}
                 keyboardType="numeric"
@@ -295,7 +309,7 @@ export default function Profile() {
             </View>
             <View className="flex-1 mb-3">
               <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1.5 font-semibold uppercase">BMI</Text>
-              <View className="bg-input dark:bg-input-dark p-3 rounded-[12px] border border-input-border dark:border-input-border-dark justify-center">
+              <View className="bg-input dark:bg-input-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark justify-center">
                 <Text className="text-text-primary dark:text-text-primary-dark text-xs font-bold" numberOfLines={1}>
                   {bmi ?? 'N/A'}
                 </Text>
@@ -356,7 +370,7 @@ export default function Profile() {
               onPress={handleSave}
             >
               {saving ? (
-                <ActivityIndicator color="#000000" size="small" />
+                <ActivityIndicator color={COLORS.textPrimary.light} size="small" />
               ) : (
                 <Text className="text-background dark:text-background-dark font-bold text-xs">Save Profile</Text>
               )}
@@ -368,7 +382,13 @@ export default function Profile() {
         <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-2">
           Calendar & Tracker
         </Text>
-        <View className="bg-surface dark:bg-surface-dark rounded-[14px] p-3 border border-input-border dark:border-input-border-dark mb-3">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-input-border dark:border-input-border-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="text-text-primary dark:text-text-primary-dark text-center font-bold mb-2">
             May 2026
           </Text>
@@ -389,7 +409,7 @@ export default function Profile() {
                         isToday
                           ? 'bg-accent dark:bg-accent-dark'
                           : isPartial
-                          ? 'bg-[#FFD166]'
+                          ? 'bg-amber-400 dark:bg-amber-500'
                           : 'bg-input dark:bg-input-dark'
                       }`}
                     >
@@ -415,7 +435,7 @@ export default function Profile() {
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">Done</Text>
             </View>
             <View className="flex-row items-center">
-              <View className="w-2.5 h-2.5 rounded-full mr-1.5 bg-[#FFD166]" />
+              <View className="w-2.5 h-2.5 rounded-full mr-1.5 bg-amber-400 dark:bg-amber-500" />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">Partial</Text>
             </View>
             <View className="flex-row items-center">
@@ -426,13 +446,19 @@ export default function Profile() {
         </View>
 
         {/* Schedule */}
-        <View className="bg-surface dark:bg-surface-dark rounded-xl p-3 border border-input-border dark:border-input-border-dark mb-3">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-input-border dark:border-input-border-dark mb-3"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
+        >
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-2">
             Today's Schedule
           </Text>
 
           <View className="flex-row items-center py-2">
-            <View className="w-10 h-10 rounded-[10px] bg-input dark:bg-input-dark items-center justify-center mr-2.5">
+            <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-2.5">
               <Text>🏃‍♂️</Text>
             </View>
             <View className="flex-1">
@@ -443,7 +469,7 @@ export default function Profile() {
           </View>
 
           <View className="flex-row items-center py-2">
-            <View className="w-10 h-10 rounded-[10px] bg-input dark:bg-input-dark items-center justify-center mr-2.5">
+            <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-2.5">
               <Text>💪</Text>
             </View>
             <View className="flex-1">
@@ -454,7 +480,7 @@ export default function Profile() {
           </View>
 
           <View className="flex-row items-center py-2">
-            <View className="w-10 h-10 rounded-[10px] bg-input dark:bg-input-dark items-center justify-center mr-2.5">
+            <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-2.5">
               <Text>🧘</Text>
             </View>
             <View className="flex-1">
@@ -471,7 +497,11 @@ export default function Profile() {
         <TouchableOpacity
           onPress={() => router.push('/(screen)/settings' as any)}
           activeOpacity={0.75}
-          className="bg-surface dark:bg-surface-dark rounded-[18px] p-4 border border-input-border dark:border-input-border-dark flex-row items-center justify-between mb-4"
+          className="bg-surface dark:bg-surface-dark rounded-2xl p-4 border border-input-border dark:border-input-border-dark flex-row items-center justify-between mb-4"
+          style={Platform.select({
+            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
+            default: { elevation: 1 },
+          })}
         >
           <View className="flex-row items-center">
             <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border/40">

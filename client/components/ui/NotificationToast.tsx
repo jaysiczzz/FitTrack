@@ -28,28 +28,28 @@ const TYPE_CONFIG: Record<
   { borderColor: string; bgBadge: string; defaultIcon: string; textColor: string }
 > = {
   success: {
-    borderColor: 'border-emerald-500/50 dark:border-emerald-400/50',
-    bgBadge: 'bg-emerald-500/15 dark:bg-emerald-500/25',
+    borderColor: 'border-accent/50 dark:border-accent-dark/50',
+    bgBadge: 'bg-accent/15 dark:bg-accent-dark/25',
     defaultIcon: '✓',
-    textColor: 'text-emerald-400',
+    textColor: 'text-accent dark:text-accent-dark',
   },
   info: {
-    borderColor: 'border-sky-500/50 dark:border-sky-400/50',
-    bgBadge: 'bg-sky-500/15 dark:bg-sky-500/25',
+    borderColor: 'border-info/50 dark:border-info-dark/50',
+    bgBadge: 'bg-info/15 dark:bg-info-dark/25',
     defaultIcon: '💡',
-    textColor: 'text-sky-400',
+    textColor: 'text-info dark:text-info-dark',
   },
   warning: {
-    borderColor: 'border-amber-500/50 dark:border-amber-400/50',
-    bgBadge: 'bg-amber-500/15 dark:bg-amber-500/25',
+    borderColor: 'border-warning/50 dark:border-warning-dark/50',
+    bgBadge: 'bg-warning/15 dark:bg-warning-dark/25',
     defaultIcon: '⚠️',
-    textColor: 'text-amber-400',
+    textColor: 'text-warning dark:text-warning-dark',
   },
   error: {
-    borderColor: 'border-rose-500/50 dark:border-rose-400/50',
-    bgBadge: 'bg-rose-500/15 dark:bg-rose-500/25',
+    borderColor: 'border-danger/50 dark:border-danger-dark/50',
+    bgBadge: 'bg-danger/15 dark:bg-danger-dark/25',
     defaultIcon: '✕',
-    textColor: 'text-rose-400',
+    textColor: 'text-danger dark:text-danger-dark',
   },
 };
 

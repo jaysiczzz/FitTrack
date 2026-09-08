@@ -1,7 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useToast } from '../../context/ToastContext';
+import ProgressBar from '@/components/ui/ProgressBar';
+import { COLORS } from '@/constants/colors';
+import SurfaceCard from '@/components/ui/SurfaceCard';
 
 export interface DailyGoalItem {
   id: string;
@@ -25,8 +27,6 @@ interface DailyGoalsCardProps {
   waterMl: number;
   targetWaterMl?: number;
   onQuickAddWater: (amountMl: number) => void;
-  customGoalDone: boolean;
-  onToggleCustomGoal: () => void;
 }
 
 export default function DailyGoalsCard({
@@ -40,11 +40,8 @@ export default function DailyGoalsCard({
   waterMl,
   targetWaterMl = 2000,
   onQuickAddWater,
-  customGoalDone,
-  onToggleCustomGoal,
 }: DailyGoalsCardProps) {
   const router = useRouter();
-  const { showSuccess } = useToast();
 
   // Determine completion of goals
   const isNutritionDone = caloriesLogged >= targetCalories * 0.75 || caloriesLogged > 1200;
@@ -54,15 +51,15 @@ export default function DailyGoalsCard({
   const goals: DailyGoalItem[] = [
     {
       id: 'checkin',
-      title: 'Daily Motivation Check-In',
-      subtitle: isCheckedIn ? 'Completed morning readiness check' : 'Select your mood & energy above',
+      title: 'Daily Readiness Check-In',
+      subtitle: isCheckedIn ? 'Completed morning readiness check' : 'Log your mood & energy above',
       icon: '⚡',
       isCompleted: isCheckedIn,
       progressText: isCheckedIn ? '1/1 Done' : 'Pending',
     },
     {
       id: 'nutrition',
-      title: 'Fuel & Nutrition Target',
+      title: 'Nutrition & Fuel Target',
       subtitle: `${caloriesLogged.toLocaleString()} / ${targetCalories.toLocaleString()} kcal`,
       icon: '🥗',
       isCompleted: isNutritionDone,
@@ -72,15 +69,15 @@ export default function DailyGoalsCard({
     },
     {
       id: 'workout',
-      title: 'Movement & Workout Session',
+      title: 'Daily Workout Session',
       subtitle: workoutSessionDone
-        ? 'Workout completed for today!'
+        ? 'Session completed for today!'
         : totalExercisesCount > 0
-        ? `${completedExercisesCount}/${totalExercisesCount} exercises completed`
-        : 'No workout exercises started yet',
+        ? `${completedExercisesCount}/${totalExercisesCount} exercises complete`
+        : 'No exercises started yet',
       icon: '🏋️‍♂️',
       isCompleted: isWorkoutDone,
-      progressText: workoutSessionDone ? 'Completed' : `${activeMinutes} min`,
+      progressText: workoutSessionDone ? 'Done' : `${activeMinutes} min`,
       actionLabel: 'Workouts',
       onAction: () => router.push('/(screen)/workouts' as any),
     },
@@ -102,36 +99,24 @@ export default function DailyGoalsCard({
   const allCompleted = completedCount === totalCount;
 
   return (
-    <View
-      className="bg-surface dark:bg-surface-dark rounded-[24px] p-5 mb-4 border border-input-border dark:border-input-border-dark"
-      style={Platform.select({
-        web: { boxShadow: '0 4px 20px rgba(0, 0, 0, 0.12)' } as any,
-        default: {
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: 0.12,
-          shadowRadius: 10,
-          elevation: 3,
-        },
-      })}
-    >
+    <SurfaceCard className="mb-3">
       {/* Header */}
-      <View className="flex-row justify-between items-center mb-3">
-        <View className="flex-row items-center">
-          <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2.5">
-            <Text className="text-base">🎯</Text>
+      <View className="flex-row justify-between items-center mb-2.5">
+        <View className="flex-row items-center flex-1 mr-2">
+          <View className="w-7 h-7 rounded-lg bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2">
+            <Text className="text-xs">🎯</Text>
           </View>
-          <View>
+          <View className="flex-1">
             <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
-              Today's Interactive Goals
+              Today's Goals
             </Text>
             <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-              {completedCount} of {totalCount} goals completed
+              {completedCount} of {totalCount} completed
             </Text>
           </View>
         </View>
 
-        <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-full">
+        <View className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-md">
           <Text className="text-accent dark:text-accent-dark font-black text-xs">
             {percentage}%
           </Text>
@@ -139,22 +124,22 @@ export default function DailyGoalsCard({
       </View>
 
       {/* Progress Bar */}
-      <View className="h-2 bg-input dark:bg-input-dark rounded-full overflow-hidden mb-4 border border-input-border/30">
-        <View
-          className="h-2 rounded-full bg-accent dark:bg-accent-dark"
-          style={{ width: `${percentage}%` }}
-        />
-      </View>
+      <ProgressBar
+        percentage={percentage}
+        color={COLORS.accent.dark}
+        height={8}
+        className="mb-3"
+      />
 
       {/* All Completed Celebration Banner */}
       {allCompleted ? (
-        <View className="bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/40 rounded-2xl p-3 mb-3 flex-row items-center">
-          <Text className="text-2xl mr-2.5">🏆</Text>
+        <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 rounded-xl p-2.5 mb-2.5 flex-row items-center">
+          <Text className="text-xl mr-2">🏆</Text>
           <View className="flex-1">
-            <Text className="text-emerald-400 font-extrabold text-xs">
-              All Daily Goals Crushed Today!
+            <Text className="text-accent dark:text-accent-dark font-extrabold text-xs">
+              All Goals Crushed Today!
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
+            <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">
               Phenomenal consistency! You’ve hit all your key targets today.
             </Text>
           </View>
@@ -162,21 +147,21 @@ export default function DailyGoalsCard({
       ) : null}
 
       {/* Goal Items List */}
-      <View className="gap-2">
+      <View className="gap-1.5">
         {goals.map((goal) => (
           <View
             key={goal.id}
-            className={`flex-row items-center p-3 rounded-2xl border ${
+            className={`flex-row items-center p-2.5 rounded-xl border ${
               goal.isCompleted
-                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/25'
-                : 'bg-input/60 dark:bg-input-dark/60 border-input-border/50 dark:border-input-border-dark/50'
+                ? 'bg-accent/5 dark:bg-accent-dark/10 border-accent/20'
+                : 'bg-input/60 dark:bg-input-dark/60 border-input-border/40 dark:border-input-border-dark/40'
             }`}
           >
             {/* Completion Indicator Icon */}
             <View
-              className={`w-7 h-7 rounded-xl items-center justify-center mr-3 ${
+              className={`w-6 h-6 rounded-lg items-center justify-center mr-2.5 ${
                 goal.isCompleted
-                  ? 'bg-emerald-500/20 text-emerald-400'
+                  ? 'bg-accent/20 dark:bg-accent-dark/20'
                   : 'bg-input dark:bg-input-dark'
               }`}
             >
@@ -188,16 +173,15 @@ export default function DailyGoalsCard({
             {/* Title & Subtitle */}
             <View className="flex-1 pr-2">
               <Text
-                className={`text-xs font-bold ${
+                className={`text-xs font-bold leading-tight ${
                   goal.isCompleted
-                    ? 'text-text-primary dark:text-text-primary-dark line-through opacity-70'
+                    ? 'text-text-primary dark:text-text-primary-dark line-through opacity-60'
                     : 'text-text-primary dark:text-text-primary-dark'
                 }`}
-                numberOfLines={1}
               >
                 {goal.title}
               </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-snug">
                 {goal.subtitle}
               </Text>
             </View>
@@ -207,9 +191,9 @@ export default function DailyGoalsCard({
               <TouchableOpacity
                 onPress={goal.onAction}
                 activeOpacity={0.7}
-                className={`px-2.5 py-1 rounded-xl border ${
+                className={`px-2 py-1 rounded-lg border ${
                   goal.isCompleted
-                    ? 'bg-input dark:bg-input-dark border-input-border'
+                    ? 'bg-input dark:bg-input-dark border-input-border/60'
                     : 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                 }`}
               >
@@ -224,10 +208,10 @@ export default function DailyGoalsCard({
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View className="bg-input dark:bg-input-dark px-2 py-0.5 rounded-lg">
+              <View className="bg-input dark:bg-input-dark px-2 py-0.5 rounded-md">
                 <Text
                   className={`text-[10px] font-bold ${
-                    goal.isCompleted ? 'text-emerald-400' : 'text-text-muted dark:text-text-muted-dark'
+                    goal.isCompleted ? 'text-accent dark:text-accent-dark' : 'text-text-muted dark:text-text-muted-dark'
                   }`}
                 >
                   {goal.progressText}
@@ -237,6 +221,6 @@ export default function DailyGoalsCard({
           </View>
         ))}
       </View>
-    </View>
+    </SurfaceCard>
   );
 }

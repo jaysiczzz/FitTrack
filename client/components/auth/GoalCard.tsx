@@ -18,26 +18,18 @@ const GoalCard: React.FC<Props> = ({ label, icon, selected, onPress }) => {
           ? 'bg-accent/10 dark:bg-accent-dark/15 border-accent dark:border-accent-dark'
           : 'bg-surface dark:bg-surface-dark border-input-border/70 dark:border-input-border-dark/70'
       }`}
-      style={
-        selected
-          ? Platform.select({
-              web: {
-                boxShadow: '0 4px 12px rgba(0, 229, 160, 0.2)',
-              } as any,
-              default: {
-                shadowColor: '#00E5A0',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.2,
-                shadowRadius: 8,
-                elevation: 4,
-              },
-            })
-          : undefined
-      }
+      style={Platform.select({
+        web: {
+          boxShadow: selected ? '0 4px 12px rgba(0, 229, 160, 0.2)' : '0 2px 8px rgba(0, 0, 0, 0.04)',
+        } as any,
+        default: {
+          elevation: selected ? 2 : 1,
+        },
+      })}
     >
       {selected ? (
         <View className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full bg-accent dark:bg-accent-dark items-center justify-center">
-          <Text className="text-black text-[10px] font-bold">✓</Text>
+          <Text className="text-white dark:text-background-dark text-[10px] font-bold">✓</Text>
         </View>
       ) : null}
       <Text className="text-2xl mb-2">{icon}</Text>

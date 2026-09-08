@@ -15,6 +15,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_ICONS } from './foodLogTypes';
 import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
+import { COLORS } from '@/constants/colors';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface AiScanModalProps {
   visible: boolean;
@@ -211,7 +213,7 @@ export default function AiScanModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-surface dark:bg-surface-dark rounded-t-[28px] max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
           {/* Modal Header */}
           <View className="flex-row justify-between items-center mb-3">
             <View>
@@ -222,12 +224,7 @@ export default function AiScanModal({
                 Scan photo or describe dish for Gemini AI nutritional breakdown
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={handleClose}
-              className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-            >
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold">✕</Text>
-            </TouchableOpacity>
+            <ModalCloseButton onClose={handleClose} />
           </View>
 
           {/* Mode Switcher Tabs */}
@@ -372,7 +369,7 @@ export default function AiScanModal({
                 <TextInput
                   className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
                   placeholder="e.g. extra olive oil dressing, 2 eggs"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={COLORS.textMuted.dark}
                   value={description}
                   onChangeText={setDescription}
                 />
@@ -384,9 +381,9 @@ export default function AiScanModal({
                   Describe what you ate or drank:
                 </Text>
                 <TextInput
-                  className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3.5 rounded-2xl border border-input-border dark:border-input-border-dark text-sm min-h-[90px]"
+                  className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm min-h-[90px]"
                   placeholder="e.g. 200g grilled salmon with 1 cup cooked brown rice and steamed broccoli"
-                  placeholderTextColor="#8E8E93"
+                  placeholderTextColor={COLORS.textMuted.dark}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -401,11 +398,11 @@ export default function AiScanModal({
                 onPress={handleAnalyze}
                 disabled={loading}
                 activeOpacity={0.8}
-                className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mt-1"
+                className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center flex-row shadow-sm mt-1"
               >
                 {loading ? (
                   <>
-                    <ActivityIndicator size="small" color="#0B0F1A" className="mr-2" />
+                    <ActivityIndicator size="small" color={COLORS.textPrimary.light} className="mr-2" />
                     <Text className="text-background dark:text-background-dark font-black text-sm">
                       Gemini AI Analyzing Meal...
                     </Text>
@@ -474,7 +471,7 @@ export default function AiScanModal({
                 <TouchableOpacity
                   onPress={handleConfirmAndAdd}
                   activeOpacity={0.8}
-                  className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1 shadow-sm"
+                  className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
                 >
                   <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
                     + Add to {MEAL_ICONS[selectedMeal]} {MEAL_LABELS[selectedMeal]}

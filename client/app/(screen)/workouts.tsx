@@ -6,8 +6,9 @@ import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
 import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
-import { LibraryExercise } from '@/components/workouts/mockData';
-import { ExerciseDetailsModal, getDifficultyPreset } from '@/components/workouts/ExerciseDetailsModal';
+import { LibraryExercise } from '@/components/workouts/workoutTypes';
+import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
+import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/context/ToastContext';
 import {
@@ -373,12 +374,12 @@ export default function Workouts() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 20, paddingTop: 16, paddingBottom: 85 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
         {/* Header */}
-        <Text className="mb-1 text-[28px] font-extrabold text-text-primary dark:text-text-primary-dark">
+        <Text className="mb-1 text-2xl font-black text-text-primary dark:text-text-primary-dark">
           Workouts 🏋️‍♂️
         </Text>
-        <Text className="mb-4 text-xs text-text-muted dark:text-text-muted-dark">
+        <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
           Track your exercise completion and performance
         </Text>
 
