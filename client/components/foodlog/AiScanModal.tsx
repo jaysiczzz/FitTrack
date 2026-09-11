@@ -12,7 +12,7 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_ICONS } from './foodLogTypes';
+import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, getBadgeStyles } from './foodLogTypes';
 import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
 import { COLORS } from '@/constants/colors';
@@ -98,7 +98,7 @@ export default function AiScanModal({
       if (Platform.OS === 'web') {
         handlePickFromGallery();
       } else {
-        Alert.alert('Camera Error', err.message || 'Could not launch camera on this device.');
+        Alert.alert('Camera Error', 'Could not open camera. Please check your camera permissions.');
       }
     }
   };
@@ -133,13 +133,13 @@ export default function AiScanModal({
       }
     } catch (err: any) {
       console.error('Gallery Error:', err);
-      Alert.alert('Gallery Error', err.message || 'Could not select photo from library.');
+      Alert.alert('Gallery Error', 'Could not open photo library. Please check your permissions.');
     }
   };
 
   const handleAnalyze = async () => {
     if (activeTab === 'text' && !description.trim()) {
-      showWarning('Empty Description', 'Please type what you ate to analyze it with Gemini AI.');
+      showWarning('Description Needed', 'Please describe what you ate so we can analyze its nutrition.');
       return;
     }
 
@@ -161,11 +161,11 @@ export default function AiScanModal({
       if (res.success && res.data) {
         setAnalysisResult(res.data);
       } else {
-        showWarning('AI Notice', 'Could not analyze meal. Please try again with a clearer image or description.');
+        showWarning('Analysis Notice', 'Could not analyze meal. Please try again with a clearer image or description.');
       }
     } catch (err: any) {
       console.error('Analysis Error:', err);
-      showError('AI Error', err.message || 'Failed to analyze meal with Gemini AI.');
+      showError('Analysis Failed', 'Unable to analyze your meal right now. Please try again with a clearer photo or description.');
     } finally {
       setLoading(false);
     }
@@ -174,34 +174,25 @@ export default function AiScanModal({
   const handleConfirmAndAdd = () => {
     if (!analysisResult) return;
 
-    let badge = 'Balanced';
-    let badgeColor: 'green' | 'blue' | 'yellow' | 'purple' = 'blue';
-
-    if (analysisResult.protein >= 25) {
-      badge = '🟢 High Protein';
-      badgeColor = 'green';
-    } else if (analysisResult.calories <= 300) {
-      badge = '🌱 Low Calorie';
-      badgeColor = 'green';
-    } else if (analysisResult.carbs >= 45) {
-      badge = '⚡ High Energy';
-      badgeColor = 'blue';
-    } else if (analysisResult.fat >= 20) {
-      badge = '🟡 Healthy Fats';
-      badgeColor = 'yellow';
-    }
-
-    const newItem: FoodLogItem = {
-      id: Date.now().toString(),
-      mealType: selectedMeal,
-      title: analysisResult.foodName,
-      subtitle: `${analysisResult.servingSize} (${analysisResult.calories} kcal)`,
+    const smartBadge = getSmartFoodBadge({
       calories: analysisResult.calories,
       protein: analysisResult.protein,
       carbs: analysisResult.carbs,
       fat: analysisResult.fat,
-      goalBadge: badge,
-      goalBadgeColor: badgeColor,
+      title: analysisResult.foodName,
+    });
+
+    const newItem: FoodLogItem = {
+      id: Date.now().toString(),
+      mealType: selectedMeal,
+      title: analysisResult.foodName || 'Scanned Meal',
+      subtitle: analysisResult.servingSize || '1 serving',
+      calories: Number(analysisResult.calories) || 0,
+      protein: Number(analysisResult.protein) || 0,
+      carbs: Number(analysisResult.carbs) || 0,
+      fat: Number(analysisResult.fat) || 0,
+      goalBadge: smartBadge.badge,
+      goalBadgeColor: smartBadge.color,
       healthNotes: analysisResult.healthNotes,
       imageUri: selectedImage || undefined,
     };
@@ -216,12 +207,14 @@ export default function AiScanModal({
         <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
           {/* Modal Header */}
           <View className="flex-row justify-between items-center mb-3">
-            <View>
+            <View className="flex-1 pr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
-                AI Meal Scanner ✨
+                {activeTab === 'photo' ? 'AI Photo Scanner 📸' : 'Describe Your Meal ✍️'}
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">
-                Scan photo or describe dish for Gemini AI nutritional breakdown
+                {activeTab === 'photo'
+                  ? 'Take or select a photo of your plate for instant nutritional breakdown'
+                  : 'Type what you ate in plain English for instant macro estimates'}
               </Text>
             </View>
             <ModalCloseButton onClose={handleClose} />
@@ -264,7 +257,7 @@ export default function AiScanModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                ✍️ Text Description
+                ✍️ Describe Meal
               </Text>
             </TouchableOpacity>
           </View>
@@ -333,7 +326,7 @@ export default function AiScanModal({
                   <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-6 mb-3 border-2 border-dashed border-accent/40 dark:border-accent-dark/40 items-center justify-center">
                     <Text className="text-4xl mb-2">📸</Text>
                     <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-1 text-center">
-                      Scan Meal with Gemini AI
+                      Scan Meal
                     </Text>
                     <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[250px] leading-4">
                       Take a clear top-down photo of your food or select one from your gallery for instant nutritional recognition.
@@ -404,81 +397,178 @@ export default function AiScanModal({
                   <>
                     <ActivityIndicator size="small" color={COLORS.textPrimary.light} className="mr-2" />
                     <Text className="text-background dark:text-background-dark font-black text-sm">
-                      Gemini AI Analyzing Meal...
+                      Analyzing Meal...
                     </Text>
                   </>
                 ) : (
                   <Text className="text-background dark:text-background-dark font-black text-sm">
-                    ✨ Analyze Meal with Gemini AI
+                    ✨ Analyze Meal
                   </Text>
                 )}
               </TouchableOpacity>
             )}
 
             {/* AI Result Card */}
-            {analysisResult && (
-              <View className="mt-3 p-4 bg-input dark:bg-input-dark rounded-2xl border border-accent/50 dark:border-accent-dark/50 shadow-xs">
-                <View className="flex-row justify-between items-start mb-2">
-                  <View className="flex-1 pr-2">
-                    <Text className="text-text-primary dark:text-text-primary-dark font-black text-base">
-                      {analysisResult.foodName}
-                    </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-xs">
-                      Estimated Portion: {analysisResult.servingSize}
-                    </Text>
+            {analysisResult && (() => {
+              const smartBadge = getSmartFoodBadge({
+                calories: analysisResult.calories,
+                protein: analysisResult.protein,
+                carbs: analysisResult.carbs,
+                fat: analysisResult.fat,
+                title: analysisResult.foodName,
+              });
+              const badgeStyles = getBadgeStyles(smartBadge.color);
+
+              return (
+                <View className="mt-3 p-4 bg-input dark:bg-input-dark rounded-2xl border border-accent/50 dark:border-accent-dark/50 shadow-xs">
+                  <View className="flex-row justify-between items-center mb-3">
+                    <View className="flex-row items-center">
+                      <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
+                        AI Detection
+                      </Text>
+                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark ml-1.5">
+                        (Tap to edit)
+                      </Text>
+                    </View>
+                    <View className={`px-2.5 py-0.5 rounded-full border ${badgeStyles.container}`}>
+                      <Text className={`text-[10px] font-bold ${badgeStyles.text}`}>
+                        {smartBadge.badge}
+                      </Text>
+                    </View>
                   </View>
-                  <View className="bg-accent/15 dark:bg-accent-dark/20 px-3 py-1 rounded-xl items-end">
-                    <Text className="text-accent dark:text-accent-dark font-black text-base">
-                      {analysisResult.calories}
+
+                  {/* Food Name Input */}
+                  <View className="mb-2.5">
+                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
+                      Food / Dish Name
                     </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">kcal</Text>
+                    <TextInput
+                      value={analysisResult.foodName}
+                      onChangeText={(val) =>
+                        setAnalysisResult((prev) => (prev ? { ...prev, foodName: val } : null))
+                      }
+                      placeholder="e.g. Grilled Chicken Breast"
+                      placeholderTextColor={COLORS.textMuted.light}
+                      className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-text-primary dark:text-text-primary-dark font-bold text-sm border border-input-border dark:border-input-border-dark"
+                    />
                   </View>
+
+                  {/* Portion & Calories Inputs */}
+                  <View className="flex-row gap-2 mb-2.5">
+                    <View className="flex-1">
+                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
+                        Portion / Serving
+                      </Text>
+                      <TextInput
+                        value={analysisResult.servingSize}
+                        onChangeText={(val) =>
+                          setAnalysisResult((prev) => (prev ? { ...prev, servingSize: val } : null))
+                        }
+                        placeholder="e.g. 1 bowl, 200g"
+                        placeholderTextColor={COLORS.textMuted.light}
+                        className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-text-primary dark:text-text-primary-dark font-medium text-xs border border-input-border dark:border-input-border-dark"
+                      />
+                    </View>
+                    <View className="w-28">
+                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
+                        Calories (kcal)
+                      </Text>
+                      <TextInput
+                        value={String(analysisResult.calories ?? '')}
+                        onChangeText={(val) =>
+                          setAnalysisResult((prev) =>
+                            prev ? { ...prev, calories: Number(val.replace(/[^0-9]/g, '')) || 0 } : null
+                          )
+                        }
+                        keyboardType="numeric"
+                        placeholder="0"
+                        placeholderTextColor={COLORS.textMuted.light}
+                        className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-accent dark:text-accent-dark font-black text-sm text-right border border-input-border dark:border-input-border-dark"
+                      />
+                    </View>
+                  </View>
+
+                  {/* Macro Breakdown Inputs */}
+                  <View className="flex-row justify-between gap-2 mb-3">
+                    <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                      <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold">Protein</Text>
+                      <View className="flex-row items-baseline justify-center mt-0.5">
+                        <TextInput
+                          value={String(analysisResult.protein ?? '')}
+                          onChangeText={(val) =>
+                            setAnalysisResult((prev) =>
+                              prev ? { ...prev, protein: Number(val.replace(/[^0-9.]/g, '')) || 0 } : null
+                            )
+                          }
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={COLORS.textMuted.light}
+                          className="text-emerald-500 dark:text-emerald-400 font-extrabold text-sm text-center p-0"
+                        />
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
+                      </View>
+                    </View>
+                    <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                      <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold">Carbs</Text>
+                      <View className="flex-row items-baseline justify-center mt-0.5">
+                        <TextInput
+                          value={String(analysisResult.carbs ?? '')}
+                          onChangeText={(val) =>
+                            setAnalysisResult((prev) =>
+                              prev ? { ...prev, carbs: Number(val.replace(/[^0-9.]/g, '')) || 0 } : null
+                            )
+                          }
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={COLORS.textMuted.light}
+                          className="text-sky-500 dark:text-sky-400 font-extrabold text-sm text-center p-0"
+                        />
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
+                      </View>
+                    </View>
+                    <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                      <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold">Fat</Text>
+                      <View className="flex-row items-baseline justify-center mt-0.5">
+                        <TextInput
+                          value={String(analysisResult.fat ?? '')}
+                          onChangeText={(val) =>
+                            setAnalysisResult((prev) =>
+                              prev ? { ...prev, fat: Number(val.replace(/[^0-9.]/g, '')) || 0 } : null
+                            )
+                          }
+                          keyboardType="numeric"
+                          placeholder="0"
+                          placeholderTextColor={COLORS.textMuted.light}
+                          className="text-purple-500 dark:text-purple-400 font-extrabold text-sm text-center p-0"
+                        />
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* AI Health Tip */}
+                  {analysisResult.healthNotes ? (
+                    <View className="bg-surface/80 dark:bg-surface-dark/80 p-2.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 mb-3 flex-row items-center">
+                      <Text className="mr-1.5 text-xs">💡</Text>
+                      <Text className="text-text-muted dark:text-text-muted-dark text-xs flex-1 leading-4">
+                        {analysisResult.healthNotes}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* Confirm Action Button */}
+                  <TouchableOpacity
+                    onPress={handleConfirmAndAdd}
+                    activeOpacity={0.8}
+                    className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
+                  >
+                    <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
+                      + Add to {MEAL_ICONS[selectedMeal]} {MEAL_LABELS[selectedMeal]}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-
-                {/* Macro Breakdown Pills */}
-                <View className="flex-row justify-between gap-1.5 my-2.5">
-                  <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl items-center border border-input-border dark:border-input-border-dark">
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">Protein</Text>
-                    <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-xs mt-0.5">
-                      {analysisResult.protein}g
-                    </Text>
-                  </View>
-                  <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl items-center border border-input-border dark:border-input-border-dark">
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">Carbs</Text>
-                    <Text className="text-sky-500 dark:text-sky-400 font-extrabold text-xs mt-0.5">
-                      {analysisResult.carbs}g
-                    </Text>
-                  </View>
-                  <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl items-center border border-input-border dark:border-input-border-dark">
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">Fat</Text>
-                    <Text className="text-purple-500 dark:text-purple-400 font-extrabold text-xs mt-0.5">
-                      {analysisResult.fat}g
-                    </Text>
-                  </View>
-                </View>
-
-                {/* AI Health Tip */}
-                {analysisResult.healthNotes ? (
-                  <View className="bg-surface/80 dark:bg-surface-dark/80 p-2.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 mb-3 flex-row items-center">
-                    <Text className="mr-1.5 text-xs">💡</Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-xs flex-1 leading-4">
-                      {analysisResult.healthNotes}
-                    </Text>
-                  </View>
-                ) : null}
-
-                {/* Confirm Action Button */}
-                <TouchableOpacity
-                  onPress={handleConfirmAndAdd}
-                  activeOpacity={0.8}
-                  className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
-                >
-                  <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
-                    + Add to {MEAL_ICONS[selectedMeal]} {MEAL_LABELS[selectedMeal]}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
+              );
+            })()}
           </ScrollView>
         </View>
       </View>

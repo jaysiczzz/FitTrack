@@ -10,9 +10,9 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useRouter } from 'expo-router';
 import { getUserProfile, updateUserProfile } from '@/api/user';
+import { useAuth } from '@/context/AuthContext';
 import { COLORS } from '@/constants/colors';
 
 interface UserData {
@@ -28,6 +28,7 @@ interface UserData {
 
 export default function Profile() {
   const router = useRouter();
+  const { user: authUser, updateUser } = useAuth();
   const isDark = useColorScheme() === 'dark';
   const placeholderColor = isDark ? COLORS.textMuted.dark : COLORS.textMuted.light;
 
@@ -63,18 +64,16 @@ export default function Profile() {
 
   useEffect(() => {
     let isMounted = true;
+    if (authUser) {
+      applyUserData(authUser);
+    }
     const fetchProfile = async () => {
       try {
         setLoading(true);
-        const cachedUser = await AsyncStorage.getItem('user');
-        if (cachedUser && isMounted) {
-          applyUserData(JSON.parse(cachedUser));
-        }
-
         const res = await getUserProfile();
         if (res.user && isMounted) {
           applyUserData(res.user);
-          await AsyncStorage.setItem('user', JSON.stringify(res.user));
+          await updateUser(res.user);
         }
       } catch (err) {
         console.log('Error fetching user profile:', err);
@@ -87,7 +86,7 @@ export default function Profile() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [authUser?.id]);
 
   const bmi = useMemo(() => {
     const h = parseFloat(height) / 100;
@@ -145,7 +144,7 @@ export default function Profile() {
 
       if (res.user) {
         applyUserData(res.user);
-        await AsyncStorage.setItem('user', JSON.stringify(res.user));
+        await updateUser(res.user);
         setMessage({ type: 'success', text: 'Profile updated successfully!' });
       }
     } catch (err: any) {

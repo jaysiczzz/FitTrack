@@ -97,17 +97,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [router]);
 
   const login = useCallback(async (newToken: string, newUser: AuthUser) => {
+    // If logging into a different account, wipe any previous account caches
+    if (user?.id && user.id !== newUser.id) {
+      await authStorage.clearAuth();
+    }
     await authStorage.setToken(newToken);
     await authStorage.setUser(newUser);
     setToken(newToken);
     setUser(newUser);
+    DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     router.replace('/(screen)/dashboard');
-  }, [router]);
+  }, [router, user?.id]);
 
   const logout = useCallback(async () => {
     await authStorage.clearAuth();
     setToken(null);
     setUser(null);
+    DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     router.replace('/(auth)');
   }, [router]);
 
