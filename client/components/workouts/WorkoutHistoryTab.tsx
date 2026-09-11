@@ -3,11 +3,15 @@ import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompletedSession } from './workoutTypes';
 import { getWorkoutHistory } from '@/api/workout';
+import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
 import { COLORS } from '@/constants/colors';
 
-const WORKOUT_HISTORY_CACHE_KEY = 'fittrack_workout_history_cache';
-
 const WorkoutHistoryTab: React.FC = () => {
+  const { user } = useAuth();
+  const userId = user?.id;
+  const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
+
   const [history, setHistory] = useState<CompletedSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -17,7 +21,7 @@ const WorkoutHistoryTab: React.FC = () => {
     const fetchHistory = async () => {
       try {
         // Read local offline history cache first
-        const cached = await AsyncStorage.getItem(WORKOUT_HISTORY_CACHE_KEY);
+        const cached = await AsyncStorage.getItem(historyKey);
         if (cached && isMounted) {
           try {
             const parsed = JSON.parse(cached);
@@ -43,7 +47,7 @@ const WorkoutHistoryTab: React.FC = () => {
             })),
           }));
           setHistory(formatted);
-          await AsyncStorage.setItem(WORKOUT_HISTORY_CACHE_KEY, JSON.stringify(formatted));
+          await AsyncStorage.setItem(historyKey, JSON.stringify(formatted));
         }
       } catch (err) {
         console.log('[Workout History] Offline mode - using local history cache');
@@ -55,7 +59,7 @@ const WorkoutHistoryTab: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [historyKey]);
 
   const toggleExpand = (id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));

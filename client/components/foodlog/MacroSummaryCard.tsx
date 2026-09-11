@@ -60,12 +60,24 @@ export default function MacroSummaryCard({
       {/* Main Calories Overview Row */}
       <View className="flex-row gap-3 bg-input/50 dark:bg-input-dark/50 rounded-xl p-3 mb-3 border border-input-border/40 dark:border-input-border-dark/40">
         {/* Circular Percentage Dial */}
-        <View className="w-[100px] h-[100px] rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-3.5 border-2 border-accent/40 dark:border-accent-dark/40">
-          <Text className="text-accent dark:text-accent-dark text-center font-black text-lg leading-5">
+        <View className={`w-[100px] h-[100px] rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-3.5 border-2 ${
+          isOverLimit
+            ? 'border-rose-500/50'
+            : calPercent >= 100
+            ? 'border-emerald-500/50'
+            : 'border-accent/40 dark:border-accent-dark/40'
+        }`}>
+          <Text className={`text-center font-black text-lg leading-5 ${
+            isOverLimit
+              ? 'text-rose-500'
+              : calPercent >= 100
+              ? 'text-emerald-500'
+              : 'text-accent dark:text-accent-dark'
+          }`}>
             {calPercent}%
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider mt-0.5">
-            {isOverLimit ? 'Over' : 'Fuel Met'}
+            {isOverLimit ? 'Over Limit' : calPercent >= 100 ? 'Goal Met' : 'Of Target'}
           </Text>
         </View>
 

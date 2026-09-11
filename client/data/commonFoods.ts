@@ -16,6 +16,7 @@ export interface FoodCatalogItem {
   brand?: string;
   isCustom?: boolean;
   isOnlineResult?: boolean;
+  isVerified?: boolean;
   imageUri?: string;
   keywords: string[];
 }

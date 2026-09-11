@@ -6,6 +6,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
 
 export interface NavItem {
   key: string;
@@ -28,6 +30,8 @@ export default function FloatingNavBar() {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { showSuccess } = useToast();
   const [showScanModal, setShowScanModal] = useState(false);
 
@@ -41,10 +45,12 @@ export default function FloatingNavBar() {
 
   const handleAddMealFromScan = async (item: FoodLogItem) => {
     try {
-      const saved = await AsyncStorage.getItem('food_log_today');
+      const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
+      const saved = await AsyncStorage.getItem(foodKey);
       let arr: FoodLogItem[] = saved ? JSON.parse(saved) : [];
       arr.push(item);
-      await AsyncStorage.setItem('food_log_today', JSON.stringify(arr));
+      await AsyncStorage.setItem(foodKey, JSON.stringify(arr));
+      await AsyncStorage.removeItem('food_log_today').catch(() => {});
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED', item);
       showSuccess(`Added ${item.title}`, `${item.calories} kcal logged to ${item.mealType}`);
     } catch (e) {
@@ -130,22 +136,47 @@ export default function FloatingNavBar() {
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={() => setShowScanModal(true)}
-                className="items-center justify-center -mt-6"
+                className="items-center justify-center -mt-5"
                 hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
               >
                 {/* Elevated Prominent Circular Scanner Icon */}
                 <View
-                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-[3.5px] border-surface dark:border-surface-dark"
-                  style={Platform.select({
-                    web: {
-                      boxShadow: '0 4px 14px rgba(0, 229, 160, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15)',
-                    } as any,
-                    default: {
-                      elevation: 6,
+                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
+                  style={[
+                    {
+                      justifyContent: 'center',
+                      alignItems: 'center',
                     },
-                  })}
+                    Platform.select({
+                      web: {
+                        boxShadow: '0 4px 14px rgba(0, 229, 160, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15)',
+                      } as any,
+                      default: {
+                        elevation: 6,
+                      },
+                    }),
+                  ]}
                 >
-                  <Text className="text-[24px]">📸</Text>
+                  <Text
+                    style={{
+                      fontSize: 25,
+                      lineHeight: Platform.select({ ios: 30, android: 30, default: 28 }),
+                      textAlign: 'center',
+                      textAlignVertical: 'center',
+                      includeFontPadding: false,
+                      transform: [
+                        {
+                          translateY: Platform.select({
+                            web: -3,
+                            android: -0.5,
+                            default: 1,
+                          }),
+                        },
+                      ],
+                    }}
+                  >
+                    📸
+                  </Text>
                 </View>
 
                 {/* Text Label Below Icon */}

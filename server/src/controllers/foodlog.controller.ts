@@ -35,7 +35,7 @@ export async function saveDayLogController(
 
     return res.status(200).json({
       success: true,
-      message: 'Daily nutrition log saved to database successfully',
+      message: 'Daily nutrition log saved successfully',
       data: savedLog,
     })
   } catch (err) {
