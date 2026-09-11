@@ -83,7 +83,7 @@ const Input = React.forwardRef<TextInput, Props>(
             </TouchableOpacity>
           ) : unit ? (
             <View
-              pointerEvents="none"
+              style={{ pointerEvents: 'none' } as any}
               className="absolute right-2.5 bg-surface/80 dark:bg-surface-dark/80 px-2 py-0.5 rounded-md border border-input-border/50 dark:border-input-border-dark/50"
             >
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase">{unit}</Text>

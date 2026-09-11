@@ -63,7 +63,7 @@ export default function WaterTrackerCard({
               : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
           }`}
         >
-          <Text className="text-surface font-bold text-[11px]">-250 ml</Text>
+          <Text className="text-primary font-bold text-[11px]">-250 ml</Text>
         </TouchableOpacity>
 
         <TouchableOpacity

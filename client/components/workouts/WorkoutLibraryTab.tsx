@@ -14,7 +14,7 @@ interface WorkoutLibraryTabProps {
 
 const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body'];
 const DIFFICULTY_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
-const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache';
+const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache_v3';
 
 const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) => {
   const [exercises, setExercises] = useState<LibraryExercise[]>(COMMON_EXERCISES_CATALOG);

@@ -57,8 +57,7 @@ export default function FloatingNavBar() {
   return (
     <>
       <View
-        pointerEvents="box-none"
-        style={styles.navBarContainer}
+        style={[styles.navBarContainer, { pointerEvents: 'box-none' } as any]}
       >
         <View
           style={[

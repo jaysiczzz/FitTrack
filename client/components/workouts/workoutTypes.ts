@@ -35,6 +35,8 @@ export interface LibraryExercise {
   equipmentFreeAlternative?: string | null;
   similarExercises?: string[] | any;
   tags?: string[] | any;
+  difficultyPresets?: Record<string, any> | null;
+  isSystem?: boolean;
 }
 
 export interface CompletedSession {

@@ -334,7 +334,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             )}
 
             {/* Safety & Variations */}
-            {(exercise.safetyInstructions || exercise.beginnerModification || exercise.advancedVariation) && (
+            {(exercise.safetyInstructions || exercise.injuryPreventionTips || exercise.beginnerModification || exercise.advancedVariation) && (
               <View className="mb-4 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
                 <Text className="text-xs font-bold text-warning dark:text-warning-dark uppercase tracking-wider mb-2">
                   Safety & Variations
@@ -344,6 +344,13 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-4">
                     <Text className="font-bold text-text-primary dark:text-text-primary-dark">Safety: </Text>
                     {exercise.safetyInstructions}
+                  </Text>
+                ) : null}
+
+                {exercise.injuryPreventionTips ? (
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-4">
+                    <Text className="font-bold text-warning dark:text-warning-dark">Injury Prevention: </Text>
+                    {exercise.injuryPreventionTips}
                   </Text>
                 ) : null}
 
