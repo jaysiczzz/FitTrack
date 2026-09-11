@@ -5,6 +5,8 @@ import {
   getDayLogController,
   deleteDayLogController,
   searchFoodsOnlineController,
+  createCustomFoodController,
+  deleteCustomFoodController,
 } from '../controllers/foodlog.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 
@@ -12,6 +14,8 @@ const router = Router()
 
 // All food log routes require user authentication
 router.get('/search', authMiddleware, searchFoodsOnlineController)
+router.post('/custom', authMiddleware, createCustomFoodController)
+router.delete('/custom/:id', authMiddleware, deleteCustomFoodController)
 router.post('/save-day', authMiddleware, saveDayLogController)
 router.get('/history', authMiddleware, getHistoryController)
 router.get('/:date', authMiddleware, getDayLogController)

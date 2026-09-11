@@ -145,6 +145,10 @@ export default function MealCategoryCard({
                       className="w-11 h-11 rounded-xl mr-3 bg-black/10"
                       resizeMode="cover"
                     />
+                  ) : item.icon ? (
+                    <View className="w-11 h-11 rounded-xl mr-3 bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 items-center justify-center">
+                      <Text className="text-xl">{item.icon}</Text>
+                    </View>
                   ) : null}
 
                   <View className="flex-1">

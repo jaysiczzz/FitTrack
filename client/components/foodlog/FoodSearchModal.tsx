@@ -30,7 +30,6 @@ import {
 import { COLORS } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import FilterChip from '../ui/FilterChip';
-import { BEGINNER_STAPLES } from './staplesData';
 
 interface FoodSearchModalProps {
   visible: boolean;
@@ -41,22 +40,6 @@ interface FoodSearchModalProps {
 }
 
 export type FilterCategory = 'ALL' | 'RECENT' | 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' | 'Staples';
-
-const STAPLES_CATALOG_ITEMS: FoodCatalogItem[] = BEGINNER_STAPLES.map((s) => ({
-  id: `staple-${s.id}`,
-  name: s.title,
-  category: 'Staples',
-  servingSize: s.subtitle,
-  servingWeightG: 0,
-  servingUnit: 'serving',
-  calories: s.calories,
-  protein: s.protein,
-  carbs: s.carbs,
-  fat: s.fat,
-  icon: s.icon,
-  brand: s.badge,
-  keywords: ['staple', s.title.toLowerCase(), s.recommendedFor.toLowerCase(), s.badge.toLowerCase()],
-}));
 
 export default function FoodSearchModal({
   visible,
@@ -139,7 +122,7 @@ export default function FoodSearchModal({
       );
     }
 
-    const allCatalog = [...COMMON_FOODS_CATALOG, ...STAPLES_CATALOG_ITEMS];
+    const allCatalog = COMMON_FOODS_CATALOG;
 
     // Local items filtering
     let localMatches = allCatalog.filter((item) => {
@@ -197,17 +180,22 @@ export default function FoodSearchModal({
         ? `${numAmount}g`
         : `${numAmount} ${selectedItem.servingUnit || 'serving'}`;
 
+    const displaySubtitle = selectedItem.ingredients
+      ? `${portionDesc} · ${selectedItem.ingredients}`
+      : `${portionDesc} · ${currentMacros.calories} kcal`;
+
     const newLogItem: FoodLogItem = {
       id: Date.now().toString(),
       mealType: selectedMeal,
       title: selectedItem.name,
-      subtitle: `${portionDesc} · ${currentMacros.calories} kcal`,
+      subtitle: displaySubtitle,
       calories: currentMacros.calories,
       protein: currentMacros.protein,
       carbs: currentMacros.carbs,
       fat: currentMacros.fat,
       goalBadge: selectedItem.brand || selectedItem.category,
       goalBadgeColor: selectedItem.category === 'Protein' ? 'green' : 'blue',
+      icon: selectedItem.icon,
       imageUri: selectedItem.imageUri,
     };
 
@@ -344,8 +332,18 @@ export default function FoodSearchModal({
                     </Text>
                   </View>
                   <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-                    Base: {selectedItem.servingSize} ({selectedItem.calories} kcal)
+                    Base: {selectedItem.servingSize} ({selectedItem.calories} kcal){selectedItem.fiber ? ` · ${selectedItem.fiber}g fiber` : ''}
                   </Text>
+                  {Boolean(selectedItem.ingredients) && (
+                    <Text className="text-accent dark:text-accent-dark text-[11px] font-medium mt-1 leading-tight" numberOfLines={2}>
+                      🥗 {selectedItem.ingredients}
+                    </Text>
+                  )}
+                  {Boolean(selectedItem.description && !selectedItem.ingredients) && (
+                    <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-1 leading-tight" numberOfLines={2}>
+                      ℹ️ {selectedItem.description}
+                    </Text>
+                  )}
                 </View>
 
                 <TouchableOpacity
@@ -497,9 +495,9 @@ export default function FoodSearchModal({
                 </Text>
               </View>
             ) : (
-              displayedItems.map((item) => (
+              displayedItems.map((item, idx) => (
                 <TouchableOpacity
-                  key={item.id}
+                  key={`${item.id}-${idx}`}
                   onPress={() => handleSelectItem(item)}
                   activeOpacity={0.8}
                   className={`bg-input/60 dark:bg-input-dark/60 rounded-2xl p-3 mb-2 border flex-row justify-between items-center ${
@@ -541,6 +539,16 @@ export default function FoodSearchModal({
                           </View>
                         ) : null}
                       </View>
+
+                      {item.ingredients ? (
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5" numberOfLines={1}>
+                          🥗 {item.ingredients}
+                        </Text>
+                      ) : item.description ? (
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5" numberOfLines={1}>
+                          ℹ️ {item.description}
+                        </Text>
+                      ) : null}
 
                       <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5 mb-1">
                         Per {item.servingSize}

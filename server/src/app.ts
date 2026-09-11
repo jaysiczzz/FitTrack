@@ -27,15 +27,7 @@ app.use('/api/ai', aiRoutes)
 
 app.use(errorHandler)
 
-import { seedExercisesIfEmpty } from './models/workout.model'
-
 const PORT = process.env.PORT || 3000
-app.listen(PORT, async () => {
+app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
-  try {
-    await seedExercisesIfEmpty()
-    console.log('Exercise catalog verified & seeded')
-  } catch (err) {
-    console.error('Failed to seed catalog on startup:', err)
-  }
 })

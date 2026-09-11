@@ -15,10 +15,16 @@ import {
   updateSetController,
   addSetController,
   deleteSetController,
+  createCustomExerciseController,
+  deleteCustomExerciseController,
 } from '../controllers/workout.controller'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 
 const router = Router()
+
+// Custom User-Created Exercises
+router.post('/custom', authMiddleware, createCustomExerciseController)
+router.delete('/custom/:id', authMiddleware, deleteCustomExerciseController)
 
 // System-Managed Exercise Library Read Routes (All Authenticated Users)
 router.get('/library', authMiddleware, getLibrary)

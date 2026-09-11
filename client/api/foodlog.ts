@@ -13,8 +13,12 @@ export interface ApiFoodMeal {
   carbs: number;
   fat: number;
   goalBadge?: string | null;
+  goalBadgeColor?: 'green' | 'blue' | 'yellow' | 'purple' | null;
+  icon?: string | null;
   healthNotes?: string | null;
   imageUri?: string | null;
+  loggedAt?: string | null;
+  macros?: string[];
   createdAt: string;
 }
 
@@ -123,3 +127,23 @@ export const saveFoodToRecentHistory = async (food: any): Promise<void> => {
     console.log('Error caching recent food:', err);
   }
 };
+
+export const createCustomFoodApi = (data: {
+  name: string;
+  brand?: string;
+  category?: string;
+  servingSize?: string;
+  servingWeightG?: number;
+  servingUnit?: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  description?: string;
+  ingredients?: string;
+  icon?: string;
+}) => apiRequest('/api/food-logs/custom', { method: 'POST', body: data });
+
+export const deleteCustomFoodApi = (foodId: string) =>
+  apiRequest(`/api/food-logs/custom/${foodId}`, { method: 'DELETE' });
