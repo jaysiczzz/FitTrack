@@ -14,11 +14,16 @@ import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
+import { getDailyFoodLogApi } from '@/api/foodlog';
+import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
 import { COLORS } from '@/constants/colors';
 
 export default function Dashboard() {
   const router = useRouter();
+  const { user } = useAuth();
+  const userId = user?.id;
   const { showSuccess, showToast } = useToast();
 
   const [userName, setUserName] = useState('Athlete');
@@ -77,11 +82,16 @@ export default function Dashboard() {
 
   const loadUserData = async () => {
     try {
-      const uStr = await AsyncStorage.getItem('user');
-      if (uStr) {
-        const user = JSON.parse(uStr);
+      if (user) {
         if (user.firstName) setUserName(user.firstName);
         if (user.goal) setUserGoal(user.goal);
+      } else {
+        const uStr = await AsyncStorage.getItem('user');
+        if (uStr) {
+          const parsed = JSON.parse(uStr);
+          if (parsed.firstName) setUserName(parsed.firstName);
+          if (parsed.goal) setUserGoal(parsed.goal);
+        }
       }
     } catch (err) {
       console.log('Error loading user data:', err);
@@ -96,7 +106,8 @@ export default function Dashboard() {
   const loadDailyCheckIn = async () => {
     try {
       const todayKey = getTodayDateKey();
-      const checkin = await AsyncStorage.getItem(`daily_checkin_${todayKey}`);
+      const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
+      const checkin = await AsyncStorage.getItem(checkinKey);
       setIsCheckedIn(!!checkin);
     } catch (e) {
       console.log('Error checking daily checkin:', e);
@@ -105,37 +116,75 @@ export default function Dashboard() {
 
   const loadFoodProgress = async () => {
     try {
-      const savedLog = await AsyncStorage.getItem('food_log_today');
+      const todayKey = getTodayDateKey();
+      const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
+      const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+
+      let items: FoodLogItem[] = [];
+      const savedLog = await AsyncStorage.getItem(foodKey);
       if (savedLog) {
-        const items: FoodLogItem[] = JSON.parse(savedLog);
-        let totalCals = 0;
-        let totalProt = 0;
-        let totalCarbs = 0;
-        let totalFat = 0;
-
-        items.forEach((item) => {
-          totalCals += item.calories || 0;
-          totalProt += item.protein || 0;
-          totalCarbs += item.carbs || 0;
-          totalFat += item.fat || 0;
-        });
-
-        setCaloriesLogged(totalCals);
-        setProteinLogged(totalProt);
-        setCarbsLogged(totalCarbs);
-        setFatLogged(totalFat);
-      } else {
-        setCaloriesLogged(0);
-        setProteinLogged(0);
-        setCarbsLogged(0);
-        setFatLogged(0);
+        try {
+          const parsed = JSON.parse(savedLog);
+          if (Array.isArray(parsed)) items = parsed;
+        } catch {}
       }
 
+      // Sync authenticated user's actual database food log
+      if (userId) {
+        try {
+          const cloudRes = await getDailyFoodLogApi(todayKey);
+          if (cloudRes?.data) {
+            if (Array.isArray(cloudRes.data.meals)) {
+              items = cloudRes.data.meals.map((m: any) => ({
+                id: m.id,
+                mealType: m.mealType,
+                title: m.title,
+                subtitle: m.subtitle || undefined,
+                calories: m.calories,
+                protein: m.protein,
+                carbs: m.carbs,
+                fat: m.fat,
+                goalBadge: m.goalBadge || undefined,
+                goalBadgeColor: m.goalBadgeColor || undefined,
+                icon: m.icon || undefined,
+                healthNotes: m.healthNotes || undefined,
+                imageUri: m.imageUri || undefined,
+                loggedAt: m.loggedAt || undefined,
+              }));
+              await AsyncStorage.setItem(foodKey, JSON.stringify(items));
+            }
+            if (typeof cloudRes.data.waterMl === 'number') {
+              setWaterMl(cloudRes.data.waterMl);
+              await AsyncStorage.setItem(waterKey, cloudRes.data.waterMl.toString());
+            }
+          }
+        } catch (e) {
+          // Offline fallback
+        }
+      }
+
+      let totalCals = 0;
+      let totalProt = 0;
+      let totalCarbs = 0;
+      let totalFat = 0;
+
+      items.forEach((item) => {
+        totalCals += item.calories || 0;
+        totalProt += item.protein || 0;
+        totalCarbs += item.carbs || 0;
+        totalFat += item.fat || 0;
+      });
+
+      setCaloriesLogged(totalCals);
+      setProteinLogged(totalProt);
+      setCarbsLogged(totalCarbs);
+      setFatLogged(totalFat);
+
       // Load Water
-      const waterSaved = await AsyncStorage.getItem('water_log_today');
+      const waterSaved = await AsyncStorage.getItem(waterKey);
       if (waterSaved) {
         setWaterMl(parseInt(waterSaved, 10) || 0);
-      } else {
+      } else if (!userId) {
         setWaterMl(0);
       }
     } catch (err) {
@@ -206,7 +255,7 @@ export default function Dashboard() {
   useFocusEffect(
     useCallback(() => {
       loadAll();
-    }, [])
+    }, [userId])
   );
 
   useEffect(() => {
@@ -216,7 +265,7 @@ export default function Dashboard() {
     return () => {
       sub.remove();
     };
-  }, []);
+  }, [userId]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -239,7 +288,10 @@ export default function Dashboard() {
     setWaterMl(newTotal);
 
     try {
-      await AsyncStorage.setItem('water_log_today', newTotal.toString());
+      const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      await AsyncStorage.setItem(waterKey, newTotal.toString());
+      await AsyncStorage.removeItem('water_log_today').catch(() => {});
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (e) {
       console.log('Error saving quick water:', e);
     }

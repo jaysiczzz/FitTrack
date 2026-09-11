@@ -5,6 +5,8 @@ import {
   FoodLogItem,
   MEAL_LABELS,
   MEAL_ICONS,
+  getSmartFoodBadge,
+  getBadgeStyles,
 } from './foodLogTypes';
 
 interface FoodHistoryDayCardProps {
@@ -104,35 +106,48 @@ export default function FoodHistoryDayCard({
             Meals Eaten on this day:
           </Text>
 
-          {day.items.map((meal) => (
-            <View
-              key={meal.id}
-              className="bg-input/60 dark:bg-input-dark/60 p-3 rounded-2xl mb-2 flex-row justify-between items-center border border-input-border/40 dark:border-input-border-dark/40"
-            >
-              <View className="flex-row items-center flex-1 pr-2">
-                {meal.imageUri ? (
-                  <Image
-                    source={{ uri: meal.imageUri }}
-                    className="w-10 h-10 rounded-xl mr-2.5 bg-black/10"
-                    resizeMode="cover"
-                  />
-                ) : null}
+          {day.items.map((meal) => {
+            const badgeInfo = (meal.goalBadge && meal.goalBadgeColor)
+              ? { badge: meal.goalBadge, color: meal.goalBadgeColor }
+              : getSmartFoodBadge(meal);
+            const badgeStyles = getBadgeStyles(badgeInfo.color);
 
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-1.5 flex-wrap">
-                    <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
-                      {meal.title}
-                    </Text>
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                      ({MEAL_LABELS[meal.mealType] || meal.mealType})
+            return (
+              <View
+                key={meal.id}
+                className="bg-input/60 dark:bg-input-dark/60 p-3 rounded-2xl mb-2 flex-row justify-between items-center border border-input-border/40 dark:border-input-border-dark/40"
+              >
+                <View className="flex-row items-center flex-1 pr-2">
+                  {meal.imageUri ? (
+                    <Image
+                      source={{ uri: meal.imageUri }}
+                      className="w-10 h-10 rounded-xl mr-2.5 bg-black/10"
+                      resizeMode="cover"
+                    />
+                  ) : null}
+
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-1.5 flex-wrap">
+                      <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
+                        {meal.title}
+                      </Text>
+                      {badgeInfo?.badge ? (
+                        <View className={`px-1.5 py-0.5 rounded-md border ${badgeStyles.container}`}>
+                          <Text className={`text-[8.5px] font-black uppercase tracking-wide ${badgeStyles.text}`}>
+                            {badgeInfo.badge}
+                          </Text>
+                        </View>
+                      ) : null}
+                      <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                        ({MEAL_LABELS[meal.mealType] || meal.mealType})
+                      </Text>
+                    </View>
+
+                    <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">
+                      {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
                     </Text>
                   </View>
-
-                  <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">
-                    {meal.calories} kcal · {meal.protein}g P · {meal.carbs}g C · {meal.fat}g F
-                  </Text>
                 </View>
-              </View>
 
               {/* 1-Tap Re-log Button */}
               <TouchableOpacity
@@ -145,7 +160,8 @@ export default function FoodHistoryDayCard({
                 </Text>
               </TouchableOpacity>
             </View>
-          ))}
+            );
+          })}
         </View>
       )}
     </View>

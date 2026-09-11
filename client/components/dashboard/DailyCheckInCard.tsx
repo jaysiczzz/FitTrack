@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { authStorage } from '../../utils/authStorage';
 import SurfaceCard from '../ui/SurfaceCard';
 
 export interface MoodOption {
@@ -32,6 +34,8 @@ interface DailyCheckInCardProps {
 }
 
 export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCardProps) {
+  const { user } = useAuth();
+  const userId = user?.id;
   const { showToast } = useToast();
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -46,11 +50,15 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     const loadCheckInState = async () => {
       try {
         const todayKey = getTodayDateKey();
-        const savedCheckIn = await AsyncStorage.getItem(`daily_checkin_${todayKey}`);
+        const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
+        const savedCheckIn = await AsyncStorage.getItem(checkinKey);
         if (savedCheckIn) {
           const parsed = JSON.parse(savedCheckIn);
           setSelectedMoodId(parsed.moodId);
           setIsCheckedIn(true);
+        } else {
+          setSelectedMoodId(null);
+          setIsCheckedIn(false);
         }
       } catch (e) {
         console.log('Error loading daily check-in:', e);
@@ -58,13 +66,16 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     };
 
     loadCheckInState();
-  }, []);
+  }, [userId]);
 
   const handleSelectMood = async (mood: MoodOption) => {
     setSelectedMoodId(mood.id);
     setIsCheckedIn(true);
 
     const todayKey = getTodayDateKey();
+    const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
+    const lastCheckinKey = authStorage.getScopedKey(userId, 'last_checkin_date');
+
     const data = {
       date: todayKey,
       moodId: mood.id,
@@ -73,8 +84,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     };
 
     try {
-      await AsyncStorage.setItem(`daily_checkin_${todayKey}`, JSON.stringify(data));
-      await AsyncStorage.setItem('last_checkin_date', todayKey);
+      await AsyncStorage.setItem(checkinKey, JSON.stringify(data));
+      await AsyncStorage.setItem(lastCheckinKey, todayKey);
+      await AsyncStorage.removeItem(`daily_checkin_${todayKey}`).catch(() => {});
+      await AsyncStorage.removeItem('last_checkin_date').catch(() => {});
     } catch (e) {
       console.log('Error saving check-in:', e);
     }

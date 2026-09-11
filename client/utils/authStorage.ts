@@ -103,9 +103,38 @@ export const authStorage = {
   },
 
   /**
-   * Clear all authentication data on logout.
+   * Helper to scope an AsyncStorage key to a specific user ID.
+   */
+  getScopedKey(userId: string | undefined | null, baseKey: string): string {
+    return userId ? `${baseKey}_${userId}` : baseKey;
+  },
+
+  /**
+   * Clear all authentication data and user-specific session caches on logout.
    */
   async clearAuth(): Promise<void> {
-    await Promise.all([this.removeToken(), this.removeUser()]);
+    try {
+      await Promise.all([this.removeToken(), this.removeUser()]);
+      // Purge all user-scoped and legacy device-wide food, water, and check-in session keys
+      const allKeys = await AsyncStorage.getAllKeys();
+      const keysToRemove = allKeys.filter(
+        (k) =>
+          k === 'food_log_today' ||
+          k === 'water_log_today' ||
+          k === 'food_log_history_dates' ||
+          k.startsWith('food_log_') ||
+          k.startsWith('water_log_') ||
+          k.startsWith('daily_checkin_') ||
+          k === 'last_checkin_date' ||
+          k.startsWith('last_checkin_date_') ||
+          k.startsWith('fittrack_recent_logged_foods') ||
+          k.startsWith('fittrack_workout_history')
+      );
+      if (keysToRemove.length > 0) {
+        await AsyncStorage.multiRemove(keysToRemove);
+      }
+    } catch (err) {
+      console.warn('[authStorage] Error clearing session cache on logout:', err);
+    }
   },
 };

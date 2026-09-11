@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { apiRequest } from './client';
 import { FoodLogItem } from '../components/foodlog/foodLogTypes';
+import { authStorage } from '../utils/authStorage';
 
 export interface ApiFoodMeal {
   id: string;
@@ -104,11 +105,15 @@ export const searchFoodsOnlineApi = async (query: string): Promise<SearchFoodsRe
   }
 };
 
-const RECENT_FOODS_STORAGE_KEY = 'fittrack_recent_logged_foods';
+const getRecentKey = async () => {
+  const user = await authStorage.getUser();
+  return authStorage.getScopedKey(user?.id, 'fittrack_recent_logged_foods');
+};
 
 export const getRecentLoggedFoods = async (): Promise<any[]> => {
   try {
-    const raw = await AsyncStorage.getItem(RECENT_FOODS_STORAGE_KEY);
+    const key = await getRecentKey();
+    const raw = await AsyncStorage.getItem(key);
     if (!raw) return [];
     const parsed = JSON.parse(raw);
     return Array.isArray(parsed) ? parsed : [];
@@ -119,10 +124,11 @@ export const getRecentLoggedFoods = async (): Promise<any[]> => {
 
 export const saveFoodToRecentHistory = async (food: any): Promise<void> => {
   try {
+    const key = await getRecentKey();
     const recents = await getRecentLoggedFoods();
     const filtered = recents.filter((f) => f.name.toLowerCase() !== food.name.toLowerCase());
     const updated = [food, ...filtered].slice(0, 25);
-    await AsyncStorage.setItem(RECENT_FOODS_STORAGE_KEY, JSON.stringify(updated));
+    await AsyncStorage.setItem(key, JSON.stringify(updated));
   } catch (err) {
     console.log('Error caching recent food:', err);
   }

@@ -70,22 +70,25 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
     // 3. Insert the new meal items
     if (items.length > 0) {
       await tx.foodLogMeal.createMany({
-        data: items.map((m) => ({
-          dailyFoodLogId: dailyLog.id,
-          mealType: m.mealType,
-          title: m.title,
-          subtitle: m.subtitle || null,
-          calories: Math.round(Number(m.calories) || 0),
-          protein: Number(m.protein) || 0,
-          carbs: Number(m.carbs) || 0,
-          fat: Number(m.fat) || 0,
-          goalBadge: m.goalBadge || null,
-          goalBadgeColor: m.goalBadgeColor || null,
-          icon: m.icon || null,
-          healthNotes: m.healthNotes || null,
-          imageUri: m.imageUri || null,
-          loggedAt: m.loggedAt || null,
-        })),
+        data: items.map((m) => {
+          const badgeInfo = inferMealBadge(m)
+          return {
+            dailyFoodLogId: dailyLog.id,
+            mealType: m.mealType,
+            title: m.title,
+            subtitle: m.subtitle || null,
+            calories: Math.round(Number(m.calories) || 0),
+            protein: Number(m.protein) || 0,
+            carbs: Number(m.carbs) || 0,
+            fat: Number(m.fat) || 0,
+            goalBadge: m.goalBadge || badgeInfo.goalBadge,
+            goalBadgeColor: m.goalBadgeColor || badgeInfo.goalBadgeColor,
+            icon: m.icon || null,
+            healthNotes: m.healthNotes || null,
+            imageUri: m.imageUri || null,
+            loggedAt: m.loggedAt || null,
+          }
+        }),
       })
     }
 
@@ -108,10 +111,42 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
   })
 }
 
+export function inferMealBadge(meal: any): { goalBadge: string; goalBadgeColor: string } {
+  if (meal.goalBadge && String(meal.goalBadge).trim().length > 0) {
+    const color =
+      meal.goalBadgeColor || (String(meal.goalBadge).toLowerCase().includes('protein') ? 'green' : 'blue')
+    return { goalBadge: meal.goalBadge, goalBadgeColor: color }
+  }
+
+  const p = Number(meal.protein) || 0
+  const c = Number(meal.carbs) || 0
+  const f = Number(meal.fat) || 0
+  const cals = Number(meal.calories) || 0
+
+  if (p >= 20 || (p >= 10 && (p * 4) / Math.max(1, cals) >= 0.30)) {
+    if (f <= 3.5 && cals <= 180) {
+      return { goalBadge: '🟢 Lean Protein', goalBadgeColor: 'green' }
+    }
+    return { goalBadge: '🟢 High Protein', goalBadgeColor: 'green' }
+  }
+  if (cals > 0 && cals <= 100) {
+    return { goalBadge: '🌱 Low Calorie', goalBadgeColor: 'green' }
+  }
+  if (f >= 14 && c <= 15) {
+    return { goalBadge: '🥑 Healthy Fats', goalBadgeColor: 'yellow' }
+  }
+  if (c >= 25 && (c * 4) / Math.max(1, cals) >= 0.50) {
+    return { goalBadge: '⚡ Energy Carbs', goalBadgeColor: 'blue' }
+  }
+  return { goalBadge: '🥗 Balanced', goalBadgeColor: 'blue' }
+}
+
 export function formatFoodLogMeal(meal: any) {
+  const badgeInfo = inferMealBadge(meal)
   return {
     ...meal,
-    goalBadgeColor: meal.goalBadgeColor || (meal.goalBadge?.toLowerCase().includes('protein') ? 'green' : 'blue'),
+    goalBadge: meal.goalBadge || badgeInfo.goalBadge,
+    goalBadgeColor: meal.goalBadgeColor || badgeInfo.goalBadgeColor,
     icon: meal.icon || '🥗',
     loggedAt: meal.loggedAt || (meal.createdAt ? new Date(meal.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : undefined),
     macros: [

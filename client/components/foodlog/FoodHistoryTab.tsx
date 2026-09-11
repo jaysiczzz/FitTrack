@@ -3,6 +3,8 @@ import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Pla
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
 import { useToast } from '../../context/ToastContext';
+import { useAuth } from '../../context/AuthContext';
+import { authStorage } from '../../utils/authStorage';
 import FoodHistoryDayCard from './FoodHistoryDayCard';
 import { COLORS } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -13,6 +15,7 @@ import {
   MEAL_LABELS,
   getTodayDateString,
   formatDateHeading,
+  getSmartFoodBadge,
 } from './foodLogTypes';
 
 type HistoryRange = '7days' | '15days' | 'all';
@@ -38,6 +41,8 @@ export default function FoodHistoryTab({
   onReLogItem,
   onSwitchToToday,
 }: FoodHistoryTabProps) {
+  const { user } = useAuth();
+  const userId = user?.id;
   const { showSuccess } = useToast();
   const [loading, setLoading] = useState(true);
   const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>([]);
@@ -49,6 +54,9 @@ export default function FoodHistoryTab({
     setLoading(true);
     try {
       const todayStr = getTodayDateString();
+      const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
+      const foodTodayKey = authStorage.getScopedKey(userId, 'food_log_today');
+      const waterTodayKey = authStorage.getScopedKey(userId, 'water_log_today');
 
       // 1. Fetch fresh history from PostgreSQL database
       let backendLogs: ApiDailyFoodLog[] = [];
@@ -61,7 +69,7 @@ export default function FoodHistoryTab({
         console.log('[History API] Fetching from local cache fallback:', e);
       }
 
-      const rawDates = await AsyncStorage.getItem('food_log_history_dates');
+      const rawDates = await AsyncStorage.getItem(historyDatesKey);
       let dateSet = new Set<string>();
 
       // Merge backend dates
@@ -83,8 +91,8 @@ export default function FoodHistoryTab({
       }
 
       // Check if today has active meals
-      const rawTodayItems = await AsyncStorage.getItem('food_log_today');
-      const rawTodayWater = await AsyncStorage.getItem('water_log_today');
+      const rawTodayItems = await AsyncStorage.getItem(foodTodayKey);
+      const rawTodayWater = await AsyncStorage.getItem(waterTodayKey);
       let todayActiveItems: FoodLogItem[] = [];
       let todayActiveWater = 0;
 
@@ -109,15 +117,23 @@ export default function FoodHistoryTab({
       const summaries: DailyFoodHistorySummary[] = [];
 
       for (const dateStr of allDates) {
-        const rawItems = await AsyncStorage.getItem(`food_log_${dateStr}`);
-        const rawWater = await AsyncStorage.getItem(`water_log_${dateStr}`);
+        const dayFoodKey = authStorage.getScopedKey(userId, `food_log_${dateStr}`);
+        const dayWaterKey = authStorage.getScopedKey(userId, `water_log_${dateStr}`);
+        const rawItems = await AsyncStorage.getItem(dayFoodKey);
+        const rawWater = await AsyncStorage.getItem(dayWaterKey);
 
         let items: FoodLogItem[] = [];
         if (rawItems) {
           try {
             const parsed = JSON.parse(rawItems);
             if (Array.isArray(parsed)) {
-              items = parsed;
+              items = parsed.map((item: any) => {
+                if (!item.goalBadge || !item.goalBadgeColor) {
+                  const b = getSmartFoodBadge(item);
+                  return { ...item, goalBadge: b.badge, goalBadgeColor: b.color };
+                }
+                return item;
+              });
             }
           } catch {
             items = [];
@@ -130,21 +146,26 @@ export default function FoodHistoryTab({
         const backendEntry = backendLogs.find((b) => b.date === dateStr);
         if (backendEntry) {
           if (items.length === 0 && backendEntry.meals && backendEntry.meals.length > 0) {
-            items = backendEntry.meals.map((m) => ({
-              id: m.id,
-              mealType: m.mealType as any,
-              title: m.title,
-              subtitle: m.subtitle || undefined,
-              calories: m.calories,
-              protein: m.protein,
-              carbs: m.carbs,
-              fat: m.fat,
-              goalBadge: m.goalBadge || undefined,
-              goalBadgeColor: (m.goalBadgeColor as any) || undefined,
-              icon: m.icon || undefined,
-              healthNotes: m.healthNotes || undefined,
-              imageUri: m.imageUri || undefined,
-            }));
+            items = backendEntry.meals.map((m) => {
+              const badgeInfo = (m.goalBadge && m.goalBadgeColor)
+                ? { badge: m.goalBadge, color: m.goalBadgeColor }
+                : getSmartFoodBadge(m);
+              return {
+                id: m.id,
+                mealType: m.mealType as any,
+                title: m.title,
+                subtitle: m.subtitle || undefined,
+                calories: m.calories,
+                protein: m.protein,
+                carbs: m.carbs,
+                fat: m.fat,
+                goalBadge: badgeInfo.badge,
+                goalBadgeColor: badgeInfo.color as any,
+                icon: m.icon || undefined,
+                healthNotes: m.healthNotes || undefined,
+                imageUri: m.imageUri || undefined,
+              };
+            });
           }
           if (waterMl === 0 && backendEntry.waterMl > 0) {
             waterMl = backendEntry.waterMl;
@@ -189,7 +210,7 @@ export default function FoodHistoryTab({
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   useEffect(() => {
     loadHistory();
@@ -518,7 +539,7 @@ export default function FoodHistoryTab({
             No Records Found in Selected Range
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[240px]">
-            Log your daily meals and click "Save & Complete" to populate your 15-day history timeline.
+            Log your meals and tap "Complete Day" to build your nutrition history.
           </Text>
           <TouchableOpacity
             onPress={onSwitchToToday}
