@@ -14,6 +14,36 @@ export interface ApiWorkoutExercise {
   name: string;
   category?: string | null;
   type?: string | null;
+  difficulty?: string | null;
+  primaryMuscle?: string | null;
+  muscleGroup?: string | null;
+  secondaryMuscles?: string[] | null;
+  bodyPart?: string | null;
+  equipment?: string | string[] | null;
+  equipmentAlternatives?: string[] | null;
+  startingPosition?: string | null;
+  instructions?: string[] | null;
+  formTips?: string[] | null;
+  commonMistakes?: string[] | null;
+  breathingTechnique?: string | null;
+  recommendedSets?: number | null;
+  recommendedReps?: number | null;
+  recommendedDuration?: number | null;
+  recommendedRest?: number | null;
+  recommendedTempo?: string | null;
+  safetyInstructions?: string | null;
+  injuryPreventionTips?: string | null;
+  beginnerModification?: string | null;
+  advancedVariation?: string | null;
+  easierAlternative?: string | null;
+  harderAlternative?: string | null;
+  equipmentFreeAlternative?: string | null;
+  similarExercises?: string[] | null;
+  tags?: string[] | null;
+  difficultyPresets?: Record<string, any> | null;
+  description?: string | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   sets: ApiSetRow[];
 }
 
@@ -65,6 +95,9 @@ export interface ApiLibraryExercise {
   equipmentFreeAlternative?: string | null;
   similarExercises?: string[];
   tags?: string[];
+  difficultyPresets?: Record<string, any> | null;
+  isSystem?: boolean;
+  userId?: string | null;
 }
 
 export const getWorkoutLibrary = (filters?: Record<string, string>) => {
@@ -138,3 +171,16 @@ export const completeWorkoutSessionApi = () =>
 export const getWorkoutHistory = () => apiRequest('/api/workouts/history');
 
 export const getPersonalRecordsApi = () => apiRequest('/api/workouts/personal-records');
+
+export const createCustomExerciseApi = (data: {
+  name: string;
+  category?: string;
+  type?: string;
+  difficulty?: string;
+  primaryMuscle?: string;
+  instructions?: string[];
+  defaultSets?: { weight?: number; reps?: number }[];
+}) => apiRequest('/api/workouts/custom', { method: 'POST', body: data });
+
+export const deleteCustomExerciseApi = (exerciseId: string) =>
+  apiRequest(`/api/workouts/custom/${exerciseId}`, { method: 'DELETE' });

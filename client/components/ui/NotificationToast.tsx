@@ -75,19 +75,21 @@ export default function NotificationToast({
       timerRef.current = null;
     }
 
+    const useNative = Platform.OS !== 'web';
+
     if (visible) {
       Animated.parallel([
         Animated.timing(opacityAnim, {
           toValue: 1,
           duration: 160,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.spring(translateYAnim, {
           toValue: 0,
           damping: 18,
           stiffness: 240,
           mass: 0.8,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
       ]).start();
 
@@ -101,12 +103,12 @@ export default function NotificationToast({
         Animated.timing(opacityAnim, {
           toValue: 0,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
         Animated.timing(translateYAnim, {
           toValue: 40,
           duration: 200,
-          useNativeDriver: true,
+          useNativeDriver: useNative,
         }),
       ]).start();
     }
@@ -119,16 +121,17 @@ export default function NotificationToast({
   }, [visible, message, description, duration]);
 
   const handleDismiss = () => {
+    const useNative = Platform.OS !== 'web';
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 0,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.timing(translateYAnim, {
         toValue: 40,
         duration: 200,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
     ]).start(() => {
       onDismiss();
@@ -142,8 +145,7 @@ export default function NotificationToast({
 
   return (
     <View
-      pointerEvents="box-none"
-      style={[styles.container, { bottom: bottomOffset }]}
+      style={[styles.container, { bottom: bottomOffset, pointerEvents: 'box-none' } as any]}
     >
       <Animated.View
         style={[

@@ -20,6 +20,8 @@ model User {
   createdAt       DateTime         @default(now())
   workoutSessions WorkoutSession[]
   dailyFoodLogs   DailyFoodLog[]
+  customExercises Exercise[]
+  customFoods     Food[]
 }
 
 enum Goal {
@@ -70,8 +72,15 @@ model Exercise {
   similarExercises         Json?
   tags                     Json?
   difficultyPresets        Json?
+  isSystem                 Boolean  @default(true)
+  userId                   String?
+  user                     User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt                DateTime @default(now())
   updatedAt                DateTime @default(now()) @updatedAt
+
+  @@index([name])
+  @@index([userId])
+  @@index([muscleGroup])
 }
 
 model WorkoutSession {
@@ -139,7 +148,47 @@ model FoodLogMeal {
   carbs          Float        @default(0)
   fat            Float        @default(0)
   goalBadge      String?
+  goalBadgeColor String?
+  icon           String?
   healthNotes    String?
   imageUri       String?
+  loggedAt       String?
   createdAt      DateTime     @default(now())
+}
+
+model Food {
+  id             String     @id @default(uuid())
+  name           String
+  brand          String?
+  barcode        String?    @unique
+  category       String?    @default("Staples")
+  servingSize    String     @default("100g")
+  servingWeightG Float      @default(100)
+  servingUnit    String     @default("g")
+  calories       Int        @default(0)
+  protein        Float      @default(0)
+  carbs          Float      @default(0)
+  fat            Float      @default(0)
+  fiber          Float?
+  description    String?
+  ingredients    String?
+  icon           String?
+  imageUrl       String?
+  isVerified     Boolean    @default(false)
+  source         FoodSource @default(SYSTEM)
+  userId         String?
+  user           User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  @@index([name])
+  @@index([barcode])
+  @@index([userId])
+  @@index([category])
+}
+
+enum FoodSource {
+  SYSTEM
+  OPEN_FOOD_FACTS
+  USER_CUSTOM
 }

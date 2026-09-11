@@ -140,6 +140,8 @@ export default function FoodHistoryTab({
               carbs: m.carbs,
               fat: m.fat,
               goalBadge: m.goalBadge || undefined,
+              goalBadgeColor: (m.goalBadgeColor as any) || undefined,
+              icon: m.icon || undefined,
               healthNotes: m.healthNotes || undefined,
               imageUri: m.imageUri || undefined,
             }));

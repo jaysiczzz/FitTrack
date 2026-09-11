@@ -14,6 +14,7 @@ export const getLibrary = asyncHandler(async (req: AuthRequest, res: Response) =
     equipment: equipment ? String(equipment) : undefined,
     type: type ? String(type) : undefined,
     bodyPart: bodyPart ? String(bodyPart) : undefined,
+    userId: req.user?.id,
   })
 
   res.json({ exercises })
@@ -61,6 +62,104 @@ export const deleteExerciseFromLibraryController = asyncHandler(async (req: Auth
   res.json({ success: true })
 })
 
+export const createCustomExerciseController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const {
+    name,
+    description,
+    category,
+    type,
+    difficulty,
+    primaryMuscle,
+    muscleGroup,
+    secondaryMuscles,
+    bodyPart,
+    equipment,
+    equipmentAlternatives,
+    startingPosition,
+    instructions,
+    formTips,
+    commonMistakes,
+    breathingTechnique,
+    recommendedSets,
+    recommendedReps,
+    recommendedDuration,
+    recommendedRest,
+    recommendedTempo,
+    defaultSets,
+    imageUrl,
+    thumbnailUrl,
+    safetyInstructions,
+    injuryPreventionTips,
+    beginnerModification,
+    advancedVariation,
+    easierAlternative,
+    harderAlternative,
+    equipmentFreeAlternative,
+    similarExercises,
+    tags,
+    difficultyPresets,
+  } = req.body
+
+  if (!name || !name.trim()) return res.status(400).json({ error: 'Exercise name is required' })
+
+  const exercise = await workoutModel.createCustomExercise(userId, {
+    name: name.trim(),
+    description: description || undefined,
+    category: category || 'Strength',
+    type: type || 'Compound',
+    difficulty: difficulty || 'Intermediate',
+    primaryMuscle: primaryMuscle || 'Chest',
+    muscleGroup: muscleGroup || primaryMuscle || 'Chest',
+    secondaryMuscles: Array.isArray(secondaryMuscles) ? secondaryMuscles : undefined,
+    bodyPart: bodyPart || 'Full Body',
+    equipment: Array.isArray(equipment) ? equipment : undefined,
+    equipmentAlternatives: Array.isArray(equipmentAlternatives) ? equipmentAlternatives : undefined,
+    startingPosition: startingPosition || undefined,
+    instructions: Array.isArray(instructions) ? instructions : (instructions ? [instructions] : []),
+    formTips: Array.isArray(formTips) ? formTips : undefined,
+    commonMistakes: Array.isArray(commonMistakes) ? commonMistakes : undefined,
+    breathingTechnique: breathingTechnique || undefined,
+    recommendedSets: recommendedSets ? Number(recommendedSets) : undefined,
+    recommendedReps: recommendedReps ? Number(recommendedReps) : undefined,
+    recommendedDuration: recommendedDuration ? Number(recommendedDuration) : undefined,
+    recommendedRest: recommendedRest ? Number(recommendedRest) : undefined,
+    recommendedTempo: recommendedTempo || undefined,
+    defaultSets: defaultSets || [{ weight: 20, reps: 10 }, { weight: 20, reps: 10 }, { weight: 20, reps: 10 }],
+    imageUrl: imageUrl || undefined,
+    thumbnailUrl: thumbnailUrl || undefined,
+    safetyInstructions: safetyInstructions || undefined,
+    injuryPreventionTips: injuryPreventionTips || undefined,
+    beginnerModification: beginnerModification || undefined,
+    advancedVariation: advancedVariation || undefined,
+    easierAlternative: easierAlternative || undefined,
+    harderAlternative: harderAlternative || undefined,
+    equipmentFreeAlternative: equipmentFreeAlternative || undefined,
+    similarExercises: Array.isArray(similarExercises) ? similarExercises : undefined,
+    tags: Array.isArray(tags) ? tags : undefined,
+    difficultyPresets: difficultyPresets || undefined,
+  })
+
+  res.status(201).json({ success: true, exercise })
+})
+
+export const deleteCustomExerciseController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+  if (!id) return res.status(400).json({ error: 'Exercise ID is required' })
+
+  const deleted = await workoutModel.deleteCustomExercise(id, userId)
+  if (!deleted) {
+    return res.status(404).json({ error: 'Custom exercise not found or unauthorized' })
+  }
+
+  res.json({ success: true, message: 'Custom exercise removed' })
+})
+
 export const getTodaySession = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
   if (!userId) return res.status(401).json({ error: 'Unauthorized' })
@@ -85,7 +184,10 @@ export const addExerciseToToday = asyncHandler(async (req: AuthRequest, res: Res
     defaultSets,
   })
 
-  res.json({ exercise })
+  const updatedSession = await workoutModel.getTodayActiveSession(userId)
+  const enrichedExercise = updatedSession.exercises.find((e: any) => e.id === exercise.id) || exercise
+
+  res.json({ exercise: enrichedExercise })
 })
 
 export const toggleSet = asyncHandler(async (req: AuthRequest, res: Response) => {

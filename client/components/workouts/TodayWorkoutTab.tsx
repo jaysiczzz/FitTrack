@@ -12,15 +12,38 @@ export interface TodayExerciseItem {
   key: string;
   exerciseId?: string;
   name: string;
+  description?: string | null;
   category?: string;
+  type?: string;
   difficulty?: string;
   primaryMuscle?: string;
+  muscleGroup?: string;
   secondaryMuscles?: string[];
+  bodyPart?: string;
   equipment?: string;
-  type?: string;
+  equipmentAlternatives?: string[];
+  startingPosition?: string | null;
+  instructions?: string[];
+  formTips?: string[];
+  commonMistakes?: string[];
+  breathingTechnique?: string | null;
   recommendedSets?: number;
   recommendedReps?: number;
+  recommendedDuration?: number;
   recommendedRest?: number;
+  recommendedTempo?: string | null;
+  safetyInstructions?: string | null;
+  injuryPreventionTips?: string | null;
+  beginnerModification?: string | null;
+  advancedVariation?: string | null;
+  easierAlternative?: string | null;
+  harderAlternative?: string | null;
+  equipmentFreeAlternative?: string | null;
+  similarExercises?: string[];
+  tags?: string[];
+  difficultyPresets?: Record<string, any> | null;
+  imageUrl?: string | null;
+  thumbnailUrl?: string | null;
   sets: SetRow[];
 }
 
@@ -86,41 +109,46 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
 
   const handleOpenDetailsByName = async (exercise: TodayExerciseItem) => {
     setActiveWorkoutKey(exercise.key);
-    if (exercise.exerciseId) {
-      try {
-        const res = await getExerciseDetails(exercise.exerciseId);
-        if (res.exercise) {
-          setSelectedExerciseDetail({
-            ...res.exercise,
-            difficulty: exercise.difficulty || res.exercise.difficulty,
-          });
-          setShowDetailsModal(true);
-          return;
-        }
-      } catch (err) {
-        console.log('Error fetching exercise details by ID');
-      }
-    }
 
-    // Fallback template constructed from exercise item metadata
-    const fallbackDetails: LibraryExercise = {
-      id: exercise.key,
+    const details: LibraryExercise = {
+      id: exercise.exerciseId || exercise.key,
       name: exercise.name,
+      description: exercise.description || null,
       category: exercise.category || 'Strength',
-      type: exercise.type || 'Compound',
+      type: 'Compound',
       difficulty: exercise.difficulty || 'Intermediate',
-      primaryMuscle: exercise.primaryMuscle || 'Chest',
-      muscleGroup: exercise.primaryMuscle || 'Chest',
-      secondaryMuscles: exercise.secondaryMuscles,
-      equipment: exercise.equipment ? [exercise.equipment] : ['Barbell'],
-      recommendedSets: exercise.recommendedSets || 3,
-      recommendedReps: exercise.recommendedReps || 10,
-      recommendedRest: exercise.recommendedRest || 90,
-      instructions: [
+      primaryMuscle: exercise.primaryMuscle || exercise.muscleGroup || 'Chest',
+      muscleGroup: exercise.muscleGroup || exercise.primaryMuscle || 'Chest',
+      secondaryMuscles: exercise.secondaryMuscles || [],
+      bodyPart: exercise.bodyPart || 'Upper Body',
+      equipment: exercise.equipment ? (Array.isArray(exercise.equipment) ? exercise.equipment : [exercise.equipment]) : ['Barbell'],
+      equipmentAlternatives: exercise.equipmentAlternatives || [],
+      startingPosition: exercise.startingPosition || null,
+      instructions: exercise.instructions && exercise.instructions.length > 0 ? exercise.instructions : [
         'Perform the exercise maintaining strict control and posture.',
         'Follow recommended set and repetition protocols.',
         'Keep core engaged throughout movement.',
       ],
+      formTips: exercise.formTips || [],
+      commonMistakes: exercise.commonMistakes || [],
+      breathingTechnique: exercise.breathingTechnique || null,
+      recommendedSets: exercise.recommendedSets || 3,
+      recommendedReps: exercise.recommendedReps || 10,
+      recommendedDuration: exercise.recommendedDuration,
+      recommendedRest: exercise.recommendedRest || 90,
+      recommendedTempo: exercise.recommendedTempo || '2-0-1-0',
+      safetyInstructions: exercise.safetyInstructions || null,
+      injuryPreventionTips: exercise.injuryPreventionTips || null,
+      beginnerModification: exercise.beginnerModification || null,
+      advancedVariation: exercise.advancedVariation || null,
+      easierAlternative: exercise.easierAlternative || null,
+      harderAlternative: exercise.harderAlternative || null,
+      equipmentFreeAlternative: exercise.equipmentFreeAlternative || null,
+      similarExercises: exercise.similarExercises || [],
+      tags: exercise.tags || [],
+      difficultyPresets: exercise.difficultyPresets || null,
+      imageUrl: exercise.imageUrl || null,
+      thumbnailUrl: exercise.thumbnailUrl || null,
       defaultSets: exercise.sets.map((s) => ({
         weight: s.weight ? String(s.weight) : '',
         reps: s.reps ? String(s.reps) : '',
@@ -128,8 +156,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       })),
     };
 
-    setSelectedExerciseDetail(fallbackDetails);
+    setSelectedExerciseDetail(details);
     setShowDetailsModal(true);
+
+    if (exercise.exerciseId) {
+      try {
+        const res = await getExerciseDetails(exercise.exerciseId);
+        if (res.exercise) {
+          setSelectedExerciseDetail((prev) => ({
+            ...details,
+            ...res.exercise,
+            difficulty: exercise.difficulty || res.exercise.difficulty || details.difficulty,
+          }));
+        }
+      } catch (err) {
+        // Fallback already rendered smoothly
+      }
+    }
   };
 
   const hasCompletedWorkouts = completedSessionsCount > 0;

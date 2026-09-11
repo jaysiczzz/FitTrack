@@ -11,6 +11,7 @@ export interface FoodLogItem {
   fat: number;
   goalBadge?: string;
   goalBadgeColor?: 'green' | 'blue' | 'yellow' | 'purple';
+  icon?: string;
   healthNotes?: string;
   macros?: string[];
   imageUri?: string;
