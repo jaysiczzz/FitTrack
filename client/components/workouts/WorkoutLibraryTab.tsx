@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LibraryExercise } from './workoutTypes';
 import { COMMON_EXERCISES_CATALOG } from '../../data/commonExercises';
 import { getWorkoutLibrary } from '../../api/workout';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 import FilterChip from '../ui/FilterChip';
 
 interface WorkoutLibraryTabProps {
@@ -17,6 +18,7 @@ const DIFFICULTY_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache_v3';
 
 const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) => {
+  const { colors } = useThemeColors();
   const [exercises, setExercises] = useState<LibraryExercise[]>(COMMON_EXERCISES_CATALOG);
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -111,11 +113,11 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
 
       {/* Search Input */}
       <View className="mb-3.5 flex-row items-center bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-3 rounded-2xl">
-        <Text className="text-base mr-2">🔍</Text>
+        <Ionicons name="search" size={18} color={colors.textMuted} style={{ marginRight: 8 }} />
         <TextInput
           className="flex-1 text-text-primary dark:text-text-primary-dark text-sm font-medium"
           placeholder="Search exercises, muscles, tags..."
-          placeholderTextColor={COLORS.textMuted.dark}
+          placeholderTextColor={colors.textMuted}
           value={searchQuery}
           onChangeText={setSearchQuery}
         />
@@ -188,12 +190,12 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
       {/* Loading Indicator */}
       {loading ? (
         <View className="py-8 items-center">
-          <ActivityIndicator size="small" color={COLORS.accent.DEFAULT} />
+          <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">Loading exercises...</Text>
         </View>
       ) : filteredExercises.length === 0 ? (
         <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50 dark:bg-surface-dark/50">
-          <Text className="text-2xl mb-2">🔍</Text>
+          <Ionicons name="search" size={26} color={colors.textMuted} style={{ marginBottom: 8 }} />
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
             No exercises match your filter
           </Text>
@@ -252,7 +254,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   </Text>
 
                   <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    🛠️ {eqStr}
+                    Equipment: {eqStr}
                   </Text>
                 </View>
 
@@ -265,7 +267,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   />
                 ) : (
                   <View className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center">
-                    <Text className="text-lg">🏋️</Text>
+                    <Ionicons name="barbell" size={22} color={colors.textMuted} />
                   </View>
                 )}
               </View>
@@ -285,7 +287,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   <View className="flex-row items-center gap-2">
                     <View className="px-2.5 py-1.5 rounded-xl bg-accent/15 border border-accent/40">
                       <Text className="text-xs font-extrabold text-accent dark:text-accent-dark">
-                        ✓ Added ({count}x)
+                        Added ({count}x)
                       </Text>
                     </View>
                     <TouchableOpacity
@@ -294,7 +296,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                       className="px-3.5 py-2 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark"
                     >
                       <Text className="text-xs font-extrabold text-background dark:text-background-dark">
-                        + Add Again
+                        Add Again
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -305,7 +307,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                     className="px-3.5 py-2 rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark flex-row items-center"
                   >
                     <Text className="text-xs font-extrabold text-background dark:text-background-dark">
-                      + Add to Today
+                      Add to Today
                     </Text>
                   </TouchableOpacity>
                 )}

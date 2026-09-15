@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AIInsight } from '../../api/ai';
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
 interface AiInsightsCardProps {
@@ -15,36 +16,36 @@ export default function AiInsightsCard({
   loading,
   onRefresh,
 }: AiInsightsCardProps) {
+  const { colors } = useThemeColors();
+
   return (
     <SurfaceCard className="mb-3">
       {/* Header */}
-      <View className="flex-row justify-between items-center mb-2.5">
-        <View className="flex-row items-center flex-1 mr-2">
-          <View className="w-7 h-7 rounded-lg bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2">
-            <Text className="text-xs">✨</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
-              AI Insights & Predictions
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-              Tailored for your fitness progress
-            </Text>
-          </View>
+      <View className="flex-row justify-between items-center mb-3">
+        <View className="flex-1 mr-2">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+            AI Insights
+          </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs">
+            Personalized recovery and progress feedback
+          </Text>
         </View>
 
         <TouchableOpacity
           onPress={onRefresh}
           disabled={loading}
           activeOpacity={0.7}
-          className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border/60 dark:border-input-border-dark/60"
+          className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark flex-row items-center"
         >
           {loading ? (
-            <ActivityIndicator size="small" color={COLORS.accent.light} />
+            <ActivityIndicator size="small" color={colors.accent} />
           ) : (
-            <Text className="text-accent dark:text-accent-dark text-[10px] font-bold">
-              Refresh ✨
-            </Text>
+            <>
+              <Ionicons name="refresh" size={14} color={colors.accent} style={{ marginRight: 4 }} />
+              <Text className="text-accent dark:text-accent-dark text-xs font-semibold">
+                Refresh
+              </Text>
+            </>
           )}
         </TouchableOpacity>
       </View>
@@ -54,15 +55,15 @@ export default function AiInsightsCard({
         {insights.map((item, index) => (
           <View
             key={index}
-            className="bg-input/60 dark:bg-input-dark/60 rounded-xl p-3 border border-input-border/40 dark:border-input-border-dark/40"
+            className="bg-input dark:bg-input-dark rounded-xl p-3 border border-input-border dark:border-input-border-dark"
           >
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-xs mb-1">
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-1">
               {item.title}
             </Text>
             {item.lines.map((line, lIdx) => (
               <Text
                 key={lIdx}
-                className="text-text-muted dark:text-text-muted-dark text-[11px] leading-4 font-medium"
+                className="text-text-muted dark:text-text-muted-dark text-xs leading-4 font-normal"
               >
                 {line}
               </Text>

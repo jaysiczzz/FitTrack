@@ -1,61 +1,93 @@
 /**
- * FitTrack Theme Color Tokens
- * Mirrors client/tailwind.config.js for programmatic inline styles, ActivityIndicator, and Switch props.
+ * FitTrack Refined Theme Color Tokens
+ * WCAG AA compliant palette:
+ * - High-contrast accessible primary action color (#0D7A57 / #10B981)
+ * - Calibrated neutral text & card surfaces
+ * - Pure semantic colors for success, warning, error, and info
  */
 export const COLORS = {
   background: {
-    DEFAULT: '#F7F8FA',
-    light: '#F7F8FA',
-    dark: '#0B0F1A',
+    DEFAULT: '#F8FAFC',
+    light: '#F8FAFC',
+    dark: '#0B0F19',
   },
   surface: {
     DEFAULT: '#FFFFFF',
     light: '#FFFFFF',
-    dark: '#111726',
+    dark: '#141C2E',
   },
   input: {
-    DEFAULT: '#EEF1F5',
-    light: '#EEF1F5',
-    dark: '#1B2333',
+    DEFAULT: '#F1F5F9',
+    light: '#F1F5F9',
+    dark: '#1A2337',
   },
   inputBorder: {
-    DEFAULT: '#DDE2EA',
-    light: '#DDE2EA',
-    dark: '#2A3346',
+    DEFAULT: '#E2E8F0',
+    light: '#E2E8F0',
+    dark: '#27344D',
   },
   accent: {
-    DEFAULT: '#00B386',
-    light: '#00B386',
-    dark: '#00E5A0',
+    DEFAULT: '#0D7A57',
+    light: '#0D7A57',
+    dark: '#10B981',
   },
   textPrimary: {
-    DEFAULT: '#0B0F1A',
-    light: '#0B0F1A',
-    dark: '#FFFFFF',
+    DEFAULT: '#0F172A',
+    light: '#0F172A',
+    dark: '#F8FAFC',
   },
   textMuted: {
-    DEFAULT: '#5C6478',
-    light: '#5C6478',
-    dark: '#8A93A6',
+    DEFAULT: '#526175',
+    light: '#526175',
+    dark: '#94A3B8',
   },
   danger: {
-    DEFAULT: '#EF4444',
-    light: '#EF4444',
+    DEFAULT: '#DC2626',
+    light: '#DC2626',
     dark: '#F87171',
   },
   info: {
-    DEFAULT: '#0EA5E9',
-    light: '#0EA5E9',
+    DEFAULT: '#0284C7',
+    light: '#0284C7',
     dark: '#38BDF8',
   },
   warning: {
-    DEFAULT: '#F59E0B',
-    light: '#F59E0B',
+    DEFAULT: '#D97706',
+    light: '#D97706',
     dark: '#FBBF24',
   },
   tertiary: {
-    DEFAULT: '#9333EA',
-    light: '#9333EA',
-    dark: '#C084FC',
+    DEFAULT: '#64748B',
+    light: '#64748B',
+    dark: '#94A3B8',
   },
 } as const;
+
+import { useColorScheme } from 'nativewind';
+
+export function getThemeColors(isDark: boolean) {
+  return {
+    background: isDark ? COLORS.background.dark : COLORS.background.light,
+    surface: isDark ? COLORS.surface.dark : COLORS.surface.light,
+    input: isDark ? COLORS.input.dark : COLORS.input.light,
+    inputBorder: isDark ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
+    accent: isDark ? COLORS.accent.dark : COLORS.accent.light,
+    textPrimary: isDark ? COLORS.textPrimary.dark : COLORS.textPrimary.light,
+    textMuted: isDark ? COLORS.textMuted.dark : COLORS.textMuted.light,
+    danger: isDark ? COLORS.danger.dark : COLORS.danger.light,
+    info: isDark ? COLORS.info.dark : COLORS.info.light,
+    warning: isDark ? COLORS.warning.dark : COLORS.warning.light,
+    tertiary: isDark ? COLORS.tertiary.dark : COLORS.tertiary.light,
+  };
+}
+
+export function useThemeColors() {
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
+
+  return {
+    isDark,
+    colorScheme,
+    colors: getThemeColors(isDark),
+  };
+}

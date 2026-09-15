@@ -19,6 +19,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import Button from '@/components/ui/Button';
 import { saveDailyFoodLogApi, getDailyFoodLogApi } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
@@ -171,10 +172,10 @@ export default function FoodLog() {
     const clamped = Math.min(6000, Math.max(0, newWater));
     if (waterMl < targetWaterMl && clamped >= targetWaterMl) {
       showToast({
-        message: 'Hydration Goal Reached! 💧',
-        description: `You reached your daily water goal of ${targetWaterMl.toLocaleString()} ml! Outstanding work!`,
+        message: 'Hydration Goal Reached!',
+        description: `You reached your daily water goal of ${targetWaterMl.toLocaleString()} ml.`,
         type: 'success',
-        icon: '🎉',
+        iconName: 'water',
       });
     }
     setWaterMl(clamped);
@@ -193,7 +194,7 @@ export default function FoodLog() {
       message: `Added ${item.title}`,
       description: `${item.calories} kcal · ${item.protein}g Protein to ${MEAL_LABELS[item.mealType] || item.mealType}`,
       type: 'success',
-      icon: MEAL_ICONS[item.mealType] || '🥗',
+      iconName: 'restaurant',
     });
   };
 
@@ -205,7 +206,7 @@ export default function FoodLog() {
       message: `Updated ${updatedItem.title}`,
       description: `${updatedItem.calories} kcal · ${updatedItem.protein}g Protein (${MEAL_LABELS[updatedItem.mealType]})`,
       type: 'success',
-      icon: MEAL_ICONS[updatedItem.mealType] || '✏️',
+      iconName: 'create',
     });
   };
 
@@ -227,7 +228,7 @@ export default function FoodLog() {
       message: `Removed ${removedTitle}`,
       description: 'Item removed from food log',
       type: 'info',
-      icon: '🗑️',
+      iconName: 'trash',
     });
   };
 
@@ -238,7 +239,7 @@ export default function FoodLog() {
         message: 'No Meals Logged',
         description: 'Please scan or log at least one meal or water intake before completing.',
         type: 'warning',
-        icon: '⚠️',
+        iconName: 'alert-circle',
       });
       return;
     }
@@ -258,11 +259,11 @@ export default function FoodLog() {
     setWaterMl(0);
 
     showToast({
-      message: '🎉 Daily Intake Completed!',
+      message: 'Daily Intake Completed',
       description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
       type: 'success',
-      icon: '🎉',
-      actionLabel: 'View History 📅',
+      iconName: 'checkmark-circle',
+      actionLabel: 'View History',
       onAction: () => setActiveTab('history'),
     });
 
@@ -388,14 +389,13 @@ export default function FoodLog() {
             {/* 3. Meal Category Cards */}
             <View className="mb-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-2.5">
-                Today's Logged Meals 🍽️
+                Today's Logged Meals
               </Text>
 
               {/* Breakfast */}
               <MealCategoryCard
                 type="breakfast"
                 title="Breakfast"
-                icon="🍳"
                 items={breakfastItems}
                 onAddPress={openSearchForMeal}
                 onScanPress={openScanForMeal}
@@ -407,7 +407,6 @@ export default function FoodLog() {
               <MealCategoryCard
                 type="lunch"
                 title="Lunch"
-                icon="🍽️"
                 items={lunchItems}
                 onAddPress={openSearchForMeal}
                 onScanPress={openScanForMeal}
@@ -419,7 +418,6 @@ export default function FoodLog() {
               <MealCategoryCard
                 type="dinner"
                 title="Dinner"
-                icon="🌙"
                 items={dinnerItems}
                 onAddPress={openSearchForMeal}
                 onScanPress={openScanForMeal}
@@ -431,7 +429,6 @@ export default function FoodLog() {
               <MealCategoryCard
                 type="snack"
                 title="Snacks & Drinks"
-                icon="🥪"
                 items={snackItems}
                 onAddPress={openSearchForMeal}
                 onScanPress={openScanForMeal}
@@ -448,16 +445,11 @@ export default function FoodLog() {
             />
 
             {/* 5. Daily Summary Completion Control */}
-            <View className="mt-1">
-              <TouchableOpacity
+            <View className="mt-2">
+              <Button
+                title="Complete Day"
                 onPress={handleSaveAndCompleteDay}
-                activeOpacity={0.8}
-                className="w-full bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center"
-              >
-                <Text className="text-background dark:text-background-dark font-black text-sm">
-                  ✓ Complete Day
-                </Text>
-              </TouchableOpacity>
+              />
             </View>
           </>
         )}

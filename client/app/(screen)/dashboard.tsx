@@ -18,9 +18,10 @@ import { getDailyFoodLogApi } from '@/api/foodlog';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 export default function Dashboard() {
+  const { colors } = useThemeColors();
   const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id;
@@ -276,10 +277,10 @@ export default function Dashboard() {
   const handleQuickAddWater = async (amount: number = 250) => {
     if (waterMl >= targetWater) {
       showToast({
-        message: '🏆 Daily Hydration Complete!',
-        description: `You've already reached your ${targetWater.toLocaleString()}ml daily target!`,
+        message: 'Daily Hydration Complete',
+        description: `You've reached your ${targetWater.toLocaleString()}ml daily target.`,
         type: 'success',
-        icon: '🎉',
+        icon: '✓',
       });
       return;
     }
@@ -298,17 +299,17 @@ export default function Dashboard() {
 
     if (newTotal >= targetWater) {
       showToast({
-        message: '🏆 Daily Hydration Goal Met!',
-        description: `Reached ${targetWater.toLocaleString()} / ${targetWater.toLocaleString()} ml!`,
+        message: 'Daily Hydration Goal Met',
+        description: `Reached ${targetWater.toLocaleString()} / ${targetWater.toLocaleString()} ml.`,
         type: 'success',
-        icon: '🎉',
+        icon: '✓',
       });
     } else {
       showToast({
-        message: `💧 Logged +${amount}ml Water!`,
+        message: `Added ${amount}ml Water`,
         description: `Total today: ${newTotal.toLocaleString()} / ${targetWater.toLocaleString()} ml (${Math.round((newTotal / targetWater) * 100)}%)`,
         type: 'info',
-        icon: '💧',
+        icon: '✓',
       });
     }
   };
@@ -339,18 +340,18 @@ export default function Dashboard() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={COLORS.accent.dark}
-            colors={[COLORS.accent.dark]}
+            tintColor={colors.accent}
+            colors={[colors.accent]}
           />
         }
       >
         {/* Header Greeting */}
-        <View className="mb-3">
+        <View className="mb-4">
           <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black">
-            {getGreeting()}, {userName} 👋
+            {getGreeting()}, {userName}
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark mt-0.5 text-xs font-medium">
-            Your live fitness & daily accountability hub
+          <Text className="text-text-muted dark:text-text-muted-dark mt-0.5 text-xs font-normal">
+            Your live fitness and accountability overview
           </Text>
         </View>
 
@@ -364,37 +365,33 @@ export default function Dashboard() {
         {/* Key Metrics Grid */}
         <View className="flex-row gap-2.5 mb-2.5">
           <StatCard
+            iconName="flame"
             title="Calories"
             value={`${caloriesLogged.toLocaleString()} kcal`}
             subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
-            icon="🔥"
-            accentColor="#FF6B4A"
             onPress={() => router.push('/(screen)/foodlog' as any)}
           />
           <StatCard
+            iconName="water"
             title="Hydration"
             value={`${waterMl.toLocaleString()} ml`}
             subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
-            icon="💧"
-            accentColor={COLORS.info.dark}
           />
         </View>
 
         <View className="flex-row gap-2.5 mb-3">
           <StatCard
+            iconName="barbell"
             title="Workouts"
             value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-            subtitle={workoutsThisWeek > 0 ? 'Weekly progress' : 'Start a routine'}
-            icon="🏋️‍♂️"
-            accentColor={COLORS.accent.dark}
+            subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
             onPress={() => router.push('/(screen)/workouts' as any)}
           />
           <StatCard
+            iconName="sparkles"
             title="Streak"
             value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-            subtitle={currentStreak > 0 ? '🔥 Streak active' : 'Check in daily'}
-            icon="⚡"
-            accentColor={COLORS.warning.DEFAULT}
+            subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
           />
         </View>
 

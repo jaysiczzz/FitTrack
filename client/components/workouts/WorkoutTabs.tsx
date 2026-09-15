@@ -9,50 +9,45 @@ interface WorkoutTabsProps {
 }
 
 const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
-  const tabs: { id: WorkoutTabType; label: string; icon: string }[] = [
-    { id: 'today', label: 'Workouts', icon: '🏋️‍♂️' },
-    { id: 'library', label: 'Library', icon: '📚' },
-    { id: 'history', label: 'History', icon: '📅' },
+  const tabs: { id: WorkoutTabType; label: string }[] = [
+    { id: 'today', label: 'Today’s Routine' },
+    { id: 'library', label: 'Library' },
+    { id: 'history', label: 'History' },
   ];
 
   return (
-    <View
-      className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-2xl mb-4 p-1.5 w-full"
-      style={Platform.select({
-        web: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' } as any,
-        default: { elevation: 1 },
-      })}
-    >
+    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl mb-4 p-1 w-full">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
           <TouchableOpacity
             key={tab.id}
             activeOpacity={0.8}
+            accessibilityRole="tab"
+            accessibilityState={{ selected: isActive }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 py-2.5 px-1 items-center justify-center rounded-xl flex-row ${
+            className={`flex-1 py-2 px-1 items-center justify-center rounded-lg ${
               isActive
-                ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+                ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
                 : ''
             }`}
             style={
               isActive
                 ? Platform.select({
                     web: {
-                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                     } as any,
                     default: {
-                      elevation: 2,
+                      elevation: 1,
                     },
                   })
                 : undefined
             }
           >
-            <Text className="mr-1.5 text-xs">{tab.icon}</Text>
             <Text
-              className={`font-bold text-xs ${
+              className={`text-xs ${
                 isActive
-                  ? 'text-accent dark:text-accent-dark'
+                  ? 'text-text-primary dark:text-text-primary-dark font-bold'
                   : 'text-text-muted dark:text-text-muted-dark font-medium'
               }`}
               numberOfLines={1}

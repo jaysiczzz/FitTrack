@@ -25,35 +25,24 @@ export default function FilterChip({
 }: FilterChipProps) {
   const roundedClass = rounded === 'full' ? 'rounded-full' : 'rounded-xl';
 
-  const activeStyles =
-    variant === 'warning'
-      ? {
-          container: 'bg-warning/15 dark:bg-warning/25 border-warning dark:border-warning-dark',
-          text: 'text-warning dark:text-warning-dark',
-        }
-      : {
-          container: 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark',
-          text: 'text-accent dark:text-accent-dark',
-        };
-
   return (
     <TouchableOpacity
       onPress={onPress}
-      activeOpacity={0.7}
+      activeOpacity={0.75}
       accessibilityRole="button"
       accessibilityState={{ selected }}
-      className={`px-3.5 py-1.5 ${roundedClass} border ${
+      className={`px-3 py-1.5 ${roundedClass} border ${
         selected
-          ? activeStyles.container
+          ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
       } ${className}`}
       {...props}
     >
       <Text
-        className={`text-xs font-bold ${
+        className={`text-xs ${
           selected
-            ? activeStyles.text
-            : 'text-text-muted dark:text-text-muted-dark'
+            ? 'text-accent dark:text-accent-dark font-bold'
+            : 'text-text-muted dark:text-text-muted-dark font-medium'
         }`}
       >
         {icon ? `${icon} ` : ''}{label}{count !== undefined ? ` (${count})` : ''}

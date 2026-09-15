@@ -2,11 +2,13 @@ import React from 'react';
 import { View, Text, Platform, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
+import SurfaceCard from '../ui/SurfaceCard';
 
 interface MacroProgressCardProps {
+  caloriePercent?: number;
+  targetCalories?: number;
   caloriesLogged: number;
-  targetCalories: number;
   proteinLogged: number;
   targetProtein: number;
   carbsLogged: number;
@@ -16,8 +18,9 @@ interface MacroProgressCardProps {
 }
 
 export default function MacroProgressCard({
-  caloriesLogged,
+  caloriePercent,
   targetCalories,
+  caloriesLogged,
   proteinLogged,
   targetProtein,
   carbsLogged,
@@ -26,50 +29,38 @@ export default function MacroProgressCard({
   targetFat,
 }: MacroProgressCardProps) {
   const router = useRouter();
-  const caloriePercent = Math.min(100, Math.round((caloriesLogged / (targetCalories || 2000)) * 100));
+  const { colors } = useThemeColors();
+  const calPct = caloriePercent ?? (targetCalories ? Math.round((caloriesLogged / targetCalories) * 100) : 0);
   const proteinPercent = Math.min(100, Math.round((proteinLogged / (targetProtein || 140)) * 100));
   const carbsPercent = Math.min(100, Math.round((carbsLogged / (targetCarbs || 230)) * 100));
   const fatPercent = Math.min(100, Math.round((fatLogged / (targetFat || 65)) * 100));
 
   return (
-    <View
-      className="bg-surface dark:bg-surface-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark"
-      style={Platform.select({
-        web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-        default: { elevation: 1 },
-      })}
-    >
+    <SurfaceCard className="mb-3">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-3">
-        <View className="flex-row items-center">
-          <View className="w-7 h-7 rounded-lg bg-emerald-500/15 dark:bg-emerald-500/20 items-center justify-center mr-2">
-            <Text className="text-xs">🥗</Text>
-          </View>
-          <View>
-            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
-              Daily Nutrition Intake
-            </Text>
-          </View>
-        </View>
+        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+          Nutrition Intake
+        </Text>
 
         <TouchableOpacity
           onPress={() => router.push('/(screen)/foodlog' as any)}
           activeOpacity={0.7}
-          className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-lg"
+          className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark"
         >
-          <Text className="text-accent dark:text-accent-dark font-bold text-[11px]">
-            + Log Food →
+          <Text className="text-accent dark:text-accent-dark font-semibold text-xs">
+            Log Food
           </Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-row items-center">
-        {/* Compact Circular Dial */}
-        <View className="w-[100px] h-[100px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-2 border-accent/40 dark:border-accent-dark/40">
-          <Text className="text-accent dark:text-accent-dark text-center font-black text-lg leading-5">
-            {caloriePercent}%
+        {/* Dial */}
+        <View className="w-[96px] h-[96px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-2 border-accent/40 dark:border-accent-dark/40">
+          <Text className="text-accent dark:text-accent-dark text-center font-extrabold text-lg leading-5">
+            {calPct}%
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider">
+          <Text className="text-text-muted dark:text-text-muted-dark text-center font-medium text-[10px] mt-0.5">
             {caloriesLogged} kcal
           </Text>
         </View>
@@ -80,23 +71,28 @@ export default function MacroProgressCard({
             label="Protein"
             valueText={`${proteinLogged}g / ${targetProtein}g`}
             percentage={proteinPercent}
-            color={COLORS.accent.dark}
+            color={colors.accent}
+            height={5}
+            className="mb-2"
           />
           <ProgressBar
             label="Carbs"
             valueText={`${carbsLogged}g / ${targetCarbs}g`}
             percentage={carbsPercent}
-            color={COLORS.info.dark}
+            color={colors.info}
+            height={5}
+            className="mb-2"
           />
           <ProgressBar
             label="Fats"
             valueText={`${fatLogged}g / ${targetFat}g`}
             percentage={fatPercent}
-            color={COLORS.tertiary.dark}
+            color={colors.warning}
+            height={5}
             className="mb-0"
           />
         </View>
       </View>
-    </View>
+    </SurfaceCard>
   );
 }

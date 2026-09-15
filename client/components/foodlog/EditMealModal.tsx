@@ -12,11 +12,12 @@ import {
   FoodLogItem,
   MealType,
   MEAL_LABELS,
-  MEAL_ICONS,
+  MEAL_GLYPHS,
   getSmartFoodBadge,
   getBadgeStyles,
 } from './foodLogTypes';
-import { COLORS } from '@/constants/colors';
+import { COLORS, useThemeColors } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface EditMealModalProps {
@@ -34,6 +35,7 @@ export default function EditMealModal({
   onSave,
   onDelete,
 }: EditMealModalProps) {
+  const { colors, isDark } = useThemeColors();
   const [selectedMeal, setSelectedMeal] = useState<MealType>('lunch');
   const [subtitle, setSubtitle] = useState('');
   const [calories, setCalories] = useState('');
@@ -170,29 +172,37 @@ export default function EditMealModal({
               Meal Category:
             </Text>
             <View className="flex-row gap-1.5 mb-3.5">
-              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => setSelectedMeal(m)}
-                  activeOpacity={0.8}
-                  className={`flex-1 py-1.5 px-1 rounded-xl items-center border ${
-                    selectedMeal === m
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                      : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                  }`}
-                >
-                  <Text className="text-xs mb-0.5">{MEAL_ICONS[m]}</Text>
-                  <Text
-                    className={`text-[11px] font-bold capitalize ${
-                      selectedMeal === m
-                        ? 'text-background dark:text-background-dark font-black'
-                        : 'text-text-primary dark:text-text-primary-dark'
+              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
+                const isSelected = selectedMeal === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => setSelectedMeal(m)}
+                    activeOpacity={0.8}
+                    className={`flex-1 py-2 px-1 rounded-xl items-center justify-center border ${
+                      isSelected
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    {MEAL_LABELS[m]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={MEAL_GLYPHS[m]}
+                      size={14}
+                      color={isSelected ? (isDark ? colors.background : '#FFFFFF') : colors.textMuted}
+                      style={{ marginBottom: 2 }}
+                    />
+                    <Text
+                      className={`text-[10px] font-bold capitalize ${
+                        isSelected
+                          ? 'text-white dark:text-background-dark font-black'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {MEAL_LABELS[m]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* 2. Quick Portion Multiplier */}
@@ -320,7 +330,7 @@ export default function EditMealModal({
                 className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center justify-center shadow-xs"
               >
                 <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
-                  ✓ Save Changes ({Math.round(currentCals)} kcal)
+                  Save Changes ({Math.round(currentCals)} kcal)
                 </Text>
               </TouchableOpacity>
 
@@ -333,7 +343,7 @@ export default function EditMealModal({
                 className="py-2.5 rounded-xl items-center justify-center border border-danger/30 bg-danger/10 dark:bg-danger-dark/20"
               >
                 <Text className="text-danger dark:text-danger-dark font-extrabold text-xs">
-                  🗑️ Delete Meal Item
+                  Delete Meal Item
                 </Text>
               </TouchableOpacity>
             </View>

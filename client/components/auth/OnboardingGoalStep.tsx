@@ -14,7 +14,6 @@ const GOALS = [
     id: 'MUSCLE_GAIN' as const,
     title: 'Build Muscle & Strength',
     badge: 'Hypertrophy & Power',
-    icon: '💪',
     description: 'Optimize progressive overload, muscle synthesis, and high-protein nutrition.',
     tags: ['Progressive Overload', 'High Protein'],
   },
@@ -22,7 +21,6 @@ const GOALS = [
     id: 'WEIGHT_LOSS' as const,
     title: 'Burn Fat & Get Lean',
     badge: 'Fat Loss & Recomp',
-    icon: '🔥',
     description: 'Shed body fat and boost metabolism while preserving lean muscle mass.',
     tags: ['Caloric Deficit', 'Metabolic Split'],
   },
@@ -67,22 +65,19 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
               }
             >
               <View className="flex-row items-center justify-between mb-1.5">
-                <View className="flex-row items-center">
-                  <Text className="text-2xl mr-2.5">{item.icon}</Text>
-                  <View>
-                    <Text
-                      className={`font-bold text-sm ${
-                        isSelected
-                          ? 'text-accent dark:text-accent-dark'
-                          : 'text-text-primary dark:text-text-primary-dark'
-                      }`}
-                    >
-                      {item.title}
-                    </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-semibold uppercase tracking-wider">
-                      {item.badge}
-                    </Text>
-                  </View>
+                <View className="flex-1 pr-2">
+                  <Text
+                    className={`font-bold text-sm ${
+                      isSelected
+                        ? 'text-accent dark:text-accent-dark'
+                        : 'text-text-primary dark:text-text-primary-dark'
+                    }`}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-semibold uppercase tracking-wider">
+                    {item.badge}
+                  </Text>
                 </View>
 
                 <View

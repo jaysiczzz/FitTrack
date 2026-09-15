@@ -49,7 +49,7 @@ export default function AuthIndex() {
       setError('');
       setLoading(true);
       const res = await loginUser(data);
-      await login(res.token, res.user);
+      await login(res.token, res.user, res.refreshToken);
     } catch (err: any) {
       setError(err.message || 'Login failed. Please try again.');
     } finally {
