@@ -6,6 +6,19 @@ export interface AnalyzeMealPayload {
   mimeType?: string;
 }
 
+export interface DetectedFoodItem {
+  name: string;
+  servingSize: string;
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  sodiumMg?: number;
+  saturatedFat?: number;
+}
+
 export interface MealAnalysisResult {
   foodName: string;
   servingSize: string;
@@ -13,6 +26,13 @@ export interface MealAnalysisResult {
   protein: number;
   carbs: number;
   fat: number;
+  fiber?: number;
+  sugar?: number;
+  sodiumMg?: number;
+  saturatedFat?: number;
+  confidenceScore?: number;
+  dietaryFlags?: string[];
+  items?: DetectedFoodItem[];
   healthNotes?: string;
 }
 
@@ -75,6 +95,22 @@ export const getAIMealSuggestions = async (payload: {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
     body: payload,
+  });
+};
+
+export interface ChatMessage {
+  id?: string;
+  role: 'user' | 'model';
+  content: string;
+  createdAt?: string;
+}
+
+export const chatWithCoachApi = async (
+  messages: { role: 'user' | 'model'; content: string }[]
+): Promise<{ success: boolean; message: string }> => {
+  return apiRequest('/api/ai/chat', {
+    method: 'POST',
+    body: { messages },
   });
 };
 

@@ -2,7 +2,15 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import * as userModel from '../models/user.model'
-import { analyzeMealWithAI, generateAIInsights, generateAIWorkout, generateAIMealSuggestions } from '../services/ai.service'
+import { prisma } from '../config/db'
+import {
+  analyzeMealWithAI,
+  generateAIInsights,
+  generateAIWorkout,
+  generateAIMealSuggestions,
+  chatWithAICoach,
+  ChatMessage,
+} from '../services/ai.service'
 
 export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { description, imageBase64, mimeType } = req.body
@@ -71,5 +79,52 @@ export const suggestMeals = asyncHandler(async (req: AuthRequest, res: Response)
   })
 
   res.json({ success: true, suggestions })
+})
+
+export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  const { messages } = req.body
+
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return res.status(400).json({ error: 'Messages array is required.' })
+  }
+
+  let user = null
+  let todayLog = null
+  let todayWorkout = null
+
+  if (userId) {
+    user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, height: true, weight: true, age: true, goal: true },
+    })
+
+    const todayStr = new Date().toISOString().split('T')[0]
+    todayLog = await prisma.dailyFoodLog.findUnique({
+      where: { userId_date: { userId, date: todayStr } },
+      select: { totalCalories: true, totalProtein: true, totalCarbs: true, totalFat: true, waterMl: true },
+    })
+
+    todayWorkout = await prisma.workoutSession.findFirst({
+      where: {
+        userId,
+        createdAt: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+      },
+      select: { title: true, completed: true },
+    })
+  }
+
+  const responseText = await chatWithAICoach(messages as ChatMessage[], {
+    firstName: user?.firstName || 'Friend',
+    weight: user?.weight,
+    height: user?.height,
+    age: user?.age,
+    goal: user?.goal,
+    caloriesLoggedToday: todayLog?.totalCalories,
+    waterMl: todayLog?.waterMl,
+    workoutDoneToday: !!todayWorkout?.completed,
+  })
+
+  res.json({ success: true, message: responseText })
 })
 

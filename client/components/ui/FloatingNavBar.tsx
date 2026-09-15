@@ -88,6 +88,10 @@ export default function FloatingNavBar() {
 
   const bottomInset = Math.max(8, insets.bottom);
 
+  if (pathname && pathname.includes('ai-coach')) {
+    return null;
+  }
+
   return (
     <>
       <View style={[styles.navBarContainer, { pointerEvents: 'box-none' } as any]}>
