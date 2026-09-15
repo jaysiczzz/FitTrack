@@ -2,8 +2,10 @@ import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
 import { Goal } from '@prisma/client'
 import { hashPassword, comparePassword } from '../utils/password.utils'
-import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken } from '../utils/jwt.utils'
+import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllUserTokens } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
+import { AuthRequest } from '../middleware/auth.middleware'
+import { prisma } from '../config/db'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -148,5 +150,51 @@ export const logout = asyncHandler(async (req: Request, res: Response) => {
     }
 
     res.json({ success: true, message: 'Logged out successfully' })
+})
+
+export const changePassword = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id
+    if (!userId) {
+        return res.status(401).json({ error: 'Authentication required' })
+    }
+
+    const { currentPassword, newPassword } = req.body
+
+    const user = await prisma.user.findUnique({
+        where: { id: userId },
+    })
+
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+    }
+
+    const isMatch = await comparePassword(currentPassword, user.password)
+    if (!isMatch) {
+        return res.status(400).json({ error: 'Incorrect current password' })
+    }
+
+    if (currentPassword === newPassword) {
+        return res.status(400).json({ error: 'New password must be different from current password' })
+    }
+
+    const hashedPassword = await hashPassword(newPassword)
+    await prisma.user.update({
+        where: { id: userId },
+        data: { password: hashedPassword },
+    })
+
+    // Revoke all existing refresh tokens for security on password change
+    await revokeAllUserTokens(userId)
+
+    // Issue fresh token pair for the active session
+    const accessToken = signAccessToken({ id: user.id, role: user.role })
+    const refreshToken = await createRefreshToken(user.id)
+
+    res.json({
+        message: 'Password updated successfully',
+        token: accessToken,
+        accessToken,
+        refreshToken,
+    })
 })
 
