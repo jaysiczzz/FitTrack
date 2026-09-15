@@ -18,6 +18,7 @@ import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import NutritionFactsModal from './NutritionFactsModal';
 
 interface AiScanModalProps {
   visible: boolean;
@@ -44,6 +45,8 @@ export default function AiScanModal({
   const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<MealAnalysisResult | null>(null);
+  const [selectedItemIndices, setSelectedItemIndices] = useState<Set<number>>(new Set());
+  const [showNutritionFactsModal, setShowNutritionFactsModal] = useState(false);
 
   React.useEffect(() => {
     if (visible) {
@@ -58,6 +61,8 @@ export default function AiScanModal({
     setImageBase64(null);
     setImageMimeType('image/jpeg');
     setAnalysisResult(null);
+    setSelectedItemIndices(new Set());
+    setShowNutritionFactsModal(false);
     setLoading(false);
   };
 
@@ -162,6 +167,11 @@ export default function AiScanModal({
 
       if (res.success && res.data) {
         setAnalysisResult(res.data);
+        if (res.data.items && res.data.items.length > 0) {
+          setSelectedItemIndices(new Set(res.data.items.map((_, i) => i)));
+        } else {
+          setSelectedItemIndices(new Set());
+        }
       } else {
         showWarning('Analysis Notice', 'Could not analyze meal. Please try again with a clearer image or description.');
       }
@@ -173,33 +183,107 @@ export default function AiScanModal({
     }
   };
 
+  const handleToggleItem = (index: number) => {
+    setSelectedItemIndices((prev) => {
+      const next = new Set(prev);
+      if (next.has(index)) {
+        next.delete(index);
+      } else {
+        next.add(index);
+      }
+
+      if (analysisResult?.items && analysisResult.items.length > 0) {
+        const selected = analysisResult.items.filter((_, i) => next.has(i));
+        if (selected.length > 0) {
+          const sumCalories = selected.reduce((acc, it) => acc + (Number(it.calories) || 0), 0);
+          const sumProtein = selected.reduce((acc, it) => acc + (Number(it.protein) || 0), 0);
+          const sumCarbs = selected.reduce((acc, it) => acc + (Number(it.carbs) || 0), 0);
+          const sumFat = selected.reduce((acc, it) => acc + (Number(it.fat) || 0), 0);
+          const names = selected.map((it) => it.name).join(' + ');
+
+          setAnalysisResult((prevRes) =>
+            prevRes
+              ? {
+                  ...prevRes,
+                  foodName: names,
+                  calories: Math.round(sumCalories),
+                  protein: Math.round(sumProtein * 10) / 10,
+                  carbs: Math.round(sumCarbs * 10) / 10,
+                  fat: Math.round(sumFat * 10) / 10,
+                }
+              : null
+          );
+        }
+      }
+
+      return next;
+    });
+  };
+
   const handleConfirmAndAdd = () => {
     if (!analysisResult) return;
 
-    const smartBadge = getSmartFoodBadge({
-      calories: analysisResult.calories,
-      protein: analysisResult.protein,
-      carbs: analysisResult.carbs,
-      fat: analysisResult.fat,
-      title: analysisResult.foodName,
-    });
+    const hasMultiItems = analysisResult.items && analysisResult.items.length > 1;
+    const selectedItems = hasMultiItems
+      ? (analysisResult.items || []).filter((_, idx) => selectedItemIndices.has(idx))
+      : [];
 
-    const newItem: FoodLogItem = {
-      id: Date.now().toString(),
-      mealType: selectedMeal,
-      title: analysisResult.foodName || 'Scanned Meal',
-      subtitle: analysisResult.servingSize || '1 serving',
-      calories: Number(analysisResult.calories) || 0,
-      protein: Number(analysisResult.protein) || 0,
-      carbs: Number(analysisResult.carbs) || 0,
-      fat: Number(analysisResult.fat) || 0,
-      goalBadge: smartBadge.badge,
-      goalBadgeColor: smartBadge.color,
-      healthNotes: analysisResult.healthNotes,
-      imageUri: selectedImage || undefined,
-    };
+    if (hasMultiItems && selectedItems.length > 0) {
+      // Multi-item logging: Log each individual component detected on the plate
+      selectedItems.forEach((item, idx) => {
+        const smartBadge = getSmartFoodBadge({
+          calories: item.calories,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          title: item.name,
+        });
 
-    onAddMealItem(newItem);
+        const newItem: FoodLogItem = {
+          id: `${Date.now()}-${idx}`,
+          mealType: selectedMeal,
+          title: item.name,
+          subtitle: item.servingSize || '1 serving',
+          calories: Number(item.calories) || 0,
+          protein: Number(item.protein) || 0,
+          carbs: Number(item.carbs) || 0,
+          fat: Number(item.fat) || 0,
+          goalBadge: smartBadge.badge,
+          goalBadgeColor: smartBadge.color,
+          healthNotes: analysisResult.healthNotes,
+          imageUri: selectedImage || undefined,
+        };
+
+        onAddMealItem(newItem);
+      });
+    } else {
+      // Single meal or composite logging
+      const smartBadge = getSmartFoodBadge({
+        calories: analysisResult.calories,
+        protein: analysisResult.protein,
+        carbs: analysisResult.carbs,
+        fat: analysisResult.fat,
+        title: analysisResult.foodName,
+      });
+
+      const newItem: FoodLogItem = {
+        id: Date.now().toString(),
+        mealType: selectedMeal,
+        title: analysisResult.foodName || 'Scanned Meal',
+        subtitle: analysisResult.servingSize || '1 serving',
+        calories: Number(analysisResult.calories) || 0,
+        protein: Number(analysisResult.protein) || 0,
+        carbs: Number(analysisResult.carbs) || 0,
+        fat: Number(analysisResult.fat) || 0,
+        goalBadge: smartBadge.badge,
+        goalBadgeColor: smartBadge.color,
+        healthNotes: analysisResult.healthNotes,
+        imageUri: selectedImage || undefined,
+      };
+
+      onAddMealItem(newItem);
+    }
+
     handleClose();
   };
 
@@ -439,10 +523,14 @@ export default function AiScanModal({
                 title: analysisResult.foodName,
               });
               const badgeStyles = getBadgeStyles(smartBadge.color);
+              const confPct = analysisResult.confidenceScore !== undefined
+                ? Math.round(analysisResult.confidenceScore * 100)
+                : null;
 
               return (
                 <View className="mt-3 p-4 bg-input dark:bg-input-dark rounded-2xl border border-accent/50 dark:border-accent-dark/50 shadow-xs">
-                  <View className="flex-row justify-between items-center mb-3">
+                  {/* Header: Title, Confidence, Smart Badge */}
+                  <View className="flex-row justify-between items-center mb-2">
                     <View className="flex-row items-center">
                       <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
                         AI Detection
@@ -451,12 +539,112 @@ export default function AiScanModal({
                         (Tap to edit)
                       </Text>
                     </View>
-                    <View className={`px-2.5 py-0.5 rounded-full border ${badgeStyles.container}`}>
-                      <Text className={`text-[10px] font-bold ${badgeStyles.text}`}>
-                        {smartBadge.badge}
-                      </Text>
+                    <View className="flex-row items-center gap-1.5">
+                      {confPct !== null && (
+                        <View
+                          className={`px-2 py-0.5 rounded-full border ${
+                            confPct >= 85
+                              ? 'bg-emerald-500/10 border-emerald-500/30'
+                              : confPct >= 65
+                              ? 'bg-amber-500/10 border-amber-500/30'
+                              : 'bg-zinc-500/10 border-zinc-500/30'
+                          }`}
+                        >
+                          <Text
+                            className={`text-[9px] font-bold ${
+                              confPct >= 85
+                                ? 'text-emerald-500 dark:text-emerald-400'
+                                : confPct >= 65
+                                ? 'text-amber-500 dark:text-amber-400'
+                                : 'text-text-muted dark:text-text-muted-dark'
+                            }`}
+                          >
+                            {confPct}% confidence
+                          </Text>
+                        </View>
+                      )}
+                      <View className={`px-2.5 py-0.5 rounded-full border ${badgeStyles.container}`}>
+                        <Text className={`text-[10px] font-bold ${badgeStyles.text}`}>
+                          {smartBadge.badge}
+                        </Text>
+                      </View>
                     </View>
                   </View>
+
+                  {/* Dietary Flags */}
+                  {analysisResult.dietaryFlags && analysisResult.dietaryFlags.length > 0 && (
+                    <View className="flex-row flex-wrap gap-1 mb-2.5">
+                      {analysisResult.dietaryFlags.map((flag, idx) => (
+                        <View
+                          key={idx}
+                          className="bg-surface dark:bg-surface-dark px-2 py-0.5 rounded-md border border-input-border dark:border-input-border-dark"
+                        >
+                          <Text className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark">
+                            {flag}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
+                  {/* Multi-item Breakdown (if multiple items detected) */}
+                  {analysisResult.items && analysisResult.items.length > 1 && (
+                    <View className="mb-3 p-2.5 bg-surface dark:bg-surface-dark rounded-xl border border-input-border dark:border-input-border-dark">
+                      <View className="flex-row justify-between items-center mb-2">
+                        <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                          Detected Plate Items ({selectedItemIndices.size}/{analysisResult.items.length})
+                        </Text>
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                          Tap to select
+                        </Text>
+                      </View>
+                      <View className="gap-1.5">
+                        {analysisResult.items.map((item, idx) => {
+                          const isSelected = selectedItemIndices.has(idx);
+                          return (
+                            <TouchableOpacity
+                              key={idx}
+                              activeOpacity={0.7}
+                              onPress={() => handleToggleItem(idx)}
+                              className={`flex-row items-center justify-between p-2 rounded-lg border ${
+                                isSelected
+                                  ? 'bg-accent/5 dark:bg-accent-dark/5 border-accent/40 dark:border-accent-dark/40'
+                                  : 'bg-input/50 dark:bg-input-dark/50 border-input-border dark:border-input-border-dark opacity-40'
+                              }`}
+                            >
+                              <View className="flex-row items-center flex-1 pr-2">
+                                <Ionicons
+                                  name={isSelected ? 'checkbox' : 'square-outline'}
+                                  size={18}
+                                  color={isSelected ? colors.accent : colors.textMuted}
+                                  style={{ marginRight: 6 }}
+                                />
+                                <View className="flex-1">
+                                  <Text
+                                    className="text-xs font-semibold text-text-primary dark:text-text-primary-dark"
+                                    numberOfLines={1}
+                                  >
+                                    {item.name}
+                                  </Text>
+                                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                                    {item.servingSize}
+                                  </Text>
+                                </View>
+                              </View>
+                              <View className="items-end">
+                                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                                  {item.calories} kcal
+                                </Text>
+                                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">
+                                  {item.protein}P • {item.carbs}C • {item.fat}F
+                                </Text>
+                              </View>
+                            </TouchableOpacity>
+                          );
+                        })}
+                      </View>
+                    </View>
+                  )}
 
                   {/* Food Name Input */}
                   <View className="mb-2.5">
@@ -510,7 +698,7 @@ export default function AiScanModal({
                   </View>
 
                   {/* Macro Breakdown Inputs */}
-                  <View className="flex-row justify-between gap-2 mb-3">
+                  <View className="flex-row justify-between gap-2 mb-2.5">
                     <View className="flex-1 bg-surface dark:bg-surface-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                       <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold">Protein</Text>
                       <View className="flex-row items-baseline justify-center mt-0.5">
@@ -567,6 +755,56 @@ export default function AiScanModal({
                     </View>
                   </View>
 
+                  {/* Micronutrient Summary (Fiber, Sugar, Sodium, Saturated Fat) */}
+                  {(analysisResult.fiber !== undefined ||
+                    analysisResult.sugar !== undefined ||
+                    analysisResult.sodiumMg !== undefined ||
+                    analysisResult.saturatedFat !== undefined) && (
+                    <View className="mb-2.5 p-2 bg-surface/70 dark:bg-surface-dark/70 rounded-xl border border-input-border/70 dark:border-input-border-dark/70">
+                      <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1 px-1">
+                        Micronutrients
+                      </Text>
+                      <View className="flex-row justify-between">
+                        <View className="items-center flex-1">
+                          <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Fiber</Text>
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                            {analysisResult.fiber ?? 0}g
+                          </Text>
+                        </View>
+                        <View className="items-center flex-1">
+                          <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Sugar</Text>
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                            {analysisResult.sugar ?? 0}g
+                          </Text>
+                        </View>
+                        <View className="items-center flex-1">
+                          <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Sodium</Text>
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                            {analysisResult.sodiumMg ?? 0}mg
+                          </Text>
+                        </View>
+                        <View className="items-center flex-1">
+                          <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Sat. Fat</Text>
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                            {analysisResult.saturatedFat ?? 0}g
+                          </Text>
+                        </View>
+                      </View>
+                    </View>
+                  )}
+
+                  {/* FDA Nutrition Facts Modal Trigger */}
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => setShowNutritionFactsModal(true)}
+                    className="flex-row items-center justify-center p-2.5 rounded-xl border border-accent/40 dark:border-accent-dark/40 bg-accent/5 dark:bg-accent-dark/5 mb-3"
+                  >
+                    <Ionicons name="document-text-outline" size={16} color={colors.accent} style={{ marginRight: 6 }} />
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                      View FDA-Style Nutrition Facts Label
+                    </Text>
+                  </TouchableOpacity>
+
                   {/* AI Health Tip */}
                   {analysisResult.healthNotes ? (
                     <View className="bg-surface/80 dark:bg-surface-dark/80 p-2.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 mb-3">
@@ -583,7 +821,9 @@ export default function AiScanModal({
                     className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
                   >
                     <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
-                      + Add to {MEAL_LABELS[selectedMeal]}
+                      {analysisResult.items && analysisResult.items.length > 1
+                        ? `+ Add ${selectedItemIndices.size} Item${selectedItemIndices.size === 1 ? '' : 's'} to ${MEAL_LABELS[selectedMeal]}`
+                        : `+ Add to ${MEAL_LABELS[selectedMeal]}`}
                     </Text>
                   </TouchableOpacity>
                 </View>
@@ -592,6 +832,33 @@ export default function AiScanModal({
           </ScrollView>
         </View>
       </View>
+
+      {/* Embedded Nutrition Facts Modal */}
+      <NutritionFactsModal
+        visible={showNutritionFactsModal}
+        onClose={() => setShowNutritionFactsModal(false)}
+        data={
+          analysisResult
+            ? {
+                title: analysisResult.foodName || 'Scanned Meal',
+                subtitle:
+                  analysisResult.items && analysisResult.items.length > 1
+                    ? `${analysisResult.items.length} plate items detected`
+                    : undefined,
+                servingSize: analysisResult.servingSize || '1 serving',
+                calories: Number(analysisResult.calories) || 0,
+                protein: Number(analysisResult.protein) || 0,
+                carbs: Number(analysisResult.carbs) || 0,
+                fat: Number(analysisResult.fat) || 0,
+                fiber: analysisResult.fiber,
+                sugar: analysisResult.sugar,
+                sodiumMg: analysisResult.sodiumMg,
+                saturatedFat: analysisResult.saturatedFat,
+                dietaryFlags: analysisResult.dietaryFlags,
+              }
+            : null
+        }
+      />
     </Modal>
   );
 }

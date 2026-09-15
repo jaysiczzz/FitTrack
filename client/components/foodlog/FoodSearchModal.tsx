@@ -34,6 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import FilterChip from '../ui/FilterChip';
 import InModalToast from '../ui/InModalToast';
+import NutritionFactsModal from './NutritionFactsModal';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface FoodSearchModalProps {
@@ -75,6 +76,7 @@ export default function FoodSearchModal({
     description?: string;
     icon?: string;
   } | null>(null);
+  const [showNutritionFacts, setShowNutritionFacts] = useState(false);
 
   const debounceTimerRef = useRef<any>(null);
 
@@ -87,6 +89,7 @@ export default function FoodSearchModal({
       setActiveCategory(initialCategory || 'ALL');
       setSessionAddedCount(0);
       setInModalToast(null);
+      setShowNutritionFacts(false);
       getRecentLoggedFoods().then((list) => {
         setRecentFoods(list);
       });
@@ -692,6 +695,18 @@ export default function FoodSearchModal({
                       </View>
                     </View>
 
+                    {/* FDA Nutrition Facts Trigger */}
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => setShowNutritionFacts(true)}
+                      className="flex-row items-center justify-center p-2.5 rounded-xl border border-accent/40 dark:border-accent-dark/40 bg-accent/5 dark:bg-accent-dark/5 mb-2.5"
+                    >
+                      <Ionicons name="document-text-outline" size={15} color={colors.accent} style={{ marginRight: 6 }} />
+                      <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                        View Nutrition Facts
+                      </Text>
+                    </TouchableOpacity>
+
                     {/* Log Button */}
                     <TouchableOpacity
                       onPress={handleConfirmLog}
@@ -716,6 +731,33 @@ export default function FoodSearchModal({
             icon={inModalToast?.icon || '✓'}
             onDismiss={() => setInModalToast(null)}
             bottomOffset={20}
+          />
+
+          {/* Embedded Nutrition Facts Modal */}
+          <NutritionFactsModal
+            visible={showNutritionFacts}
+            onClose={() => setShowNutritionFacts(false)}
+            data={
+              selectedItem
+                ? {
+                    title: selectedItem.name,
+                    subtitle: selectedItem.brand,
+                    servingSize:
+                      portionMode === 'grams'
+                        ? `${portionAmount}g`
+                        : `${portionAmount} ${selectedItem.servingUnit || 'serving'}${parseFloat(portionAmount) > 1 ? 's' : ''}`,
+                    calories: currentMacros.calories,
+                    protein: currentMacros.protein,
+                    carbs: currentMacros.carbs,
+                    fat: currentMacros.fat,
+                    fiber: selectedItem.fiber
+                      ? Math.round(
+                          (selectedItem.fiber * (currentMacros.calories / (selectedItem.calories || 1))) * 10
+                        ) / 10
+                      : undefined,
+                  }
+                : null
+            }
           />
         </View>
       </SafeAreaView>

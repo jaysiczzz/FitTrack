@@ -58,6 +58,19 @@ async function generateWithFallback(
   throw lastError || new Error('All AI models failed to generate content.')
 }
 
+export interface DetectedFoodItem {
+  name: string
+  servingSize: string
+  calories: number
+  protein: number
+  carbs: number
+  fat: number
+  fiber?: number
+  sugar?: number
+  sodiumMg?: number
+  saturatedFat?: number
+}
+
 export interface MealAnalysisResult {
   foodName: string
   servingSize: string
@@ -65,6 +78,13 @@ export interface MealAnalysisResult {
   protein: number
   carbs: number
   fat: number
+  fiber?: number
+  sugar?: number
+  sodiumMg?: number
+  saturatedFat?: number
+  confidenceScore?: number // 0.0 to 1.0 (e.g. 0.94 for 94%)
+  dietaryFlags?: string[] // e.g. ["High Protein", "Low Carb", "Dairy-Free"]
+  items?: DetectedFoodItem[] // Breakdown of individual items on composite plates
   healthNotes?: string
 }
 
@@ -76,14 +96,14 @@ export async function analyzeMealWithAI(params: {
   const promptText = `Analyze this meal (from text description and/or image) and provide accurate nutritional estimation.
   User Description: ${params.description || 'Not provided'}
   
-  Return a structured JSON with:
-  - foodName: Name of the meal or food item(s)
-  - servingSize: Estimated portion size (e.g. "1 plate", "200g")
-  - calories: Total estimated calories (integer)
-  - protein: Protein in grams (integer or float)
-  - carbs: Carbs in grams (integer or float)
-  - fat: Fat in grams (integer or float)
-  - healthNotes: Brief 1-sentence health insight or tip about this meal`
+  Guidelines:
+  - If multiple distinct food items are visible on the plate (e.g., grilled chicken breast, white rice, broccoli), identify each item in the "items" array with its individual estimated portion and macros.
+  - Sum the items into the overall meal totals (calories, protein, carbs, fat, fiber, sugar, sodiumMg, saturatedFat).
+  - Estimate a confidenceScore between 0.60 and 0.98 based on visual clarity and portion visibility.
+  - Include relevant dietaryFlags (e.g. "High Protein", "Low Carb", "Keto-Friendly", "High Fiber", "Whole Foods").
+  - Provide a brief 1-sentence health insight or tip in healthNotes.
+  
+  Return a structured JSON.`
 
   const contents: any[] = []
 
@@ -113,6 +133,34 @@ export async function analyzeMealWithAI(params: {
         protein: { type: Type.NUMBER },
         carbs: { type: Type.NUMBER },
         fat: { type: Type.NUMBER },
+        fiber: { type: Type.NUMBER },
+        sugar: { type: Type.NUMBER },
+        sodiumMg: { type: Type.NUMBER },
+        saturatedFat: { type: Type.NUMBER },
+        confidenceScore: { type: Type.NUMBER },
+        dietaryFlags: {
+          type: Type.ARRAY,
+          items: { type: Type.STRING },
+        },
+        items: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              name: { type: Type.STRING },
+              servingSize: { type: Type.STRING },
+              calories: { type: Type.NUMBER },
+              protein: { type: Type.NUMBER },
+              carbs: { type: Type.NUMBER },
+              fat: { type: Type.NUMBER },
+              fiber: { type: Type.NUMBER },
+              sugar: { type: Type.NUMBER },
+              sodiumMg: { type: Type.NUMBER },
+              saturatedFat: { type: Type.NUMBER },
+            },
+            required: ['name', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
+          },
+        },
         healthNotes: { type: Type.STRING },
       },
       required: ['foodName', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
@@ -301,5 +349,57 @@ Return a JSON array of 3 meal objects:
   })
 
   return JSON.parse(text) as MealSuggestion[]
+}
+
+export interface ChatMessage {
+  role: 'user' | 'model'
+  content: string
+}
+
+export interface UserChatContext {
+  firstName?: string
+  weight?: number
+  height?: number
+  age?: number
+  goal?: string
+  caloriesLoggedToday?: number
+  targetCalories?: number
+  waterMl?: number
+  workoutDoneToday?: boolean
+}
+
+export async function chatWithAICoach(
+  messages: ChatMessage[],
+  context: UserChatContext = {}
+): Promise<string> {
+  const systemPrompt = `You are FitTrack Coach, an elite, motivating, evidence-based fitness and nutrition coach inside the FitTrack mobile app.
+You are conversing directly with ${context.firstName || 'the user'}.
+
+User Profile & Live Stats Today:
+- Fitness Goal: ${context.goal || 'General Health & Fitness'}
+- Body Stats: ${context.weight ? context.weight + ' kg' : 'N/A'}, ${context.height ? context.height + ' cm' : 'N/A'}, ${context.age ? context.age + ' years old' : 'N/A'}
+- Today's Nutrition: ${context.caloriesLoggedToday ?? 0} kcal logged (Target: ${context.targetCalories || 2000} kcal)
+- Water Intake: ${context.waterMl ?? 0} / 2000 ml
+- Today's Workout: ${context.workoutDoneToday ? 'Completed! 💪' : 'Not completed yet today'}
+
+Coaching Principles:
+1. Provide actionable, concise, science-backed guidance on nutrition, macros, workout programming, exercise form, recovery, and fitness mindset.
+2. Keep answers formatted for clean mobile reading: use short paragraphs, bold key terms, and bullet points.
+3. If giving meal ideas, provide approximate calories and protein estimates.
+4. If asked about exercise technique, emphasize safety, breathing, and progressive overload.
+5. If the user mentions injury, chest pain, or medical concerns, compassionately advise seeing a doctor or physical therapist.
+6. Speak in an encouraging, knowledgeable, coaching tone.`
+
+  const conversationHistory = messages.map((m) => {
+    return `${m.role === 'user' ? 'User' : 'FitTrack Coach'}: ${m.content}`
+  }).join('\n\n')
+
+  const prompt = `${systemPrompt}\n\n=== Conversation History ===\n${conversationHistory}\n\nFitTrack Coach:`
+
+  const responseText = await generateWithFallback(prompt, {
+    temperature: 0.7,
+  })
+
+  return responseText.trim()
 }
 

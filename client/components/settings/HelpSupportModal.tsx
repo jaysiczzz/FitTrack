@@ -171,7 +171,7 @@ export default function HelpSupportModal({
   };
 
   const handleDirectEmail = () => {
-    const emailUrl = `mailto:support@fittrack.com?subject=${encodeURIComponent(
+    const emailUrl = `mailto:fittrack.app.help@gmail.com?subject=${encodeURIComponent(
       subject ? `[FitTrack Support] ${subject}` : 'FitTrack Support Request'
     )}&body=${encodeURIComponent(message || '')}`;
     Linking.openURL(emailUrl).catch(() => {
@@ -440,7 +440,7 @@ export default function HelpSupportModal({
                 >
                   <Ionicons name="mail-outline" size={16} color={colors.textPrimary} className="mr-2" />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Email Support Directly (support@fittrack.com)
+                    Email Support Directly (fittrack.app.help@gmail.com)
                   </Text>
                 </TouchableOpacity>
               </View>

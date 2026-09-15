@@ -28,7 +28,9 @@ router.post(
       if (user) contactEmail = user.email
     }
 
-    console.log(`[Support Feedback Received] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${contactEmail || 'N/A'})`)
+    console.log(
+      `[Support Feedback Received -> fittrack.app.help@gmail.com] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${contactEmail || 'N/A'})`
+    )
 
     res.status(201).json({
       success: true,
