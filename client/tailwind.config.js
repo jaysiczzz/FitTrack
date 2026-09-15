@@ -11,48 +11,48 @@ module.exports = {
     extend: {
       colors: {
         background: {
-          DEFAULT: '#F7F8FA',
-          dark: '#0B0F1A',
+          DEFAULT: '#F8FAFC',
+          dark: '#0B0F19',
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          dark: '#111726',
+          dark: '#141C2E',
         },
         input: {
-          DEFAULT: '#EEF1F5',
-          dark: '#1B2333',
+          DEFAULT: '#F1F5F9',
+          dark: '#1A2337',
         },
         'input-border': {
-          DEFAULT: '#DDE2EA',
-          dark: '#2A3346',
+          DEFAULT: '#E2E8F0',
+          dark: '#27344D',
         },
         accent: {
-          DEFAULT: '#00B386',
-          dark: '#00E5A0',
+          DEFAULT: '#0D7A57',
+          dark: '#10B981',
         },
         'text-primary': {
-          DEFAULT: '#0B0F1A',
-          dark: '#FFFFFF',
+          DEFAULT: '#0F172A',
+          dark: '#F8FAFC',
         },
         'text-muted': {
-          DEFAULT: '#5C6478',
-          dark: '#8A93A6',
+          DEFAULT: '#526175',
+          dark: '#94A3B8',
         },
         danger: {
-          DEFAULT: '#EF4444',
+          DEFAULT: '#DC2626',
           dark: '#F87171',
         },
         info: {
-          DEFAULT: '#0EA5E9',
+          DEFAULT: '#0284C7',
           dark: '#38BDF8',
         },
         warning: {
-          DEFAULT: '#F59E0B',
+          DEFAULT: '#D97706',
           dark: '#FBBF24',
         },
         tertiary: {
-          DEFAULT: '#9333EA',
-          dark: '#C084FC',
+          DEFAULT: '#64748B',
+          dark: '#94A3B8',
         },
       },
     },

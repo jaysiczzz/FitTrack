@@ -14,7 +14,7 @@ export interface ProgressBarProps {
   label?: string;
   /** Custom right-hand value text (overrides default auto-formatted text) */
   valueText?: string;
-  /** Bar fill color (hex string, default: '#00E5A0') */
+  /** Bar fill color (hex string, default: accent) */
   color?: string;
   /** Bar height in pixels (default: 6) */
   height?: number;
@@ -32,11 +32,10 @@ export default function ProgressBar({
   label,
   valueText,
   color,
-  height = 8,
-  className = 'mb-2',
+  height = 6,
+  className = 'mb-2.5',
   trackClassName,
 }: ProgressBarProps) {
-  // Calculate percentage if not explicitly provided
   const computedPercentage =
     explicitPercentage !== undefined
       ? explicitPercentage
@@ -47,11 +46,10 @@ export default function ProgressBar({
   const clampedPercentage = Math.min(100, Math.max(0, computedPercentage));
   const fillWidth = `${clampedPercentage}%` as DimensionValue;
 
-  // Render right-side value text
   const renderValueText = () => {
     if (valueText !== undefined) {
       return (
-        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+        <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
           {valueText}
         </Text>
       );
@@ -59,12 +57,11 @@ export default function ProgressBar({
 
     if (current !== undefined && target !== undefined) {
       return (
-        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+        <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
           {current}{unit}{' '}
           <Text className="text-text-muted dark:text-text-muted-dark font-normal">
             / {target}{unit}
-          </Text>{' '}
-          ({clampedPercentage}%)
+          </Text>
         </Text>
       );
     }
@@ -77,9 +74,9 @@ export default function ProgressBar({
   return (
     <View className={className}>
       {hasHeader ? (
-        <View className="flex-row justify-between items-center mb-1">
+        <View className="flex-row justify-between items-center mb-1.5">
           {label ? (
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs font-semibold">
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs font-medium">
               {label}
             </Text>
           ) : (

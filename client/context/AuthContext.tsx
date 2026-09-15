@@ -3,6 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
 import { authStorage } from '@/utils/authStorage';
 import { getUserProfile } from '@/api/user';
+import { logoutUserApi } from '@/api/auth';
 
 export interface AuthUser {
   id?: string;
@@ -21,7 +22,7 @@ interface AuthContextValue {
   token: string | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (token: string, user: AuthUser) => Promise<void>;
+  login: (token: string, user: AuthUser, refreshToken?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updatedUser: AuthUser) => Promise<void>;
   refreshProfile: () => Promise<void>;
@@ -96,12 +97,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     };
   }, [router]);
 
-  const login = useCallback(async (newToken: string, newUser: AuthUser) => {
+  const login = useCallback(async (newToken: string, newUser: AuthUser, newRefreshToken?: string) => {
     // If logging into a different account, wipe any previous account caches
     if (user?.id && user.id !== newUser.id) {
       await authStorage.clearAuth();
     }
     await authStorage.setToken(newToken);
+    if (newRefreshToken) {
+      await authStorage.setRefreshToken(newRefreshToken);
+    }
     await authStorage.setUser(newUser);
     setToken(newToken);
     setUser(newUser);
@@ -110,12 +114,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, [router, user?.id]);
 
   const logout = useCallback(async () => {
+    try {
+      const storedRefreshToken = await authStorage.getRefreshToken();
+      if (storedRefreshToken) {
+        await logoutUserApi(storedRefreshToken).catch(() => {});
+      }
+    } catch {}
     await authStorage.clearAuth();
     setToken(null);
     setUser(null);
     DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     router.replace('/(auth)');
   }, [router]);
+
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
     setUser(updatedUser);

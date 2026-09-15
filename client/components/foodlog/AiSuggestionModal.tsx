@@ -3,7 +3,8 @@ import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } fr
 import { MealType, FoodLogItem } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import InModalToast from '../ui/InModalToast';
 
@@ -24,6 +25,7 @@ export default function AiSuggestionModal({
   remainingCalories,
   remainingProtein,
 }: AiSuggestionModalProps) {
+  const { colors } = useThemeColors();
   const { showWarning, showError } = useToast();
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<MealSuggestion[]>([]);
@@ -82,7 +84,7 @@ export default function AiSuggestionModal({
       protein: rec.protein,
       carbs: rec.carbs,
       fat: rec.fat,
-      goalBadge: isMuscleGain ? '💪 Muscle Builder' : '🔥 Fat Loss Pick',
+      goalBadge: isMuscleGain ? 'Muscle Builder' : 'Fat Loss Pick',
       goalBadgeColor: 'green',
       icon: rec.icon || '🥗',
       healthNotes: rec.reason,
@@ -181,18 +183,20 @@ export default function AiSuggestionModal({
               <TouchableOpacity
                 onPress={generateRecommendations}
                 disabled={loading}
-                className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl border border-accent/30"
+                className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl border border-accent/30 items-center justify-center"
               >
-                <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-                  {loading ? '...' : '🔄'}
-                </Text>
+                {loading ? (
+                  <ActivityIndicator size="small" color={colors.accent} />
+                ) : (
+                  <Ionicons name="refresh" size={14} color={colors.accent} />
+                )}
               </TouchableOpacity>
             </View>
           </View>
 
           {loading ? (
             <View className="py-12 items-center justify-center">
-              <ActivityIndicator size="large" color={COLORS.accent.DEFAULT} />
+              <ActivityIndicator size="large" color={colors.accent} />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
                 Crafting personalized meal suggestions for you...
               </Text>
@@ -212,7 +216,7 @@ export default function AiSuggestionModal({
                           {rec.title}
                         </Text>
                         <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-                          ⏱️ {rec.prepTime} · Ideal for {rec.category.toUpperCase()}
+                          {rec.prepTime} · Ideal for {rec.category.toUpperCase()}
                         </Text>
                       </View>
                     </View>

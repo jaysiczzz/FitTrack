@@ -8,28 +8,24 @@ interface Props {
 
 const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
   return (
-    <View
-      className="flex-row bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-xl mb-4 p-1 w-full"
-      style={Platform.select({
-        web: { boxShadow: '0 2px 8px rgba(0, 0, 0, 0.04)' } as any,
-        default: { elevation: 1 },
-      })}
-    >
+    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl mb-4 p-1 w-full">
       <TouchableOpacity
         activeOpacity={0.8}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active === 'login' }}
         className={`flex-1 py-2 items-center justify-center rounded-lg ${
           active === 'login'
-            ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+            ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
             : ''
         }`}
         style={
           active === 'login'
             ? Platform.select({
                 web: {
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                 } as any,
                 default: {
-                  elevation: 2,
+                  elevation: 1,
                 },
               })
             : undefined
@@ -37,30 +33,33 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         onPress={() => onChange('login')}
       >
         <Text
-          className={`font-bold text-xs ${
+          className={`text-xs ${
             active === 'login'
-              ? 'text-text-primary dark:text-text-primary-dark'
+              ? 'text-text-primary dark:text-text-primary-dark font-bold'
               : 'text-text-muted dark:text-text-muted-dark font-medium'
           }`}
         >
           Log In
         </Text>
       </TouchableOpacity>
+
       <TouchableOpacity
         activeOpacity={0.8}
+        accessibilityRole="tab"
+        accessibilityState={{ selected: active === 'register' }}
         className={`flex-1 py-2 items-center justify-center rounded-lg ${
           active === 'register'
-            ? 'bg-input dark:bg-input-dark border border-input-border/80 dark:border-input-border-dark/80'
+            ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
             : ''
         }`}
         style={
           active === 'register'
             ? Platform.select({
                 web: {
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.12)',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
                 } as any,
                 default: {
-                  elevation: 2,
+                  elevation: 1,
                 },
               })
             : undefined
@@ -68,9 +67,9 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         onPress={() => onChange('register')}
       >
         <Text
-          className={`font-bold text-xs ${
+          className={`text-xs ${
             active === 'register'
-              ? 'text-text-primary dark:text-text-primary-dark'
+              ? 'text-text-primary dark:text-text-primary-dark font-bold'
               : 'text-text-muted dark:text-text-muted-dark font-medium'
           }`}
         >

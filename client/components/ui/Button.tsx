@@ -1,46 +1,98 @@
 import React from 'react';
 import { TouchableOpacity, Text, ViewStyle, ActivityIndicator, Platform } from 'react-native';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
+
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
 
 interface Props {
   title: string;
   onPress?: () => void;
   disabled?: boolean;
   loading?: boolean;
+  variant?: ButtonVariant;
   style?: ViewStyle;
+  className?: string;
 }
 
-const Button: React.FC<Props> = ({ title, onPress, disabled, loading, style }) => {
+const Button: React.FC<Props> = ({
+  title,
+  onPress,
+  disabled,
+  loading,
+  variant = 'primary',
+  style,
+  className = '',
+}) => {
+  const { colors, isDark } = useThemeColors();
   const isDisabled = disabled || loading;
+
+  const getVariantStyles = () => {
+    if (isDisabled) {
+      return {
+        container: 'bg-input dark:bg-input-dark border border-input-border/60 dark:border-input-border-dark/60 opacity-60',
+        text: 'text-text-muted dark:text-text-muted-dark',
+        spinner: colors.textMuted,
+      };
+    }
+
+    switch (variant) {
+      case 'secondary':
+        return {
+          container: 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-80',
+          text: 'text-text-primary dark:text-text-primary-dark font-bold',
+          spinner: colors.textPrimary,
+        };
+      case 'outline':
+        return {
+          container: 'bg-transparent border border-input-border dark:border-input-border-dark active:opacity-75',
+          text: 'text-text-primary dark:text-text-primary-dark font-semibold',
+          spinner: colors.textPrimary,
+        };
+      case 'danger':
+        return {
+          container: 'bg-danger active:opacity-90',
+          text: 'text-white font-bold',
+          spinner: '#FFFFFF',
+        };
+      case 'primary':
+      default:
+        return {
+          container: 'bg-accent dark:bg-accent-dark active:opacity-90',
+          text: 'text-white dark:text-background-dark font-bold',
+          spinner: isDark ? colors.background : '#FFFFFF',
+        };
+    }
+  };
+
+  const v = getVariantStyles();
 
   return (
     <TouchableOpacity
-      activeOpacity={0.9}
+      activeOpacity={0.85}
       onPress={onPress}
       disabled={isDisabled}
-      className={`h-12 rounded-xl items-center justify-center w-full ${
-        isDisabled ? 'bg-input-border dark:bg-input-border-dark opacity-80' : 'bg-accent dark:bg-accent-dark'
-      }`}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled }}
+      className={`h-12 rounded-xl items-center justify-center w-full px-4 ${v.container} ${className}`}
       style={[
         Platform.select({
           web: {
-            boxShadow: isDisabled ? '0 2px 8px rgba(0, 229, 160, 0.06)' : '0 6px 16px rgba(0, 229, 160, 0.18)',
+            boxShadow:
+              isDisabled || variant !== 'primary'
+                ? 'none'
+                : '0 2px 8px rgba(13, 122, 87, 0.16)',
           } as any,
           default: {
-            elevation: isDisabled ? 1 : 3,
+            elevation: isDisabled || variant !== 'primary' ? 0 : 1,
           },
         }),
         style,
       ]}
     >
       {loading ? (
-        <ActivityIndicator color={COLORS.textPrimary.light} size="small" />
+        <ActivityIndicator color={v.spinner} size="small" />
       ) : (
-        <Text
-          className={`font-bold text-base ${
-            isDisabled ? 'text-text-muted dark:text-text-muted-dark' : 'text-white dark:text-background-dark'
-          }`}
-        >
+        <Text className={`text-sm tracking-wide ${v.text}`}>
           {title}
         </Text>
       )}

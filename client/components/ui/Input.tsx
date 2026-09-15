@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
-import { useColorScheme } from 'nativewind';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface Props extends TextInputProps {
   label?: string;
@@ -27,10 +26,9 @@ const Input = React.forwardRef<TextInput, Props>(
     },
     ref
   ) => {
-    const { colorScheme } = useColorScheme();
-    const isDark = colorScheme === 'dark';
-    const placeholderColor = isDark ? COLORS.textMuted.dark : COLORS.textMuted.light;
-    const defaultIconColor = isDark ? COLORS.textMuted.dark : COLORS.textMuted.light;
+    const { colors, isDark } = useThemeColors();
+    const placeholderColor = colors.textMuted;
+    const defaultIconColor = colors.textMuted;
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
@@ -76,9 +74,9 @@ const Input = React.forwardRef<TextInput, Props>(
               className="absolute right-3 p-1 items-center justify-center rounded-lg"
             >
               <Ionicons
-                name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                size={19}
-                color={isFocused ? (isDark ? COLORS.accent.dark : COLORS.accent.light) : defaultIconColor}
+                name={showPassword ? 'eye-off' : 'eye'}
+                size={20}
+                color={isFocused ? colors.accent : defaultIconColor}
               />
             </TouchableOpacity>
           ) : unit ? (

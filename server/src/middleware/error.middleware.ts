@@ -32,5 +32,10 @@ export const errorHandler = (
     return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' })
   }
 
-  res.status(500).json({ error: err.message || 'Something went wrong on our end. Please try again.' })
-}
+  const isProduction = process.env.NODE_ENV === 'production'
+  const message = isProduction
+    ? 'An unexpected error occurred. Please try again later.'
+    : (err.message || 'Something went wrong on our end. Please try again.')
+
+  res.status(500).json({ error: message })
+}

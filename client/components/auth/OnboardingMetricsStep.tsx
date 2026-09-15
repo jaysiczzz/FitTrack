@@ -146,7 +146,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
         <View className="w-full bg-surface dark:bg-surface-dark border border-accent/30 dark:border-accent-dark/30 rounded-xl p-3 mb-3.5">
           <View className="flex-row items-center justify-between mb-2">
             <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-              ⚡ Projected Targets
+              Projected Targets
             </Text>
             <View className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-full">
               <Text className={`text-[10px] font-bold ${statsPreview.bmiColor}`}>
@@ -181,13 +181,13 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       ) : (
         <View className="w-full bg-surface/50 dark:bg-surface-dark/50 border border-input-border/50 dark:border-input-border-dark/50 rounded-xl p-2.5 mb-3.5">
           <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-center">
-            💡 Enter height & weight to preview live calorie & macro targets.
+            Enter height & weight to preview live calorie & macro targets.
           </Text>
         </View>
       )}
 
       <Button
-        title="Generate My AI Plan ⚡"
+        title="Generate My Plan"
         onPress={onNext}
       />
     </View>

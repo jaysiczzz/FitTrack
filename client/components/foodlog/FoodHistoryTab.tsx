@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
 import FoodHistoryDayCard from './FoodHistoryDayCard';
-import { COLORS } from '../../constants/colors';
+import { useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 import {
   DailyFoodHistorySummary,
@@ -41,6 +42,7 @@ export default function FoodHistoryTab({
   onReLogItem,
   onSwitchToToday,
 }: FoodHistoryTabProps) {
+  const { colors } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
   const { showSuccess } = useToast();
@@ -299,7 +301,7 @@ export default function FoodHistoryTab({
   if (loading) {
     return (
       <View className="py-12 items-center justify-center">
-        <ActivityIndicator size="large" color={COLORS.accent.light} />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
           Loading 15-day nutrition history...
         </Text>
@@ -329,7 +331,7 @@ export default function FoodHistoryTab({
                 : 'text-text-muted dark:text-text-muted-dark'
             }`}
           >
-            🗓️ Past 15 Days
+            15 Days
           </Text>
         </TouchableOpacity>
 
@@ -351,7 +353,7 @@ export default function FoodHistoryTab({
                 : 'text-text-muted dark:text-text-muted-dark'
             }`}
           >
-            📅 Last 7 Days
+            7 Days
           </Text>
         </TouchableOpacity>
 
@@ -373,7 +375,7 @@ export default function FoodHistoryTab({
                 : 'text-text-muted dark:text-text-muted-dark'
             }`}
           >
-            📚 All Time
+            All Time
           </Text>
         </TouchableOpacity>
       </View>
@@ -385,7 +387,6 @@ export default function FoodHistoryTab({
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
               15-Day Consistency Strip
             </Text>
-            <Text className="text-xs">🔥</Text>
           </View>
           <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
             <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
@@ -487,7 +488,7 @@ export default function FoodHistoryTab({
               ? 'Past 15 Days Nutrition Averages'
               : selectedRange === '7days'
               ? 'Last 7 Days Nutrition Averages'
-              : 'All-Time Nutrition Averages'} 📊
+              : 'All-Time Nutrition Averages'}
           </Text>
           <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full">
             <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
@@ -529,14 +530,16 @@ export default function FoodHistoryTab({
       <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-3">
         {selectedDayFilter
           ? `Meals for ${formatDateHeading(selectedDayFilter)}`
-          : `Logged Daily Records (${filteredHistory.length})`} 📖
+          : `Logged Daily Records (${filteredHistory.length})`}
       </Text>
 
       {filteredHistory.length === 0 ? (
         <SurfaceCard className="p-6 items-center justify-center my-2">
-          <Text className="text-4xl mb-2">🗓️</Text>
+          <View className="w-12 h-12 rounded-2xl bg-input dark:bg-input-dark items-center justify-center mb-3">
+            <Ionicons name="calendar" size={26} color={colors.textMuted} />
+          </View>
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center mb-1">
-            No Records Found in Selected Range
+            No Records Found
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[240px]">
             Log your meals and tap "Complete Day" to build your nutrition history.
@@ -547,7 +550,7 @@ export default function FoodHistoryTab({
             className="bg-accent dark:bg-accent-dark px-5 py-2.5 rounded-xl shadow-xs"
           >
             <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
-              + Log Today's Meal
+              Log Today's Meal
             </Text>
           </TouchableOpacity>
         </SurfaceCard>

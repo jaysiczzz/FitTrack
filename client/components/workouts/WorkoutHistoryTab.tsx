@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompletedSession } from './workoutTypes';
 import { getWorkoutHistory } from '@/api/workout';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
+import SurfaceCard from '../ui/SurfaceCard';
 
 const WorkoutHistoryTab: React.FC = () => {
+  const { colors } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
@@ -75,103 +78,95 @@ const WorkoutHistoryTab: React.FC = () => {
 
       {loading ? (
         <View className="py-8 items-center">
-          <ActivityIndicator size="small" color={COLORS.accent.DEFAULT} />
+          <ActivityIndicator size="small" color={colors.accent} />
         </View>
       ) : history.length === 0 ? (
-        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50 dark:bg-surface-dark/50">
-          <Text className="text-3xl mb-2">📋</Text>
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+        <SurfaceCard className="p-6 items-center my-4">
+          <View className="w-12 h-12 rounded-2xl bg-input dark:bg-input-dark items-center justify-center mb-3">
+            <Ionicons name="clipboard" size={26} color={colors.textMuted} />
+          </View>
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center mb-1">
             No workout history yet
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
-            Complete your first daily workout to start logging your progress history!
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center leading-relaxed max-w-[240px]">
+            Complete your first daily workout to start logging your progress history.
           </Text>
-        </View>
+        </SurfaceCard>
       ) : (
         history.map((session) => {
           const isExpanded = expandedId === session.id;
           return (
-            <TouchableOpacity
-              key={session.id}
-              activeOpacity={0.9}
-              onPress={() => toggleExpand(session.id)}
-              className="mb-3 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
-              style={Platform.select({
-                web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-                default: { elevation: 1 },
-              })}
-            >
-              {/* Header: Date & Status */}
-              <View className="flex-row items-center justify-between mb-2">
-                <View className="flex-row items-center">
-                  <Text className="text-xs font-bold text-accent dark:text-accent-dark mr-2">
-                    📅 {session.date}
+            <SurfaceCard key={session.id} className="mb-3">
+              <TouchableOpacity
+                activeOpacity={0.9}
+                onPress={() => toggleExpand(session.id)}
+              >
+                {/* Header: Date & Status */}
+                <View className="flex-row items-center justify-between mb-1.5">
+                  <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                    {session.date}
                   </Text>
+                  <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 px-2.5 py-0.5 rounded-full">
+                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
+                      Completed
+                    </Text>
+                  </View>
                 </View>
-                <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 px-2.5 py-0.5 rounded-full">
-                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
-                    Completed
-                  </Text>
-                </View>
-              </View>
 
-              {/* Session Title */}
-              <Text className="text-lg font-extrabold text-text-primary dark:text-text-primary-dark mb-2.5">
-                {session.title}
-              </Text>
+                {/* Session Title */}
+                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mb-2">
+                  {session.title}
+                </Text>
 
-              {/* Metrics Chips */}
-              <View className="flex-row items-center gap-x-3 mb-3 bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border/50 dark:border-input-border-dark/50">
-                <View className="flex-row items-center">
-                  <Text className="text-xs mr-1">⏱️</Text>
+                {/* Metrics Chips */}
+                <View className="flex-row items-center gap-x-2.5 mb-3 bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border/50 dark:border-input-border-dark/50">
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {session.duration}
                   </Text>
-                </View>
-                <View className="h-3 w-px bg-input-border dark:bg-input-border-dark" />
-                <View className="flex-row items-center">
-                  <Text className="text-xs mr-1">🔥</Text>
-                  <Text className="text-xs font-bold text-info dark:text-info-dark">
+                  <Text className="text-text-muted dark:text-text-muted-dark text-xs">·</Text>
+                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {session.caloriesBurned} kcal
                   </Text>
-                </View>
-                <View className="h-3 w-px bg-input-border dark:bg-input-border-dark" />
-                <View className="flex-row items-center">
-                  <Text className="text-xs mr-1">💪</Text>
+                  <Text className="text-text-muted dark:text-text-muted-dark text-xs">·</Text>
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
-                    {session.exercisesCount} Exercises
+                    {session.exercisesCount} {session.exercisesCount === 1 ? 'Exercise' : 'Exercises'}
                   </Text>
                 </View>
-              </View>
 
-              {/* Expandable Exercise Breakdown */}
-              <View className="border-t border-input-border/60 dark:border-input-border-dark/60 pt-2.5 mt-1 flex-row justify-between items-center">
-                <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
-                  {isExpanded ? 'Hide Details' : 'View Completed Exercises'}
-                </Text>
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  {isExpanded ? '▲' : '▼'}
-                </Text>
-              </View>
-
-              {isExpanded ? (
-                <View className="mt-3 pt-2 border-t border-input-border/40 dark:border-input-border-dark/40">
-                  {session.exercises.map((ex, i) => (
-                    <View
-                      key={i}
-                      className="flex-row items-center justify-between py-1.5 border-b border-input-border/20 last:border-b-0"
-                    >
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                        ✓ {ex.name}
-                      </Text>
-                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                        {ex.setsSummary}
-                      </Text>
-                    </View>
-                  ))}
+                {/* Expandable Exercise Breakdown */}
+                <View className="border-t border-input-border/60 dark:border-input-border-dark/60 pt-2.5 mt-1 flex-row justify-between items-center">
+                  <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                    {isExpanded ? 'Hide Details' : 'View Completed Exercises'}
+                  </Text>
+                  <Ionicons
+                    name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                    size={14}
+                    color={colors.accent}
+                  />
                 </View>
-              ) : null}
-            </TouchableOpacity>
+
+                {isExpanded ? (
+                  <View className="mt-3 pt-2 border-t border-input-border/40 dark:border-input-border-dark/40">
+                    {session.exercises.map((ex, i) => (
+                      <View
+                        key={i}
+                        className="flex-row items-center justify-between py-1.5 border-b border-input-border/20 last:border-b-0"
+                      >
+                        <View className="flex-row items-center gap-1.5">
+                          <Ionicons name="checkmark-circle" size={15} color={colors.accent} />
+                          <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                            {ex.name}
+                          </Text>
+                        </View>
+                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                          {ex.setsSummary}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+            </SurfaceCard>
           );
         })
       )}

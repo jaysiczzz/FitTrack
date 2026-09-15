@@ -3,6 +3,7 @@ import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const TOKEN_KEY = 'token';
+const REFRESH_TOKEN_KEY = 'refreshToken';
 const USER_KEY = 'user';
 
 /**
@@ -71,6 +72,51 @@ export const authStorage = {
   },
 
   /**
+   * Save the refresh token in secure storage.
+   */
+  async setRefreshToken(refreshToken: string): Promise<void> {
+    try {
+      if (isSecureStorePlatform()) {
+        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
+      } else {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      }
+    } catch (err) {
+      console.warn('[authStorage] Failed to setRefreshToken with SecureStore, falling back to AsyncStorage:', err);
+      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+    }
+  },
+
+  /**
+   * Retrieve the refresh token from secure storage.
+   */
+  async getRefreshToken(): Promise<string | null> {
+    try {
+      if (isSecureStorePlatform()) {
+        return await SecureStore.getItemAsync(REFRESH_TOKEN_KEY);
+      }
+      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    } catch (err) {
+      console.warn('[authStorage] Failed to getRefreshToken from SecureStore, checking AsyncStorage:', err);
+      return await AsyncStorage.getItem(REFRESH_TOKEN_KEY);
+    }
+  },
+
+  /**
+   * Delete the refresh token from secure storage.
+   */
+  async removeRefreshToken(): Promise<void> {
+    try {
+      if (isSecureStorePlatform()) {
+        await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+      }
+    } catch (err) {
+      console.warn('[authStorage] Failed to deleteItemAsync for refresh token:', err);
+    }
+    await AsyncStorage.removeItem(REFRESH_TOKEN_KEY);
+  },
+
+  /**
    * Store non-secret user profile object in AsyncStorage (no 2KB size constraint).
    */
   async setUser(user: any): Promise<void> {
@@ -114,7 +160,7 @@ export const authStorage = {
    */
   async clearAuth(): Promise<void> {
     try {
-      await Promise.all([this.removeToken(), this.removeUser()]);
+      await Promise.all([this.removeToken(), this.removeRefreshToken(), this.removeUser()]);
       // Purge all user-scoped and legacy device-wide food, water, and check-in session keys
       const allKeys = await AsyncStorage.getAllKeys();
       const keysToRemove = allKeys.filter(
@@ -138,3 +184,4 @@ export const authStorage = {
     }
   },
 };
+

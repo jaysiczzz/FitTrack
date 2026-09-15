@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface OnboardingHeaderProps {
   compact?: boolean;
@@ -23,6 +24,7 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
   title,
   subtitle,
 }) => {
+  const { colors } = useThemeColors();
   const router = useRouter();
 
   const handleBack = () => {
@@ -41,7 +43,6 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
 
   const progressPercent = Math.min(100, Math.max(0, (step / totalSteps) * 100));
 
-  // Default titles per step if not explicitly provided
   const defaultTitles: Record<number, { title: string; subtitle: string }> = {
     1: {
       title: 'Choose Your Goal',
@@ -49,37 +50,37 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
     },
     2: {
       title: 'Body Metrics',
-      subtitle: 'We use these to customize your calorie & workout targets.',
+      subtitle: 'We use these to calibrate your calorie and workout targets.',
     },
     3: {
-      title: 'Your AI Plan',
+      title: 'Your Plan',
       subtitle: 'Generating your personalized fitness program.',
     },
   };
 
-  const headerTitle = title || defaultTitles[step]?.title || 'Almost done!';
-  const headerSubtitle = subtitle || defaultTitles[step]?.subtitle || 'Just a few details to personalize your plan';
+  const headerTitle = title || defaultTitles[step]?.title || 'Almost done';
+  const headerSubtitle = subtitle || defaultTitles[step]?.subtitle || 'A few details to personalize your plan';
 
   return (
-    <View className={`${compact ? 'mb-1.5 pt-0' : 'mb-3.5 pt-0'}`}>
-      {/* Top Header Row with Aligned Back Button & Step Progress Badge */}
-      <View className="flex-row items-center justify-between mb-2">
+    <View className={`${compact ? 'mb-2' : 'mb-4'}`}>
+      {/* Top Navigation Row */}
+      <View className="flex-row items-center justify-between mb-3">
         {showBack ? (
           <TouchableOpacity
             onPress={handleBack}
             activeOpacity={0.7}
-            className="w-8 h-8 rounded-full bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 items-center justify-center"
+            className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
-            <Text className="text-text-primary dark:text-text-primary-dark text-sm font-bold">←</Text>
+            <Ionicons name="arrow-back" size={16} color={colors.textPrimary} />
           </TouchableOpacity>
         ) : (
           <View className="w-8 h-8" />
         )}
 
-        <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full border border-accent/30 dark:border-accent-dark/30">
-          <Text className="text-accent dark:text-accent-dark text-[11px] font-bold uppercase tracking-wider">
+        <View className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-full border border-input-border dark:border-input-border-dark">
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-semibold tracking-wide uppercase">
             Step {step} of {totalSteps}
           </Text>
         </View>
@@ -89,12 +90,10 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
       <ProgressBar
         percentage={progressPercent}
         height={4}
-        color={COLORS.accent.dark}
-        trackClassName="bg-surface dark:bg-surface-dark"
-        className="mb-2.5"
+        className="mb-3"
       />
 
-      <Text className={`text-text-primary dark:text-text-primary-dark font-black tracking-tight ${compact ? 'text-xl mb-0.5' : 'text-2xl mb-0.5'}`}>
+      <Text className={`text-text-primary dark:text-text-primary-dark font-extrabold tracking-tight ${compact ? 'text-xl mb-0.5' : 'text-2xl mb-1'}`}>
         {headerTitle}
       </Text>
       {!compact && (

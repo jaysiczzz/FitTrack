@@ -22,6 +22,7 @@ model User {
   dailyFoodLogs   DailyFoodLog[]
   customExercises Exercise[]
   customFoods     Food[]
+  refreshTokens   RefreshToken[]
 }
 
 enum Goal {
@@ -191,4 +192,17 @@ enum FoodSource {
   SYSTEM
   OPEN_FOOD_FACTS
   USER_CUSTOM
-}
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  tokenHash String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+

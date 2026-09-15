@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, Pressable } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
 
 interface ConfirmModalProps {
   visible: boolean;
   title: string;
   message: string;
   icon?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
   confirmText?: string;
   cancelText?: string;
   isDanger?: boolean;
@@ -17,13 +20,16 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   visible,
   title,
   message,
-  icon = '🚪',
+  icon,
+  iconName,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
   isDanger = false,
   onConfirm,
   onCancel,
 }) => {
+  const { colors } = useThemeColors();
+
   return (
     <Modal
       visible={visible}
@@ -32,38 +38,54 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onRequestClose={onCancel}
     >
       <Pressable
-        className="flex-1 bg-black/65 items-center justify-center p-5"
+        className="flex-1 bg-black/60 items-center justify-center p-5"
         onPress={onCancel}
       >
         <Pressable
-          className="w-full max-w-[380px] bg-surface dark:bg-surface-dark border border-input-border/80 dark:border-input-border-dark/80 rounded-3xl p-6 items-center shadow-2xl"
+          className="w-full max-w-[380px] bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-2xl p-6 items-center shadow-xl"
           onPress={(e) => e.stopPropagation()}
         >
-          {/* Icon Badge */}
-          <View
-            className={`w-14 h-14 rounded-2xl items-center justify-center mb-4 ${
-              isDanger
-                ? 'bg-danger/15 border border-danger/30'
-                : 'bg-accent/15 dark:bg-accent-dark/20 border border-accent/30'
-            }`}
-          >
-            <Text className="text-2xl">{icon}</Text>
-          </View>
+          {/* Icon Badge (if provided) */}
+          {iconName ? (
+            <View
+              className={`w-12 h-12 rounded-full items-center justify-center mb-3 ${
+                isDanger
+                  ? 'bg-danger/10 border border-danger/20'
+                  : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/20'
+              }`}
+            >
+              <Ionicons
+                name={iconName}
+                size={24}
+                color={isDanger ? colors.danger : colors.accent}
+              />
+            </View>
+          ) : icon ? (
+            <View
+              className={`w-12 h-12 rounded-full items-center justify-center mb-3 ${
+                isDanger
+                  ? 'bg-danger/10 border border-danger/20'
+                  : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/20'
+              }`}
+            >
+              <Text className="text-xl">{icon}</Text>
+            </View>
+          ) : null}
 
           {/* Title & Message */}
-          <Text className="text-xl font-extrabold text-text-primary dark:text-text-primary-dark mb-2 text-center">
+          <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark mb-1.5 text-center">
             {title}
           </Text>
-          <Text className="text-sm text-text-muted dark:text-text-muted-dark text-center mb-6 leading-5">
+          <Text className="text-sm text-text-muted dark:text-text-muted-dark text-center mb-5 leading-5">
             {message}
           </Text>
 
-          {/* Buttons Row */}
+          {/* Action Buttons */}
           <View className="flex-row w-full gap-x-3">
             <TouchableOpacity
               activeOpacity={0.8}
               onPress={onCancel}
-              className="flex-1 py-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="flex-1 h-11 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
             >
               <Text className="font-semibold text-text-primary dark:text-text-primary-dark text-sm">
                 {cancelText}
@@ -71,9 +93,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             </TouchableOpacity>
 
             <TouchableOpacity
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               onPress={onConfirm}
-              className={`flex-1 py-3.5 rounded-xl items-center justify-center shadow-md ${
+              className={`flex-1 h-11 rounded-xl items-center justify-center ${
                 isDanger
                   ? 'bg-danger'
                   : 'bg-accent dark:bg-accent-dark'

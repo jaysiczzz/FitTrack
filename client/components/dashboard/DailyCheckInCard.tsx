@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
+import { COLORS, useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
 export interface MoodOption {
@@ -14,11 +16,11 @@ export interface MoodOption {
 }
 
 const MOODS: MoodOption[] = [
-  { id: 'fire', emoji: '⚡', label: 'Fired Up', coachTip: 'Channel that energy into progressive overload and intense sets today!' },
-  { id: 'strong', emoji: '💪', label: 'Strong', coachTip: 'Great mindset! Focus on strict form and hitting your target reps.' },
-  { id: 'good', emoji: '😊', label: 'Balanced', coachTip: 'Consistency is king. A steady, focused workout will keep your momentum.' },
-  { id: 'tired', emoji: '😴', label: 'Low Energy', coachTip: 'Take a longer dynamic warmup and stay hydrated. Showing up is 80% of the battle!' },
-  { id: 'rest', emoji: '🧘', label: 'Recovery', coachTip: 'Focus on active stretching, foam rolling, and nutrient-dense recovery meals.' },
+  { id: 'fire', emoji: '⚡', label: 'Energized', coachTip: 'Channel that energy into progressive overload and intense sets today.' },
+  { id: 'strong', emoji: '💪', label: 'Strong', coachTip: 'Focus on strict form and hitting your target repetitions.' },
+  { id: 'good', emoji: '😊', label: 'Balanced', coachTip: 'Consistency is key. A steady, focused workout maintains momentum.' },
+  { id: 'tired', emoji: '😴', label: 'Low Energy', coachTip: 'Take a longer dynamic warmup and stay hydrated. Showing up is half the battle.' },
+  { id: 'rest', emoji: '🧘', label: 'Recovery', coachTip: 'Focus on mobility, foam rolling, and nutrient-dense meals.' },
 ];
 
 const MOTIVATION_QUOTES = [
@@ -37,6 +39,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   const { user } = useAuth();
   const userId = user?.id;
   const { showToast } = useToast();
+  const { colors } = useThemeColors();
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const [quoteIndex, setQuoteIndex] = useState(0);
@@ -93,10 +96,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     }
 
     showToast({
-      message: `${mood.emoji} Daily Check-In Complete!`,
+      message: 'Check-In Complete',
       description: mood.coachTip,
       type: 'success',
-      icon: '🔥',
+      icon: '✓',
     });
 
     if (onCheckInCompleted) {
@@ -115,42 +118,31 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     <SurfaceCard className="mb-3">
       {/* Header Row */}
       <View className="flex-row justify-between items-center mb-3">
-        <View className="flex-row items-center flex-1 mr-2">
-          <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-2.5">
-            <Text className="text-base">⚡</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
-              Daily Readiness
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-              {isCheckedIn && selectedMood ? `Logged: ${selectedMood.label}` : 'How are you feeling today?'}
-            </Text>
-          </View>
+        <View className="flex-1 mr-2">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+            Daily Readiness
+          </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs">
+            {isCheckedIn && selectedMood ? `Logged: ${selectedMood.label}` : 'How are you feeling today?'}
+          </Text>
         </View>
 
         {isCheckedIn ? (
           <TouchableOpacity
             onPress={() => setIsCheckedIn(false)}
             activeOpacity={0.7}
-            className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2.5 py-1 rounded-full flex-row items-center border border-emerald-500/30"
+            className="bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-1 rounded-full flex-row items-center border border-accent/20 dark:border-accent-dark/30"
           >
-            <Text className="text-emerald-400 font-extrabold text-[10px] mr-1">✓</Text>
-            <Text className="text-emerald-400 font-bold text-[10px]">Checked In • Edit</Text>
+            <Ionicons name="checkmark-circle" size={14} color={colors.accent} style={{ marginRight: 4 }} />
+            <Text className="text-accent dark:text-accent-dark font-bold text-[11px]">Logged • Edit</Text>
           </TouchableOpacity>
-        ) : (
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1 rounded-full flex-row items-center">
-            <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
-              🔥 Active Streak
-            </Text>
-          </View>
-        )}
+        ) : null}
       </View>
 
-      {/* Mood Selector Buttons (Shown when not checked in or when editing) */}
+      {/* Mood Selector Buttons */}
       {!isCheckedIn ? (
-        <View className="mb-2.5">
-          <View className="flex-row justify-between gap-1.5 mb-2.5">
+        <View className="mb-2">
+          <View className="flex-row justify-between gap-1.5 mb-2">
             {MOODS.map((mood) => {
               const isSelected = selectedMoodId === mood.id;
               return (
@@ -161,12 +153,12 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                   className={`flex-1 py-2.5 px-1 rounded-xl items-center justify-center border ${
                     isSelected
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
-                      : 'bg-input/70 dark:bg-input-dark/70 border-input-border/60 dark:border-input-border-dark/60'
+                      : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
                 >
-                  <Text className="text-xl mb-1">{mood.emoji}</Text>
+                  <Text className="text-lg mb-1">{mood.emoji}</Text>
                   <Text
-                    className={`text-xs font-bold text-center leading-tight ${
+                    className={`text-xs font-semibold text-center leading-tight ${
                       isSelected
                         ? 'text-accent dark:text-accent-dark'
                         : 'text-text-muted dark:text-text-muted-dark'
@@ -180,26 +172,25 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
           </View>
 
           <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-center">
-            💡 Tap your current energy to customize today's workout intensity.
+            Tap your current energy to calibrate today's recommendations.
           </Text>
         </View>
       ) : selectedMood ? (
-        /* Collapsed Compact State when already checked in */
-        <View className="bg-input/50 dark:bg-input-dark/50 rounded-xl p-3 mb-2.5 border border-input-border/40 dark:border-input-border-dark/40 flex-row items-start">
-          <Text className="text-xl mr-2.5">{selectedMood.emoji}</Text>
+        <View className="bg-input dark:bg-input-dark rounded-xl p-3 mb-2.5 border border-input-border dark:border-input-border-dark flex-row items-start">
+          <Text className="text-lg mr-2.5">{selectedMood.emoji}</Text>
           <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-0.5">
-              Coach Recommendation ({selectedMood.label}):
+            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs mb-0.5">
+              Focus Recommendation ({selectedMood.label}):
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] leading-4">
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-4">
               {selectedMood.coachTip}
             </Text>
           </View>
         </View>
       ) : null}
 
-      {/* Streamlined Daily Motivation Spark */}
-      <View className="pt-2 border-t border-input-border/30 dark:border-input-border-dark/30 flex-row items-center justify-between">
+      {/* Motivation Quote */}
+      <View className="pt-2 border-t border-input-border dark:border-input-border-dark flex-row items-center justify-between">
         <View className="flex-1 mr-2">
           <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
             “{currentQuote.quote}”
@@ -212,12 +203,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         <TouchableOpacity
           onPress={handleNextQuote}
           activeOpacity={0.7}
-          className="bg-input/60 dark:bg-input-dark/60 px-2 py-1 rounded-lg flex-row items-center"
+          className="w-7 h-7 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+          accessibilityLabel="Next quote"
         >
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold mr-1">
-            Spark
-          </Text>
-          <Text className="text-[10px]">✨</Text>
+          <Ionicons name="refresh" size={15} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
     </SurfaceCard>

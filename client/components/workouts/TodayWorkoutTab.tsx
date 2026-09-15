@@ -7,6 +7,8 @@ import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
 import ProgressBar from '@/components/ui/ProgressBar';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
 
 export interface TodayExerciseItem {
   key: string;
@@ -48,9 +50,9 @@ export interface TodayExerciseItem {
 }
 
 export interface PersonalRecordItem {
-  name: string;
-  value: string;
-  date: string;
+  exerciseName: string;
+  weight: number;
+  reps: number;
 }
 
 interface TodayWorkoutTabProps {
@@ -64,6 +66,7 @@ interface TodayWorkoutTabProps {
   onRemoveExercise: (exerciseKey: string) => void;
   onUpdateExercisePreset?: (exerciseKey: string, customized: LibraryExercise) => void;
   onNavigateToLibrary: () => void;
+  onOpenAiGenerator?: () => void;
   onCompleteSession: () => void;
 }
 
@@ -78,8 +81,10 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onRemoveExercise,
   onUpdateExercisePreset,
   onNavigateToLibrary,
+  onOpenAiGenerator,
   onCompleteSession,
 }) => {
+  const { colors, isDark } = useThemeColors();
   const { showWarning } = useToast();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
   const [loadingPrs, setLoadingPrs] = useState(false);
@@ -201,38 +206,67 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {/* Header & Add Workout Button Row */}
       <View className="flex-row items-center justify-between mb-3.5">
         <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-          Today's Exercises ({exercises.length})
+          Today's Routine ({exercises.length})
         </Text>
 
-        <TouchableOpacity
-          onPress={onNavigateToLibrary}
-          activeOpacity={0.8}
-          className="rounded-xl border border-accent/40 dark:border-accent-dark/40 bg-accent/10 dark:bg-accent-dark/15 px-3.5 py-2 flex-row items-center"
-        >
-          <Text className="text-accent dark:text-accent-dark font-extrabold text-xs">
-            + Add Exercise
-          </Text>
-        </TouchableOpacity>
+        <View className="flex-row items-center gap-2">
+          {onOpenAiGenerator && (
+            <TouchableOpacity
+              onPress={onOpenAiGenerator}
+              activeOpacity={0.8}
+              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
+            >
+              <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                AI Routine
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          <TouchableOpacity
+            onPress={onNavigateToLibrary}
+            activeOpacity={0.8}
+            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
+          >
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+              + Add
+            </Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Exercises List / Empty State */}
       {exercises.length === 0 ? (
-        <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface/50 dark:bg-surface-dark/50">
-          <Text className="text-3xl mb-2">🏋️‍♂️</Text>
+        <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
+          <View className="w-12 h-12 rounded-full bg-input dark:bg-input-dark items-center justify-center mb-3">
+            <Ionicons name="barbell" size={26} color={colors.textMuted} />
+          </View>
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-1">
             No exercises scheduled yet
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[240px]">
-            Browse the Exercise Library to add workouts to your session.
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
+            Generate a personalized routine with AI or select exercises from the library.
           </Text>
-          <TouchableOpacity
-            onPress={onNavigateToLibrary}
-            className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl"
-          >
-            <Text className="text-background dark:text-background-dark font-bold text-xs">
-              Explore Library
-            </Text>
-          </TouchableOpacity>
+          <View className="flex-row gap-2">
+            {onOpenAiGenerator && (
+              <TouchableOpacity
+                onPress={onOpenAiGenerator}
+                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5"
+              >
+                <Ionicons name="sparkles" size={15} color={isDark ? colors.background : '#FFFFFF'} />
+                <Text className="text-white dark:text-background-dark font-bold text-xs">
+                  AI Routine
+                </Text>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity
+              onPress={onNavigateToLibrary}
+              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl"
+            >
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                Explore Library
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : (
         exercises.map((item) => (
@@ -260,110 +294,80 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
         ))
       )}
 
-      {/* Complete Session Button & Loophole Validation Banner */}
+      {/* Complete Session Button & Validation Banner */}
       {exercises.length > 0 ? (
         <View className="mt-1 mb-4">
           {!allSetsDone ? (
-            <View className="mb-2.5 p-3 rounded-xl bg-warning/10 border border-warning/30 flex-row items-center">
-              <Text className="text-base mr-2">⚠️</Text>
-              <Text className="flex-1 text-xs text-warning dark:text-warning-dark font-semibold leading-4">
-                Completion Progress: {completedSetsCount} of {totalSetsCount} sets marked as done. Click "+ Mark Done" on each set before finishing.
+            <View className="mb-2.5 p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center">
+              <Ionicons name="information-circle" size={18} color={colors.warning} style={{ marginRight: 8 }} />
+              <Text className="flex-1 text-xs text-text-muted dark:text-text-muted-dark font-medium leading-4">
+                Progress: {completedSetsCount} of {totalSetsCount} sets completed. Mark all sets as done to complete session.
               </Text>
             </View>
           ) : (
-            <View className="mb-2.5 p-2.5 rounded-xl bg-accent/10 border border-accent/30 flex-row items-center">
-              <Text className="text-base mr-2">🎉</Text>
+            <View className="mb-2.5 p-3 rounded-xl bg-accent/10 border border-accent/20 flex-row items-center">
+              <Ionicons name="checkmark-circle" size={18} color={colors.accent} style={{ marginRight: 8 }} />
               <Text className="flex-1 text-xs text-accent dark:text-accent-dark font-bold">
-                All sets completed! Ready to finish and save your workout session.
+                All sets completed! Ready to finish today's workout.
               </Text>
             </View>
           )}
 
           <TouchableOpacity
             onPress={handleCompleteSessionPress}
-            activeOpacity={allSetsDone ? 0.9 : 0.6}
-            className={`items-center justify-center rounded-xl py-4 shadow-md ${
+            activeOpacity={allSetsDone ? 0.85 : 0.6}
+            className={`items-center justify-center rounded-xl h-12 ${
               allSetsDone
                 ? 'bg-accent dark:bg-accent-dark'
-                : 'bg-surface dark:bg-surface-dark border-2 border-input-border dark:border-input-border-dark opacity-80'
+                : 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark opacity-60'
             }`}
           >
             <Text
-              className={`text-base font-extrabold ${
+              className={`text-sm font-bold ${
                 allSetsDone
-                  ? 'text-background dark:text-background-dark'
+                  ? 'text-white dark:text-background-dark'
                   : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
-              {allSetsDone ? 'Complete Workout Session' : 'Complete Session (All Sets Required)'}
+              {allSetsDone ? 'Complete Workout Session' : 'Complete Session (Sets Incomplete)'}
             </Text>
           </TouchableOpacity>
         </View>
       ) : null}
 
       {/* AI WORKOUT PLAN CARD */}
-      <View
-        className="mt-2 rounded-2xl border border-accent/25 dark:border-accent-dark/30 bg-surface dark:bg-surface-dark p-4"
-        style={Platform.select({
-          web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-          default: { elevation: 1 },
-        })}
-      >
-        <View className="mb-2.5 flex-row items-center">
-          <View className="w-10 h-10 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mr-3 border border-accent/30">
-            <Text className="text-xl">🤖</Text>
-          </View>
-          <View className="flex-1">
-            <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
-              Today's AI Workout Plan
-            </Text>
-            <View className="mt-1 self-start rounded-full bg-accent/20 dark:bg-accent-dark/20 px-2.5 py-0.5 border border-accent/40">
-              <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
-                {hasCompletedWorkouts ? 'Personalized' : 'Setup Plan'}
-              </Text>
-            </View>
-          </View>
+      <SurfaceCard className="mt-2 mb-3">
+        <View className="mb-2.5">
+          <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
+            AI Workout Calibration
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            {hasCompletedWorkouts ? 'Active personalized protocol' : 'Awaiting workout history'}
+          </Text>
         </View>
 
-        {hasCompletedWorkouts ? (
-          <Text className="leading-5 text-text-muted dark:text-text-muted-dark text-xs">
-            <Text className="font-bold text-accent dark:text-accent-dark">
-              Based on your fitness profile and goals
-            </Text>
-            , your session is tailored to maximize strength and muscle building efficiently.
-          </Text>
-        ) : (
-          <Text className="leading-5 text-text-muted dark:text-text-muted-dark text-xs">
-            Complete your profile and workout preferences to receive a personalized AI recommendation plan.
-          </Text>
-        )}
-      </View>
+        <Text className="leading-5 text-text-muted dark:text-text-muted-dark text-xs">
+          {hasCompletedWorkouts
+            ? 'Based on your profile and tracked performance, your sessions are balanced for progressive overload and efficient recovery.'
+            : 'Track completed sets to allow the AI to calibrate optimal weight progressions and volume splits for your goal.'}
+        </Text>
+      </SurfaceCard>
 
       {/* TODAY'S TARGET MUSCLE SPLIT */}
-      <View
-        className="mt-5 rounded-2xl border border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark p-4"
-        style={Platform.select({
-          web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-          default: { elevation: 1 },
-        })}
-      >
+      <SurfaceCard className="mb-3">
         <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-base">💪</Text>
-            <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
-              Today's Target Muscle Focus
-            </Text>
-          </View>
-          <View className="rounded-lg bg-accent/15 px-2.5 py-0.5 border border-accent/30">
-            <Text className="text-[10px] font-extrabold text-accent dark:text-accent-dark">
-              {exercises.length > 0 ? `${exercises.length} Exercises` : 'No Exercises Scheduled'}
+          <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
+            Muscle Focus
+          </Text>
+          <View className="rounded-full bg-input dark:bg-input-dark px-2.5 py-0.5 border border-input-border dark:border-input-border-dark">
+            <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
+              {exercises.length > 0 ? `${exercises.length} Exercises` : 'None'}
             </Text>
           </View>
         </View>
 
         {exercises.length > 0 ? (
-          <View className="gap-y-2.5">
-            {/* Dynamic Muscle Distribution Breakdown */}
+          <View className="gap-y-2">
             {(() => {
               const muscleCounts: Record<string, number> = {};
               let total = 0;
@@ -379,37 +383,33 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                   <ProgressBar
                     key={muscle}
                     label={muscle}
-                    valueText={`${pct}% (${count} ${count === 1 ? 'exercise' : 'exercises'})`}
+                    valueText={`${pct}% (${count})`}
                     percentage={pct}
-                    height={8}
-                    className="mb-2"
+                    height={5}
+                    className="mb-1.5"
                   />
                 );
               });
             })()}
           </View>
         ) : (
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark italic">
-            Add exercises from the library to see today's targeted muscle group breakdown.
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+            Add exercises from the library to view today's muscle focus breakdown.
           </Text>
         )}
-      </View>
+      </SurfaceCard>
 
-      {/* RECOMMENDED 3-STEP WARM-UP & MOBILITY ROUTINE */}
-      <SurfaceCard className="mt-4 mb-2">
+      {/* 3-STEP WARM-UP & MOBILITY ROUTINE */}
+      <SurfaceCard className="mb-3">
         <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-base">🔥</Text>
-            <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
-              3-Step Warm-Up Routine
-            </Text>
-          </View>
-          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark bg-accent/15 px-2 py-0.5 rounded-md border border-accent/30">
+          <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
+            Warm-Up Routine
+          </Text>
+          <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark bg-input dark:bg-input-dark px-2 py-0.5 rounded-full border border-input-border dark:border-input-border-dark">
             Injury Prevention
           </Text>
         </View>
 
-        {/* Dynamic Warm-Up Steps */}
         <View className="gap-y-2">
           {[
             {
@@ -425,21 +425,21 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             {
               step: '3',
               title: 'Light Warm-Up Pyramid Set',
-              desc: 'Perform 1 set of 10 reps with 50% lighter weight before your main working sets.',
+              desc: 'Perform 1 set of 10 reps with 50% lighter weight before main working sets.',
             },
           ].map((item) => (
             <View
               key={item.step}
-              className="flex-row items-start p-3 rounded-xl bg-input/60 dark:bg-input-dark/60 border border-input-border/50 dark:border-input-border-dark/50"
+              className="flex-row items-start p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
             >
-              <View className="w-6 h-6 rounded-full bg-accent/20 border border-accent/40 items-center justify-center mr-3 mt-0.5">
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark">{item.step}</Text>
+              <View className="w-5 h-5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-2.5 mt-0.5">
+                <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">{item.step}</Text>
               </View>
               <View className="flex-1">
-                <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
+                <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mb-0.5">
                   {item.title}
                 </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4">
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4">
                   {item.desc}
                 </Text>
               </View>

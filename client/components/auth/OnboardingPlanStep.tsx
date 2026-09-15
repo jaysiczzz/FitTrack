@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ActivityIndicator, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -38,6 +39,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   age,
   isRegistered,
 }) => {
+  const { colors } = useThemeColors();
   const [activeCheckIndex, setActiveCheckIndex] = useState(0);
   const [animationDone, setAnimationDone] = useState(false);
 
@@ -86,11 +88,10 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
       protein,
       carbs,
       fats,
-      planTitle: goal === 'MUSCLE_GAIN' ? 'Hypertrophy & Strength Protocol' : 'Metabolic Fat Shred Protocol',
-      planIcon: goal === 'MUSCLE_GAIN' ? '💪' : '🔥',
+      planTitle: goal === 'MUSCLE_GAIN' ? 'Hypertrophy & Strength Protocol' : 'Metabolic Calorie Deficit Protocol',
       focusSummary:
         goal === 'MUSCLE_GAIN'
-          ? 'Optimized for progressive overload, muscle synthesis, and high-protein nutrition.'
+          ? 'Optimized for progressive overload, muscle synthesis, and high-protein recovery.'
           : 'Optimized for a sustainable caloric deficit while preserving lean muscle mass.',
     };
   }, [height, weight, age, goal]);
@@ -99,72 +100,59 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   if (error) {
     return (
       <View className="w-full items-center py-4">
-        <View className="w-14 h-14 rounded-full bg-danger/15 dark:bg-danger-dark/20 items-center justify-center mb-3">
-          <Text className="text-2xl">⚠️</Text>
+        <View className="w-12 h-12 rounded-full bg-danger/10 items-center justify-center mb-3">
+          <Ionicons name="alert-circle" size={28} color={colors.danger} />
         </View>
 
-        <Text className="text-xl font-bold text-text-primary dark:text-text-primary-dark mb-1 text-center">
+        <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark mb-1 text-center">
           Setup Incomplete
         </Text>
         <Text className="text-danger dark:text-danger-dark text-xs text-center mb-6 px-4">
           {error}
         </Text>
 
-        <View className="w-full space-y-3">
+        <View className="w-full gap-2.5">
           <Button title="Try Again" onPress={onRetry} loading={loading} />
-          <View className="mt-2" />
           <Button
             title="Edit Registration Info"
             onPress={onBackToEdit}
-            style={{ backgroundColor: 'transparent', borderWidth: 1, borderColor: COLORS.textMuted.light }}
+            variant="outline"
           />
         </View>
       </View>
     );
   }
 
-  // If still generating (or waiting for backend API + animation to finish)
+  // If still generating
   const isGenerating = !animationDone || loading || !isRegistered;
 
   if (isGenerating) {
     const progressPercent = Math.min(100, Math.round((activeCheckIndex / 4) * 100));
 
     return (
-      <View className="w-full items-center py-1">
-        {/* Animated glowing chip */}
+      <View className="w-full items-center py-2">
         <View
-          className="w-14 h-14 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent dark:border-accent-dark items-center justify-center mb-3"
-          style={
-            Platform.select({
-              web: {
-                boxShadow: '0 0 16px rgba(0, 229, 160, 0.25)',
-              } as any,
-              default: {
-                elevation: 2,
-              },
-            })
-          }
+          className="w-12 h-12 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 items-center justify-center mb-3"
         >
-          <Text className="text-2xl animate-pulse">⚡</Text>
+          <Ionicons name="sparkles" size={24} color={colors.accent} />
         </View>
 
-        <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark mb-0.5 text-center">
-          Crafting Your AI Plan
+        <Text className="text-lg font-bold text-text-primary dark:text-text-primary-dark mb-0.5 text-center">
+          Generating Your Plan
         </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-3.5">
+        <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4">
           Customizing targets based on your physiological profile
         </Text>
 
         {/* Progress Bar */}
         <ProgressBar
           percentage={Math.max(10, progressPercent)}
-          height={6}
-          trackClassName="bg-surface dark:bg-surface-dark"
-          className="w-full mb-3.5"
+          height={4}
+          className="w-full mb-4"
         />
 
         {/* Sequential Step Indicators */}
-        <View className="w-full bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 rounded-xl p-3 mb-3">
+        <View className="w-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-xl p-3.5 mb-3">
           {CHECKLIST.map((stepText, index) => {
             const isDone = activeCheckIndex > index;
             const isCurrent = activeCheckIndex === index;
@@ -172,9 +160,9 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
             return (
               <View
                 key={index}
-                className={`flex-row items-center py-1.5 ${
+                className={`flex-row items-center py-2 ${
                   index !== CHECKLIST.length - 1
-                    ? 'border-b border-input-border/20 dark:border-input-border-dark/20'
+                    ? 'border-b border-input-border/40 dark:border-input-border-dark/40'
                     : ''
                 }`}
               >
@@ -184,25 +172,25 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
                       ? 'bg-accent dark:bg-accent-dark'
                       : isCurrent
                       ? 'bg-accent/20 dark:bg-accent-dark/25'
-                      : 'bg-input-border/40 dark:bg-input-border-dark/40'
+                      : 'bg-input-border dark:bg-input-border-dark'
                   }`}
                 >
                   {isDone ? (
-                    <Text className="text-white dark:text-background-dark text-[9px] font-bold">✓</Text>
+                    <Ionicons name="checkmark" size={10} color="#FFFFFF" />
                   ) : isCurrent ? (
-                    <ActivityIndicator size={8} color={COLORS.accent.light} />
+                    <ActivityIndicator size={8} color={colors.accent} />
                   ) : (
                     <View className="w-1 h-1 rounded-full bg-text-muted dark:bg-text-muted-dark" />
                   )}
                 </View>
 
                 <Text
-                  className={`text-[11px] flex-1 ${
+                  className={`text-xs flex-1 ${
                     isDone
                       ? 'text-text-primary dark:text-text-primary-dark font-medium'
                       : isCurrent
                       ? 'text-accent dark:text-accent-dark font-semibold'
-                      : 'text-text-muted/60 dark:text-text-muted-dark/60'
+                      : 'text-text-muted dark:text-text-muted-dark'
                   }`}
                 >
                   {stepText}
@@ -217,32 +205,32 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
 
   // Plan Reveal State
   return (
-    <View className="w-full py-0.5">
-      {/* Celebration Header */}
-      <View className="items-center mb-3">
-        <View className="w-10 h-10 rounded-xl bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mb-1">
-          <Text className="text-xl">{planData.planIcon}</Text>
+    <View className="w-full py-1">
+      {/* Header */}
+      <View className="items-center mb-4">
+        <View className="w-11 h-11 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-2 border border-accent/20 dark:border-accent-dark/30">
+          <Ionicons name="checkmark" size={24} color={colors.accent} />
         </View>
-        <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark text-center tracking-tight">
-          Your Plan is Ready!
+        <Text className="text-xl font-extrabold text-text-primary dark:text-text-primary-dark text-center tracking-tight">
+          Your Plan is Ready
         </Text>
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+        <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mt-0.5">
           Personalized program for {userName || 'you'}
         </Text>
       </View>
 
       {/* Primary Plan Summary Card */}
-      <View className="w-full bg-surface dark:bg-surface-dark border border-accent/40 dark:border-accent-dark/40 rounded-xl p-3.5 mb-3">
-        <View className="flex-row items-center justify-between pb-2 border-b border-input-border/30 dark:border-input-border-dark/30">
+      <View className="w-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-2xl p-4 mb-3">
+        <View className="flex-row items-center justify-between pb-3 border-b border-input-border/50 dark:border-input-border-dark/50">
           <View>
-            <Text className="text-[9px] uppercase tracking-wider text-accent dark:text-accent-dark font-bold">
+            <Text className="text-[10px] uppercase tracking-wider text-accent dark:text-accent-dark font-bold">
               PROGRAM BLUEPRINT
             </Text>
-            <Text className="text-sm font-extrabold text-text-primary dark:text-text-primary-dark">
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark mt-0.5">
               {planData.planTitle}
             </Text>
           </View>
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-full">
+          <View className="bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-1 rounded-full border border-accent/20">
             <Text className="text-accent dark:text-accent-dark text-[10px] font-bold">
               AI Configured
             </Text>
@@ -250,46 +238,46 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
         </View>
 
         {/* Calorie Goal Callout */}
-        <View className="py-2 items-center">
+        <View className="py-3 items-center">
           <Text className="text-[10px] uppercase tracking-wider text-text-muted dark:text-text-muted-dark font-semibold">
             Daily Target Calories
           </Text>
-          <Text className="text-2xl font-black text-accent dark:text-accent-dark my-0.5">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark my-1">
             {planData.targetCalories.toLocaleString()}{' '}
-            <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            <Text className="text-xs font-normal text-text-muted dark:text-text-muted-dark">
               kcal
             </Text>
           </Text>
-          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark text-center px-1">
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center px-2 leading-4">
             {planData.focusSummary}
           </Text>
         </View>
 
         {/* Macro Distribution Pills */}
-        <View className="flex-row gap-2 pt-2 border-t border-input-border/30 dark:border-input-border-dark/30">
-          <View className="flex-1 items-center bg-background dark:bg-background-dark py-1.5 rounded-lg">
-            <Text className="text-[9px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
+        <View className="flex-row gap-2 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50">
+          <View className="flex-1 items-center bg-input dark:bg-input-dark py-2 rounded-xl">
+            <Text className="text-[10px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
               Protein
             </Text>
-            <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark mt-0.5">
               {planData.protein}g
             </Text>
           </View>
 
-          <View className="flex-1 items-center bg-background dark:bg-background-dark py-1.5 rounded-lg">
-            <Text className="text-[9px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
+          <View className="flex-1 items-center bg-input dark:bg-input-dark py-2 rounded-xl">
+            <Text className="text-[10px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
               Carbs
             </Text>
-            <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark mt-0.5">
               {planData.carbs}g
             </Text>
           </View>
 
-          <View className="flex-1 items-center bg-background dark:bg-background-dark py-1.5 rounded-lg">
-            <Text className="text-[9px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
+          <View className="flex-1 items-center bg-input dark:bg-input-dark py-2 rounded-xl">
+            <Text className="text-[10px] uppercase font-bold text-text-muted dark:text-text-muted-dark">
               Fats
             </Text>
-            <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark mt-0.5">
               {planData.fats}g
             </Text>
           </View>
@@ -297,18 +285,24 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
       </View>
 
       {/* Feature Bullet Perks */}
-      <View className="w-full bg-surface/50 dark:bg-surface-dark/50 border border-input-border/50 dark:border-input-border-dark/50 rounded-xl p-2.5 mb-3.5 space-y-1">
-        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-          ✨ <Text className="font-semibold text-text-primary dark:text-text-primary-dark">AI Meal Scanner</Text> & Nutrition Tracker activated
-        </Text>
-        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-          🏋️ <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Custom Exercise Library</Text> & split ready
-        </Text>
+      <View className="w-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl p-3 mb-4 space-y-1.5">
+        <View className="flex-row items-center">
+          <Ionicons name="checkmark-circle" size={17} color={colors.accent} />
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark ml-2">
+            AI Meal Scanner & Nutrition Tracker activated
+          </Text>
+        </View>
+        <View className="flex-row items-center">
+          <Ionicons name="checkmark-circle" size={17} color={colors.accent} />
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark ml-2">
+            Custom Exercise Library & split ready
+          </Text>
+        </View>
       </View>
 
       {/* Launch CTA */}
       <Button
-        title="Enter My Dashboard 🚀"
+        title="Enter Dashboard"
         onPress={onLaunchDashboard}
       />
     </View>

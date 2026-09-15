@@ -12,4 +12,11 @@ export const registerUser = (payload: {
 }) => apiRequest('/api/auth/register', { method: 'POST', body: payload as any });
 
 export const loginUser = (payload: { email: string; password: string }) =>
-  apiRequest('/api/auth/login', { method: 'POST', body: payload as any });
+  apiRequest('/api/auth/login', { method: 'POST', body: payload as any });
+
+export const refreshTokenApi = (refreshToken: string) =>
+  apiRequest('/api/auth/refresh', { method: 'POST', body: { refreshToken } });
+
+export const logoutUserApi = (refreshToken?: string | null) =>
+  apiRequest('/api/auth/logout', { method: 'POST', body: { refreshToken: refreshToken || undefined } });
+

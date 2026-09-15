@@ -2,28 +2,55 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
+import { useThemeColors } from '@/constants/colors';
 
 export interface NavItem {
   key: string;
   label: string;
   route: string;
-  icon: string;
+  activeIcon: keyof typeof Ionicons.glyphMap;
+  inactiveIcon: keyof typeof Ionicons.glyphMap;
 }
 
 const NAV_ITEMS_LEFT: NavItem[] = [
-  { key: 'dashboard', label: 'Dashboard', route: '/dashboard', icon: '📊' },
-  { key: 'foodlog', label: 'Nutrition', route: '/foodlog', icon: '🥗' },
+  {
+    key: 'dashboard',
+    label: 'Dashboard',
+    route: '/dashboard',
+    activeIcon: 'grid',
+    inactiveIcon: 'grid',
+  },
+  {
+    key: 'foodlog',
+    label: 'Nutrition',
+    route: '/foodlog',
+    activeIcon: 'restaurant',
+    inactiveIcon: 'restaurant',
+  },
 ];
 
 const NAV_ITEMS_RIGHT: NavItem[] = [
-  { key: 'workouts', label: 'Workouts', route: '/workouts', icon: '🏋️‍♂️' },
-  { key: 'profile', label: 'Profile', route: '/profile', icon: '👤' },
+  {
+    key: 'workouts',
+    label: 'Workouts',
+    route: '/workouts',
+    activeIcon: 'barbell',
+    inactiveIcon: 'barbell',
+  },
+  {
+    key: 'profile',
+    label: 'Profile',
+    route: '/profile',
+    activeIcon: 'person',
+    inactiveIcon: 'person',
+  },
 ];
 
 export default function FloatingNavBar() {
@@ -33,6 +60,7 @@ export default function FloatingNavBar() {
   const { user } = useAuth();
   const userId = user?.id;
   const { showSuccess } = useToast();
+  const { colors, isDark } = useThemeColors();
   const [showScanModal, setShowScanModal] = useState(false);
 
   // Determine active route
@@ -58,32 +86,28 @@ export default function FloatingNavBar() {
     }
   };
 
-  const bottomInset = Math.max(6, insets.bottom);
+  const bottomInset = Math.max(8, insets.bottom);
 
   return (
     <>
-      <View
-        style={[styles.navBarContainer, { pointerEvents: 'box-none' } as any]}
-      >
+      <View style={[styles.navBarContainer, { pointerEvents: 'box-none' } as any]}>
         <View
           style={[
-            {
-              paddingBottom: bottomInset,
-            },
+            { paddingBottom: bottomInset },
             Platform.select({
               web: {
-                backdropFilter: 'blur(20px)',
-                WebkitBackdropFilter: 'blur(20px)',
-                boxShadow: '0 -2px 15px rgba(0, 0, 0, 0.18)',
+                backdropFilter: 'blur(16px)',
+                WebkitBackdropFilter: 'blur(16px)',
+                boxShadow: '0 -2px 12px rgba(0, 0, 0, 0.06)',
               } as any,
               default: {
                 elevation: 8,
               },
             }),
           ]}
-          className="w-full bg-surface/95 dark:bg-surface-dark/95 border-t border-input-border/60 dark:border-input-border-dark/60"
+          className="w-full bg-surface/95 dark:bg-surface-dark/95 border-t border-input-border dark:border-input-border-dark"
         >
-          <View className="flex-row items-center justify-around w-full max-w-[440px] self-center pt-1.5 px-2">
+          <View className="flex-row items-center justify-around w-full max-w-[440px] self-center pt-2 px-2">
             {/* Left Nav Items: Dashboard, Nutrition */}
             {NAV_ITEMS_LEFT.map((item) => {
               const isActive = getIsActive(item.route);
@@ -92,36 +116,34 @@ export default function FloatingNavBar() {
                 <TouchableOpacity
                   key={item.key}
                   activeOpacity={0.7}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
                   onPress={() => {
                     if (!isActive) {
                       router.push(item.route as any);
                     }
                   }}
-                  className="flex-1 items-center justify-center py-0.5"
+                  className="flex-1 items-center justify-center py-1"
                 >
-                  {/* Icon Container */}
                   <View
-                    className={`w-9 h-6 rounded-full items-center justify-center mb-0.5 ${
+                    className={`w-10 h-7.5 rounded-full items-center justify-center mb-0.5 ${
                       isActive
-                        ? 'bg-accent/15 dark:bg-accent-dark/25'
+                        ? 'bg-accent/15 dark:bg-accent-dark/20'
                         : 'bg-transparent'
                     }`}
                   >
-                    <Text
-                      className={`text-[17px] ${
-                        isActive ? 'scale-105' : 'opacity-60'
-                      }`}
-                    >
-                      {item.icon}
-                    </Text>
+                    <Ionicons
+                      name={isActive ? item.activeIcon : item.inactiveIcon}
+                      size={22}
+                      color={isActive ? colors.accent : colors.textMuted}
+                    />
                   </View>
 
-                  {/* Text Label */}
                   <Text
-                    className={`text-[10px] text-center tracking-tight leading-3 ${
+                    className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent dark:text-accent-dark font-extrabold'
-                        : 'text-text-muted dark:text-text-muted-dark font-medium opacity-75'
+                        ? 'text-accent dark:text-accent-dark font-bold'
+                        : 'text-text-muted dark:text-text-muted-dark font-medium'
                     }`}
                     numberOfLines={1}
                   >
@@ -131,60 +153,38 @@ export default function FloatingNavBar() {
               );
             })}
 
-            {/* Center Protruding Action Button: AI Food Scan */}
+            {/* Center Elevated Action Button: AI Scan */}
             <View className="flex-1 items-center justify-center">
               <TouchableOpacity
                 activeOpacity={0.85}
+                accessibilityRole="button"
+                accessibilityLabel="Scan Meal with AI"
                 onPress={() => setShowScanModal(true)}
                 className="items-center justify-center -mt-5"
                 hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
               >
-                {/* Elevated Prominent Circular Scanner Icon */}
                 <View
-                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
+                  className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
                   style={[
-                    {
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    },
+                    styles.centerButton,
                     Platform.select({
                       web: {
-                        boxShadow: '0 4px 14px rgba(0, 229, 160, 0.45), 0 2px 6px rgba(0, 0, 0, 0.15)',
+                        boxShadow: '0 4px 12px rgba(13, 122, 87, 0.3)',
                       } as any,
                       default: {
-                        elevation: 6,
+                        elevation: 4,
                       },
                     }),
                   ]}
                 >
-                  <Text
-                    style={{
-                      fontSize: 25,
-                      lineHeight: Platform.select({ ios: 30, android: 30, default: 28 }),
-                      textAlign: 'center',
-                      textAlignVertical: 'center',
-                      includeFontPadding: false,
-                      transform: [
-                        {
-                          translateY: Platform.select({
-                            web: -3,
-                            android: -0.5,
-                            default: 1,
-                          }),
-                        },
-                      ],
-                    }}
-                  >
-                    📸
-                  </Text>
+                  <Ionicons name="camera" size={24} color={isDark ? colors.background : '#FFFFFF'} />
                 </View>
 
-                {/* Text Label Below Icon */}
                 <Text
-                  className="text-[10px] text-center tracking-tight leading-3 font-extrabold text-accent dark:text-accent-dark mt-0.5"
+                  className="text-[10px] text-center tracking-tight font-bold text-accent dark:text-accent-dark mt-0.5"
                   numberOfLines={1}
                 >
-                  AI Scan
+                  Scan
                 </Text>
               </TouchableOpacity>
             </View>
@@ -197,36 +197,34 @@ export default function FloatingNavBar() {
                 <TouchableOpacity
                   key={item.key}
                   activeOpacity={0.7}
+                  accessibilityRole="tab"
+                  accessibilityState={{ selected: isActive }}
                   onPress={() => {
                     if (!isActive) {
                       router.push(item.route as any);
                     }
                   }}
-                  className="flex-1 items-center justify-center py-0.5"
+                  className="flex-1 items-center justify-center py-1"
                 >
-                  {/* Icon Container */}
                   <View
-                    className={`w-9 h-6 rounded-full items-center justify-center mb-0.5 ${
+                    className={`w-10 h-7.5 rounded-full items-center justify-center mb-0.5 ${
                       isActive
-                        ? 'bg-accent/15 dark:bg-accent-dark/25'
+                        ? 'bg-accent/15 dark:bg-accent-dark/20'
                         : 'bg-transparent'
                     }`}
                   >
-                    <Text
-                      className={`text-[17px] ${
-                        isActive ? 'scale-105' : 'opacity-60'
-                      }`}
-                    >
-                      {item.icon}
-                    </Text>
+                    <Ionicons
+                      name={isActive ? item.activeIcon : item.inactiveIcon}
+                      size={22}
+                      color={isActive ? colors.accent : colors.textMuted}
+                    />
                   </View>
 
-                  {/* Text Label */}
                   <Text
-                    className={`text-[10px] text-center tracking-tight leading-3 ${
+                    className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent dark:text-accent-dark font-extrabold'
-                        : 'text-text-muted dark:text-text-muted-dark font-medium opacity-75'
+                        ? 'text-accent dark:text-accent-dark font-bold'
+                        : 'text-text-muted dark:text-text-muted-dark font-medium'
                     }`}
                     numberOfLines={1}
                   >
@@ -257,5 +255,10 @@ const styles = StyleSheet.create({
     right: 0,
     zIndex: 999,
     overflow: 'visible',
+  },
+  centerButton: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 });

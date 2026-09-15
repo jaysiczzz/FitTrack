@@ -19,7 +19,7 @@ import {
   MealType,
   getSmartMealType,
   MEAL_LABELS,
-  MEAL_ICONS,
+  MEAL_GLYPHS,
   FoodLogItem,
   getSmartFoodBadge,
   getBadgeStyles,
@@ -29,7 +29,8 @@ import {
   getRecentLoggedFoods,
   saveFoodToRecentHistory,
 } from '../../api/foodlog';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import FilterChip from '../ui/FilterChip';
 import InModalToast from '../ui/InModalToast';
@@ -52,6 +53,7 @@ export default function FoodSearchModal({
   defaultMeal,
   initialCategory = 'ALL',
 }: FoodSearchModalProps) {
+  const { colors } = useThemeColors();
   const [selectedMeal, setSelectedMeal] = useState<MealType>(defaultMeal || getSmartMealType());
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<FilterCategory>(initialCategory);
@@ -250,7 +252,7 @@ export default function FoodSearchModal({
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-1 mr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
-                Search & Log Food 🥗
+                Search & Log Food
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">
                 Popular fitness staples, healthy meals & groceries
@@ -280,53 +282,61 @@ export default function FoodSearchModal({
               </Text>
               <View className="bg-accent/15 dark:bg-accent-dark/25 px-2 py-0.5 rounded-full border border-accent/20">
                 <Text className="text-accent dark:text-accent-dark text-[10px] font-extrabold">
-                  ✨ Auto-selected by time
+                  Auto-selected by time
                 </Text>
               </View>
             </View>
 
             <View className="flex-row gap-1.5">
-              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => setSelectedMeal(m)}
-                  activeOpacity={0.8}
-                  className={`flex-1 py-1.5 px-1 rounded-xl items-center border ${
-                    selectedMeal === m
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                      : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                  }`}
-                >
-                  <Text className="text-xs mb-0.5">{MEAL_ICONS[m]}</Text>
-                  <Text
-                    className={`text-[11px] font-bold capitalize ${
-                      selectedMeal === m
-                        ? 'text-background dark:text-background-dark font-black'
-                        : 'text-text-primary dark:text-text-primary-dark'
+              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
+                const isSelected = selectedMeal === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => setSelectedMeal(m)}
+                    activeOpacity={0.8}
+                    className={`flex-1 py-1.5 px-1 rounded-xl items-center justify-center border ${
+                      isSelected
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    {MEAL_LABELS[m]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={MEAL_GLYPHS[m]}
+                      size={14}
+                      color={isSelected ? (colors.surface) : colors.textMuted}
+                      style={{ marginBottom: 2 }}
+                    />
+                    <Text
+                      className={`text-[10px] font-bold capitalize ${
+                        isSelected
+                          ? 'text-white dark:text-background-dark font-black'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {MEAL_LABELS[m]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
           </View>
 
           {/* Search Input Bar */}
           <View className="mb-3">
             <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl px-3 border border-input-border dark:border-input-border-dark">
-              <Text className="text-base mr-2">🔍</Text>
+              <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
               <TextInput
                 value={searchQuery}
                 onChangeText={setSearchQuery}
                 placeholder="Search chicken, oats, rice, brands..."
-                placeholderTextColor={COLORS.textMuted.dark}
+                placeholderTextColor={colors.textMuted}
                 className="flex-1 py-2 text-sm text-text-primary dark:text-text-primary-dark"
                 autoCapitalize="none"
                 clearButtonMode="while-editing"
               />
               {isSearchingOnline ? (
-                <ActivityIndicator size="small" color={COLORS.accent.DEFAULT} className="ml-2" />
+                <ActivityIndicator size="small" color={colors.accent} className="ml-2" />
               ) : searchQuery ? (
                 <TouchableOpacity onPress={() => setSearchQuery('')} className="p-1">
                   <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">✕</Text>
@@ -340,14 +350,14 @@ export default function FoodSearchModal({
             <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-1.5">
               {[
                 { key: 'ALL', label: 'All Foods' },
-                { key: 'RECENT', label: `Recent (${recentFoods.length}) ⏱️` },
-                { key: 'Protein', label: '🥩 Protein' },
-                { key: 'Carbs', label: '🍚 Carbs' },
-                { key: 'Fats', label: '🥑 Fats' },
-                { key: 'Fruits', label: '🍎 Fruits' },
-                { key: 'Vegetables', label: '🥦 Veggies' },
-                { key: 'Dairy', label: '🥛 Dairy' },
-                { key: 'Staples', label: '🥗 Quick Staples' },
+                { key: 'RECENT', label: `Recent (${recentFoods.length})` },
+                { key: 'Protein', label: 'Protein' },
+                { key: 'Carbs', label: 'Carbs' },
+                { key: 'Fats', label: 'Fats' },
+                { key: 'Fruits', label: 'Fruits' },
+                { key: 'Vegetables', label: 'Veggies' },
+                { key: 'Dairy', label: 'Dairy' },
+                { key: 'Staples', label: 'Quick Staples' },
               ].map((cat) => (
                 <FilterChip
                   key={cat.key}
@@ -364,7 +374,6 @@ export default function FoodSearchModal({
           <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
             {displayedItems.length === 0 ? (
               <View className="py-12 items-center justify-center">
-                <Text className="text-3xl mb-2">🍽️</Text>
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center">
                   No Foods Found
                 </Text>
@@ -397,11 +406,11 @@ export default function FoodSearchModal({
                         className="w-10 h-10 rounded-xl mr-2.5 bg-black/10"
                         resizeMode="cover"
                       />
-                    ) : (
+                    ) : item.icon ? (
                       <View className="w-10 h-10 rounded-xl bg-surface dark:bg-surface-dark items-center justify-center mr-2.5 border border-input-border dark:border-input-border-dark">
-                        <Text className="text-lg">{item.icon || '🥗'}</Text>
+                        <Text className="text-lg">{item.icon}</Text>
                       </View>
-                    )}
+                    ) : null}
 
                     <View className="flex-1">
                       <View className="flex-row items-center gap-1.5 flex-wrap">
@@ -416,14 +425,14 @@ export default function FoodSearchModal({
                         {item.brand && item.brand !== itemBadge.badge ? (
                           <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-1.5 py-0.5 rounded-md">
                             <Text className="text-text-muted dark:text-text-muted-dark font-medium text-[8px]" numberOfLines={1}>
-                              🏷️ {item.brand}
+                              {item.brand}
                             </Text>
                           </View>
                         ) : null}
                         {item.isOnlineResult ? (
                           <View className="bg-info/15 dark:bg-info-dark/25 border border-info/30 dark:border-info-dark/30 px-1.5 py-0.5 rounded-md">
                             <Text className="text-info dark:text-info-dark font-bold text-[8px]">
-                              🌐 Grocery
+                              Grocery
                             </Text>
                           </View>
                         ) : null}
@@ -438,11 +447,11 @@ export default function FoodSearchModal({
 
                       {item.ingredients ? (
                         <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5" numberOfLines={1}>
-                          🥗 {item.ingredients}
+                          {item.ingredients}
                         </Text>
                       ) : item.description ? (
                         <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5" numberOfLines={1}>
-                          ℹ️ {item.description}
+                          {item.description}
                         </Text>
                       ) : null}
 
@@ -524,14 +533,14 @@ export default function FoodSearchModal({
                           {selectedItem.brand && selectedItem.brand !== selectedBadge.badge ? (
                             <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-1.5 py-0.5 rounded-md">
                               <Text className="text-text-muted dark:text-text-muted-dark font-medium text-[8px]" numberOfLines={1}>
-                                🏷️ {selectedItem.brand}
+                                {selectedItem.brand}
                               </Text>
                             </View>
                           ) : null}
                           {selectedItem.isOnlineResult ? (
                             <View className="bg-info/15 dark:bg-info-dark/25 border border-info/30 dark:border-info-dark/30 px-1.5 py-0.5 rounded-md">
                               <Text className="text-info dark:text-info-dark font-bold text-[8px]">
-                                🌐 Grocery
+                                Grocery
                               </Text>
                             </View>
                           ) : null}
@@ -541,12 +550,12 @@ export default function FoodSearchModal({
                         </Text>
                         {Boolean(selectedItem.ingredients) && (
                           <Text className="text-accent dark:text-accent-dark text-[11px] font-medium mt-1 leading-tight" numberOfLines={2}>
-                            🥗 {selectedItem.ingredients}
+                            {selectedItem.ingredients}
                           </Text>
                         )}
                         {Boolean(selectedItem.description && !selectedItem.ingredients) && (
                           <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-1 leading-tight" numberOfLines={2}>
-                            ℹ️ {selectedItem.description}
+                            {selectedItem.description}
                           </Text>
                         )}
                       </View>
