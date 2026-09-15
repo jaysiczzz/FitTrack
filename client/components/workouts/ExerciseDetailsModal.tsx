@@ -1,5 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
 
@@ -23,6 +25,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   onAddExercise,
   onUpdateExercisePreset,
 }) => {
+  const { colors } = useThemeColors();
   const initialTier = React.useMemo(() => {
     const d = (exercise?.difficulty || '').toLowerCase();
     if (d.includes('beginner')) return 'beginner';
@@ -120,7 +123,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               />
             ) : (
               <View className="w-full h-28 rounded-2xl mb-4 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center">
-                <Text className="text-3xl">🏋️‍♂️</Text>
+                <Ionicons name="barbell" size={32} color={colors.textMuted} />
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1">{exercise.name}</Text>
               </View>
             )}
@@ -185,7 +188,6 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                           active ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
                         }`}
                       >
-                        {tier === 'beginner' ? '🟢 ' : tier === 'intermediate' ? '🟡 ' : '🔴 '}
                         {label}
                       </Text>
                     </TouchableOpacity>
@@ -221,7 +223,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
               {currentPreset.cue ? (
                 <Text className="text-[11px] font-medium text-accent dark:text-accent-dark text-center mt-2 p-2 rounded-xl bg-accent/10 border border-accent/20">
-                  💡 {currentPreset.cue}
+                  {currentPreset.cue}
                 </Text>
               ) : null}
 
@@ -292,7 +294,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                 {exercise.breathingTechnique ? (
                   <View className="mt-2.5 pt-2.5 border-t border-input-border dark:border-input-border-dark">
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
-                      🫁 Breathing Technique:
+                      Breathing Technique:
                     </Text>
                     <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4">
                       {exercise.breathingTechnique}
@@ -311,7 +313,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                 {formTipsList.length > 0 ? (
                   <View className="mb-2.5">
-                    <Text className="text-xs font-bold text-accent dark:text-accent-dark mb-1">💡 Proper Form Tips:</Text>
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark mb-1">Proper Form Tips:</Text>
                     {formTipsList.map((tip, idx) => (
                       <Text key={idx} className="text-xs text-text-muted dark:text-text-muted-dark mb-1 leading-4">
                         • {tip}
@@ -322,7 +324,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                 {mistakesList.length > 0 ? (
                   <View>
-                    <Text className="text-xs font-bold text-danger dark:text-danger-dark mb-1">⚠️ Common Mistakes:</Text>
+                    <Text className="text-xs font-bold text-danger dark:text-danger-dark mb-1">Common Mistakes:</Text>
                     {mistakesList.map((mistake, idx) => (
                       <Text key={idx} className="text-xs text-text-muted dark:text-text-muted-dark mb-1 leading-4">
                         • {mistake}
@@ -427,8 +429,8 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             >
               <Text className="text-background dark:text-background-dark font-extrabold text-sm">
                 {mode === 'update'
-                  ? `✓ Apply ${activeTier.toUpperCase()} Preset to Workout`
-                  : `+ Add (${activeTier.toUpperCase()}) to Today's Workout`}
+                  ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
+                  : `Add (${activeTier.toUpperCase()}) to Today's Workout`}
               </Text>
             </TouchableOpacity>
           </View>

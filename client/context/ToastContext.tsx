@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import NotificationToast, { NotificationType } from '../components/ui/NotificationToast';
 
 export interface ToastOptions {
@@ -6,6 +7,7 @@ export interface ToastOptions {
   description?: string;
   type?: NotificationType;
   icon?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
   actionLabel?: string;
   onAction?: () => void;
   duration?: number;
@@ -30,6 +32,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     description?: string;
     type: NotificationType;
     icon?: string;
+    iconName?: keyof typeof Ionicons.glyphMap;
     actionLabel?: string;
     onAction?: () => void;
     duration?: number;
@@ -54,6 +57,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         description: options.description,
         type: options.type || 'success',
         icon: options.icon,
+        iconName: options.iconName,
         actionLabel: options.actionLabel,
         onAction: options.onAction,
         duration: options.duration ?? 4000,

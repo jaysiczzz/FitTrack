@@ -1,10 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
+import SurfaceCard from '../ui/SurfaceCard';
 import {
   DailyFoodHistorySummary,
   FoodLogItem,
   MEAL_LABELS,
-  MEAL_ICONS,
   getSmartFoodBadge,
   getBadgeStyles,
 } from './foodLogTypes';
@@ -26,14 +28,10 @@ export default function FoodHistoryDayCard({
   onToggleExpand,
   onReLogItem,
 }: FoodHistoryDayCardProps) {
+  const { colors } = useThemeColors();
+
   return (
-    <View
-      className="bg-surface dark:bg-surface-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark"
-      style={Platform.select({
-        web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-        default: { elevation: 1 },
-      })}
-    >
+    <SurfaceCard className="mb-3">
       {/* Header Accordion Bar */}
       <TouchableOpacity
         onPress={onToggleExpand}
@@ -46,9 +44,10 @@ export default function FoodHistoryDayCard({
               {day.formattedDate}
             </Text>
             {day.totalProtein >= targetProtein * 0.8 ? (
-              <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full">
+              <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
+                <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
                 <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-[9px]">
-                  Target Met 🎯
+                  Target Met
                 </Text>
               </View>
             ) : null}
@@ -56,7 +55,7 @@ export default function FoodHistoryDayCard({
 
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             {day.items.length} {day.items.length === 1 ? 'meal' : 'meals'} logged
-            {day.waterMl > 0 ? ` · 💧 ${day.waterMl}ml` : ''}
+            {day.waterMl > 0 ? ` · ${day.waterMl} ml water` : ''}
           </Text>
         </View>
 
@@ -69,9 +68,16 @@ export default function FoodHistoryDayCard({
               / {targetCalories} kcal
             </Text>
           </View>
-          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold mt-0.5">
-            {isExpanded ? '▲ Hide' : '▼ View'}
-          </Text>
+          <View className="flex-row items-center gap-0.5 mt-0.5">
+            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold">
+              {isExpanded ? 'Hide' : 'View'}
+            </Text>
+            <Ionicons
+              name={isExpanded ? 'chevron-up' : 'chevron-down'}
+              size={14}
+              color={colors.textMuted}
+            />
+          </View>
         </View>
       </TouchableOpacity>
 
@@ -149,21 +155,21 @@ export default function FoodHistoryDayCard({
                   </View>
                 </View>
 
-              {/* 1-Tap Re-log Button */}
-              <TouchableOpacity
-                onPress={() => onReLogItem(meal)}
-                activeOpacity={0.7}
-                className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl flex-row items-center"
-              >
-                <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
-                  + Re-log
-                </Text>
-              </TouchableOpacity>
-            </View>
+                {/* 1-Tap Re-log Button */}
+                <TouchableOpacity
+                  onPress={() => onReLogItem(meal)}
+                  activeOpacity={0.7}
+                  className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl flex-row items-center"
+                >
+                  <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
+                    Re-log
+                  </Text>
+                </TouchableOpacity>
+              </View>
             );
           })}
         </View>
       )}
-    </View>
+    </SurfaceCard>
   );
 }

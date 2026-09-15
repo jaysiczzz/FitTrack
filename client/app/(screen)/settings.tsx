@@ -10,15 +10,18 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import SurfaceCard from '@/components/ui/SurfaceCard';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS } from '@/constants/colors';
+import { COLORS, useThemeColors } from '@/constants/colors';
 
 export default function Settings() {
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
+  const { colors, isDark } = useThemeColors();
   const { logout } = useAuth();
 
   const handleConfirmLogout = async () => {
@@ -38,28 +41,24 @@ export default function Settings() {
         <View className="flex-row items-center mb-1">
           <Pressable
             onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border/50"
+            className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
+            accessibilityLabel="Go back"
+            accessibilityRole="button"
           >
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">←</Text>
+            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
           </Pressable>
           <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
             Settings
           </Text>
         </View>
 
-        <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
-          Manage your account preferences
+        <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark">
+          Manage your account and preferences
         </Text>
 
         {/* Account & Security Section */}
-        <View
-          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
-          style={Platform.select({
-            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-            default: { elevation: 1 },
-          })}
-        >
-          <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
+        <SurfaceCard className="mb-3">
+          <Text className="mb-2 font-bold text-sm text-text-primary dark:text-text-primary-dark">
             Account & Security
           </Text>
 
@@ -67,142 +66,108 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => {}}
           >
-            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
-              <Text className="text-lg">🔒</Text>
-            </View>
-
             <View className="flex-1">
-              <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Reset Password
               </Text>
-
               <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                 Change your account password
               </Text>
             </View>
 
-            <Text className="text-xl text-text-muted dark:text-text-muted-dark">
-              ›
-            </Text>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
           <View className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
-              <Text className="text-lg">🛡️</Text>
-            </View>
-
             <View className="flex-1">
-              <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Two-Factor Auth
               </Text>
-
               <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                Extra layer of security
+                Extra layer of authentication
               </Text>
             </View>
 
             <Switch
               value={twoFactorEnabled}
               onValueChange={setTwoFactorEnabled}
-              thumbColor={COLORS.surface.light}
+              thumbColor={colors.surface}
               trackColor={{
-                false: colorScheme === 'dark' ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
-                true: colorScheme === 'dark' ? COLORS.accent.dark : COLORS.accent.light,
+                false: colors.inputBorder,
+                true: colors.accent,
               }}
             />
           </View>
-        </View>
-
-        {/* Support Section */}
-        <View
-          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
-          style={Platform.select({
-            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-            default: { elevation: 1 },
-          })}
-        >
-          <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
-            Support
-          </Text>
-
-          {[
-            ['💬', 'Contact Support', 'Get help from our team'],
-            ['⭐', 'Rate FitTrack', 'Share your feedback'],
-            ['📄', 'Privacy Policy', 'Read our data practices'],
-          ].map(([icon, title, subtitle]) => (
-            <Pressable
-              key={title}
-              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-            >
-              <View className="mr-3 h-10 w-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
-                <Text className="text-lg">{icon}</Text>
-              </View>
-
-              <View className="flex-1">
-                <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
-                  {title}
-                </Text>
-
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  {subtitle}
-                </Text>
-              </View>
-
-              <Text className="text-xl text-text-muted dark:text-text-muted-dark">
-                ›
-              </Text>
-            </Pressable>
-          ))}
-        </View>
+        </SurfaceCard>
 
         {/* Preferences Section */}
-        <View
-          className="rounded-2xl border border-input-border bg-surface p-4 dark:border-input-border-dark dark:bg-surface-dark mb-3"
-          style={Platform.select({
-            web: { boxShadow: '0 2px 10px rgba(0, 0, 0, 0.06)' } as any,
-            default: { elevation: 1 },
-          })}
-        >
-          <Text className="mb-2 font-bold text-text-primary dark:text-text-primary-dark">
+        <SurfaceCard className="mb-3">
+          <Text className="mb-2 font-bold text-sm text-text-primary dark:text-text-primary-dark">
             Preferences
           </Text>
 
-          <View className="flex-row items-center justify-between">
-            <View>
-              <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
+          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark pt-3">
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Dark Mode
               </Text>
-
               <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                {colorScheme === 'dark' ? 'Dark theme active' : 'Light theme active'}
+                {colorScheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
               </Text>
             </View>
 
             <Switch
               value={colorScheme === 'dark'}
               onValueChange={(isDark) => setColorScheme(isDark ? 'dark' : 'light')}
-              thumbColor={COLORS.surface.light}
+              thumbColor={colors.surface}
               trackColor={{
-                false: colorScheme === 'dark' ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
-                true: colorScheme === 'dark' ? COLORS.accent.dark : COLORS.accent.light,
+                false: colors.inputBorder,
+                true: colors.accent,
               }}
             />
           </View>
-        </View>
+        </SurfaceCard>
 
-        {/* Log Out Section (Below everything else) */}
-        <View className="mt-4">
+        {/* Support Section */}
+        <SurfaceCard className="mb-3">
+          <Text className="mb-2 font-bold text-sm text-text-primary dark:text-text-primary-dark">
+            Support
+          </Text>
+
+          {[
+            { title: 'Contact Support', subtitle: 'Get help from our team' },
+            { title: 'Rate FitTrack', subtitle: 'Share your feedback' },
+            { title: 'Privacy Policy', subtitle: 'Read our data practices' },
+          ].map((item) => (
+            <Pressable
+              key={item.title}
+              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            >
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                  {item.title}
+                </Text>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                  {item.subtitle}
+                </Text>
+              </View>
+
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            </Pressable>
+          ))}
+        </SurfaceCard>
+
+        {/* Log Out Section */}
+        <View className="mt-2">
           <Pressable
-            className="flex-row items-center justify-center rounded-xl bg-danger/15 dark:bg-danger-dark/20 border border-danger/30 dark:border-danger-dark/30 p-3.5 active:opacity-80"
+            className="flex-row items-center justify-center rounded-xl bg-input dark:bg-input-dark border border-danger/30 dark:border-danger-dark/30 py-3.5 active:opacity-80"
             onPress={() => setShowLogoutModal(true)}
           >
-            <Text className="mr-2 text-lg">🚪</Text>
-            <Text className="text-base font-bold text-danger dark:text-danger-dark">
+            <Text className="text-sm font-bold text-danger dark:text-danger-dark">
               Log Out
             </Text>
           </Pressable>
         </View>
-
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -210,7 +175,6 @@ export default function Settings() {
         visible={showLogoutModal}
         title="Log Out"
         message="Are you sure you want to log out of your account?"
-        icon="🚪"
         confirmText="Log Out"
         cancelText="Cancel"
         isDanger

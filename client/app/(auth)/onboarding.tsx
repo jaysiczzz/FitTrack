@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
 import OnboardingHeader from '@/components/auth/OnboardingHeader';
 import OnboardingGoalStep from '@/components/auth/OnboardingGoalStep';
 import OnboardingMetricsStep from '@/components/auth/OnboardingMetricsStep';
@@ -12,6 +14,7 @@ import { useRegistration } from '../../context/RegistrationContext';
 import { useAuth } from '../../context/AuthContext';
 
 export default function OnboardingScreen() {
+  const { colors } = useThemeColors();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
@@ -29,7 +32,7 @@ export default function OnboardingScreen() {
 
   // Network & Registration State
   const [loading, setLoading] = useState(false);
-  const [registeredPayload, setRegisteredPayload] = useState<{ token: string; user: any } | null>(null);
+  const [registeredPayload, setRegisteredPayload] = useState<{ token: string; user: any; refreshToken?: string } | null>(null);
 
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
@@ -126,7 +129,7 @@ export default function OnboardingScreen() {
         goal: selectedGoal,
       });
 
-      setRegisteredPayload({ token: res.token, user: res.user });
+      setRegisteredPayload({ token: res.token, user: res.user, refreshToken: res.refreshToken });
       clear();
     } catch (err: any) {
       setServerError(err.message || 'Registration failed. Please try again.');
@@ -138,7 +141,7 @@ export default function OnboardingScreen() {
   // Launch Dashboard when user clicks the CTA in Step 3
   const handleLaunchDashboard = async () => {
     if (registeredPayload) {
-      await login(registeredPayload.token, registeredPayload.user);
+      await login(registeredPayload.token, registeredPayload.user, registeredPayload.refreshToken);
     }
   };
 
@@ -157,7 +160,7 @@ export default function OnboardingScreen() {
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark justify-center px-6">
         <View className="w-full max-w-[440px] mx-auto bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70 rounded-3xl p-6 items-center text-center">
           <View className="w-16 h-16 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-4">
-            <Text className="text-3xl">📝</Text>
+            <Ionicons name="document-text" size={32} color={colors.accent} />
           </View>
           <Text className="text-xl font-bold text-text-primary dark:text-text-primary-dark mb-2 text-center">
             Registration Required
@@ -166,7 +169,7 @@ export default function OnboardingScreen() {
             To personalize your AI fitness plan, please start by setting up your login credentials.
           </Text>
           <Button
-            title="Go to Registration →"
+            title="Go to Registration"
             onPress={() => router.replace('/(auth)')}
           />
         </View>

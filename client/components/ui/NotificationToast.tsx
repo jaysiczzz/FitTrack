@@ -8,6 +8,9 @@ import {
   StyleSheet,
 } from 'react-native';
 
+import { Ionicons } from '@expo/vector-icons';
+import { useThemeColors } from '@/constants/colors';
+
 export type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
 export interface NotificationToastProps {
@@ -16,6 +19,7 @@ export interface NotificationToastProps {
   description?: string;
   type?: NotificationType;
   icon?: string;
+  iconName?: keyof typeof Ionicons.glyphMap;
   actionLabel?: string;
   onAction?: () => void;
   onDismiss: () => void;
@@ -25,31 +29,27 @@ export interface NotificationToastProps {
 
 const TYPE_CONFIG: Record<
   NotificationType,
-  { borderColor: string; bgBadge: string; defaultIcon: string; textColor: string }
+  { borderColor: string; bgBadge: string; defaultIcon: keyof typeof Ionicons.glyphMap }
 > = {
   success: {
-    borderColor: 'border-accent/50 dark:border-accent-dark/50',
+    borderColor: 'border-accent/40 dark:border-accent-dark/40',
     bgBadge: 'bg-accent/15 dark:bg-accent-dark/25',
-    defaultIcon: '✓',
-    textColor: 'text-accent dark:text-accent-dark',
+    defaultIcon: 'checkmark-circle',
   },
   info: {
-    borderColor: 'border-info/50 dark:border-info-dark/50',
+    borderColor: 'border-info/40 dark:border-info-dark/40',
     bgBadge: 'bg-info/15 dark:bg-info-dark/25',
-    defaultIcon: '💡',
-    textColor: 'text-info dark:text-info-dark',
+    defaultIcon: 'information-circle',
   },
   warning: {
-    borderColor: 'border-warning/50 dark:border-warning-dark/50',
+    borderColor: 'border-warning/40 dark:border-warning-dark/40',
     bgBadge: 'bg-warning/15 dark:bg-warning-dark/25',
-    defaultIcon: '⚠️',
-    textColor: 'text-warning dark:text-warning-dark',
+    defaultIcon: 'alert-circle',
   },
   error: {
-    borderColor: 'border-danger/50 dark:border-danger-dark/50',
+    borderColor: 'border-danger/40 dark:border-danger-dark/40',
     bgBadge: 'bg-danger/15 dark:bg-danger-dark/25',
-    defaultIcon: '✕',
-    textColor: 'text-danger dark:text-danger-dark',
+    defaultIcon: 'close-circle',
   },
 };
 
@@ -59,12 +59,14 @@ export default function NotificationToast({
   description,
   type = 'success',
   icon,
+  iconName,
   actionLabel,
   onAction,
   onDismiss,
   duration = 4000,
   bottomOffset = 28,
 }: NotificationToastProps) {
+  const { colors } = useThemeColors();
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const translateYAnim = useRef(new Animated.Value(40)).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -141,7 +143,12 @@ export default function NotificationToast({
   if (!visible) return null;
 
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.success;
-  const displayIcon = icon || config.defaultIcon;
+  const iconColor = {
+    success: colors.accent,
+    info: colors.info,
+    warning: colors.warning,
+    error: colors.danger,
+  }[type];
 
   return (
     <View
@@ -175,7 +182,13 @@ export default function NotificationToast({
           <View
             className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${config.bgBadge}`}
           >
-            <Text className="text-base">{displayIcon}</Text>
+            {iconName ? (
+              <Ionicons name={iconName} size={20} color={iconColor} />
+            ) : icon ? (
+              <Text className="text-base">{icon}</Text>
+            ) : (
+              <Ionicons name={config.defaultIcon} size={20} color={iconColor} />
+            )}
           </View>
 
           {/* Text Content */}

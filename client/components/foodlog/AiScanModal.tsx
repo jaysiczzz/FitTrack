@@ -12,10 +12,11 @@ import {
   Platform,
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, getBadgeStyles } from './foodLogTypes';
+import { Ionicons } from '@expo/vector-icons';
+import { MealType, FoodLogItem, getSmartMealType, MEAL_LABELS, MEAL_GLYPHS, getSmartFoodBadge, getBadgeStyles } from './foodLogTypes';
 import { analyzeMeal, MealAnalysisResult } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
-import { COLORS } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface AiScanModalProps {
@@ -33,6 +34,7 @@ export default function AiScanModal({
   initialMealType,
   initialMode = 'photo',
 }: AiScanModalProps) {
+  const { colors, isDark } = useThemeColors();
   const { showWarning, showError } = useToast();
   const [activeTab, setActiveTab] = useState<'photo' | 'text'>(initialMode);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(initialMealType || getSmartMealType());
@@ -209,7 +211,7 @@ export default function AiScanModal({
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-1 pr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
-                {activeTab === 'photo' ? 'AI Photo Scanner 📸' : 'Describe Your Meal ✍️'}
+                {activeTab === 'photo' ? 'AI Photo Scanner' : 'Describe Your Meal'}
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">
                 {activeTab === 'photo'
@@ -227,10 +229,15 @@ export default function AiScanModal({
                 setActiveTab('photo');
                 setAnalysisResult(null);
               }}
-              className={`flex-1 py-2 rounded-lg items-center ${
+              className={`flex-1 py-2 rounded-lg items-center flex-row justify-center gap-1.5 ${
                 activeTab === 'photo' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
               }`}
             >
+              <Ionicons
+                name="camera"
+                size={14}
+                color={activeTab === 'photo' ? colors.accent : colors.textMuted}
+              />
               <Text
                 className={`text-xs font-bold ${
                   activeTab === 'photo'
@@ -238,7 +245,7 @@ export default function AiScanModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                📸 Photo Scanner
+                Photo Scanner
               </Text>
             </TouchableOpacity>
             <TouchableOpacity
@@ -246,10 +253,15 @@ export default function AiScanModal({
                 setActiveTab('text');
                 setAnalysisResult(null);
               }}
-              className={`flex-1 py-2 rounded-lg items-center ${
+              className={`flex-1 py-2 rounded-lg items-center flex-row justify-center gap-1.5 ${
                 activeTab === 'text' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
               }`}
             >
+              <Ionicons
+                name="create"
+                size={14}
+                color={activeTab === 'text' ? colors.accent : colors.textMuted}
+              />
               <Text
                 className={`text-xs font-bold ${
                   activeTab === 'text'
@@ -257,7 +269,7 @@ export default function AiScanModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                ✍️ Describe Meal
+                Describe Meal
               </Text>
             </TouchableOpacity>
           </View>
@@ -270,35 +282,43 @@ export default function AiScanModal({
               </Text>
               <View className="bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full">
                 <Text className="text-emerald-500 dark:text-emerald-400 text-[10px] font-extrabold">
-                  ✨ Auto-selected by time
+                  Auto-selected by time
                 </Text>
               </View>
             </View>
 
             <View className="flex-row gap-1.5 mb-3.5">
-              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => (
-                <TouchableOpacity
-                  key={m}
-                  onPress={() => setSelectedMeal(m)}
-                  activeOpacity={0.8}
-                  className={`flex-1 py-1.5 px-1 rounded-xl items-center border ${
-                    selectedMeal === m
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                      : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                  }`}
-                >
-                  <Text className="text-xs mb-0.5">{MEAL_ICONS[m]}</Text>
-                  <Text
-                    className={`text-[11px] font-bold capitalize ${
-                      selectedMeal === m
-                        ? 'text-background dark:text-background-dark font-black'
-                        : 'text-text-primary dark:text-text-primary-dark'
+              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
+                const isSelected = selectedMeal === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => setSelectedMeal(m)}
+                    activeOpacity={0.8}
+                    className={`flex-1 py-1.5 px-1 rounded-xl items-center justify-center border ${
+                      isSelected
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    {MEAL_LABELS[m]}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+                    <Ionicons
+                      name={MEAL_GLYPHS[m]}
+                      size={14}
+                      color={isSelected ? (colors.surface) : colors.textMuted}
+                      style={{ marginBottom: 2 }}
+                    />
+                    <Text
+                      className={`text-[10px] font-bold capitalize ${
+                        isSelected
+                          ? 'text-white dark:text-background-dark font-black'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {MEAL_LABELS[m]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             {/* Photo Mode Content */}
@@ -323,8 +343,7 @@ export default function AiScanModal({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-6 mb-3 border-2 border-dashed border-accent/40 dark:border-accent-dark/40 items-center justify-center">
-                    <Text className="text-4xl mb-2">📸</Text>
+                  <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-6 mb-3 border border-dashed border-input-border dark:border-input-border-dark items-center justify-center">
                     <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-1 text-center">
                       Scan Meal
                     </Text>
@@ -336,20 +355,22 @@ export default function AiScanModal({
                       <TouchableOpacity
                         onPress={handleTakePhoto}
                         activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center shadow-xs"
+                        className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
                       >
+                        <Ionicons name="camera" size={14} color={isDark ? colors.background : '#FFFFFF'} />
                         <Text className="text-background dark:text-background-dark font-extrabold text-xs">
-                          📷 Open Camera
+                          Open Camera
                         </Text>
                       </TouchableOpacity>
 
                       <TouchableOpacity
                         onPress={handlePickFromGallery}
                         activeOpacity={0.8}
-                        className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl flex-row items-center shadow-xs"
+                        className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
                       >
+                        <Ionicons name="images" size={14} color={colors.textPrimary} />
                         <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
-                          🖼️ Photo Library
+                          Photo Library
                         </Text>
                       </TouchableOpacity>
                     </View>
@@ -362,7 +383,7 @@ export default function AiScanModal({
                 <TextInput
                   className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
                   placeholder="e.g. extra olive oil dressing, 2 eggs"
-                  placeholderTextColor={COLORS.textMuted.dark}
+                  placeholderTextColor={colors.textMuted}
                   value={description}
                   onChangeText={setDescription}
                 />
@@ -376,7 +397,7 @@ export default function AiScanModal({
                 <TextInput
                   className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm min-h-[90px]"
                   placeholder="e.g. 200g grilled salmon with 1 cup cooked brown rice and steamed broccoli"
-                  placeholderTextColor={COLORS.textMuted.dark}
+                  placeholderTextColor={colors.textMuted}
                   value={description}
                   onChangeText={setDescription}
                   multiline
@@ -395,14 +416,14 @@ export default function AiScanModal({
               >
                 {loading ? (
                   <>
-                    <ActivityIndicator size="small" color={COLORS.textPrimary.light} className="mr-2" />
+                    <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} className="mr-2" />
                     <Text className="text-background dark:text-background-dark font-black text-sm">
                       Analyzing Meal...
                     </Text>
                   </>
                 ) : (
                   <Text className="text-background dark:text-background-dark font-black text-sm">
-                    ✨ Analyze Meal
+                    Analyze Meal
                   </Text>
                 )}
               </TouchableOpacity>
@@ -448,7 +469,7 @@ export default function AiScanModal({
                         setAnalysisResult((prev) => (prev ? { ...prev, foodName: val } : null))
                       }
                       placeholder="e.g. Grilled Chicken Breast"
-                      placeholderTextColor={COLORS.textMuted.light}
+                      placeholderTextColor={colors.textMuted}
                       className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-text-primary dark:text-text-primary-dark font-bold text-sm border border-input-border dark:border-input-border-dark"
                     />
                   </View>
@@ -465,7 +486,7 @@ export default function AiScanModal({
                           setAnalysisResult((prev) => (prev ? { ...prev, servingSize: val } : null))
                         }
                         placeholder="e.g. 1 bowl, 200g"
-                        placeholderTextColor={COLORS.textMuted.light}
+                        placeholderTextColor={colors.textMuted}
                         className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-text-primary dark:text-text-primary-dark font-medium text-xs border border-input-border dark:border-input-border-dark"
                       />
                     </View>
@@ -482,7 +503,7 @@ export default function AiScanModal({
                         }
                         keyboardType="numeric"
                         placeholder="0"
-                        placeholderTextColor={COLORS.textMuted.light}
+                        placeholderTextColor={colors.textMuted}
                         className="bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl text-accent dark:text-accent-dark font-black text-sm text-right border border-input-border dark:border-input-border-dark"
                       />
                     </View>
@@ -502,7 +523,7 @@ export default function AiScanModal({
                           }
                           keyboardType="numeric"
                           placeholder="0"
-                          placeholderTextColor={COLORS.textMuted.light}
+                          placeholderTextColor={colors.textMuted}
                           className="text-emerald-500 dark:text-emerald-400 font-extrabold text-sm text-center p-0"
                         />
                         <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
@@ -520,7 +541,7 @@ export default function AiScanModal({
                           }
                           keyboardType="numeric"
                           placeholder="0"
-                          placeholderTextColor={COLORS.textMuted.light}
+                          placeholderTextColor={colors.textMuted}
                           className="text-sky-500 dark:text-sky-400 font-extrabold text-sm text-center p-0"
                         />
                         <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
@@ -538,7 +559,7 @@ export default function AiScanModal({
                           }
                           keyboardType="numeric"
                           placeholder="0"
-                          placeholderTextColor={COLORS.textMuted.light}
+                          placeholderTextColor={colors.textMuted}
                           className="text-purple-500 dark:text-purple-400 font-extrabold text-sm text-center p-0"
                         />
                         <Text className="text-text-muted dark:text-text-muted-dark text-[10px] ml-0.5">g</Text>
@@ -548,9 +569,8 @@ export default function AiScanModal({
 
                   {/* AI Health Tip */}
                   {analysisResult.healthNotes ? (
-                    <View className="bg-surface/80 dark:bg-surface-dark/80 p-2.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 mb-3 flex-row items-center">
-                      <Text className="mr-1.5 text-xs">💡</Text>
-                      <Text className="text-text-muted dark:text-text-muted-dark text-xs flex-1 leading-4">
+                    <View className="bg-surface/80 dark:bg-surface-dark/80 p-2.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 mb-3">
+                      <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-4">
                         {analysisResult.healthNotes}
                       </Text>
                     </View>
@@ -563,7 +583,7 @@ export default function AiScanModal({
                     className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
                   >
                     <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
-                      + Add to {MEAL_ICONS[selectedMeal]} {MEAL_LABELS[selectedMeal]}
+                      + Add to {MEAL_LABELS[selectedMeal]}
                     </Text>
                   </TouchableOpacity>
                 </View>

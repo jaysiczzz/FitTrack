@@ -40,6 +40,13 @@ export const MEAL_LABELS: Record<MealType, string> = {
   snack: 'Snacks',
 };
 
+export const MEAL_GLYPHS: Record<MealType, any> = {
+  breakfast: 'sunny',
+  lunch: 'restaurant',
+  dinner: 'moon',
+  snack: 'cafe',
+};
+
 export const MEAL_ICONS: Record<MealType, string> = {
   breakfast: '🌅',
   lunch: '☀️',

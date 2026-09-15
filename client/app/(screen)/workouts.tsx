@@ -10,7 +10,10 @@ import { LibraryExercise } from '@/components/workouts/workoutTypes';
 import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorModal';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
+import { AIWorkoutPlan } from '@/api/ai';
 import {
   getTodayWorkoutSession,
   addExerciseToTodaySession,
@@ -25,6 +28,7 @@ import {
 } from '@/api/workout';
 
 export default function Workouts() {
+  const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
   const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
@@ -32,6 +36,7 @@ export default function Workouts() {
   const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [showAiModal, setShowAiModal] = useState(false);
 
   const fetchTodaySession = async () => {
     try {
@@ -221,7 +226,7 @@ export default function Workouts() {
       message: 'Exercise Removed',
       description: exToRemove ? `Removed "${exToRemove.name}" from today's session` : undefined,
       type: 'info',
-      icon: '🗑️',
+      iconName: 'trash',
     });
   };
 
@@ -277,7 +282,7 @@ export default function Workouts() {
       message: `${customized.name} Updated`,
       description: `Preset set to ${preset.difficulty.toUpperCase()} (${targetSets.length} sets)`,
       type: 'info',
-      icon: '⚙️',
+      iconName: 'options',
     });
   };
 
@@ -408,7 +413,7 @@ export default function Workouts() {
       message: `Added ${libEx.name}${countSuffix}`,
       description: `Added to Today's Workout (${preset.difficulty.toUpperCase()} preset)`,
       type: 'success',
-      icon: '🏋️‍♂️',
+      iconName: 'barbell',
     });
   };
 
@@ -421,11 +426,11 @@ export default function Workouts() {
     setTodayExercises([]);
 
     showToast({
-      message: '🎉 Workout Session Completed!',
-      description: `Great job! Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
+      message: 'Workout Session Completed',
+      description: `Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
       type: 'success',
-      icon: '🔥',
-      actionLabel: 'View History 📅',
+      iconName: 'checkmark-circle',
+      actionLabel: 'View History',
       onAction: () => setActiveTab('history'),
     });
 
@@ -441,12 +446,35 @@ export default function Workouts() {
     }
   };
 
+  const handleAddAiExercises = async (exercises: AIWorkoutPlan['exercises']) => {
+    for (const ex of exercises) {
+      const defaultSets = Array.from({ length: ex.sets || 3 }).map((_, i) => ({
+        weight: ex.suggestedWeightKg || (i === 0 ? 30 : 35),
+        reps: ex.reps || 10,
+        bodyweight: ex.category?.toLowerCase().includes('bodyweight') || false,
+      }));
+      await addExerciseToTodaySession({
+        name: ex.name,
+        category: ex.category || 'Strength',
+        type: 'Compound',
+        defaultSets,
+      });
+    }
+    await fetchTodaySession();
+    showToast({
+      message: 'AI Routine Added',
+      description: `Added ${exercises.length} exercises to today's workout`,
+      type: 'success',
+      iconName: 'sparkles',
+    });
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
         {/* Header */}
         <Text className="mb-1 text-2xl font-black text-text-primary dark:text-text-primary-dark">
-          Workouts 🏋️‍♂️
+          Workouts
         </Text>
         <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
           Track your exercise completion and performance
@@ -468,6 +496,7 @@ export default function Workouts() {
             onRemoveExercise={handleRemoveExercise}
             onUpdateExercisePreset={handleUpdateExercisePreset}
             onNavigateToLibrary={() => setActiveTab('library')}
+            onOpenAiGenerator={() => setShowAiModal(true)}
             onCompleteSession={() => setShowCompleteModal(true)}
           />
         )}
@@ -479,12 +508,20 @@ export default function Workouts() {
         {activeTab === 'history' && <WorkoutHistoryTab />}
       </ScrollView>
 
+      {/* AI Workout Generator Modal */}
+      <AiWorkoutGeneratorModal
+        visible={showAiModal}
+        onClose={() => setShowAiModal(false)}
+        onAddExercises={handleAddAiExercises}
+        userGoal={user?.goal}
+      />
+
       {/* Completion Modal */}
       <ConfirmModal
         visible={showCompleteModal}
         title="Complete Session"
-        message="Great job! Ready to log and complete today's workout session?"
-        icon="🏆"
+        message="Ready to log and complete today's workout session?"
+        iconName="trophy"
         confirmText="Finish & Save"
         cancelText="Keep Training"
         onConfirm={handleConfirmCompleteSession}
