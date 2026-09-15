@@ -19,4 +19,7 @@ export const refreshTokenApi = (refreshToken: string) =>
 
 export const logoutUserApi = (refreshToken?: string | null) =>
   apiRequest('/api/auth/logout', { method: 'POST', body: { refreshToken: refreshToken || undefined } });
+
+export const changePasswordApi = (payload: { currentPassword: string; newPassword: string }) =>
+  apiRequest('/api/auth/change-password', { method: 'POST', body: payload });
 

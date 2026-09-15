@@ -8,6 +8,7 @@ import userRoutes from './routes/user.routes'
 import workoutRoutes from './routes/workout.routes'
 import foodLogRoutes from './routes/foodlog.routes'
 import aiRoutes from './routes/ai.routes'
+import supportRoutes from './routes/support.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 
@@ -55,6 +56,7 @@ app.use('/api/user', userRoutes)
 app.use('/api/workouts', workoutRoutes)
 app.use('/api/food-logs', foodLogRoutes)
 app.use('/api/ai', aiRoutes)
+app.use('/api/support', supportRoutes)
 
 app.use(errorHandler)
 
