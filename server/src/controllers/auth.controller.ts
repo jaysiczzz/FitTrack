@@ -2,7 +2,7 @@ import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
 import { Goal } from '@prisma/client'
 import { hashPassword, comparePassword } from '../utils/password.utils'
-import { signToken } from '../utils/jwt.utils'
+import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -30,10 +30,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         return res.status(401).json({ error: 'Invalid email or password' })
     }
 
-    const token = signToken({ id: user.id })
+    const accessToken = signAccessToken({ id: user.id })
+    const refreshToken = await createRefreshToken(user.id)
 
     res.json({
-        token,
+        token: accessToken, // Backward compatibility with existing mobile client
+        accessToken,
+        refreshToken,
         user: {
             id: user.id,
             email: user.email,
@@ -98,10 +101,13 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         goal: goal as Goal,
     })
 
-    const token = signToken({ id: user.id })
+    const accessToken = signAccessToken({ id: user.id })
+    const refreshToken = await createRefreshToken(user.id)
 
     res.status(201).json({
-        token,
+        token: accessToken, // Backward compatibility with existing mobile client
+        accessToken,
+        refreshToken,
         user: {
             id: user.id,
             email: user.email,
@@ -113,4 +119,34 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
             goal: user.goal,
         },
     })
-})
+})
+
+export const refresh = asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body
+
+    if (!refreshToken || typeof refreshToken !== 'string') {
+        return res.status(400).json({ error: 'Refresh token is required' })
+    }
+
+    const rotated = await rotateRefreshToken(refreshToken)
+    if (!rotated) {
+        return res.status(401).json({ error: 'Invalid, expired, or revoked refresh token. Please log in again.' })
+    }
+
+    res.json({
+        token: rotated.accessToken, // Backward compatibility
+        accessToken: rotated.accessToken,
+        refreshToken: rotated.refreshToken,
+    })
+})
+
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+    const { refreshToken } = req.body
+
+    if (refreshToken && typeof refreshToken === 'string') {
+        await revokeRefreshToken(refreshToken)
+    }
+
+    res.json({ success: true, message: 'Logged out successfully' })
+})
+
