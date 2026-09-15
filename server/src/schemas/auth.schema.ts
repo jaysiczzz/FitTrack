@@ -13,6 +13,14 @@ export const loginSchema = z.object({
   }),
 })
 
+export const strongPasswordSchema = z
+  .string()
+  .min(8, 'Password must be at least 8 characters long')
+  .regex(/[A-Z]/, 'Password must include at least one uppercase letter (A-Z)')
+  .regex(/[a-z]/, 'Password must include at least one lowercase letter (a-z)')
+  .regex(/[0-9]/, 'Password must include at least one number (0-9)')
+  .regex(/[^A-Za-z0-9]/, 'Password must include at least one special character (!@#$%^&*, etc.)')
+
 export const registerSchema = z.object({
   body: z.object({
     firstName: z
@@ -30,9 +38,7 @@ export const registerSchema = z.object({
       .trim()
       .toLowerCase()
       .email('Please enter a valid email address'),
-    password: z
-      .string()
-      .min(6, 'Password must be at least 6 characters long'),
+    password: strongPasswordSchema,
     height: z.coerce
       .number()
       .int('Height must be an integer')
@@ -60,6 +66,43 @@ export const refreshSchema = z.object({
 export const changePasswordSchema = z.object({
   body: z.object({
     currentPassword: z.string().min(1, 'Current password is required'),
-    newPassword: z.string().min(6, 'New password must be at least 6 characters long'),
+    newPassword: strongPasswordSchema,
   }),
 })
+
+export const forgotPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+  }),
+})
+
+export const resetPasswordSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+    code: z
+      .string()
+      .trim()
+      .length(6, 'Verification code must be 6 digits'),
+    newPassword: strongPasswordSchema,
+  }),
+})
+
+export const checkEmailSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+  }),
+})
+
+

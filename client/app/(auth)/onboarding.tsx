@@ -257,7 +257,13 @@ export default function OnboardingScreen() {
                     goal as 'MUSCLE_GAIN' | 'WEIGHT_LOSS'
                   )
                 }
-                onBackToEdit={() => setStep(2)}
+                onBackToEdit={() => {
+                  if (serverError.toLowerCase().includes('email') || serverError.toLowerCase().includes('account')) {
+                    router.replace('/(auth)');
+                  } else {
+                    setStep(2);
+                  }
+                }}
                 onLaunchDashboard={handleLaunchDashboard}
               />
             )}

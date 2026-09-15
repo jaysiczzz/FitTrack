@@ -16,6 +16,8 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { changePasswordApi } from '@/api/auth';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import PasswordRequirements from '../ui/PasswordRequirements';
+import { validatePasswordStrength } from '@/utils/passwordValidation';
 
 interface ResetPasswordModalProps {
   visible: boolean;
@@ -62,8 +64,9 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
       setValidationError('Please enter your new password.');
       return;
     }
-    if (newPassword.length < 6) {
-      setValidationError('New password must be at least 6 characters long.');
+    const pwdCheck = validatePasswordStrength(newPassword);
+    if (!pwdCheck.valid) {
+      setValidationError(pwdCheck.error || 'New password does not meet security requirements.');
       return;
     }
     if (newPassword === currentPassword) {
@@ -156,7 +159,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
             {/* New Password */}
             <View className="mb-3">
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                New Password (minimum 6 characters)
+                New Password
               </Text>
               <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
                 <TextInput
@@ -166,7 +169,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
                     setNewPassword(val);
                     if (validationError) setValidationError(null);
                   }}
-                  placeholder="Enter new password"
+                  placeholder="Min 8 chars, uppercase, number, symbol"
                   placeholderTextColor={colors.textMuted}
                   className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
                   autoCapitalize="none"
@@ -182,6 +185,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
                   />
                 </TouchableOpacity>
               </View>
+              <PasswordRequirements password={newPassword} />
             </View>
 
             {/* Confirm New Password */}
