@@ -2,15 +2,20 @@ import React, { useState, useRef } from 'react';
 import { View, TextInput } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import PasswordRequirements from '@/components/ui/PasswordRequirements';
+import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { checkEmailApi } from '@/api/auth';
 
 interface Props {
   onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => void;
   loading?: boolean;
+  onError?: (error: string) => void;
+  onClearError?: () => void;
 }
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
+const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearError }) => {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -20,16 +25,19 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
   const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
+  const [checkingEmail, setCheckingEmail] = useState(false);
 
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
   const passwordRef = useRef<TextInput>(null);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let valid = true;
+    let firstError = '';
 
     if (!firstName.trim()) {
       setFirstNameError('First name is required');
+      if (!firstError) firstError = 'First name is required';
       valid = false;
     } else {
       setFirstNameError('');
@@ -37,6 +45,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
 
     if (!lastName.trim()) {
       setLastNameError('Last name is required');
+      if (!firstError) firstError = 'Last name is required';
       valid = false;
     } else {
       setLastNameError('');
@@ -45,31 +54,71 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setEmailError('Email is required');
+      if (!firstError) firstError = 'Email is required';
       valid = false;
     } else if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError('Please enter a valid email address');
+      if (!firstError) firstError = 'Please enter a valid email address';
       valid = false;
     } else {
-      setEmailError('');
+      const domain = trimmedEmail.split('@')[1]?.toLowerCase();
+      const typoSuggestions: Record<string, string> = {
+        'gamil.com': 'gmail.com',
+        'gmaill.com': 'gmail.com',
+        'gmai.com': 'gmail.com',
+        'gmial.com': 'gmail.com',
+        'yaho.com': 'yahoo.com',
+        'hotmial.com': 'hotmail.com',
+        'outlok.com': 'outlook.com',
+        'iclud.com': 'icloud.com',
+      };
+      if (domain && typoSuggestions[domain]) {
+        const typoMsg = `Did you mean @${typoSuggestions[domain]}?`;
+        setEmailError(typoMsg);
+        if (!firstError) firstError = typoMsg;
+        valid = false;
+      } else {
+        setEmailError('');
+      }
     }
 
     if (!password) {
       setPasswordError('Password is required');
-      valid = false;
-    } else if (password.length < 6) {
-      setPasswordError('Must be at least 6 characters');
+      if (!firstError) firstError = 'Password is required';
       valid = false;
     } else {
-      setPasswordError('');
+      const pwdCheck = validatePasswordStrength(password);
+      if (!pwdCheck.valid) {
+        const pwdMsg = pwdCheck.error || 'Password does not meet security requirements';
+        setPasswordError(pwdMsg);
+        if (!firstError) firstError = pwdMsg;
+        valid = false;
+      } else {
+        setPasswordError('');
+      }
     }
 
-    if (valid) {
+    if (!valid) {
+      if (firstError && onError) onError(firstError);
+      return;
+    }
+
+    if (onClearError) onClearError();
+    setCheckingEmail(true);
+    try {
+      await checkEmailApi(trimmedEmail);
       onSubmit({
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: trimmedEmail,
         password,
       });
+    } catch (err: any) {
+      const msg = err.message || 'An account with this email already exists. Please log in.';
+      setEmailError(msg);
+      if (onError) onError(msg);
+    } finally {
+      setCheckingEmail(false);
     }
   };
 
@@ -84,7 +133,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
             value={firstName}
             onChangeText={(text) => {
               setFirstName(text);
-              if (firstNameError) setFirstNameError('');
+              if (firstNameError) {
+                setFirstNameError('');
+                if (onClearError) onClearError();
+              }
             }}
             autoCapitalize="words"
             error={firstNameError}
@@ -102,7 +154,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
             value={lastName}
             onChangeText={(text) => {
               setLastName(text);
-              if (lastNameError) setLastNameError('');
+              if (lastNameError) {
+                setLastNameError('');
+                if (onClearError) onClearError();
+              }
             }}
             autoCapitalize="words"
             error={lastNameError}
@@ -120,7 +175,10 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
         value={email}
         onChangeText={(text) => {
           setEmail(text);
-          if (emailError) setEmailError('');
+          if (emailError) {
+            setEmailError('');
+            if (onClearError) onClearError();
+          }
         }}
         keyboardType="email-address"
         autoCapitalize="none"
@@ -133,11 +191,14 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
       <Input
         ref={passwordRef}
         label="Password"
-        placeholder="At least 6 characters"
+        placeholder="Min 8 chars, uppercase, number, symbol"
         value={password}
         onChangeText={(text) => {
           setPassword(text);
-          if (passwordError) setPasswordError('');
+          if (passwordError) {
+            setPasswordError('');
+            if (onClearError) onClearError();
+          }
         }}
         isPassword
         autoCapitalize="none"
@@ -145,8 +206,9 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading }) => {
         returnKeyType="done"
         onSubmitEditing={handleSubmit}
       />
+      <PasswordRequirements password={password} />
 
-      <Button title="Proceed" onPress={handleSubmit} loading={loading} />
+      <Button title="Proceed" onPress={handleSubmit} loading={loading || checkingEmail} />
     </View>
   );
 };

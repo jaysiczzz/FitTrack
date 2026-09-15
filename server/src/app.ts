@@ -14,6 +14,9 @@ import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middlewar
 
 const app = express()
 
+// Trust first proxy hop (e.g., Render, reverse proxies) for accurate client IP in rate limiting
+app.set('trust proxy', 1)
+
 // 1. Security Headers
 app.use(helmet())
 

@@ -1,13 +1,13 @@
 import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
 import { Goal } from '@prisma/client'
-import { hashPassword, comparePassword } from '../utils/password.utils'
+import { hashPassword, comparePassword, validatePasswordStrength } from '../utils/password.utils'
 import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllUserTokens } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+import { validateEmailDeliverability, EMAIL_REGEX } from '../utils/emailValidation.utils'
+import { sendPasswordResetEmail } from '../services/email.service'
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body
@@ -19,20 +19,26 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
     const normalizedEmail = email.trim().toLowerCase()
 
     if (!EMAIL_REGEX.test(normalizedEmail)) {
-        return res.status(400).json({ error: 'Please enter a valid email address' })
+        return res.status(400).json({ error: 'Please enter a valid email address', field: 'email' })
     }
 
     const user = await userModel.findByEmail(normalizedEmail)
     if (!user) {
-        return res.status(401).json({ error: 'Invalid email or password' })
+        return res.status(401).json({
+            error: 'No account found with this email address.',
+            field: 'email',
+        })
     }
 
     const valid = await comparePassword(password, user.password)
     if (!valid) {
-        return res.status(401).json({ error: 'Invalid email or password' })
+        return res.status(401).json({
+            error: 'Incorrect password. Please check your password and try again.',
+            field: 'password',
+        })
     }
 
-    const accessToken = signAccessToken({ id: user.id })
+    const accessToken = signAccessToken({ id: user.id, role: user.role })
     const refreshToken = await createRefreshToken(user.id)
 
     res.json({
@@ -59,12 +65,14 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
     const normalizedEmail = email.trim().toLowerCase()
 
-    if (!EMAIL_REGEX.test(normalizedEmail)) {
-        return res.status(400).json({ error: 'Please enter a valid email address' })
+    const emailCheck = await validateEmailDeliverability(normalizedEmail)
+    if (!emailCheck.valid) {
+        return res.status(400).json({ error: emailCheck.error, field: 'email' })
     }
 
-    if (password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters long' })
+    const passwordCheck = validatePasswordStrength(password)
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ error: passwordCheck.error, field: 'password' })
     }
 
     const height = Number(req.body.height)
@@ -103,7 +111,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         goal: goal as Goal,
     })
 
-    const accessToken = signAccessToken({ id: user.id })
+    const accessToken = signAccessToken({ id: user.id, role: user.role })
     const refreshToken = await createRefreshToken(user.id)
 
     res.status(201).json({
@@ -177,6 +185,11 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
         return res.status(400).json({ error: 'New password must be different from current password' })
     }
 
+    const passwordCheck = validatePasswordStrength(newPassword)
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ error: passwordCheck.error, field: 'newPassword' })
+    }
+
     const hashedPassword = await hashPassword(newPassword)
     await prisma.user.update({
         where: { id: userId },
@@ -197,4 +210,149 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
         refreshToken,
     })
 })
+
+/**
+ * Handles forgot password request by generating a 6-digit OTP code and sending it via email.
+ */
+export const requestPasswordReset = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body
+
+    if (!email) {
+        return res.status(400).json({ error: 'Please enter your email address' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const emailCheck = await validateEmailDeliverability(normalizedEmail)
+    if (!emailCheck.valid) {
+        return res.status(400).json({ error: emailCheck.error })
+    }
+
+    const user = await userModel.findByEmail(normalizedEmail)
+    if (!user) {
+        return res.status(404).json({ error: 'No account found with this email address.' })
+    }
+
+    // Invalidate prior unused codes for this email
+    await prisma.passwordResetToken.updateMany({
+        where: { email: normalizedEmail, used: false },
+        data: { used: true },
+    })
+
+    // Generate 6-digit numeric OTP code
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes validity
+
+    await prisma.passwordResetToken.create({
+        data: {
+            email: normalizedEmail,
+            code,
+            expiresAt,
+        },
+    })
+
+    const emailResult = await sendPasswordResetEmail(normalizedEmail, code, user.firstName)
+
+    res.json({
+        success: true,
+        message: 'A 6-digit verification code has been sent to your email.',
+        email: normalizedEmail,
+        delivered: emailResult.delivered,
+    })
+})
+
+/**
+ * Verifies 6-digit OTP code and sets the new password.
+ */
+export const resetPasswordWithCode = asyncHandler(async (req: Request, res: Response) => {
+    const { email, code, newPassword } = req.body
+
+    if (!email || !code || !newPassword) {
+        return res.status(400).json({ error: 'Email, verification code, and new password are required' })
+    }
+
+    const passwordCheck = validatePasswordStrength(newPassword)
+    if (!passwordCheck.valid) {
+        return res.status(400).json({ error: passwordCheck.error, field: 'newPassword' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+
+    const resetToken = await prisma.passwordResetToken.findFirst({
+        where: {
+            email: normalizedEmail,
+            code: code.trim(),
+            used: false,
+            expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+    })
+
+    if (!resetToken) {
+        return res.status(400).json({ error: 'Invalid or expired verification code. Please request a new one.' })
+    }
+
+    const user = await userModel.findByEmail(normalizedEmail)
+    if (!user) {
+        return res.status(404).json({ error: 'User account not found' })
+    }
+
+    const hashedPassword = await hashPassword(newPassword)
+
+    // Mark reset code as used
+    await prisma.passwordResetToken.update({
+        where: { id: resetToken.id },
+        data: { used: true },
+    })
+
+    // Update user's password
+    await prisma.user.update({
+        where: { id: user.id },
+        data: { password: hashedPassword },
+    })
+
+    // Invalidate all active sessions for security
+    await revokeAllUserTokens(user.id)
+
+    res.json({
+        success: true,
+        message: 'Password has been reset successfully. You can now log in with your new password.',
+    })
+})
+
+/**
+ * Validates whether an email is deliverable and available for registration
+ * before the user goes through the onboarding flow.
+ */
+export const checkEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { email } = req.body
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required', field: 'email' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+
+    // 1. Deliverability & DNS MX checks
+    const emailCheck = await validateEmailDeliverability(normalizedEmail)
+    if (!emailCheck.valid) {
+        return res.status(400).json({ error: emailCheck.error, field: 'email' })
+    }
+
+    // 2. Uniqueness check
+    const existingUser = await userModel.findByEmail(normalizedEmail)
+    if (existingUser) {
+        return res.status(409).json({
+            error: 'An account with this email already exists. Please log in instead.',
+            field: 'email',
+            available: false,
+        })
+    }
+
+    res.json({
+        success: true,
+        available: true,
+        message: 'Email is valid and available.',
+    })
+})
+
 

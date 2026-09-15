@@ -69,7 +69,19 @@ export const rotateRefreshToken = async (
     include: { user: { select: { id: true, role: true } } },
   })
 
-  if (!storedToken || storedToken.revoked || storedToken.expiresAt < new Date()) {
+  if (!storedToken) {
+    return null
+  }
+
+  // RFC 6819 Token Replay Detection:
+  // If an already revoked token is presented, an attacker or compromised client is attempting
+  // to reuse it. Invalidate the entire token family for this user to mitigate account takeover.
+  if (storedToken.revoked) {
+    await revokeAllUserTokens(storedToken.userId)
+    return null
+  }
+
+  if (storedToken.expiresAt < new Date()) {
     return null
   }
 

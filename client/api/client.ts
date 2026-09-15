@@ -86,21 +86,26 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
       endpoint.includes('/api/auth/refresh') ||
       endpoint.includes('/api/auth/login') ||
       endpoint.includes('/api/auth/register') ||
-      endpoint.includes('/api/auth/logout');
+      endpoint.includes('/api/auth/logout') ||
+      endpoint.includes('/api/auth/check-email') ||
+      endpoint.includes('/api/auth/forgot-password') ||
+      endpoint.includes('/api/auth/reset-password');
 
-    if (!isAuthEndpoint && !options._isRetry) {
-      const newAccessToken = await doRefreshToken();
-      if (newAccessToken) {
-        // Retry the original request once with fresh access token
-        return apiRequest(endpoint, {
-          ...options,
-          _isRetry: true,
-        });
+    if (!isAuthEndpoint) {
+      if (!options._isRetry) {
+        const newAccessToken = await doRefreshToken();
+        if (newAccessToken) {
+          // Retry the original request once with fresh access token
+          return apiRequest(endpoint, {
+            ...options,
+            _isRetry: true,
+          });
+        }
       }
-    }
 
-    await authStorage.clearAuth();
-    DeviceEventEmitter.emit('AUTH_UNAUTHORIZED');
+      await authStorage.clearAuth();
+      DeviceEventEmitter.emit('AUTH_UNAUTHORIZED');
+    }
   }
 
   const data = await response.json().catch(() => ({}));
