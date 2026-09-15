@@ -68,7 +68,13 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
             </View>
 
             <View className="py-3 items-center">
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark text-center mb-1">
+                For privacy inquiries or account data requests, contact us at:
+              </Text>
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                fittrack.app.help@gmail.com
+              </Text>
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-2">
                 FitTrack Version 1.0.5 · Last updated September 2026
               </Text>
             </View>
