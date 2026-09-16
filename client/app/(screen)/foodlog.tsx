@@ -8,10 +8,10 @@ import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
 import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
 import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
 import WaterTrackerCard from '@/components/foodlog/WaterTrackerCard';
-import FoodSearchModal from '@/components/foodlog/FoodSearchModal';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
 import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
+import FoodLibraryTab from '@/components/foodlog/FoodLibraryTab';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import EditMealModal from '@/components/foodlog/EditMealModal';
 import RemoveFoodModal from '@/components/foodlog/RemoveFoodModal';
@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
-import { saveDailyFoodLogApi, getDailyFoodLogApi } from '@/api/foodlog';
+import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
@@ -41,7 +41,6 @@ export default function FoodLog() {
   const [showScanModal, setShowScanModal] = useState(false);
   const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
-  const [showSearchModal, setShowSearchModal] = useState(false);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<FoodLogItem | null>(null);
@@ -61,19 +60,20 @@ export default function FoodLog() {
       }
 
       // 1. Read user-scoped local storage for instant UI render
+      let localItems: FoodLogItem[] = [];
       const savedFood = await AsyncStorage.getItem(foodKey);
       if (savedFood) {
         try {
           const parsed = JSON.parse(savedFood);
           if (Array.isArray(parsed)) {
-            const normalized = parsed.map((item: any) => {
+            localItems = parsed.map((item: any) => {
               if (!item.goalBadge || !item.goalBadgeColor) {
                 const b = getSmartFoodBadge(item);
                 return { ...item, goalBadge: b.badge, goalBadgeColor: b.color };
               }
               return item;
             });
-            setItems(normalized);
+            setItems(localItems);
           } else {
             setItems([]);
           }
@@ -84,12 +84,12 @@ export default function FoodLog() {
         setItems([]);
       }
 
+      let localWater = 0;
       const savedWater = await AsyncStorage.getItem(waterKey);
       if (savedWater) {
-        setWaterMl(parseInt(savedWater, 10) || 0);
-      } else {
-        setWaterMl(0);
+        localWater = parseInt(savedWater, 10) || 0;
       }
+      setWaterMl(localWater);
 
       // 2. Fetch authenticated user's actual database log for today
       if (userId) {
@@ -97,34 +97,45 @@ export default function FoodLog() {
         try {
           const cloudRes = await getDailyFoodLogApi(todayStr);
           if (cloudRes?.data) {
+            let resolvedItems = localItems;
             if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
-              const cloudItems: FoodLogItem[] = cloudRes.data.meals.map((m: any) => {
-                const badgeInfo = (m.goalBadge && m.goalBadgeColor)
-                  ? { badge: m.goalBadge, color: m.goalBadgeColor }
-                  : getSmartFoodBadge(m);
-                return {
-                  id: m.id,
-                  mealType: m.mealType as MealType,
-                  title: m.title,
-                  subtitle: m.subtitle || undefined,
-                  calories: m.calories,
-                  protein: m.protein,
-                  carbs: m.carbs,
-                  fat: m.fat,
-                  goalBadge: badgeInfo.badge,
-                  goalBadgeColor: badgeInfo.color,
-                  icon: m.icon || undefined,
-                  healthNotes: m.healthNotes || undefined,
-                  imageUri: m.imageUri || undefined,
-                  loggedAt: m.loggedAt || undefined,
-                };
-              });
-              setItems(cloudItems);
-              await AsyncStorage.setItem(foodKey, JSON.stringify(cloudItems));
+              if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                resolvedItems = cloudRes.data.meals.map((m: any) => {
+                  const badgeInfo = (m.goalBadge && m.goalBadgeColor)
+                    ? { badge: m.goalBadge, color: m.goalBadgeColor }
+                    : getSmartFoodBadge(m);
+                  return {
+                    id: m.id,
+                    mealType: m.mealType as MealType,
+                    title: m.title,
+                    subtitle: m.subtitle || undefined,
+                    calories: m.calories,
+                    protein: m.protein,
+                    carbs: m.carbs,
+                    fat: m.fat,
+                    goalBadge: badgeInfo.badge,
+                    goalBadgeColor: badgeInfo.color,
+                    icon: m.icon || undefined,
+                    healthNotes: m.healthNotes || undefined,
+                    imageUri: m.imageUri || undefined,
+                    loggedAt: m.loggedAt || undefined,
+                  };
+                });
+                setItems(resolvedItems);
+                await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
+              } else if (localItems.length > cloudRes.data.meals.length) {
+                autoSyncFoodAndWater(userId, todayStr, localItems, Math.max(localWater, cloudRes.data.waterMl || 0));
+              }
+            } else if (localItems.length > 0) {
+              autoSyncFoodAndWater(userId, todayStr, localItems, localWater);
             }
-            if (typeof cloudRes.data.waterMl === 'number') {
-              setWaterMl(cloudRes.data.waterMl);
-              await AsyncStorage.setItem(waterKey, cloudRes.data.waterMl.toString());
+
+            const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
+            const resolvedWater = Math.max(localWater, cloudWater);
+            setWaterMl(resolvedWater);
+            await AsyncStorage.setItem(waterKey, resolvedWater.toString());
+            if (localWater > cloudWater) {
+              autoSyncFoodAndWater(userId, todayStr, resolvedItems, resolvedWater);
             }
           }
         } catch (apiErr) {
@@ -158,6 +169,7 @@ export default function FoodLog() {
     try {
       await AsyncStorage.setItem(foodKey, JSON.stringify(newItems));
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMl);
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -181,27 +193,55 @@ export default function FoodLog() {
     setWaterMl(clamped);
     try {
       await AsyncStorage.setItem(waterKey, clamped.toString());
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      autoSyncFoodAndWater(userId, getTodayDateString(), items, clamped);
     } catch (err) {
       console.log('Error saving water:', err);
     }
   };
 
-  // Add Item handler
-  const handleAddMealItem = (item: FoodLogItem) => {
-    const updated = [...items, item];
-    saveFoodLog(updated);
-    showToast({
-      message: `Added ${item.title}`,
-      description: `${item.calories} kcal · ${item.protein}g Protein to ${MEAL_LABELS[item.mealType] || item.mealType}`,
-      type: 'success',
-      iconName: 'restaurant',
+  // Add Item handler (supports single item or batch array)
+  const handleAddMealItem = (incoming: FoodLogItem | FoodLogItem[]) => {
+    const toAdd = Array.isArray(incoming) ? incoming : [incoming];
+    if (toAdd.length === 0) return;
+
+    setItems((prevItems) => {
+      const updated = [...prevItems, ...toAdd];
+      AsyncStorage.setItem(foodKey, JSON.stringify(updated))
+        .then(() => {
+          DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+          autoSyncFoodAndWater(userId, getTodayDateString(), updated, waterMl);
+        })
+        .catch((err) => console.log('Error saving food log:', err));
+      return updated;
     });
+
+    if (toAdd.length === 1) {
+      const single = toAdd[0];
+      showToast({
+        message: `Added ${single.title}`,
+        description: `${single.calories} kcal · ${single.protein}g Protein to ${MEAL_LABELS[single.mealType] || single.mealType}`,
+        type: 'success',
+        iconName: 'restaurant',
+      });
+    } else {
+      const totalCals = toAdd.reduce((sum, i) => sum + (i.calories || 0), 0);
+      showToast({
+        message: `Added ${toAdd.length} Meals`,
+        description: `${totalCals} total kcal added to your log`,
+        type: 'success',
+        iconName: 'restaurant',
+      });
+    }
   };
 
   // Update Item handler
   const handleUpdateMealItem = (updatedItem: FoodLogItem) => {
-    const updated = items.map((i) => (i.id === updatedItem.id ? updatedItem : i));
-    saveFoodLog(updated);
+    setItems((prevItems) => {
+      const updated = prevItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
+      saveFoodLog(updated);
+      return updated;
+    });
     showToast({
       message: `Updated ${updatedItem.title}`,
       description: `${updatedItem.calories} kcal · ${updatedItem.protein}g Protein (${MEAL_LABELS[updatedItem.mealType]})`,
@@ -221,9 +261,13 @@ export default function FoodLog() {
   const handleConfirmDelete = () => {
     if (!itemToDelete) return;
     const removedTitle = itemToDelete.title;
-    const updated = items.filter((i) => i.id !== itemToDelete.id);
-    saveFoodLog(updated);
+    const idToDelete = itemToDelete.id;
     setItemToDelete(null);
+    setItems((prevItems) => {
+      const updated = prevItems.filter((i) => i.id !== idToDelete);
+      saveFoodLog(updated);
+      return updated;
+    });
     showToast({
       message: `Removed ${removedTitle}`,
       description: 'Item removed from food log',
@@ -254,12 +298,8 @@ export default function FoodLog() {
     const historyWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
     const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
 
-    // 1. Instantly reset active UI state & show notification (0ms delay)
-    setItems([]);
-    setWaterMl(0);
-
     showToast({
-      message: 'Daily Intake Completed',
+      message: 'Daily Intake Completed! 🎉',
       description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
       type: 'success',
       iconName: 'checkmark-circle',
@@ -272,8 +312,6 @@ export default function FoodLog() {
       await Promise.all([
         AsyncStorage.setItem(historyDateKey, JSON.stringify(currentItems)),
         AsyncStorage.setItem(historyWaterKey, currentWater.toString()),
-        AsyncStorage.removeItem(foodKey),
-        AsyncStorage.removeItem(waterKey),
         (async () => {
           const rawDates = await AsyncStorage.getItem(historyDatesKey);
           let datesArr: string[] = [];
@@ -325,23 +363,23 @@ export default function FoodLog() {
 
   const openSearchForMeal = (meal: MealType) => {
     setScanTargetMeal(meal);
-    setShowSearchModal(true);
+    setActiveTab('library');
   };
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Screen Header */}
-        <View className="mb-2.5">
-          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
+        <View className="mb-4">
+          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
             Nutrition Log 🥗
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
             Real-time daily fuel & macro tracking
           </Text>
         </View>
 
-        {/* Top Navigation Tabs (Today's Log | History & Trends) */}
+        {/* Top Navigation Tabs (Today's Log | Library | History) */}
         <FoodLogTabs
           activeTab={activeTab}
           onChange={setActiveTab}
@@ -352,6 +390,13 @@ export default function FoodLog() {
           <FoodHistoryTab
             targets={targets}
             onReLogItem={handleAddMealItem}
+            onSwitchToToday={() => setActiveTab('today')}
+          />
+        ) : activeTab === 'library' ? (
+          /* Food Library Tab View */
+          <FoodLibraryTab
+            onAddFood={handleAddMealItem}
+            defaultMeal={scanTargetMeal}
             onSwitchToToday={() => setActiveTab('today')}
           />
         ) : (
@@ -367,18 +412,9 @@ export default function FoodLog() {
               goal={goal}
             />
 
-            {/* 2. Quick Action Toolbar (Photo Scan, AI Suggest, Search Food, Describe) */}
+            {/* 2. Quick Action Toolbar (Describe Meal & AI Suggest) */}
             <QuickActionToolbar
-              onScanPhoto={() => {
-                setScanTargetMeal(undefined);
-                setScanInitialMode('photo');
-                setShowScanModal(true);
-              }}
               onAiSuggest={() => setShowAiSuggestModal(true)}
-              onSearchFood={() => {
-                setScanTargetMeal(undefined);
-                setShowSearchModal(true);
-              }}
               onTextLog={() => {
                 setScanTargetMeal(undefined);
                 setScanInitialMode('text');
@@ -464,13 +500,6 @@ export default function FoodLog() {
         initialMode={scanInitialMode}
       />
 
-      {/* Search & Log Food Modal (Offline 100+ Catalog + Online Open Food Facts) */}
-      <FoodSearchModal
-        visible={showSearchModal}
-        onClose={() => setShowSearchModal(false)}
-        onAddFood={handleAddMealItem}
-        defaultMeal={scanTargetMeal}
-      />
 
       {/* AI "What should I eat next?" Suggestions Modal */}
       <AiSuggestionModal

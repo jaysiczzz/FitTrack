@@ -35,8 +35,18 @@ export default function WaterTrackerCard({
           </Text>
         </View>
 
-        <View className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-full border border-input-border dark:border-input-border-dark">
-          <Text className="font-bold text-xs text-text-primary dark:text-text-primary-dark">
+        <View
+          className={`px-3 py-1 rounded-full border ${
+            isTargetMet
+              ? 'bg-emerald-500/15 border-emerald-500/30'
+              : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+          }`}
+        >
+          <Text
+            className={`font-bold text-xs ${
+              isTargetMet ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'
+            }`}
+          >
             {percentage}%
           </Text>
         </View>
@@ -45,15 +55,17 @@ export default function WaterTrackerCard({
       {/* Progress Bar */}
       <ProgressBar
         percentage={visualPercentage}
-        color={isTargetMet ? colors.accent : colors.info}
-        height={5}
+        color={isTargetMet ? '#10B981' : colors.info}
+        height={6}
         className="mb-3"
       />
 
       {isTargetMet ? (
-        <View className="flex-row items-center justify-center bg-accent/10 dark:bg-accent-dark/15 py-1.5 px-3 rounded-lg mb-3 border border-accent/20">
-          <Ionicons name="checkmark-circle" size={16} color={colors.accent} style={{ marginRight: 6 }} />
-          <Text className="text-accent dark:text-accent-dark font-semibold text-xs">
+        <View className="flex-row items-center justify-center bg-emerald-500/10 dark:bg-emerald-500/15 py-2 px-3.5 rounded-2xl mb-3 border border-emerald-500/25">
+          <View className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2">
+            <Ionicons name="checkmark" size={12} color="#10B981" />
+          </View>
+          <Text className="text-accent dark:text-accent-dark font-bold text-xs">
             Daily target reached. Great hydration today.
           </Text>
         </View>

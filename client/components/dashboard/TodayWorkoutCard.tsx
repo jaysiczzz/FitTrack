@@ -39,11 +39,11 @@ export default function TodayWorkoutCard({
 
         <TouchableOpacity
           onPress={() => router.push('/(screen)/workouts' as any)}
-          activeOpacity={0.7}
-          className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark"
+          activeOpacity={0.8}
+          className="bg-accent/10 dark:bg-accent-dark/15 px-3 py-1.5 rounded-xl border border-accent/30 dark:border-accent-dark/30"
         >
-          <Text className="text-accent dark:text-accent-dark font-semibold text-xs">
-            {exercises.length > 0 ? 'Open' : 'Start'}
+          <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+            {exercises.length > 0 ? 'Open Routine' : '+ Start'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -53,52 +53,74 @@ export default function TodayWorkoutCard({
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={() => router.push('/(screen)/workouts' as any)}
-          className="bg-input dark:bg-input-dark rounded-xl p-3.5 flex-row items-center justify-between border border-input-border dark:border-input-border-dark"
+          className="bg-input dark:bg-input-dark rounded-2xl p-4 flex-row items-center justify-between border border-input-border dark:border-input-border-dark"
         >
           <View className="flex-1 mr-3">
-            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
               Ready to train today?
             </Text>
             <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
               Choose your routine or select exercises from the library.
             </Text>
           </View>
-          <View className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-lg">
-            <Text className="text-white dark:text-background-dark font-bold text-xs">
+          <View className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl">
+            <Text className="text-white font-bold text-xs">
               Start
             </Text>
           </View>
         </TouchableOpacity>
       ) : (
-        <View className="gap-1.5">
+        <View className="gap-2">
           {exercises.map((ex) => (
             <TouchableOpacity
               key={ex.id}
               activeOpacity={0.7}
               onPress={() => router.push('/(screen)/workouts' as any)}
-              className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+              className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
             >
               <View className="flex-row items-center flex-1 mr-2">
-                <Ionicons
-                  name={ex.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
-                  size={18}
-                  color={ex.isCompleted ? colors.accent : colors.textMuted}
-                  style={{ marginRight: 8 }}
-                />
+                {ex.isCompleted ? (
+                  <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-3">
+                    <Ionicons name="checkmark" size={13} color="#10B981" />
+                  </View>
+                ) : (
+                  <View className="w-6 h-6 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
+                    <Ionicons name="barbell" size={12} color="#A855F7" />
+                  </View>
+                )}
+
+                <View className="flex-1 pr-2">
+                  <Text
+                    className={`text-xs font-bold leading-tight ${
+                      ex.isCompleted
+                        ? 'text-text-muted dark:text-text-muted-dark line-through'
+                        : 'text-text-primary dark:text-text-primary-dark'
+                    }`}
+                    numberOfLines={1}
+                  >
+                    {ex.name}
+                  </Text>
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5 uppercase tracking-wider font-semibold">
+                    {ex.isCompleted ? 'Completed' : 'Today Session'}
+                  </Text>
+                </View>
+              </View>
+
+              <View
+                className={`px-2.5 py-0.5 rounded-full border ${
+                  ex.isCompleted
+                    ? 'bg-emerald-500/15 border-emerald-500/30'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
                 <Text
-                  className={`text-xs font-medium flex-1 ${
-                    ex.isCompleted
-                      ? 'text-text-muted dark:text-text-muted-dark line-through'
-                      : 'text-text-primary dark:text-text-primary-dark'
+                  className={`text-[10px] font-bold uppercase ${
+                    ex.isCompleted ? 'text-accent dark:text-accent-dark' : 'text-text-muted dark:text-text-muted-dark'
                   }`}
-                  numberOfLines={1}
                 >
-                  {ex.name}
+                  {ex.isCompleted ? 'Done' : 'Pending'}
                 </Text>
               </View>
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-                {ex.isCompleted ? 'Done' : 'Pending'}
-              </Text>
             </TouchableOpacity>
           ))}
         </View>

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,6 +37,7 @@ export default function Workouts() {
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const updateTimersRef = useRef<Record<string, any>>({});
 
   const fetchTodaySession = async () => {
     try {
@@ -147,7 +148,8 @@ export default function Workouts() {
     }
   };
 
-  const handleUpdateSet = async (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+  const handleUpdateSet = (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+    // 1. Instant optimistic UI update
     setTodayExercises((prev) =>
       prev.map((ex) => {
         if (ex.key !== exerciseKey) return ex;
@@ -160,11 +162,21 @@ export default function Workouts() {
       })
     );
 
-    try {
-      await updateExerciseSetValuesApi(setId, { [field]: newValue });
-    } catch (err) {
-      console.log('Failed to update set values on API server');
+    // 2. Debounced API sync per set and field (450ms)
+    const timerKey = `${setId}_${field}`;
+    if (updateTimersRef.current[timerKey]) {
+      clearTimeout(updateTimersRef.current[timerKey]);
     }
+
+    updateTimersRef.current[timerKey] = setTimeout(async () => {
+      try {
+        await updateExerciseSetValuesApi(setId, { [field]: newValue });
+      } catch (err) {
+        console.log('Failed to update set values on API server');
+      } finally {
+        delete updateTimersRef.current[timerKey];
+      }
+    }, 450);
   };
 
   const handleAddSet = async (exerciseKey: string) => {
@@ -471,12 +483,12 @@ export default function Workouts() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Header */}
-        <Text className="mb-1 text-2xl font-black text-text-primary dark:text-text-primary-dark">
+        <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
           Workouts
         </Text>
-        <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+        <Text className="mt-1 mb-4 text-xs text-text-muted dark:text-text-muted-dark font-normal">
           Track your exercise completion and performance
         </Text>
 

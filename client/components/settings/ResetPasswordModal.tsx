@@ -126,11 +126,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
             ) : null}
 
             {/* Current Password */}
-            <View className="mb-3">
-              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1">
+            <View className="mb-3.5">
+              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Current Password
               </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
                 <TextInput
                   secureTextEntry={!showCurrent}
                   value={currentPassword}
@@ -157,11 +157,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
             </View>
 
             {/* New Password */}
-            <View className="mb-3">
-              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1">
+            <View className="mb-3.5">
+              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 New Password
               </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
                 <TextInput
                   secureTextEntry={!showNew}
                   value={newPassword}
@@ -190,10 +190,10 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
 
             {/* Confirm New Password */}
             <View className="mb-5">
-              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1">
+              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Confirm New Password
               </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
                 <TextInput
                   secureTextEntry={!showConfirm}
                   value={confirmPassword}
@@ -220,11 +220,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
             </View>
 
             {/* Action Buttons */}
-            <View className="flex-row items-center gap-2 mb-4">
+            <View className="flex-row items-center gap-2.5 mb-4">
               <TouchableOpacity
                 onPress={handleClose}
                 disabled={loading}
-                className="flex-1 py-3.5 rounded-xl border border-input-border dark:border-input-border-dark items-center justify-center bg-input dark:bg-input-dark"
+                className="flex-1 py-3.5 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center bg-input dark:bg-input-dark"
               >
                 <Text className="text-sm font-semibold text-text-muted dark:text-text-muted-dark">
                   Cancel
@@ -234,12 +234,12 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={loading}
-                className="flex-1 py-3.5 rounded-xl bg-accent dark:bg-accent-dark items-center justify-center flex-row shadow-sm"
+                className="flex-1 py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
               >
                 {loading ? (
-                  <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="text-sm font-black text-background dark:text-background-dark">
+                  <Text className="text-sm font-bold text-white">
                     Update Password
                   </Text>
                 )}

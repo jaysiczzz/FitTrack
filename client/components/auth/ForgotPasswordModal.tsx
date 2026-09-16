@@ -205,12 +205,12 @@ export default function ForgotPasswordModal({
                 <TouchableOpacity
                   onPress={handleRequestCode}
                   disabled={loading}
-                  className="py-3.5 rounded-xl bg-accent dark:bg-accent-dark items-center justify-center flex-row shadow-sm mt-2 mb-4"
+                  className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row mt-2 mb-4"
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text className="text-sm font-black text-background dark:text-background-dark">
+                    <Text className="text-sm font-bold text-white">
                       Send Verification Code
                     </Text>
                   )}
@@ -319,12 +319,12 @@ export default function ForgotPasswordModal({
                   <TouchableOpacity
                     onPress={handleResetPassword}
                     disabled={loading}
-                    className="flex-1 py-3.5 rounded-xl bg-accent dark:bg-accent-dark items-center justify-center flex-row shadow-sm"
+                    className="flex-1 py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
                   >
                     {loading ? (
-                      <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} />
+                      <ActivityIndicator size="small" color="#FFFFFF" />
                     ) : (
-                      <Text className="text-sm font-black text-background dark:text-background-dark">
+                      <Text className="text-sm font-bold text-white">
                         Reset Password
                       </Text>
                     )}

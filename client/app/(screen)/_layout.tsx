@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { View } from 'react-native';
 import { Stack, useRouter } from 'expo-router';
 import FloatingNavBar from '@/components/ui/FloatingNavBar';
+import FloatingAiCoachButton from '@/components/ui/FloatingAiCoachButton';
 import { useAuth } from '@/context/AuthContext';
 
 export default function Layout() {
@@ -21,6 +22,7 @@ export default function Layout() {
           headerShown: false,
         }}
       />
+      <FloatingAiCoachButton />
       <FloatingNavBar />
     </View>
   );

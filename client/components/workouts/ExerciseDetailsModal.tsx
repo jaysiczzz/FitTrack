@@ -425,9 +425,9 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
           <View className="p-4 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
             <TouchableOpacity
               onPress={handleApplyPreset}
-              className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center"
+              className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center"
             >
-              <Text className="text-background dark:text-background-dark font-extrabold text-sm">
+              <Text className="text-white font-bold text-sm">
                 {mode === 'update'
                   ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
                   : `Add (${activeTier.toUpperCase()}) to Today's Workout`}

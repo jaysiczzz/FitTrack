@@ -261,9 +261,9 @@ export default function NutritionFactsModal({ visible, onClose, data }: Nutritio
           {/* Dismiss Button */}
           <TouchableOpacity
             onPress={onClose}
-            className="py-3.5 rounded-xl bg-accent dark:bg-accent-dark items-center justify-center mt-2 shadow-sm"
+            className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center mt-2"
           >
-            <Text className="text-sm font-black text-background dark:text-background-dark">
+            <Text className="text-sm font-bold text-white">
               Close Nutrition Facts
             </Text>
           </TouchableOpacity>

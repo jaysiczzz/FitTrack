@@ -135,7 +135,7 @@ export default function AiWorkoutGeneratorModal({
                     <Text
                       className={`text-xs font-semibold ${
                         isActive
-                          ? 'text-white dark:text-background-dark'
+                          ? 'text-white font-bold'
                           : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
@@ -224,9 +224,9 @@ export default function AiWorkoutGeneratorModal({
               </Text>
               <TouchableOpacity
                 onPress={() => handleGenerate()}
-                className="mt-3 px-4 py-2.5 bg-accent dark:bg-accent-dark rounded-xl"
+                className="mt-3 px-5 py-3 bg-accent dark:bg-accent-dark rounded-2xl"
               >
-                <Text className="text-white dark:text-background-dark font-bold text-xs">
+                <Text className="text-white font-bold text-xs">
                   Generate Routine
                 </Text>
               </TouchableOpacity>
@@ -240,7 +240,7 @@ export default function AiWorkoutGeneratorModal({
                 onPress={() => handleGenerate()}
                 disabled={addingToWorkout}
                 activeOpacity={0.7}
-                className="h-11 px-4 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl items-center justify-center"
+                className="h-11 px-4 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center"
               >
                 <Text className="font-semibold text-xs text-text-primary dark:text-text-primary-dark">
                   Regenerate
@@ -251,12 +251,12 @@ export default function AiWorkoutGeneratorModal({
                 onPress={handleCommitToWorkout}
                 disabled={addingToWorkout}
                 activeOpacity={0.85}
-                className="flex-1 h-11 bg-accent dark:bg-accent-dark rounded-xl items-center justify-center"
+                className="flex-1 h-11 bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
               >
                 {addingToWorkout ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
-                  <Text className="font-bold text-xs text-white dark:text-background-dark">
+                  <Text className="font-bold text-xs text-white">
                     Add to Today's Workout
                   </Text>
                 )}

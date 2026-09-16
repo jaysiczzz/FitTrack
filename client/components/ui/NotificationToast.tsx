@@ -217,9 +217,9 @@ export default function NotificationToast({
                 onAction();
                 handleDismiss();
               }}
-              className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl mr-2"
+              className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-2xl mr-2"
             >
-              <Text className="text-background dark:text-background-dark font-black text-[11px]">
+              <Text className="text-white font-bold text-[11px]">
                 {actionLabel}
               </Text>
             </TouchableOpacity>

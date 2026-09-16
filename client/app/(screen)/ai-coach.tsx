@@ -20,6 +20,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { chatWithCoachApi, ChatMessage } from '@/api/ai';
 import { authStorage } from '@/utils/authStorage';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 
 const STARTER_PROMPTS = [
   '🥗 What should I eat for my next meal based on my goals?',
@@ -47,6 +48,7 @@ export default function AiCoachScreen() {
   const [inputText, setInputText] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const storageKey = authStorage.getScopedKey(user?.id, 'ai_coach_chat_history');
@@ -95,23 +97,15 @@ export default function AiCoachScreen() {
   };
 
   const handleClearHistory = () => {
-    Alert.alert(
-      'Reset Conversation',
-      'Are you sure you want to clear your chat history with your AI Coach?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Clear Chat',
-          style: 'destructive',
-          onPress: async () => {
-            const resetList = [INITIAL_GREETING];
-            setMessages(resetList);
-            await persistMessages(resetList);
-            showSuccess('Chat Cleared', 'Conversation history was reset.');
-          },
-        },
-      ]
-    );
+    setShowClearConfirm(true);
+  };
+
+  const handleConfirmClear = async () => {
+    const resetList = [INITIAL_GREETING];
+    setMessages(resetList);
+    await persistMessages(resetList);
+    setShowClearConfirm(false);
+    showSuccess('Chat Cleared', 'Conversation history was reset.');
   };
 
   const handleSend = async (customText?: string) => {
@@ -186,7 +180,7 @@ export default function AiCoachScreen() {
                 <Text
                   className={`text-xs mr-1.5 ${
                     isUser
-                      ? 'text-background dark:text-background-dark font-bold'
+                      ? 'text-white font-bold'
                       : 'text-accent dark:text-accent-dark font-black'
                   }`}
                 >
@@ -196,7 +190,7 @@ export default function AiCoachScreen() {
               <Text
                 className={`text-sm leading-5 flex-1 ${
                   isUser
-                    ? 'text-background dark:text-background-dark font-medium'
+                    ? 'text-white font-medium'
                     : 'text-text-primary dark:text-text-primary-dark font-normal'
                 }`}
               >
@@ -207,7 +201,7 @@ export default function AiCoachScreen() {
                         key={pIdx}
                         className={`font-black ${
                           isUser
-                            ? 'text-background dark:text-background-dark'
+                            ? 'text-white'
                             : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                       >
@@ -334,7 +328,7 @@ export default function AiCoachScreen() {
                         <Text
                           className={`text-[9px] mt-1.5 self-end ${
                             isUser
-                              ? 'text-background/70 dark:text-background-dark/70 font-medium'
+                              ? 'text-white/80 font-medium'
                               : 'text-text-muted dark:text-text-muted-dark font-medium'
                           }`}
                         >
@@ -419,18 +413,31 @@ export default function AiCoachScreen() {
               }`}
             >
               {isSending ? (
-                <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} />
+                <ActivityIndicator size="small" color="#FFFFFF" />
               ) : (
                 <Ionicons
                   name="arrow-up"
                   size={20}
-                  color={!inputText.trim() ? colors.textMuted : isDark ? colors.background : '#FFFFFF'}
+                  color={!inputText.trim() ? colors.textMuted : '#FFFFFF'}
                 />
               )}
             </TouchableOpacity>
           </View>
         </View>
       </KeyboardAvoidingView>
+
+      {/* Confirm Clear Conversation Modal */}
+      <ConfirmModal
+        visible={showClearConfirm}
+        title="Reset Conversation"
+        message="Are you sure you want to clear your chat history with your AI Coach? This will reset your conversation to a fresh session."
+        iconName="trash-outline"
+        confirmText="Clear Chat"
+        cancelText="Cancel"
+        isDanger
+        onConfirm={handleConfirmClear}
+        onCancel={() => setShowClearConfirm(false)}
+      />
     </SafeAreaView>
   );
 }

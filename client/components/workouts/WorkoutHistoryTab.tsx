@@ -106,20 +106,20 @@ const WorkoutHistoryTab: React.FC = () => {
                   <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                     {session.date}
                   </Text>
-                  <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 px-2.5 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
+                  <View className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
                       Completed
                     </Text>
                   </View>
                 </View>
 
                 {/* Session Title */}
-                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mb-2">
+                <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-2">
                   {session.title}
                 </Text>
 
                 {/* Metrics Chips */}
-                <View className="flex-row items-center gap-x-2.5 mb-3 bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border/50 dark:border-input-border-dark/50">
+                <View className="flex-row items-center gap-x-2.5 mb-3 bg-input dark:bg-input-dark p-3 rounded-2xl border border-input-border dark:border-input-border-dark">
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {session.duration}
                   </Text>
@@ -150,15 +150,17 @@ const WorkoutHistoryTab: React.FC = () => {
                     {session.exercises.map((ex, i) => (
                       <View
                         key={i}
-                        className="flex-row items-center justify-between py-1.5 border-b border-input-border/20 last:border-b-0"
+                        className="flex-row items-center justify-between py-2 border-b border-input-border/20 last:border-b-0"
                       >
-                        <View className="flex-row items-center gap-1.5">
-                          <Ionicons name="checkmark-circle" size={15} color={colors.accent} />
+                        <View className="flex-row items-center">
+                          <View className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2">
+                            <Ionicons name="checkmark" size={11} color="#10B981" />
+                          </View>
                           <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                             {ex.name}
                           </Text>
                         </View>
-                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium">
                           {ex.setsSummary}
                         </Text>
                       </View>

@@ -50,9 +50,11 @@ export interface TodayExerciseItem {
 }
 
 export interface PersonalRecordItem {
-  exerciseName: string;
-  weight: number;
-  reps: number;
+  name?: string;
+  exerciseName?: string;
+  weight?: number;
+  reps?: number;
+  record?: string;
 }
 
 interface TodayWorkoutTabProps {
@@ -109,6 +111,29 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
     };
     fetchPRs();
   }, [completedSessionsCount]);
+
+  const getPRForExercise = (exerciseName: string): string | null => {
+    if (!personalRecords || personalRecords.length === 0) return null;
+    const cleanTarget = exerciseName.trim().toLowerCase();
+    const match = personalRecords.find((pr) => {
+      const candidate = (pr.exerciseName || pr.name || '').trim().toLowerCase();
+      if (!candidate) return false;
+      return (
+        candidate === cleanTarget ||
+        candidate.includes(cleanTarget) ||
+        cleanTarget.includes(candidate)
+      );
+    });
+    if (!match) return null;
+    if (match.record) return match.record;
+    if (match.weight && match.weight > 0) {
+      return `PR: ${match.weight}kg × ${match.reps || 0} reps`;
+    }
+    if (match.reps && match.reps > 0) {
+      return `PR: ${match.reps} reps`;
+    }
+    return null;
+  };
 
   const [activeWorkoutKey, setActiveWorkoutKey] = useState<string | null>(null);
 
@@ -250,17 +275,17 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             {onOpenAiGenerator && (
               <TouchableOpacity
                 onPress={onOpenAiGenerator}
-                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5"
+                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-2xl flex-row items-center gap-1.5"
               >
-                <Ionicons name="sparkles" size={15} color={isDark ? colors.background : '#FFFFFF'} />
-                <Text className="text-white dark:text-background-dark font-bold text-xs">
+                <Ionicons name="sparkles" size={15} color="#FFFFFF" />
+                <Text className="text-white font-bold text-xs">
                   AI Routine
                 </Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={onNavigateToLibrary}
-              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl"
+              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-2xl"
             >
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
                 Explore Library
@@ -284,6 +309,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             recommendedReps={item.recommendedReps}
             recommendedRest={item.recommendedRest}
             sets={item.sets}
+            personalRecord={getPRForExercise(item.name)}
             onToggleSet={(setId) => onToggleSet(item.key, setId)}
             onUpdateSet={(setId, field, val) => onUpdateSet && onUpdateSet(item.key, setId, field, val)}
             onAddSet={() => onAddSet && onAddSet(item.key)}
@@ -298,15 +324,17 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {exercises.length > 0 ? (
         <View className="mt-1 mb-4">
           {!allSetsDone ? (
-            <View className="mb-2.5 p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center">
+            <View className="mb-2.5 p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center">
               <Ionicons name="information-circle" size={18} color={colors.warning} style={{ marginRight: 8 }} />
               <Text className="flex-1 text-xs text-text-muted dark:text-text-muted-dark font-medium leading-4">
                 Progress: {completedSetsCount} of {totalSetsCount} sets completed. Mark all sets as done to complete session.
               </Text>
             </View>
           ) : (
-            <View className="mb-2.5 p-3 rounded-xl bg-accent/10 border border-accent/20 flex-row items-center">
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent} style={{ marginRight: 8 }} />
+            <View className="mb-2.5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex-row items-center">
+              <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2.5">
+                <Ionicons name="checkmark" size={13} color="#10B981" />
+              </View>
               <Text className="flex-1 text-xs text-accent dark:text-accent-dark font-bold">
                 All sets completed! Ready to finish today's workout.
               </Text>
@@ -316,7 +344,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           <TouchableOpacity
             onPress={handleCompleteSessionPress}
             activeOpacity={allSetsDone ? 0.85 : 0.6}
-            className={`items-center justify-center rounded-xl h-12 ${
+            className={`items-center justify-center rounded-2xl h-12 ${
               allSetsDone
                 ? 'bg-accent dark:bg-accent-dark'
                 : 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark opacity-60'
@@ -325,7 +353,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             <Text
               className={`text-sm font-bold ${
                 allSetsDone
-                  ? 'text-white dark:text-background-dark'
+                  ? 'text-white'
                   : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
@@ -398,6 +426,55 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           </Text>
         )}
       </SurfaceCard>
+
+      {/* ALL-TIME PERSONAL RECORDS SHOWCASE */}
+      {personalRecords.length > 0 && (
+        <SurfaceCard className="mb-3">
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="trophy" size={16} color="#F59E0B" />
+              <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
+                Personal Records ({personalRecords.length})
+              </Text>
+            </View>
+            <View className="rounded-full bg-amber-500/10 px-2 py-0.5 border border-amber-500/20">
+              <Text className="text-[10px] font-semibold text-amber-500">
+                All-Time Best
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row flex-wrap gap-2">
+            {personalRecords.map((pr, idx) => {
+              const name = pr.exerciseName || pr.name || `Exercise ${idx + 1}`;
+              const recordText =
+                pr.record ||
+                (pr.weight && pr.weight > 0
+                  ? `${pr.weight}kg × ${pr.reps || 0} reps`
+                  : `${pr.reps || 0} reps`);
+              return (
+                <View
+                  key={`${name}-${idx}`}
+                  className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark w-[48%]"
+                >
+                  <View className="flex-1 mr-1">
+                    <Text
+                      numberOfLines={1}
+                      className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mb-0.5"
+                    >
+                      {name}
+                    </Text>
+                    <Text className="text-[11px] font-bold text-amber-500 dark:text-amber-400">
+                      {recordText}
+                    </Text>
+                  </View>
+                  <Ionicons name="ribbon-outline" size={16} color="#F59E0B" />
+                </View>
+              );
+            })}
+          </View>
+        </SurfaceCard>
+      )}
 
       {/* 3-STEP WARM-UP & MOBILITY ROUTINE */}
       <SurfaceCard className="mb-3">

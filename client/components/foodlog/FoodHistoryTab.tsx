@@ -318,10 +318,10 @@ export default function FoodHistoryTab({
             setSelectedRange('15days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center ${
+          className={`flex-1 py-2 rounded-xl items-center border ${
             selectedRange === '15days' && !selectedDayFilter
-              ? 'bg-surface dark:bg-surface-dark shadow-xs'
-              : ''
+              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+              : 'bg-transparent border-transparent'
           }`}
         >
           <Text
@@ -340,10 +340,10 @@ export default function FoodHistoryTab({
             setSelectedRange('7days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center ${
+          className={`flex-1 py-2 rounded-xl items-center border ${
             selectedRange === '7days' && !selectedDayFilter
-              ? 'bg-surface dark:bg-surface-dark shadow-xs'
-              : ''
+              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+              : 'bg-transparent border-transparent'
           }`}
         >
           <Text
@@ -362,10 +362,10 @@ export default function FoodHistoryTab({
             setSelectedRange('all');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center ${
+          className={`flex-1 py-2 rounded-xl items-center border ${
             selectedRange === 'all' && !selectedDayFilter
-              ? 'bg-surface dark:bg-surface-dark shadow-xs'
-              : ''
+              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+              : 'bg-transparent border-transparent'
           }`}
         >
           <Text
@@ -431,7 +431,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-[9px] font-bold uppercase mb-0.5 ${
                       isSelected
-                        ? 'text-background dark:text-background-dark font-black'
+                        ? 'text-accent font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -440,7 +440,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-xs font-black mb-1 ${
                       isSelected
-                        ? 'text-background dark:text-background-dark'
+                        ? 'text-accent'
                         : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
@@ -547,9 +547,9 @@ export default function FoodHistoryTab({
           <TouchableOpacity
             onPress={onSwitchToToday}
             activeOpacity={0.8}
-            className="bg-accent dark:bg-accent-dark px-5 py-2.5 rounded-xl shadow-xs"
+            className="bg-accent dark:bg-accent-dark px-5 py-3 rounded-2xl"
           >
-            <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
+            <Text className="text-white font-bold text-xs uppercase tracking-wide">
               Log Today's Meal
             </Text>
           </TouchableOpacity>

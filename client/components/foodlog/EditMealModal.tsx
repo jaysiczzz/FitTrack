@@ -188,13 +188,13 @@ export default function EditMealModal({
                     <Ionicons
                       name={MEAL_GLYPHS[m]}
                       size={14}
-                      color={isSelected ? (isDark ? colors.background : '#FFFFFF') : colors.textMuted}
+                      color={isSelected ? '#FFFFFF' : colors.textMuted}
                       style={{ marginBottom: 2 }}
                     />
                     <Text
                       className={`text-[10px] font-bold capitalize ${
                         isSelected
-                          ? 'text-white dark:text-background-dark font-black'
+                          ? 'text-white font-black'
                           : 'text-text-primary dark:text-text-primary-dark'
                       }`}
                     >
@@ -206,7 +206,7 @@ export default function EditMealModal({
             </View>
 
             {/* 2. Quick Portion Multiplier */}
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase mb-1.5">
+            <Text className="text-text-muted dark:text-text-muted-dark text-[10px] tracking-wider font-bold uppercase mb-1.5">
               Quick Portion Scale:
             </Text>
             <View className="flex-row gap-1 mb-3.5">
@@ -224,7 +224,7 @@ export default function EditMealModal({
                   <Text
                     className={`text-[11px] font-extrabold ${
                       activeMultiplier === mult
-                        ? 'text-background dark:text-background-dark font-black'
+                        ? 'text-white font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -327,9 +327,9 @@ export default function EditMealModal({
               <TouchableOpacity
                 onPress={handleSave}
                 activeOpacity={0.8}
-                className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center justify-center shadow-xs"
+                className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center"
               >
-                <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
+                <Text className="text-white font-bold text-sm tracking-wide">
                   Save Changes ({Math.round(currentCals)} kcal)
                 </Text>
               </TouchableOpacity>
@@ -340,9 +340,9 @@ export default function EditMealModal({
                   onClose();
                 }}
                 activeOpacity={0.7}
-                className="py-2.5 rounded-xl items-center justify-center border border-danger/30 bg-danger/10 dark:bg-danger-dark/20"
+                className="py-3 rounded-2xl items-center justify-center border border-danger/30 bg-danger/10 dark:bg-danger-dark/20"
               >
-                <Text className="text-danger dark:text-danger-dark font-extrabold text-xs">
+                <Text className="text-danger dark:text-danger-dark font-bold text-xs">
                   Delete Meal Item
                 </Text>
               </TouchableOpacity>

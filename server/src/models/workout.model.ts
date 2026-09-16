@@ -1888,6 +1888,9 @@ export const getPersonalRecords = async (userId: string) => {
 
   return Array.from(prMap.values()).map((item) => ({
     name: item.exerciseName,
+    exerciseName: item.exerciseName,
+    weight: item.maxWeight,
+    reps: item.maxReps,
     record: item.maxWeight > 0 ? `PR: ${item.maxWeight}kg × ${item.maxReps} reps` : `PR: ${item.maxReps} reps`,
   }))
 }
