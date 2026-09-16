@@ -14,11 +14,66 @@ import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
-import { getDailyFoodLogApi } from '@/api/foodlog';
+import { getDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
+
+function calculateWorkoutStreak(
+  sessions: ApiWorkoutSession[],
+  isTodayCompleted: boolean = false
+): number {
+  const formatDateKey = (d: Date): string => {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const completedDays = new Set<string>();
+
+  for (const s of sessions) {
+    const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+    if (timestamp) {
+      const d = new Date(timestamp);
+      if (!isNaN(d.getTime())) {
+        completedDays.add(formatDateKey(d));
+      }
+    }
+  }
+
+  const today = new Date();
+  const todayKey = formatDateKey(today);
+
+  if (isTodayCompleted) {
+    completedDays.add(todayKey);
+  }
+
+  const yesterday = new Date(today);
+  yesterday.setDate(today.getDate() - 1);
+  const yesterdayKey = formatDateKey(yesterday);
+
+  // If neither today nor yesterday has a completed session, streak is broken
+  let anchorDate: Date | null = null;
+  if (completedDays.has(todayKey)) {
+    anchorDate = new Date(today);
+  } else if (completedDays.has(yesterdayKey)) {
+    anchorDate = new Date(yesterday);
+  } else {
+    return 0;
+  }
+
+  let streak = 0;
+  const cursor = new Date(anchorDate);
+
+  while (completedDays.has(formatDateKey(cursor))) {
+    streak++;
+    cursor.setDate(cursor.getDate() - 1);
+  }
+
+  return streak;
+}
 
 export default function Dashboard() {
   const { colors } = useThemeColors();
@@ -121,42 +176,60 @@ export default function Dashboard() {
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
 
-      let items: FoodLogItem[] = [];
+      let localItems: FoodLogItem[] = [];
       const savedLog = await AsyncStorage.getItem(foodKey);
       if (savedLog) {
         try {
           const parsed = JSON.parse(savedLog);
-          if (Array.isArray(parsed)) items = parsed;
+          if (Array.isArray(parsed)) localItems = parsed;
         } catch {}
       }
 
-      // Sync authenticated user's actual database food log
+      let localWater = 0;
+      const waterSaved = await AsyncStorage.getItem(waterKey);
+      if (waterSaved) {
+        localWater = parseInt(waterSaved, 10) || 0;
+      }
+
+      let items = localItems;
+      let finalWater = localWater;
+
+      // Sync authenticated user's actual database food log without stale downgrades
       if (userId) {
         try {
           const cloudRes = await getDailyFoodLogApi(todayKey);
           if (cloudRes?.data) {
-            if (Array.isArray(cloudRes.data.meals)) {
-              items = cloudRes.data.meals.map((m: any) => ({
-                id: m.id,
-                mealType: m.mealType,
-                title: m.title,
-                subtitle: m.subtitle || undefined,
-                calories: m.calories,
-                protein: m.protein,
-                carbs: m.carbs,
-                fat: m.fat,
-                goalBadge: m.goalBadge || undefined,
-                goalBadgeColor: m.goalBadgeColor || undefined,
-                icon: m.icon || undefined,
-                healthNotes: m.healthNotes || undefined,
-                imageUri: m.imageUri || undefined,
-                loggedAt: m.loggedAt || undefined,
-              }));
-              await AsyncStorage.setItem(foodKey, JSON.stringify(items));
+            if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
+              if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                items = cloudRes.data.meals.map((m: any) => ({
+                  id: m.id,
+                  mealType: m.mealType,
+                  title: m.title,
+                  subtitle: m.subtitle || undefined,
+                  calories: m.calories,
+                  protein: m.protein,
+                  carbs: m.carbs,
+                  fat: m.fat,
+                  goalBadge: m.goalBadge || undefined,
+                  goalBadgeColor: m.goalBadgeColor || undefined,
+                  icon: m.icon || undefined,
+                  healthNotes: m.healthNotes || undefined,
+                  imageUri: m.imageUri || undefined,
+                  loggedAt: m.loggedAt || undefined,
+                }));
+                await AsyncStorage.setItem(foodKey, JSON.stringify(items));
+              } else if (localItems.length > cloudRes.data.meals.length) {
+                autoSyncFoodAndWater(userId, todayKey, localItems, Math.max(localWater, cloudRes.data.waterMl || 0));
+              }
+            } else if (localItems.length > 0) {
+              autoSyncFoodAndWater(userId, todayKey, localItems, localWater);
             }
-            if (typeof cloudRes.data.waterMl === 'number') {
-              setWaterMl(cloudRes.data.waterMl);
-              await AsyncStorage.setItem(waterKey, cloudRes.data.waterMl.toString());
+
+            const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
+            finalWater = Math.max(localWater, cloudWater);
+            await AsyncStorage.setItem(waterKey, finalWater.toString());
+            if (localWater > cloudWater) {
+              autoSyncFoodAndWater(userId, todayKey, items, finalWater);
             }
           }
         } catch (e) {
@@ -180,14 +253,7 @@ export default function Dashboard() {
       setProteinLogged(totalProt);
       setCarbsLogged(totalCarbs);
       setFatLogged(totalFat);
-
-      // Load Water
-      const waterSaved = await AsyncStorage.getItem(waterKey);
-      if (waterSaved) {
-        setWaterMl(parseInt(waterSaved, 10) || 0);
-      } else if (!userId) {
-        setWaterMl(0);
-      }
+      setWaterMl(finalWater);
     } catch (err) {
       console.log('Error calculating food progress:', err);
     }
@@ -214,7 +280,11 @@ export default function Dashboard() {
           0
         );
         setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
-        setWorkoutSessionDone(formatted.length > 0 && formatted.every((e) => e.isCompleted));
+        const isTodaySessionDone = Boolean(
+          todayRes.session.completed ||
+          (formatted.length > 0 && formatted.every((e) => e.isCompleted))
+        );
+        setWorkoutSessionDone(isTodaySessionDone);
       } else {
         setTodayExercises([]);
         setActiveMinutesToday(0);
@@ -230,14 +300,28 @@ export default function Dashboard() {
         startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
         startOfWeek.setHours(0, 0, 0, 0);
 
+        const isTodaySessionDone = Boolean(
+          todayRes?.session?.completed ||
+          (todayRes?.session?.exercises &&
+            todayRes.session.exercises.length > 0 &&
+            todayRes.session.exercises.every(
+              (e: ApiWorkoutExercise) => e.sets && e.sets.length > 0 && e.sets.every((s) => s.done)
+            ))
+        );
+
         const completedThisWeek = sessions.filter((s) => {
-          if (!s.completedAt) return false;
-          const compDate = new Date(s.completedAt);
+          const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+          if (!timestamp) return false;
+          const compDate = new Date(timestamp);
           return compDate >= startOfWeek;
         });
 
-        setWorkoutsThisWeek(completedThisWeek.length);
-        setCurrentStreak(sessions.length > 0 ? sessions.length : 0);
+        const thisWeekCount =
+          completedThisWeek.length +
+          (isTodaySessionDone && !sessions.some((s) => s.id === todayRes?.session?.id) ? 1 : 0);
+
+        setWorkoutsThisWeek(thisWeekCount);
+        setCurrentStreak(calculateWorkoutStreak(sessions, isTodaySessionDone));
       }
     } catch (err) {
       console.log('Error calculating workout progress:', err);
@@ -289,9 +373,21 @@ export default function Dashboard() {
     setWaterMl(newTotal);
 
     try {
+      const todayKey = getTodayDateKey();
+      const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      const savedFood = await AsyncStorage.getItem(foodKey);
+      let currentItems: FoodLogItem[] = [];
+      if (savedFood) {
+        try {
+          const parsed = JSON.parse(savedFood);
+          if (Array.isArray(parsed)) currentItems = parsed;
+        } catch {}
+      }
+
       await AsyncStorage.setItem(waterKey, newTotal.toString());
       await AsyncStorage.removeItem('water_log_today').catch(() => {});
+      autoSyncFoodAndWater(userId, todayKey, currentItems, newTotal);
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (e) {
       console.log('Error saving quick water:', e);

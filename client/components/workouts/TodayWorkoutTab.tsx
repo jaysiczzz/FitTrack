@@ -50,9 +50,11 @@ export interface TodayExerciseItem {
 }
 
 export interface PersonalRecordItem {
-  exerciseName: string;
-  weight: number;
-  reps: number;
+  name?: string;
+  exerciseName?: string;
+  weight?: number;
+  reps?: number;
+  record?: string;
 }
 
 interface TodayWorkoutTabProps {
@@ -109,6 +111,29 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
     };
     fetchPRs();
   }, [completedSessionsCount]);
+
+  const getPRForExercise = (exerciseName: string): string | null => {
+    if (!personalRecords || personalRecords.length === 0) return null;
+    const cleanTarget = exerciseName.trim().toLowerCase();
+    const match = personalRecords.find((pr) => {
+      const candidate = (pr.exerciseName || pr.name || '').trim().toLowerCase();
+      if (!candidate) return false;
+      return (
+        candidate === cleanTarget ||
+        candidate.includes(cleanTarget) ||
+        cleanTarget.includes(candidate)
+      );
+    });
+    if (!match) return null;
+    if (match.record) return match.record;
+    if (match.weight && match.weight > 0) {
+      return `PR: ${match.weight}kg × ${match.reps || 0} reps`;
+    }
+    if (match.reps && match.reps > 0) {
+      return `PR: ${match.reps} reps`;
+    }
+    return null;
+  };
 
   const [activeWorkoutKey, setActiveWorkoutKey] = useState<string | null>(null);
 
@@ -284,6 +309,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             recommendedReps={item.recommendedReps}
             recommendedRest={item.recommendedRest}
             sets={item.sets}
+            personalRecord={getPRForExercise(item.name)}
             onToggleSet={(setId) => onToggleSet(item.key, setId)}
             onUpdateSet={(setId, field, val) => onUpdateSet && onUpdateSet(item.key, setId, field, val)}
             onAddSet={() => onAddSet && onAddSet(item.key)}
@@ -400,6 +426,55 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           </Text>
         )}
       </SurfaceCard>
+
+      {/* ALL-TIME PERSONAL RECORDS SHOWCASE */}
+      {personalRecords.length > 0 && (
+        <SurfaceCard className="mb-3">
+          <View className="flex-row items-center justify-between mb-3">
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="trophy" size={16} color="#F59E0B" />
+              <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
+                Personal Records ({personalRecords.length})
+              </Text>
+            </View>
+            <View className="rounded-full bg-amber-500/10 px-2 py-0.5 border border-amber-500/20">
+              <Text className="text-[10px] font-semibold text-amber-500">
+                All-Time Best
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row flex-wrap gap-2">
+            {personalRecords.map((pr, idx) => {
+              const name = pr.exerciseName || pr.name || `Exercise ${idx + 1}`;
+              const recordText =
+                pr.record ||
+                (pr.weight && pr.weight > 0
+                  ? `${pr.weight}kg × ${pr.reps || 0} reps`
+                  : `${pr.reps || 0} reps`);
+              return (
+                <View
+                  key={`${name}-${idx}`}
+                  className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark w-[48%]"
+                >
+                  <View className="flex-1 mr-1">
+                    <Text
+                      numberOfLines={1}
+                      className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mb-0.5"
+                    >
+                      {name}
+                    </Text>
+                    <Text className="text-[11px] font-bold text-amber-500 dark:text-amber-400">
+                      {recordText}
+                    </Text>
+                  </View>
+                  <Ionicons name="ribbon-outline" size={16} color="#F59E0B" />
+                </View>
+              );
+            })}
+          </View>
+        </SurfaceCard>
+      )}
 
       {/* 3-STEP WARM-UP & MOBILITY ROUTINE */}
       <SurfaceCard className="mb-3">

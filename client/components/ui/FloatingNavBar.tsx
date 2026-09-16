@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AiScanModal from '@/components/foodlog/AiScanModal';
-import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
+import { FoodLogItem, getTodayDateString } from '@/components/foodlog/foodLogTypes';
+import { autoSyncFoodAndWater } from '@/api/foodlog';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -82,6 +83,10 @@ export default function FloatingNavBar() {
       arr.push(...itemsToAdd);
       await AsyncStorage.setItem(foodKey, JSON.stringify(arr));
       await AsyncStorage.removeItem('food_log_today').catch(() => {});
+      const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      const savedWater = await AsyncStorage.getItem(waterKey);
+      const currentWater = savedWater ? parseInt(savedWater, 10) || 0 : 0;
+      autoSyncFoodAndWater(userId, getTodayDateString(), arr, currentWater);
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
       if (itemsToAdd.length === 1) {
         showSuccess(`Added ${itemsToAdd[0].title}`, `${itemsToAdd[0].calories} kcal logged to ${itemsToAdd[0].mealType}`);

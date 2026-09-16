@@ -20,7 +20,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
-import { saveDailyFoodLogApi, getDailyFoodLogApi } from '@/api/foodlog';
+import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
@@ -60,19 +60,20 @@ export default function FoodLog() {
       }
 
       // 1. Read user-scoped local storage for instant UI render
+      let localItems: FoodLogItem[] = [];
       const savedFood = await AsyncStorage.getItem(foodKey);
       if (savedFood) {
         try {
           const parsed = JSON.parse(savedFood);
           if (Array.isArray(parsed)) {
-            const normalized = parsed.map((item: any) => {
+            localItems = parsed.map((item: any) => {
               if (!item.goalBadge || !item.goalBadgeColor) {
                 const b = getSmartFoodBadge(item);
                 return { ...item, goalBadge: b.badge, goalBadgeColor: b.color };
               }
               return item;
             });
-            setItems(normalized);
+            setItems(localItems);
           } else {
             setItems([]);
           }
@@ -83,12 +84,12 @@ export default function FoodLog() {
         setItems([]);
       }
 
+      let localWater = 0;
       const savedWater = await AsyncStorage.getItem(waterKey);
       if (savedWater) {
-        setWaterMl(parseInt(savedWater, 10) || 0);
-      } else {
-        setWaterMl(0);
+        localWater = parseInt(savedWater, 10) || 0;
       }
+      setWaterMl(localWater);
 
       // 2. Fetch authenticated user's actual database log for today
       if (userId) {
@@ -96,34 +97,45 @@ export default function FoodLog() {
         try {
           const cloudRes = await getDailyFoodLogApi(todayStr);
           if (cloudRes?.data) {
+            let resolvedItems = localItems;
             if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
-              const cloudItems: FoodLogItem[] = cloudRes.data.meals.map((m: any) => {
-                const badgeInfo = (m.goalBadge && m.goalBadgeColor)
-                  ? { badge: m.goalBadge, color: m.goalBadgeColor }
-                  : getSmartFoodBadge(m);
-                return {
-                  id: m.id,
-                  mealType: m.mealType as MealType,
-                  title: m.title,
-                  subtitle: m.subtitle || undefined,
-                  calories: m.calories,
-                  protein: m.protein,
-                  carbs: m.carbs,
-                  fat: m.fat,
-                  goalBadge: badgeInfo.badge,
-                  goalBadgeColor: badgeInfo.color,
-                  icon: m.icon || undefined,
-                  healthNotes: m.healthNotes || undefined,
-                  imageUri: m.imageUri || undefined,
-                  loggedAt: m.loggedAt || undefined,
-                };
-              });
-              setItems(cloudItems);
-              await AsyncStorage.setItem(foodKey, JSON.stringify(cloudItems));
+              if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                resolvedItems = cloudRes.data.meals.map((m: any) => {
+                  const badgeInfo = (m.goalBadge && m.goalBadgeColor)
+                    ? { badge: m.goalBadge, color: m.goalBadgeColor }
+                    : getSmartFoodBadge(m);
+                  return {
+                    id: m.id,
+                    mealType: m.mealType as MealType,
+                    title: m.title,
+                    subtitle: m.subtitle || undefined,
+                    calories: m.calories,
+                    protein: m.protein,
+                    carbs: m.carbs,
+                    fat: m.fat,
+                    goalBadge: badgeInfo.badge,
+                    goalBadgeColor: badgeInfo.color,
+                    icon: m.icon || undefined,
+                    healthNotes: m.healthNotes || undefined,
+                    imageUri: m.imageUri || undefined,
+                    loggedAt: m.loggedAt || undefined,
+                  };
+                });
+                setItems(resolvedItems);
+                await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
+              } else if (localItems.length > cloudRes.data.meals.length) {
+                autoSyncFoodAndWater(userId, todayStr, localItems, Math.max(localWater, cloudRes.data.waterMl || 0));
+              }
+            } else if (localItems.length > 0) {
+              autoSyncFoodAndWater(userId, todayStr, localItems, localWater);
             }
-            if (typeof cloudRes.data.waterMl === 'number') {
-              setWaterMl(cloudRes.data.waterMl);
-              await AsyncStorage.setItem(waterKey, cloudRes.data.waterMl.toString());
+
+            const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
+            const resolvedWater = Math.max(localWater, cloudWater);
+            setWaterMl(resolvedWater);
+            await AsyncStorage.setItem(waterKey, resolvedWater.toString());
+            if (localWater > cloudWater) {
+              autoSyncFoodAndWater(userId, todayStr, resolvedItems, resolvedWater);
             }
           }
         } catch (apiErr) {
@@ -157,6 +169,7 @@ export default function FoodLog() {
     try {
       await AsyncStorage.setItem(foodKey, JSON.stringify(newItems));
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMl);
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -180,6 +193,8 @@ export default function FoodLog() {
     setWaterMl(clamped);
     try {
       await AsyncStorage.setItem(waterKey, clamped.toString());
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      autoSyncFoodAndWater(userId, getTodayDateString(), items, clamped);
     } catch (err) {
       console.log('Error saving water:', err);
     }
@@ -195,6 +210,7 @@ export default function FoodLog() {
       AsyncStorage.setItem(foodKey, JSON.stringify(updated))
         .then(() => {
           DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+          autoSyncFoodAndWater(userId, getTodayDateString(), updated, waterMl);
         })
         .catch((err) => console.log('Error saving food log:', err));
       return updated;
@@ -282,12 +298,8 @@ export default function FoodLog() {
     const historyWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
     const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
 
-    // 1. Instantly reset active UI state & show notification (0ms delay)
-    setItems([]);
-    setWaterMl(0);
-
     showToast({
-      message: 'Daily Intake Completed',
+      message: 'Daily Intake Completed! 🎉',
       description: `Saved ${archivedCalories} kcal · ${archivedProtein}g Protein to History.`,
       type: 'success',
       iconName: 'checkmark-circle',
@@ -300,8 +312,6 @@ export default function FoodLog() {
       await Promise.all([
         AsyncStorage.setItem(historyDateKey, JSON.stringify(currentItems)),
         AsyncStorage.setItem(historyWaterKey, currentWater.toString()),
-        AsyncStorage.removeItem(foodKey),
-        AsyncStorage.removeItem(waterKey),
         (async () => {
           const rawDates = await AsyncStorage.getItem(historyDatesKey);
           let datesArr: string[] = [];

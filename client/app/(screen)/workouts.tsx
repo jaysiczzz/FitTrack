@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -37,6 +37,7 @@ export default function Workouts() {
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const updateTimersRef = useRef<Record<string, any>>({});
 
   const fetchTodaySession = async () => {
     try {
@@ -147,7 +148,8 @@ export default function Workouts() {
     }
   };
 
-  const handleUpdateSet = async (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+  const handleUpdateSet = (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+    // 1. Instant optimistic UI update
     setTodayExercises((prev) =>
       prev.map((ex) => {
         if (ex.key !== exerciseKey) return ex;
@@ -160,11 +162,21 @@ export default function Workouts() {
       })
     );
 
-    try {
-      await updateExerciseSetValuesApi(setId, { [field]: newValue });
-    } catch (err) {
-      console.log('Failed to update set values on API server');
+    // 2. Debounced API sync per set and field (450ms)
+    const timerKey = `${setId}_${field}`;
+    if (updateTimersRef.current[timerKey]) {
+      clearTimeout(updateTimersRef.current[timerKey]);
     }
+
+    updateTimersRef.current[timerKey] = setTimeout(async () => {
+      try {
+        await updateExerciseSetValuesApi(setId, { [field]: newValue });
+      } catch (err) {
+        console.log('Failed to update set values on API server');
+      } finally {
+        delete updateTimersRef.current[timerKey];
+      }
+    }, 450);
   };
 
   const handleAddSet = async (exerciseKey: string) => {
