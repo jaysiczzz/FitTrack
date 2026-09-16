@@ -36,33 +36,31 @@ export default function MacroSummaryCard({
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">
             Daily Nutrition Budget
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs">
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             Calibrated for your personal targets
           </Text>
         </View>
         <View
-          className="px-2.5 py-1 rounded-full border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark"
+          className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/15"
         >
-          <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+          <Text className="text-[10px] font-bold uppercase tracking-wider text-accent dark:text-accent-dark">
             {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'}
           </Text>
         </View>
       </View>
 
       {/* Main Calories Overview Row */}
-      <View className="flex-row items-center gap-3 bg-input dark:bg-input-dark rounded-xl p-3 mb-3 border border-input-border dark:border-input-border-dark">
-        {/* Circular Percentage Dial */}
+      <View className="flex-row items-center gap-3 bg-input dark:bg-input-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark">
+        {/* Circular Percentage Ring */}
         <View
-          className={`w-[92px] h-[92px] rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-2 border-2 ${
+          className={`w-[96px] h-[96px] rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-1 border-4 ${
             isOverLimit
               ? 'border-danger'
-              : calPercent >= 100
-              ? 'border-accent dark:border-accent-dark'
-              : 'border-accent/40 dark:border-accent-dark/40'
+              : 'border-accent dark:border-accent-dark'
           }`}
         >
           <Text
-            className={`text-center font-black text-lg leading-5 ${
+            className={`text-center font-black text-2xl leading-7 ${
               isOverLimit
                 ? 'text-danger dark:text-danger-dark'
                 : 'text-text-primary dark:text-text-primary-dark'
@@ -70,17 +68,17 @@ export default function MacroSummaryCard({
           >
             {calPercent}%
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-center font-semibold text-[9px] uppercase tracking-wider mt-0.5">
+          <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider mt-0.5">
             {isOverLimit ? 'Over Budget' : calPercent >= 100 ? 'Goal Met' : 'Of Target'}
           </Text>
         </View>
 
         {/* Calories Remaining Numbers */}
         <View className="flex-1 justify-center">
-          <Text className="text-[11px] uppercase tracking-wider text-text-muted dark:text-text-muted-dark font-semibold">
-            {isOverLimit ? 'Over Target By' : 'Calories Remaining'}
+          <Text className="text-[10px] uppercase tracking-wider text-text-muted dark:text-text-muted-dark font-bold mb-0.5">
+            {isOverLimit ? 'OVER TARGET BY' : 'CALORIES REMAINING'}
           </Text>
-          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark my-0.5">
+          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark leading-8 my-0.5">
             {isOverLimit
               ? (loggedCalories - targets.calories).toLocaleString()
               : caloriesRemaining.toLocaleString()}{' '}
@@ -88,7 +86,7 @@ export default function MacroSummaryCard({
               kcal
             </Text>
           </Text>
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
             {loggedCalories.toLocaleString()} logged of {targets.calories.toLocaleString()} kcal
           </Text>
         </View>
@@ -96,33 +94,68 @@ export default function MacroSummaryCard({
 
       {/* Macro Breakdown Progress Bars */}
       <View className="pt-1">
-        <ProgressBar
-          label="Protein"
-          valueText={`${loggedProtein}g / ${targets.protein}g`}
-          current={loggedProtein}
-          target={targets.protein}
-          color={colors.accent}
-          height={5}
-          className="mb-2"
-        />
-        <ProgressBar
-          label="Carbs"
-          valueText={`${loggedCarbs}g / ${targets.carbs}g`}
-          current={loggedCarbs}
-          target={targets.carbs}
-          color={colors.info}
-          height={5}
-          className="mb-2"
-        />
-        <ProgressBar
-          label="Fats"
-          valueText={`${loggedFat}g / ${targets.fat}g`}
-          current={loggedFat}
-          target={targets.fat}
-          color={colors.warning}
-          height={5}
-          className="mb-0"
-        />
+        <View className="mb-2.5">
+          <View className="flex-row justify-between items-center mb-1">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-emerald-400" />
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] uppercase font-bold tracking-wider">
+                Protein
+              </Text>
+            </View>
+            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+              {loggedProtein}g <Text className="font-normal text-text-muted dark:text-text-muted-dark">/ {targets.protein}g</Text>
+            </Text>
+          </View>
+          <ProgressBar
+            current={loggedProtein}
+            target={targets.protein}
+            color="#10B981"
+            height={5}
+            className="mb-0"
+          />
+        </View>
+
+        <View className="mb-2.5">
+          <View className="flex-row justify-between items-center mb-1">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-sky-400" />
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] uppercase font-bold tracking-wider">
+                Carbs
+              </Text>
+            </View>
+            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+              {loggedCarbs}g <Text className="font-normal text-text-muted dark:text-text-muted-dark">/ {targets.carbs}g</Text>
+            </Text>
+          </View>
+          <ProgressBar
+            current={loggedCarbs}
+            target={targets.carbs}
+            color="#10B981"
+            height={5}
+            className="mb-0"
+          />
+        </View>
+
+        <View className="mb-0">
+          <View className="flex-row justify-between items-center mb-1">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-purple-400" />
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] uppercase font-bold tracking-wider">
+                Fats
+              </Text>
+            </View>
+            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+              {loggedFat}g <Text className="font-normal text-text-muted dark:text-text-muted-dark">/ {targets.fat}g</Text>
+            </Text>
+          </View>
+          <ProgressBar
+            current={loggedFat}
+            target={targets.fat}
+            color="#10B981"
+            height={5}
+            className="mb-0"
+          />
+        </View>
       </View>
     </SurfaceCard>
   );

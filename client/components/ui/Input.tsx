@@ -38,7 +38,7 @@ const Input = React.forwardRef<TextInput, Props>(
     return (
       <View className="w-full mb-3">
         {label ? (
-          <Text className="text-text-muted dark:text-text-muted-dark mb-1 text-[11px] tracking-wide uppercase font-semibold">
+          <Text className="text-text-muted dark:text-text-muted-dark mb-1.5 text-[10px] tracking-wider uppercase font-bold">
             {label}
           </Text>
         ) : null}

@@ -250,17 +250,17 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             {onOpenAiGenerator && (
               <TouchableOpacity
                 onPress={onOpenAiGenerator}
-                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5"
+                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-2xl flex-row items-center gap-1.5"
               >
-                <Ionicons name="sparkles" size={15} color={isDark ? colors.background : '#FFFFFF'} />
-                <Text className="text-white dark:text-background-dark font-bold text-xs">
+                <Ionicons name="sparkles" size={15} color="#FFFFFF" />
+                <Text className="text-white font-bold text-xs">
                   AI Routine
                 </Text>
               </TouchableOpacity>
             )}
             <TouchableOpacity
               onPress={onNavigateToLibrary}
-              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl"
+              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-2xl"
             >
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
                 Explore Library
@@ -298,15 +298,17 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {exercises.length > 0 ? (
         <View className="mt-1 mb-4">
           {!allSetsDone ? (
-            <View className="mb-2.5 p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center">
+            <View className="mb-2.5 p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center">
               <Ionicons name="information-circle" size={18} color={colors.warning} style={{ marginRight: 8 }} />
               <Text className="flex-1 text-xs text-text-muted dark:text-text-muted-dark font-medium leading-4">
                 Progress: {completedSetsCount} of {totalSetsCount} sets completed. Mark all sets as done to complete session.
               </Text>
             </View>
           ) : (
-            <View className="mb-2.5 p-3 rounded-xl bg-accent/10 border border-accent/20 flex-row items-center">
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent} style={{ marginRight: 8 }} />
+            <View className="mb-2.5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex-row items-center">
+              <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2.5">
+                <Ionicons name="checkmark" size={13} color="#10B981" />
+              </View>
               <Text className="flex-1 text-xs text-accent dark:text-accent-dark font-bold">
                 All sets completed! Ready to finish today's workout.
               </Text>
@@ -316,7 +318,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           <TouchableOpacity
             onPress={handleCompleteSessionPress}
             activeOpacity={allSetsDone ? 0.85 : 0.6}
-            className={`items-center justify-center rounded-xl h-12 ${
+            className={`items-center justify-center rounded-2xl h-12 ${
               allSetsDone
                 ? 'bg-accent dark:bg-accent-dark'
                 : 'bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark opacity-60'
@@ -325,7 +327,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             <Text
               className={`text-sm font-bold ${
                 allSetsDone
-                  ? 'text-white dark:text-background-dark'
+                  ? 'text-white'
                   : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >

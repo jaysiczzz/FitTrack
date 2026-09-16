@@ -71,16 +71,23 @@ export default function FloatingNavBar() {
     return pathname.includes(route.replace('/', ''));
   };
 
-  const handleAddMealFromScan = async (item: FoodLogItem) => {
+  const handleAddMealFromScan = async (incoming: FoodLogItem | FoodLogItem[]) => {
     try {
+      const itemsToAdd = Array.isArray(incoming) ? incoming : [incoming];
+      if (itemsToAdd.length === 0) return;
+
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const saved = await AsyncStorage.getItem(foodKey);
       let arr: FoodLogItem[] = saved ? JSON.parse(saved) : [];
-      arr.push(item);
+      arr.push(...itemsToAdd);
       await AsyncStorage.setItem(foodKey, JSON.stringify(arr));
       await AsyncStorage.removeItem('food_log_today').catch(() => {});
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', item);
-      showSuccess(`Added ${item.title}`, `${item.calories} kcal logged to ${item.mealType}`);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      if (itemsToAdd.length === 1) {
+        showSuccess(`Added ${itemsToAdd[0].title}`, `${itemsToAdd[0].calories} kcal logged to ${itemsToAdd[0].mealType}`);
+      } else {
+        showSuccess(`Added ${itemsToAdd.length} Items`, `Logged to ${itemsToAdd[0].mealType}`);
+      }
     } catch (e) {
       console.log('Error adding food from navbar scan:', e);
     }
@@ -169,19 +176,9 @@ export default function FloatingNavBar() {
               >
                 <View
                   className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
-                  style={[
-                    styles.centerButton,
-                    Platform.select({
-                      web: {
-                        boxShadow: '0 4px 12px rgba(13, 122, 87, 0.3)',
-                      } as any,
-                      default: {
-                        elevation: 4,
-                      },
-                    }),
-                  ]}
+                  style={styles.centerButton}
                 >
-                  <Ionicons name="camera" size={24} color={isDark ? colors.background : '#FFFFFF'} />
+                  <Ionicons name="camera" size={24} color="#FFFFFF" />
                 </View>
 
                 <Text

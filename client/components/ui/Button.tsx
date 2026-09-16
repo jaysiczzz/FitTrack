@@ -58,8 +58,8 @@ const Button: React.FC<Props> = ({
       default:
         return {
           container: 'bg-accent dark:bg-accent-dark active:opacity-90',
-          text: 'text-white dark:text-background-dark font-bold',
-          spinner: isDark ? colors.background : '#FFFFFF',
+          text: 'text-white font-bold',
+          spinner: '#FFFFFF',
         };
     }
   };
@@ -73,21 +73,8 @@ const Button: React.FC<Props> = ({
       disabled={isDisabled}
       accessibilityRole="button"
       accessibilityState={{ disabled: isDisabled }}
-      className={`h-12 rounded-xl items-center justify-center w-full px-4 ${v.container} ${className}`}
-      style={[
-        Platform.select({
-          web: {
-            boxShadow:
-              isDisabled || variant !== 'primary'
-                ? 'none'
-                : '0 2px 8px rgba(13, 122, 87, 0.16)',
-          } as any,
-          default: {
-            elevation: isDisabled || variant !== 'primary' ? 0 : 1,
-          },
-        }),
-        style,
-      ]}
+      className={`h-12 rounded-2xl items-center justify-center w-full px-4 ${v.container} ${className}`}
+      style={style}
     >
       {loading ? (
         <ActivityIndicator color={v.spinner} size="small" />

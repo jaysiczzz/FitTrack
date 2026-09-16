@@ -4,15 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 
 interface QuickActionToolbarProps {
-  onScanPhoto?: () => void;
   onAiSuggest: () => void;
-  onSearchFood: () => void;
   onTextLog: () => void;
 }
 
 export default function QuickActionToolbar({
   onAiSuggest,
-  onSearchFood,
   onTextLog,
 }: QuickActionToolbarProps) {
   const { colors, isDark } = useThemeColors();
@@ -23,28 +20,16 @@ export default function QuickActionToolbar({
         Quick Actions
       </Text>
 
-      <View className="flex-row gap-2">
-        {/* Search Food */}
-        <TouchableOpacity
-          onPress={onSearchFood}
-          activeOpacity={0.8}
-          className="flex-1 bg-accent dark:bg-accent-dark py-2.5 px-2 rounded-xl flex-row items-center justify-center gap-1.5"
-        >
-          <Ionicons name="search" size={14} color={isDark ? colors.background : '#FFFFFF'} />
-          <Text className="text-white dark:text-background-dark font-bold text-xs text-center">
-            Search
-          </Text>
-        </TouchableOpacity>
-
+      <View className="flex-row gap-2.5">
         {/* Text / Describe Meal */}
         <TouchableOpacity
           onPress={onTextLog}
           activeOpacity={0.8}
-          className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-2.5 px-2 rounded-xl flex-row items-center justify-center gap-1.5"
+          className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2"
         >
-          <Ionicons name="create" size={14} color={colors.textPrimary} />
-          <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center">
-            Describe
+          <Ionicons name="create-outline" size={16} color={colors.textPrimary} />
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs text-center">
+            Describe Meal
           </Text>
         </TouchableOpacity>
 
@@ -52,9 +37,9 @@ export default function QuickActionToolbar({
         <TouchableOpacity
           onPress={onAiSuggest}
           activeOpacity={0.8}
-          className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark py-2.5 px-2 rounded-xl flex-row items-center justify-center gap-1.5"
+          className="flex-1 bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 py-3 px-3 rounded-2xl flex-row items-center justify-center gap-2"
         >
-          <Ionicons name="sparkles" size={14} color={colors.accent} />
+          <Ionicons name="sparkles" size={16} color="#10B981" />
           <Text className="text-accent dark:text-accent-dark font-bold text-xs text-center">
             AI Suggest
           </Text>

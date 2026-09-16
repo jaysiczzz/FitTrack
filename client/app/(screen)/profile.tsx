@@ -161,21 +161,21 @@ export default function Profile() {
           <View className="flex-row justify-between items-start mb-3">
             <View className="w-8" />
             <View className="flex-1 items-center">
-              <View className="w-14 h-14 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-2 border border-accent/30">
-                <Text className="text-accent dark:text-accent-dark font-extrabold text-lg">
+              <View className="w-16 h-16 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-2 border border-accent/30">
+                <Text className="text-accent dark:text-accent-dark font-black text-xl">
                   {((firstName?.[0] || 'U') + (lastName?.[0] || '')).toUpperCase()}
                 </Text>
               </View>
-              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-bold text-center">
+              <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight text-center">
                 {firstName || 'User'} {lastName || ''}
               </Text>
               {email ? (
-                <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5">
+                <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5 font-normal">
                   {email}
                 </Text>
               ) : null}
-              <View className="mt-2 bg-input dark:bg-input-dark px-2.5 py-0.5 rounded-full border border-input-border dark:border-input-border-dark">
-                <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-semibold">
+              <View className="mt-2.5 bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 rounded-full">
+                <Text className="text-accent dark:text-accent-dark text-[10px] font-bold uppercase tracking-wider">
                   {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
                 </Text>
               </View>
@@ -183,31 +183,38 @@ export default function Profile() {
             <TouchableOpacity
               onPress={() => router.push('/(screen)/settings' as any)}
               activeOpacity={0.7}
-              className="w-8 h-8 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
+              className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
               accessibilityLabel="Open settings"
             >
               <Ionicons name="settings" size={18} color={colors.textPrimary} />
             </TouchableOpacity>
           </View>
 
-          <View className="flex-row justify-around pt-3 border-t border-input-border dark:border-input-border-dark">
+          {/* Stats Row: Uppercase labels & heavy numbers */}
+          <View className="flex-row justify-around pt-3.5 border-t border-input-border dark:border-input-border-dark">
             <View className="items-center">
-              <Text className="text-text-primary dark:text-text-primary-dark text-base font-bold">
+              <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
+                HEIGHT
+              </Text>
+              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
                 {height ? `${height} cm` : '—'}
               </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">Height</Text>
             </View>
             <View className="items-center">
-              <Text className="text-text-primary dark:text-text-primary-dark text-base font-bold">
+              <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
+                WEIGHT
+              </Text>
+              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
                 {weight ? `${weight} kg` : '—'}
               </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">Weight</Text>
             </View>
             <View className="items-center">
-              <Text className="text-text-primary dark:text-text-primary-dark text-base font-bold">
+              <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
+                BMI
+              </Text>
+              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
                 {bmi ? bmi.split(' ')[0] : '—'}
               </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mt-0.5">BMI</Text>
             </View>
           </View>
         </SurfaceCard>
@@ -215,14 +222,14 @@ export default function Profile() {
         {/* Feedback Alert Message */}
         {message ? (
           <View
-            className={`w-full rounded-xl p-3 mb-3 border ${
+            className={`w-full rounded-2xl p-3 mb-3 border ${
               message.type === 'error'
                 ? 'bg-danger/10 border-danger/30'
-                : 'bg-accent/10 dark:bg-accent-dark/15 border-accent/30'
+                : 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30'
             }`}
           >
             <Text
-              className={`text-xs font-semibold text-center ${
+              className={`text-xs font-bold text-center ${
                 message.type === 'error'
                   ? 'text-danger dark:text-danger-dark'
                   : 'text-accent dark:text-accent-dark'
@@ -241,11 +248,11 @@ export default function Profile() {
 
           <View className="flex-row justify-between">
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
-                First Name
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
+                FIRST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm font-medium"
                 value={firstName}
                 onChangeText={setFirstName}
                 placeholder="First"
@@ -253,11 +260,11 @@ export default function Profile() {
               />
             </View>
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
-                Last Name
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
+                LAST NAME
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm font-medium"
                 value={lastName}
                 onChangeText={setLastName}
                 placeholder="Last"
@@ -268,11 +275,11 @@ export default function Profile() {
 
           <View className="flex-row justify-between">
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
-                Height (cm)
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
+                HEIGHT (CM)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm font-medium"
                 value={height}
                 onChangeText={setHeight}
                 keyboardType="numeric"
@@ -281,11 +288,11 @@ export default function Profile() {
               />
             </View>
             <View className="w-[48%] mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
-                Weight (kg)
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
+                WEIGHT (KG)
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm font-medium"
                 value={weight}
                 onChangeText={setWeight}
                 keyboardType="numeric"
@@ -297,11 +304,11 @@ export default function Profile() {
 
           <View className="flex-row justify-between">
             <View className="flex-1 mb-3 mr-2">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
-                Age
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
+                AGE
               </Text>
               <TextInput
-                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm font-medium"
                 value={age}
                 onChangeText={setAge}
                 keyboardType="numeric"
@@ -310,26 +317,26 @@ export default function Profile() {
               />
             </View>
             <View className="flex-1 mb-3">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 font-semibold uppercase">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 BMI
               </Text>
-              <View className="bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark justify-center min-h-[42px]">
-                <Text className="text-text-primary dark:text-text-primary-dark text-xs font-semibold" numberOfLines={1}>
+              <View className="bg-input dark:bg-input-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark justify-center min-h-[46px]">
+                <Text className="text-text-primary dark:text-text-primary-dark text-sm font-bold" numberOfLines={1}>
                   {bmi ?? 'N/A'}
                 </Text>
               </View>
             </View>
           </View>
 
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-2 mt-2">
-            Fitness Goal
+          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider mb-2 mt-2">
+            FITNESS GOAL
           </Text>
           <View className="flex-row justify-between mb-4">
             <TouchableOpacity
               activeOpacity={0.8}
-              className={`flex-1 p-3 rounded-xl mr-2.5 border items-center ${
+              className={`flex-1 p-3.5 rounded-2xl mr-2.5 border items-center ${
                 goal === 'muscle'
-                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
+                  ? 'border-accent dark:border-accent-dark bg-accent/15 dark:bg-accent-dark/20'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
               }`}
               onPress={() => setGoal('muscle')}
@@ -350,9 +357,9 @@ export default function Profile() {
 
             <TouchableOpacity
               activeOpacity={0.8}
-              className={`flex-1 p-3 rounded-xl border items-center ${
+              className={`flex-1 p-3.5 rounded-2xl border items-center ${
                 goal === 'loss'
-                  ? 'border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
+                  ? 'border-accent dark:border-accent-dark bg-accent/15 dark:bg-accent-dark/20'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
               }`}
               onPress={() => setGoal('loss')}
@@ -373,24 +380,24 @@ export default function Profile() {
           </View>
 
           {/* Action Buttons */}
-          <View className="flex-row justify-between items-center gap-x-2 pt-2 border-t border-input-border dark:border-input-border-dark">
+          <View className="flex-row justify-between items-center gap-x-2.5 pt-3 border-t border-input-border dark:border-input-border-dark">
             <TouchableOpacity
               activeOpacity={0.8}
-              className="bg-transparent border border-input-border dark:border-input-border-dark py-2.5 px-4 rounded-xl flex-1 items-center"
+              className="bg-transparent border border-input-border dark:border-input-border-dark py-3 px-4 rounded-xl flex-1 items-center"
               onPress={handleDiscard}
             >
-              <Text className="text-text-muted dark:text-text-muted-dark font-semibold text-xs">Discard</Text>
+              <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">Discard</Text>
             </TouchableOpacity>
             <TouchableOpacity
               activeOpacity={0.9}
               disabled={saving}
-              className="bg-accent dark:bg-accent-dark py-2.5 px-4 rounded-xl flex-1 items-center justify-center"
+              className="bg-accent dark:bg-accent-dark py-3 px-4 rounded-xl flex-1 items-center justify-center"
               onPress={handleSave}
             >
               {saving ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text className="text-white dark:text-background-dark font-bold text-xs">Save Profile</Text>
+                <Text className="text-white font-bold text-xs">Save Profile</Text>
               )}
             </TouchableOpacity>
           </View>

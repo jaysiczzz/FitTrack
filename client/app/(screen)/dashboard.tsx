@@ -335,7 +335,7 @@ export default function Dashboard() {
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -347,10 +347,10 @@ export default function Dashboard() {
       >
         {/* Header Greeting */}
         <View className="mb-4">
-          <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black">
+          <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
             {getGreeting()}, {userName}
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark mt-0.5 text-xs font-normal">
+          <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
             Your live fitness and accountability overview
           </Text>
         </View>

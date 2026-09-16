@@ -112,7 +112,7 @@ export default function MealCategoryCard({
             return (
               <View
                 key={item.id}
-                className="bg-input dark:bg-input-dark rounded-xl p-3 border border-input-border dark:border-input-border-dark flex-row items-center justify-between"
+                className="bg-input dark:bg-input-dark rounded-2xl p-3.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between"
               >
                 {/* Left: Info (Tap to Edit) */}
                 <TouchableOpacity
@@ -123,14 +123,18 @@ export default function MealCategoryCard({
                   {item.imageUri ? (
                     <Image
                       source={{ uri: item.imageUri }}
-                      className="w-10 h-10 rounded-lg mr-2.5 bg-black/10"
+                      className="w-9 h-9 rounded-full mr-3 bg-black/10"
                       resizeMode="cover"
                     />
                   ) : item.icon ? (
-                    <View className="w-10 h-10 rounded-lg mr-2.5 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center">
-                      <Text className="text-base">{item.icon}</Text>
+                    <View className="w-9 h-9 rounded-full mr-3 bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 items-center justify-center">
+                      <Text className="text-sm">{item.icon}</Text>
                     </View>
-                  ) : null}
+                  ) : (
+                    <View className="w-9 h-9 rounded-full mr-3 bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 items-center justify-center">
+                      <Ionicons name="restaurant" size={14} color="#10B981" />
+                    </View>
+                  )}
 
                   <View className="flex-1">
                     <Text
@@ -142,7 +146,7 @@ export default function MealCategoryCard({
 
                     {displaySubtitle ? (
                       <Text
-                        className="text-text-muted dark:text-text-muted-dark text-[11px] mb-1 leading-snug"
+                        className="text-text-muted dark:text-text-muted-dark text-[11px] mb-0.5 leading-snug"
                         numberOfLines={1}
                       >
                         {displaySubtitle}
@@ -150,10 +154,10 @@ export default function MealCategoryCard({
                     ) : null}
 
                     {/* Macro Line */}
-                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                      <Text className="font-semibold text-text-primary dark:text-text-primary-dark">{item.protein}g</Text> P ·{' '}
-                      <Text className="font-semibold text-text-primary dark:text-text-primary-dark">{item.carbs}g</Text> C ·{' '}
-                      <Text className="font-semibold text-text-primary dark:text-text-primary-dark">{item.fat}g</Text> F
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark uppercase tracking-wider font-semibold">
+                      <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.protein}g</Text> P ·{' '}
+                      <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.carbs}g</Text> C ·{' '}
+                      <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.fat}g</Text> F
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -166,7 +170,7 @@ export default function MealCategoryCard({
                     activeOpacity={0.7}
                     className="w-5 h-5 rounded-full items-center justify-center mb-1"
                   >
-                    <Ionicons name="trash" size={15} color={colors.danger} />
+                    <Ionicons name="trash" size={14} color={colors.danger} />
                   </TouchableOpacity>
 
                   <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">

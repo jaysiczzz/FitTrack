@@ -131,10 +131,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
           <TouchableOpacity
             onPress={() => setIsCheckedIn(false)}
             activeOpacity={0.7}
-            className="bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-1 rounded-full flex-row items-center border border-accent/20 dark:border-accent-dark/30"
+            className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full flex-row items-center"
           >
-            <Ionicons name="checkmark-circle" size={14} color={colors.accent} style={{ marginRight: 4 }} />
-            <Text className="text-accent dark:text-accent-dark font-bold text-[11px]">Logged • Edit</Text>
+            <Ionicons name="checkmark" size={12} color="#10B981" style={{ marginRight: 4 }} />
+            <Text className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider">Logged • Edit</Text>
           </TouchableOpacity>
         ) : null}
       </View>
@@ -158,7 +158,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 >
                   <Text className="text-lg mb-1">{mood.emoji}</Text>
                   <Text
-                    className={`text-xs font-semibold text-center leading-tight ${
+                    className={`text-xs font-bold text-center leading-tight ${
                       isSelected
                         ? 'text-accent dark:text-accent-dark'
                         : 'text-text-muted dark:text-text-muted-dark'
@@ -176,10 +176,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
           </Text>
         </View>
       ) : selectedMood ? (
-        <View className="bg-input dark:bg-input-dark rounded-xl p-3 mb-2.5 border border-input-border dark:border-input-border-dark flex-row items-start">
-          <Text className="text-lg mr-2.5">{selectedMood.emoji}</Text>
+        <View className="bg-input dark:bg-input-dark rounded-2xl p-3.5 mb-2.5 border border-input-border dark:border-input-border-dark flex-row items-start">
+          <Text className="text-xl mr-3">{selectedMood.emoji}</Text>
           <View className="flex-1">
-            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs mb-0.5">
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs mb-0.5">
               Focus Recommendation ({selectedMood.label}):
             </Text>
             <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-4">

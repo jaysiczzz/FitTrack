@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, Platform } from 'react-native';
 
-export type FoodLogTabType = 'today' | 'history';
+export type FoodLogTabType = 'today' | 'library' | 'history';
 
 interface FoodLogTabsProps {
   activeTab: FoodLogTabType;
@@ -11,12 +11,13 @@ interface FoodLogTabsProps {
 
 const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyCount }) => {
   const tabs: { id: FoodLogTabType; label: string; badge?: number }[] = [
-    { id: 'today', label: 'Today’s Log' },
-    { id: 'history', label: 'History & Trends', badge: historyCount },
+    { id: 'today', label: "Today’s Log" },
+    { id: 'library', label: 'Library' },
+    { id: 'history', label: 'History', badge: historyCount },
   ];
 
   return (
-    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl mb-3.5 p-1 w-full">
+    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl mb-4 p-1 w-full">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -26,32 +27,25 @@ const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyC
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 py-2 px-2 items-center justify-center rounded-lg flex-row ${
+            className={`flex-1 py-2 px-1 items-center justify-center rounded-xl border flex-row ${
               isActive
-                ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
-                : ''
+                ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+                : 'bg-transparent border-transparent'
             }`}
-            style={
-              isActive
-                ? Platform.select({
-                    web: { boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)' } as any,
-                    default: { elevation: 1 },
-                  })
-                : undefined
-            }
           >
             <Text
               className={`text-xs ${
                 isActive
-                  ? 'text-text-primary dark:text-text-primary-dark font-bold'
-                  : 'text-text-muted dark:text-text-muted-dark font-medium'
+                  ? 'text-accent dark:text-accent-dark font-bold'
+                  : 'text-text-muted dark:text-text-muted-dark font-semibold'
               }`}
+              numberOfLines={1}
             >
               {tab.label}
             </Text>
             {Boolean(tab.badge && tab.badge > 0) && (
-              <View className="ml-1.5 bg-input dark:bg-input-dark px-1.5 py-0.2 rounded-full">
-                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-bold">
+              <View className="ml-1 bg-emerald-500/20 px-1.5 py-0.5 rounded-full border border-emerald-500/30">
+                <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">
                   {tab.badge}
                 </Text>
               </View>

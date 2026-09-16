@@ -471,12 +471,12 @@ export default function Workouts() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Header */}
-        <Text className="mb-1 text-2xl font-black text-text-primary dark:text-text-primary-dark">
+        <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
           Workouts
         </Text>
-        <Text className="mb-4 text-xs font-semibold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+        <Text className="mt-1 mb-4 text-xs text-text-muted dark:text-text-muted-dark font-normal">
           Track your exercise completion and performance
         </Text>
 
