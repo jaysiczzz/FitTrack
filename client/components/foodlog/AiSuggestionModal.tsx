@@ -11,7 +11,7 @@ import InModalToast from '../ui/InModalToast';
 interface AiSuggestionModalProps {
   visible: boolean;
   onClose: () => void;
-  onSelectSuggestion: (item: FoodLogItem) => void;
+  onSelectSuggestion: (item: FoodLogItem | FoodLogItem[]) => void;
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
   remainingCalories: number;
   remainingProtein: number;
@@ -69,14 +69,14 @@ export default function AiSuggestionModal({
     }
   }, [visible, goal]);
 
-  const handleLogMeal = (rec: MealSuggestion) => {
+  const createFoodItem = (rec: MealSuggestion, idx: number = 0): FoodLogItem => {
     const ingredientsDesc =
       rec.ingredients && rec.ingredients.length > 0
         ? rec.ingredients.join(' · ')
         : `${rec.prepTime} prep`;
 
-    const item: FoodLogItem = {
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
+    return {
+      id: `${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
       mealType: rec.category,
       title: rec.title,
       subtitle: ingredientsDesc,
@@ -89,6 +89,10 @@ export default function AiSuggestionModal({
       icon: rec.icon || '🥗',
       healthNotes: rec.reason,
     };
+  };
+
+  const handleLogMeal = (rec: MealSuggestion) => {
+    const item = createFoodItem(rec);
     onSelectSuggestion(item);
     setLoggedMealTitles((prev) => [...prev, rec.title]);
     setInModalToast({
@@ -100,20 +104,17 @@ export default function AiSuggestionModal({
 
   const handleLogAll = () => {
     const unlogged = recommendations.filter((r) => !loggedMealTitles.includes(r.title));
-    unlogged.forEach((rec, idx) => {
-      setTimeout(() => {
-        handleLogMeal(rec);
-      }, idx * 60);
+    if (unlogged.length === 0) return;
+
+    const itemsToAdd = unlogged.map((rec, idx) => createFoodItem(rec, idx));
+    onSelectSuggestion(itemsToAdd);
+
+    setLoggedMealTitles((prev) => [...prev, ...unlogged.map((r) => r.title)]);
+    setInModalToast({
+      message: `Added ${unlogged.length} meals to food log`,
+      description: `${unlogged.reduce((s, r) => s + r.calories, 0)} total kcal added`,
+      icon: '🎉',
     });
-    if (unlogged.length > 1) {
-      setTimeout(() => {
-        setInModalToast({
-          message: `Added ${unlogged.length} meals to food log`,
-          description: `${unlogged.reduce((s, r) => s + r.calories, 0)} total kcal added`,
-          icon: '🎉',
-        });
-      }, unlogged.length * 65);
-    }
   };
 
   return (
@@ -137,7 +138,7 @@ export default function AiSuggestionModal({
                   activeOpacity={0.8}
                   className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl shadow-xs"
                 >
-                  <Text className="text-background dark:text-background-dark font-extrabold text-xs">
+                  <Text className="text-white font-bold text-xs">
                     Done ({loggedMealTitles.length})
                   </Text>
                 </TouchableOpacity>
@@ -276,9 +277,9 @@ export default function AiSuggestionModal({
                       <TouchableOpacity
                         onPress={() => handleLogMeal(rec)}
                         activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark px-4 py-2 rounded-xl"
+                        className="bg-accent dark:bg-accent-dark px-4 py-2 rounded-2xl"
                       >
-                        <Text className="text-background dark:text-background-dark font-bold text-xs">
+                        <Text className="text-white font-bold text-xs">
                           + Log This Meal
                         </Text>
                       </TouchableOpacity>

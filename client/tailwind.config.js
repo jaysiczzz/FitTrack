@@ -12,22 +12,22 @@ module.exports = {
       colors: {
         background: {
           DEFAULT: '#F8FAFC',
-          dark: '#0B0F19',
+          dark: '#0B1120',
         },
         surface: {
           DEFAULT: '#FFFFFF',
-          dark: '#141C2E',
+          dark: '#151E2E',
         },
         input: {
           DEFAULT: '#F1F5F9',
-          dark: '#1A2337',
+          dark: '#1A2333',
         },
         'input-border': {
           DEFAULT: '#E2E8F0',
-          dark: '#27344D',
+          dark: '#1F2937',
         },
         accent: {
-          DEFAULT: '#0D7A57',
+          DEFAULT: '#10B981',
           dark: '#10B981',
         },
         'text-primary': {
@@ -35,7 +35,7 @@ module.exports = {
           dark: '#F8FAFC',
         },
         'text-muted': {
-          DEFAULT: '#526175',
+          DEFAULT: '#64748B',
           dark: '#94A3B8',
         },
         danger: {

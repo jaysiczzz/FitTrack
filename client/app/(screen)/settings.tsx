@@ -140,7 +140,7 @@ export default function Settings() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 92 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Back Button & Header */}
         <View className="flex-row items-center mb-1">
           <Pressable
@@ -151,12 +151,12 @@ export default function Settings() {
           >
             <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
           </Pressable>
-          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
+          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
             Settings
           </Text>
         </View>
 
-        <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark">
+        <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark mt-1">
           Manage your account, preferences, and daily reminders
         </Text>
 
@@ -170,11 +170,14 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowResetPasswordModal(true)}
           >
+            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
+              <Ionicons name="key" size={14} color="#10B981" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Reset Password
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Change your account password securely
               </Text>
             </View>
@@ -189,13 +192,18 @@ export default function Settings() {
               Notifications & Reminders
             </Text>
             {Platform.OS !== 'web' && (
-              <View className="flex-row items-center">
-                <View
-                  className={`w-2 h-2 rounded-full mr-1.5 ${
-                    hasPermission ? 'bg-accent dark:bg-accent-dark' : 'bg-warning dark:bg-warning-dark'
+              <View
+                className={`px-2.5 py-0.5 rounded-full border ${
+                  hasPermission
+                    ? 'bg-emerald-500/15 border-emerald-500/30'
+                    : 'bg-warning/15 border-warning/30'
+                }`}
+              >
+                <Text
+                  className={`text-[10px] font-bold uppercase tracking-wider ${
+                    hasPermission ? 'text-accent dark:text-accent-dark' : 'text-warning dark:text-warning-dark'
                   }`}
-                />
-                <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+                >
                   {hasPermission ? 'Enabled' : 'Disabled'}
                 </Text>
               </View>
@@ -204,22 +212,22 @@ export default function Settings() {
 
           {/* Permission Prompt Banner if Disabled */}
           {Platform.OS !== 'web' && !hasPermission ? (
-            <View className="mb-3 p-3 bg-accent/10 dark:bg-accent-dark/10 rounded-xl border border-accent/25 dark:border-accent-dark/25">
+            <View className="mb-3 p-3.5 bg-emerald-500/10 dark:bg-emerald-500/15 rounded-2xl border border-emerald-500/25">
               <Text className="text-xs font-bold text-accent dark:text-accent-dark mb-1">
                 Enable Device Notifications
               </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mb-2">
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mb-2.5">
                 Allow FitTrack to send timely meal, water, and workout nudges to keep your streak alive.
               </Text>
               <Pressable
                 onPress={handleEnablePermissions}
                 disabled={requestingPerm}
-                className="bg-accent dark:bg-accent-dark py-2 px-3 rounded-lg self-start items-center justify-center flex-row"
+                className="bg-accent dark:bg-accent-dark py-2.5 px-3.5 rounded-xl self-start items-center justify-center flex-row"
               >
                 {requestingPerm ? (
                   <ActivityIndicator size="small" color="#FFFFFF" className="mr-1.5" />
                 ) : null}
-                <Text className="text-xs font-bold text-background dark:text-background-dark">
+                <Text className="text-xs font-bold text-white">
                   Allow Notifications
                 </Text>
               </Pressable>
@@ -228,11 +236,14 @@ export default function Settings() {
 
           {/* Meal Reminders Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-orange-500/15 border border-orange-500/30 items-center justify-center mr-3">
+              <Ionicons name="sunny" size={14} color="#FB923C" />
+            </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Meal Reminders
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Breakfast (8:30 AM), Lunch (12:30 PM), Dinner (7:00 PM)
               </Text>
             </View>
@@ -240,17 +251,20 @@ export default function Settings() {
               value={notifSettings.mealReminders}
               onValueChange={(val) => handleToggleNotification('mealReminders', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: colors.accent }}
+              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
             />
           </View>
 
           {/* Hydration Reminders Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-500/30 items-center justify-center mr-3">
+              <Ionicons name="water" size={14} color="#38BDF8" />
+            </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Hydration Nudges
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Midday alerts to hit your 2,000 ml water goal
               </Text>
             </View>
@@ -258,17 +272,20 @@ export default function Settings() {
               value={notifSettings.hydrationReminders}
               onValueChange={(val) => handleToggleNotification('hydrationReminders', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: colors.accent }}
+              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
             />
           </View>
 
           {/* Workout Reminders Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
+              <Ionicons name="barbell" size={14} color="#A855F7" />
+            </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Workout Reminders
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Evening training reminder (5:30 PM)
               </Text>
             </View>
@@ -276,17 +293,20 @@ export default function Settings() {
               value={notifSettings.workoutReminders}
               onValueChange={(val) => handleToggleNotification('workoutReminders', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: colors.accent }}
+              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
             />
           </View>
 
           {/* Readiness Check-In Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
+              <Ionicons name="pulse" size={14} color="#10B981" />
+            </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Daily Readiness Check-In
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Morning energy check alert (9:00 AM)
               </Text>
             </View>
@@ -294,7 +314,7 @@ export default function Settings() {
               value={notifSettings.checkinReminders}
               onValueChange={(val) => handleToggleNotification('checkinReminders', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: colors.accent }}
+              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
             />
           </View>
 
@@ -304,12 +324,12 @@ export default function Settings() {
               <Pressable
                 onPress={handleTestNotification}
                 disabled={testingNotification}
-                className="py-2.5 px-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-center active:opacity-80"
+                className="py-3 px-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-center active:opacity-80"
               >
                 {testingNotification ? (
-                  <ActivityIndicator size="small" color={colors.accent} className="mr-2" />
+                  <ActivityIndicator size="small" color="#10B981" className="mr-2" />
                 ) : (
-                  <Ionicons name="notifications-outline" size={16} color={colors.accent} className="mr-2" />
+                  <Ionicons name="notifications-outline" size={16} color="#10B981" className="mr-2" />
                 )}
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                   Send Test Notification Now
@@ -326,11 +346,14 @@ export default function Settings() {
           </Text>
 
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark pt-3">
+            <View className="w-8 h-8 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center mr-3">
+              <Ionicons name="moon" size={14} color="#818CF8" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Dark Mode
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 {colorScheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
               </Text>
             </View>
@@ -341,7 +364,7 @@ export default function Settings() {
               thumbColor={colors.surface}
               trackColor={{
                 false: colors.inputBorder,
-                true: colors.accent,
+                true: '#10B981',
               }}
             />
           </View>
@@ -361,11 +384,14 @@ export default function Settings() {
               setShowHelpModal(true);
             }}
           >
+            <View className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-500/30 items-center justify-center mr-3">
+              <Ionicons name="help-circle" size={15} color="#38BDF8" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Help Center & FAQs
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Answers to common nutrition, workout, and app questions
               </Text>
             </View>
@@ -380,11 +406,14 @@ export default function Settings() {
               setShowHelpModal(true);
             }}
           >
+            <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
+              <Ionicons name="mail" size={14} color="#A855F7" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Contact Support
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Reach our team or report an issue
               </Text>
             </View>
@@ -399,11 +428,14 @@ export default function Settings() {
               setShowHelpModal(true);
             }}
           >
+            <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
+              <Ionicons name="chatbubble-ellipses" size={14} color="#FBBF24" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Share Suggestions & Feedback
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Help us improve future FitTrack releases
               </Text>
             </View>
@@ -415,11 +447,14 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowPrivacyModal(true)}
           >
+            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
+              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+            </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                 Privacy Policy
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Read our data & encryption practices
               </Text>
             </View>
@@ -430,7 +465,7 @@ export default function Settings() {
         {/* 5. Log Out Section */}
         <View className="mt-2">
           <Pressable
-            className="flex-row items-center justify-center rounded-xl bg-input dark:bg-input-dark border border-danger/30 dark:border-danger-dark/30 py-3.5 active:opacity-80"
+            className="flex-row items-center justify-center rounded-2xl bg-danger/10 border border-danger/25 py-3.5 active:opacity-80"
             onPress={() => setShowLogoutModal(true)}
           >
             <Text className="text-sm font-bold text-danger dark:text-danger-dark">

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -28,6 +28,7 @@ interface ExerciseCardProps {
   recommendedReps?: number;
   recommendedRest?: number;
   sets: SetRow[];
+  personalRecord?: string | null;
   onToggleSet: (setId: string) => void;
   onUpdateSet?: (setId: string, field: 'weight' | 'reps', newValue: number) => void;
   onAddSet?: () => void;
@@ -48,6 +49,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   recommendedReps = 10,
   recommendedRest = 90,
   sets,
+  personalRecord,
   onToggleSet,
   onUpdateSet,
   onAddSet,
@@ -69,7 +71,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           onPress={onViewDetails}
           className="flex-1 pr-2"
         >
-          <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-1">
+          <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
             {name}
           </Text>
 
@@ -81,12 +83,39 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               : ''}
             {equipment ? ` · ${equipment}` : ''}
           </Text>
+
+          {personalRecord ? (
+            <View className="flex-row items-center mt-1.5">
+              <View className="flex-row items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30">
+                <Ionicons name="trophy" size={10} color="#F59E0B" style={{ marginRight: 3.5 }} />
+                <Text className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                  {personalRecord}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </TouchableOpacity>
 
         {/* Action Controls & Remove Button */}
         <View className="flex-row items-center gap-1.5">
-          <View className="rounded-lg border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2 py-0.5">
-            <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark capitalize">
+          <View
+            className={`rounded-full px-2.5 py-0.5 border ${
+              difficulty.toLowerCase() === 'beginner'
+                ? 'bg-emerald-500/15 border-emerald-500/30'
+                : difficulty.toLowerCase() === 'advanced'
+                ? 'bg-purple-500/15 border-purple-500/30'
+                : 'bg-sky-500/15 border-sky-500/30'
+            }`}
+          >
+            <Text
+              className={`text-[10px] font-bold uppercase tracking-wider ${
+                difficulty.toLowerCase() === 'beginner'
+                  ? 'text-accent dark:text-accent-dark'
+                  : difficulty.toLowerCase() === 'advanced'
+                  ? 'text-purple-400'
+                  : 'text-sky-400'
+              }`}
+            >
               {difficulty}
             </Text>
           </View>
@@ -98,29 +127,29 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               activeOpacity={0.7}
               accessibilityLabel={`Remove ${name}`}
             >
-              <Ionicons name="close" size={16} color={colors.danger} />
+              <Ionicons name="close" size={15} color={colors.danger} />
             </TouchableOpacity>
           ) : null}
         </View>
       </View>
 
       {/* Target Prescriptions Bar */}
-      <View className="mb-3 rounded-xl bg-input dark:bg-input-dark p-2.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between flex-wrap gap-1">
-        <View className="flex-row items-center gap-1">
-          <Text className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark">
-            Target:
+      <View className="mb-3 rounded-2xl bg-input dark:bg-input-dark p-2.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between flex-wrap gap-1">
+        <View className="flex-row items-center gap-1.5">
+          <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+            TARGET:
           </Text>
-          <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+          <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
             {recommendedSets} sets × {recommendedReps} reps
           </Text>
         </View>
 
         {recommendedRest ? (
-          <View className="flex-row items-center gap-1">
-            <Text className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark">
-              Rest:
+          <View className="flex-row items-center gap-1.5">
+            <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+              REST:
             </Text>
-            <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
               {recommendedRest}s
             </Text>
           </View>
@@ -130,9 +159,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <TouchableOpacity
             onPress={onViewDetails}
             activeOpacity={0.7}
-            className="bg-surface dark:bg-surface-dark px-2 py-0.5 rounded-md border border-input-border dark:border-input-border-dark"
+            className="bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-0.5 rounded-lg border border-accent/25 dark:border-accent-dark/30"
           >
-            <Text className="text-[10px] font-semibold text-accent dark:text-accent-dark">
+            <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
               Guide & Tips
             </Text>
           </TouchableOpacity>
@@ -194,9 +223,27 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   >
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">-</Text>
                   </TouchableOpacity>
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    {s.bodyweight ? 'BW' : `${currWeight}kg`}
-                  </Text>
+                  {s.bodyweight ? (
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      BW
+                    </Text>
+                  ) : (
+                    <View className="flex-row items-center justify-center">
+                      <TextInput
+                        value={String(currWeight)}
+                        keyboardType="decimal-pad"
+                        selectTextOnFocus
+                        onChangeText={(txt) => {
+                          const parsed = parseFloat(txt);
+                          if (!isNaN(parsed) && onUpdateSet) {
+                            onUpdateSet(s.id, 'weight', Math.max(0, parsed));
+                          }
+                        }}
+                        className="text-xs font-bold text-text-primary dark:text-text-primary-dark text-center p-0 min-w-[28px]"
+                      />
+                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">kg</Text>
+                    </View>
+                  )}
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'weight', currWeight + 2.5)}
                     className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
@@ -217,9 +264,21 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   >
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">-</Text>
                   </TouchableOpacity>
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    {currReps}
-                  </Text>
+                  <View className="flex-row items-center justify-center">
+                    <TextInput
+                      value={String(currReps)}
+                      keyboardType="number-pad"
+                      selectTextOnFocus
+                      onChangeText={(txt) => {
+                        const parsed = parseInt(txt, 10);
+                        if (!isNaN(parsed) && onUpdateSet) {
+                          onUpdateSet(s.id, 'reps', Math.max(1, parsed));
+                        }
+                      }}
+                      className="text-xs font-bold text-text-primary dark:text-text-primary-dark text-center p-0 min-w-[24px]"
+                    />
+                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">r</Text>
+                  </View>
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
                     className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
@@ -244,16 +303,21 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => onToggleSet(s.id)}
-                  className={`h-9 flex-1 items-center justify-center rounded-xl border ${
+                  className={`h-9 flex-1 flex-row items-center justify-center rounded-xl border ${
                     s.done
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
+                      ? 'bg-emerald-500/15 border-emerald-500/40'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
                 >
+                  {s.done ? (
+                    <View className="w-5 h-5 rounded-full bg-accent dark:bg-accent-dark items-center justify-center mr-1">
+                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                    </View>
+                  ) : null}
                   <Text
                     className={
                       s.done
-                        ? 'font-bold text-white dark:text-background-dark text-xs'
+                        ? 'font-bold text-accent dark:text-accent-dark text-xs'
                         : 'font-semibold text-text-muted dark:text-text-muted-dark text-xs'
                     }
                   >
@@ -280,9 +344,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <TouchableOpacity
             onPress={onAddSet}
             activeOpacity={0.8}
-            className="mt-1 py-2 rounded-xl bg-input dark:bg-input-dark border border-dashed border-input-border dark:border-input-border-dark items-center justify-center flex-row"
+            className="mt-1 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-dashed border-accent/40 dark:border-accent-dark/40 items-center justify-center flex-row"
           >
-            <Text className="text-xs font-semibold text-accent dark:text-accent-dark">
+            <Text className="text-xs font-bold text-accent dark:text-accent-dark">
               + Add Set
             </Text>
           </TouchableOpacity>

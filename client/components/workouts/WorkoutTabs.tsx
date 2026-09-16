@@ -16,7 +16,7 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
   ];
 
   return (
-    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl mb-4 p-1 w-full">
+    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl mb-4 p-1 w-full">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -26,29 +26,17 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 py-2 px-1 items-center justify-center rounded-lg ${
+            className={`flex-1 py-2 px-1 items-center justify-center rounded-xl border ${
               isActive
-                ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
-                : ''
+                ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+                : 'bg-transparent border-transparent'
             }`}
-            style={
-              isActive
-                ? Platform.select({
-                    web: {
-                      boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)',
-                    } as any,
-                    default: {
-                      elevation: 1,
-                    },
-                  })
-                : undefined
-            }
           >
             <Text
               className={`text-xs ${
                 isActive
-                  ? 'text-text-primary dark:text-text-primary-dark font-bold'
-                  : 'text-text-muted dark:text-text-muted-dark font-medium'
+                  ? 'text-accent dark:text-accent-dark font-bold'
+                  : 'text-text-muted dark:text-text-muted-dark font-semibold'
               }`}
               numberOfLines={1}
             >

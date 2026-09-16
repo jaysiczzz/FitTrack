@@ -95,17 +95,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
             <TouchableOpacity
               activeOpacity={0.85}
               onPress={onConfirm}
-              className={`flex-1 h-11 rounded-xl items-center justify-center ${
+              className={`flex-1 h-11 rounded-2xl items-center justify-center ${
                 isDanger
                   ? 'bg-danger'
                   : 'bg-accent dark:bg-accent-dark'
               }`}
             >
-              <Text
-                className={`font-bold text-sm ${
-                  isDanger ? 'text-white' : 'text-white dark:text-background-dark'
-                }`}
-              >
+              <Text className="font-bold text-sm text-white">
                 {confirmText}
               </Text>
             </TouchableOpacity>

@@ -88,6 +88,38 @@ export const deleteDailyFoodLogApi = (date: string) => {
   });
 };
 
+let syncTimer: any = null;
+
+/**
+ * Debounced background auto-sync to PostgreSQL database.
+ * Ensures active food items & water are synced to cloud without spamming the API.
+ */
+export const autoSyncFoodAndWater = (
+  userId: string | undefined,
+  date: string,
+  items: FoodLogItem[],
+  waterMl: number
+) => {
+  if (!userId) return;
+
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+  }
+
+  syncTimer = setTimeout(async () => {
+    try {
+      await saveDailyFoodLogApi({
+        date,
+        items,
+        waterMl,
+      });
+    } catch (err) {
+      console.log('[FoodLog API] Background auto-sync deferred/failed:', err);
+    }
+  }, 600);
+};
+
+
 // 5. Search Foods Online (Open Food Facts Proxy)
 export interface SearchFoodsResponse {
   success: boolean;

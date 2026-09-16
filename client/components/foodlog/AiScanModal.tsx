@@ -23,7 +23,7 @@ import NutritionFactsModal from './NutritionFactsModal';
 interface AiScanModalProps {
   visible: boolean;
   onClose: () => void;
-  onAddMealItem: (item: FoodLogItem) => void;
+  onAddMealItem: (item: FoodLogItem | FoodLogItem[]) => void;
   initialMealType?: MealType;
   initialMode?: 'photo' | 'text';
 }
@@ -229,8 +229,8 @@ export default function AiScanModal({
       : [];
 
     if (hasMultiItems && selectedItems.length > 0) {
-      // Multi-item logging: Log each individual component detected on the plate
-      selectedItems.forEach((item, idx) => {
+      // Multi-item logging: Log each individual component detected on the plate in a single atomic batch
+      const itemsToAdd: FoodLogItem[] = selectedItems.map((item, idx) => {
         const smartBadge = getSmartFoodBadge({
           calories: item.calories,
           protein: item.protein,
@@ -239,8 +239,8 @@ export default function AiScanModal({
           title: item.name,
         });
 
-        const newItem: FoodLogItem = {
-          id: `${Date.now()}-${idx}`,
+        return {
+          id: `${Date.now()}-${idx}-${Math.random().toString(36).substring(2, 6)}`,
           mealType: selectedMeal,
           title: item.name,
           subtitle: item.servingSize || '1 serving',
@@ -253,9 +253,9 @@ export default function AiScanModal({
           healthNotes: analysisResult.healthNotes,
           imageUri: selectedImage || undefined,
         };
-
-        onAddMealItem(newItem);
       });
+
+      onAddMealItem(itemsToAdd);
     } else {
       // Single meal or composite logging
       const smartBadge = getSmartFoodBadge({
@@ -388,13 +388,13 @@ export default function AiScanModal({
                     <Ionicons
                       name={MEAL_GLYPHS[m]}
                       size={14}
-                      color={isSelected ? (colors.surface) : colors.textMuted}
+                      color={isSelected ? '#FFFFFF' : colors.textMuted}
                       style={{ marginBottom: 2 }}
                     />
                     <Text
                       className={`text-[10px] font-bold capitalize ${
                         isSelected
-                          ? 'text-white dark:text-background-dark font-black'
+                          ? 'text-white font-black'
                           : 'text-text-primary dark:text-text-primary-dark'
                       }`}
                     >
@@ -441,8 +441,8 @@ export default function AiScanModal({
                         activeOpacity={0.8}
                         className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
                       >
-                        <Ionicons name="camera" size={14} color={isDark ? colors.background : '#FFFFFF'} />
-                        <Text className="text-background dark:text-background-dark font-extrabold text-xs">
+                        <Ionicons name="camera" size={14} color="#FFFFFF" />
+                        <Text className="text-white font-bold text-xs">
                           Open Camera
                         </Text>
                       </TouchableOpacity>
@@ -500,13 +500,13 @@ export default function AiScanModal({
               >
                 {loading ? (
                   <>
-                    <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} className="mr-2" />
-                    <Text className="text-background dark:text-background-dark font-black text-sm">
+                    <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
+                    <Text className="text-white font-bold text-sm">
                       Analyzing Meal...
                     </Text>
                   </>
                 ) : (
-                  <Text className="text-background dark:text-background-dark font-black text-sm">
+                  <Text className="text-white font-bold text-sm">
                     Analyze Meal
                   </Text>
                 )}
@@ -818,9 +818,9 @@ export default function AiScanModal({
                   <TouchableOpacity
                     onPress={handleConfirmAndAdd}
                     activeOpacity={0.8}
-                    className="bg-accent dark:bg-accent-dark py-3.5 rounded-xl items-center justify-center mt-1 shadow-sm"
+                    className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1"
                   >
-                    <Text className="text-background dark:text-background-dark font-black text-xs uppercase tracking-wide">
+                    <Text className="text-white font-bold text-sm tracking-wide">
                       {analysisResult.items && analysisResult.items.length > 1
                         ? `+ Add ${selectedItemIndices.size} Item${selectedItemIndices.size === 1 ? '' : 's'} to ${MEAL_LABELS[selectedMeal]}`
                         : `+ Add to ${MEAL_LABELS[selectedMeal]}`}

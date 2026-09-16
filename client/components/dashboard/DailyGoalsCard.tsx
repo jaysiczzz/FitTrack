@@ -117,14 +117,17 @@ export default function DailyGoalsCard({
       {/* Progress Bar */}
       <ProgressBar
         percentage={percentage}
-        height={5}
+        height={6}
+        color="#10B981"
         className="mb-3"
       />
 
       {/* All Completed Banner */}
       {allCompleted ? (
-        <View className="bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 rounded-xl p-3 mb-2.5 flex-row items-center">
-          <Ionicons name="checkmark-circle" size={20} color={colors.accent} style={{ marginRight: 8 }} />
+        <View className="bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 rounded-2xl p-3 mb-3 flex-row items-center">
+          <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2.5">
+            <Ionicons name="checkmark" size={14} color="#10B981" />
+          </View>
           <View className="flex-1">
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">
               All Goals Completed Today
@@ -141,25 +144,27 @@ export default function DailyGoalsCard({
         {goals.map((goal) => (
           <View
             key={goal.id}
-            className={`flex-row items-center p-3 rounded-xl border ${
+            className={`flex-row items-center p-3 rounded-2xl border ${
               goal.isCompleted
-                ? 'bg-accent/5 dark:bg-accent-dark/10 border-accent/20 dark:border-accent-dark/25'
+                ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20'
                 : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
             }`}
           >
             {/* Completion Indicator Icon */}
-            <View className="mr-2.5">
-              <Ionicons
-                name={goal.isCompleted ? 'checkmark-circle' : 'ellipse-outline'}
-                size={20}
-                color={goal.isCompleted ? colors.accent : colors.textMuted}
-              />
-            </View>
+            {goal.isCompleted ? (
+              <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-3">
+                <Ionicons name="checkmark" size={13} color="#10B981" />
+              </View>
+            ) : (
+              <View className="w-6 h-6 rounded-full border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                <View className="w-1.5 h-1.5 rounded-full bg-text-muted/40" />
+              </View>
+            )}
 
             {/* Title & Subtitle */}
             <View className="flex-1 pr-2">
               <Text
-                className={`text-xs font-semibold leading-tight ${
+                className={`text-xs font-bold leading-tight ${
                   goal.isCompleted
                     ? 'text-text-muted dark:text-text-muted-dark line-through'
                     : 'text-text-primary dark:text-text-primary-dark'
@@ -176,8 +181,8 @@ export default function DailyGoalsCard({
             {goal.actionLabel && goal.onAction ? (
               <TouchableOpacity
                 onPress={goal.onAction}
-                activeOpacity={0.7}
-                className={`px-2.5 py-1 rounded-lg border ${
+                activeOpacity={0.8}
+                className={`px-3 py-1.5 rounded-xl border ${
                   goal.isCompleted
                     ? 'bg-transparent border-input-border dark:border-input-border-dark'
                     : 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
@@ -187,16 +192,22 @@ export default function DailyGoalsCard({
                   className={`text-[11px] font-bold ${
                     goal.isCompleted
                       ? 'text-text-muted dark:text-text-muted-dark'
-                      : 'text-white dark:text-background-dark'
+                      : 'text-white'
                   }`}
                 >
                   {goal.isCompleted ? 'Done' : goal.actionLabel}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View className="bg-surface dark:bg-surface-dark px-2 py-0.5 rounded-md border border-input-border dark:border-input-border-dark">
+              <View
+                className={`px-2.5 py-1 rounded-full border ${
+                  goal.isCompleted
+                    ? 'bg-emerald-500/15 border-emerald-500/30'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
                 <Text
-                  className={`text-[10px] font-semibold ${
+                  className={`text-[10px] font-bold uppercase tracking-wide ${
                     goal.isCompleted ? 'text-accent dark:text-accent-dark' : 'text-text-muted dark:text-text-muted-dark'
                   }`}
                 >

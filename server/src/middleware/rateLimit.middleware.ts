@@ -1,4 +1,4 @@
-import rateLimit from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
 import { AuthRequest } from './auth.middleware'
 
 /**
@@ -28,7 +28,10 @@ export const aiLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: (req) => {
     const authReq = req as AuthRequest
-    return authReq.user?.id || req.ip || 'anonymous'
+    return authReq.user?.id || ipKeyGenerator(req.ip ?? '') || 'anonymous'
+  },
+  validate: {
+    keyGeneratorIpFallback: false,
   },
   message: {
     error: 'AI request quota reached for this minute. Please wait a moment before trying again.',

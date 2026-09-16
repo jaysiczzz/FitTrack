@@ -419,16 +419,16 @@ export default function HelpSupportModal({
               </View>
 
               {/* Action Buttons */}
-              <View className="gap-2 mb-4">
+              <View className="gap-2.5 mb-4">
                 <TouchableOpacity
                   onPress={handleSendFeedback}
                   disabled={submitting}
-                  className="py-3.5 rounded-xl bg-accent dark:bg-accent-dark items-center justify-center flex-row shadow-sm"
+                  className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
                 >
                   {submitting ? (
-                    <ActivityIndicator size="small" color={isDark ? colors.background : '#FFFFFF'} />
+                    <ActivityIndicator size="small" color="#FFFFFF" />
                   ) : (
-                    <Text className="text-sm font-black text-background dark:text-background-dark">
+                    <Text className="text-sm font-bold text-white">
                       Submit Feedback
                     </Text>
                   )}
@@ -436,7 +436,7 @@ export default function HelpSupportModal({
 
                 <TouchableOpacity
                   onPress={handleDirectEmail}
-                  className="py-3 rounded-xl border border-input-border dark:border-input-border-dark items-center justify-center flex-row bg-input dark:bg-input-dark"
+                  className="py-3 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center flex-row bg-input dark:bg-input-dark"
                 >
                   <Ionicons name="mail-outline" size={16} color={colors.textPrimary} className="mr-2" />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
