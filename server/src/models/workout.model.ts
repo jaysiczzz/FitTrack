@@ -2065,3 +2065,10 @@ export const deleteExerciseSet = async (setId: string) => {
     where: { id: setId },
   })
 }
+
+export const deleteWorkoutSession = async (sessionId: string, userId: string) => {
+  return prisma.workoutSession.deleteMany({
+    where: { id: sessionId, userId },
+  })
+}
+

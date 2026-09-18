@@ -22,9 +22,15 @@ export const getDifficultyPreset = (
     return existingPresets[tier];
   }
 
-  const baseSets = exercise?.defaultSets || [];
-  const firstSetWeight = baseSets[0]?.weight ? Number(baseSets[0].weight) : 40;
-  const isBW = Boolean(baseSets[0]?.bodyweight);
+  const isBW = Boolean(
+    baseSets[0]?.bodyweight ||
+    exercise?.type?.toLowerCase() === 'bodyweight' ||
+    exercise?.type?.toLowerCase() === 'calisthenics' ||
+    exercise?.name?.toLowerCase().includes('pull-up') ||
+    exercise?.name?.toLowerCase().includes('push-up') ||
+    exercise?.name?.toLowerCase().includes('chin-up') ||
+    exercise?.name?.toLowerCase().includes('dip')
+  );
 
   if (tier === 'beginner') {
     const begWeight = Math.max(5, Math.round((firstSetWeight * 0.6) / 2.5) * 2.5);

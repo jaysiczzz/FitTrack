@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
 import { useToast } from '../../context/ToastContext';
@@ -42,6 +43,7 @@ export default function FoodHistoryTab({
   onReLogItem,
   onSwitchToToday,
 }: FoodHistoryTabProps) {
+  const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
@@ -380,18 +382,31 @@ export default function FoodHistoryTab({
         </TouchableOpacity>
       </View>
 
-      {/* 2. 15-Day Interactive Consistency Strip (Mini Heatmap) */}
+      {/* 2. 15-Day Consistency Strip with Shortcut to Full Dedicated Activity Calendar */}
       <SurfaceCard className="mb-4">
         <View className="flex-row justify-between items-center mb-2.5">
           <View className="flex-row items-center gap-1.5">
+            <Ionicons name="calendar" size={15} color={colors.accent} />
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
-              15-Day Consistency Strip
+              15-Day Consistency
             </Text>
           </View>
-          <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
-            <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
-              {loggedDaysIn15}/15 Days ({consistencyPercent}%)
-            </Text>
+          <View className="flex-row items-center gap-2">
+            <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
+              <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
+                {loggedDaysIn15}/15 Days ({consistencyPercent}%)
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/calendar' as any)}
+              className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
+              activeOpacity={0.7}
+            >
+              <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                Full Calendar
+              </Text>
+              <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+            </TouchableOpacity>
           </View>
         </View>
 
@@ -431,7 +446,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-[9px] font-bold uppercase mb-0.5 ${
                       isSelected
-                        ? 'text-accent font-black'
+                        ? 'text-white font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -440,7 +455,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-xs font-black mb-1 ${
                       isSelected
-                        ? 'text-accent'
+                        ? 'text-white'
                         : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
@@ -451,7 +466,7 @@ export default function FoodHistoryTab({
                   <View
                     className={`w-2 h-2 rounded-full ${
                       isSelected
-                        ? 'bg-background dark:bg-background-dark'
+                        ? 'bg-white'
                         : slot.hasLog
                         ? slot.hitProtein
                           ? 'bg-accent dark:bg-accent-dark'
