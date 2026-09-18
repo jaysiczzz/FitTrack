@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   CompletedSession,
@@ -27,6 +28,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   onRepeatSession,
   onSwitchToToday,
 }) => {
+  const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
   const { showSuccess, showError } = useToast();
@@ -83,8 +85,18 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
             let setsSummary = `${setsCount} sets`;
             if (sets.length > 0) {
               const first = sets[0];
-              if (first.weight) {
+              const isExBodyweight = Boolean(
+                first.bodyweight ||
+                e.type?.toLowerCase() === 'bodyweight' ||
+                e.type?.toLowerCase() === 'calisthenics' ||
+                e.name?.toLowerCase().includes('pull-up') ||
+                e.name?.toLowerCase().includes('push-up') ||
+                e.name?.toLowerCase().includes('dip')
+              );
+              if (first.weight && Number(first.weight) > 0) {
                 setsSummary = `${setsCount} sets · ${first.weight}kg × ${first.reps || 10} reps`;
+              } else if (isExBodyweight) {
+                setsSummary = `${setsCount} sets · Body Weight × ${first.reps || 10} reps`;
               } else if (first.reps) {
                 setsSummary = `${setsCount} sets · ${first.reps} reps`;
               }
@@ -344,18 +356,31 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* 2. 15-Day Interactive Consistency Strip (Mini Heatmap) */}
+      {/* 2. 15-Day Consistency Strip with Shortcut to Full Dedicated Activity Calendar */}
       <SurfaceCard className="mb-4">
         <View className="flex-row justify-between items-center mb-2.5">
           <View className="flex-row items-center gap-1.5">
+            <Ionicons name="calendar" size={15} color={colors.accent} />
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
-              15-Day Consistency Strip
+              15-Day Consistency
             </Text>
           </View>
-          <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
-            <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
-              {activeDaysIn15}/15 Days ({consistencyPercent}%)
-            </Text>
+          <View className="flex-row items-center gap-2">
+            <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
+              <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
+                {activeDaysIn15}/15 Days ({consistencyPercent}%)
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/calendar' as any)}
+              className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
+              activeOpacity={0.7}
+            >
+              <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                Full Calendar
+              </Text>
+              <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+            </TouchableOpacity>
           </View>
         </View>
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
@@ -32,6 +34,7 @@ import {
 } from '@/api/workout';
 
 export default function Workouts() {
+  const router = useRouter();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
@@ -212,16 +215,42 @@ export default function Workouts() {
     }
   };
 
-  const handleUpdateSet = (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => {
+  const handleUpdateSet = (
+    exerciseKey: string,
+    setId: string,
+    field: 'weight' | 'reps',
+    newValue: number,
+    bodyweightOverride?: boolean
+  ) => {
     // 1. Instant optimistic UI update & immediate cache persist
     setTodayExercises((prev) => {
       const next = prev.map((ex) => {
         if (ex.key !== exerciseKey) return ex;
+        const isBwExercise =
+          ex.type?.toLowerCase() === 'bodyweight' ||
+          ex.type?.toLowerCase() === 'calisthenics' ||
+          ex.name?.toLowerCase().includes('pull-up') ||
+          ex.name?.toLowerCase().includes('push-up') ||
+          ex.name?.toLowerCase().includes('chin-up') ||
+          ex.name?.toLowerCase().includes('dip') ||
+          ex.sets.some((s) => s.bodyweight);
+
         return {
           ...ex,
-          sets: ex.sets.map((set) =>
-            set.id === setId ? { ...set, [field]: String(newValue) } : set
-          ),
+          sets: ex.sets.map((set) => {
+            if (set.id !== setId) return set;
+            if (field === 'weight') {
+              const newBw = bodyweightOverride !== undefined
+                ? bodyweightOverride
+                : (newValue === 0 ? isBwExercise : false);
+              return {
+                ...set,
+                weight: String(newValue),
+                bodyweight: newBw,
+              };
+            }
+            return { ...set, [field]: String(newValue) };
+          }),
         };
       });
       AsyncStorage.setItem(getTodayCacheKey(), JSON.stringify(next)).catch(() => {});
@@ -238,7 +267,13 @@ export default function Workouts() {
 
     updateTimersRef.current[timerKey] = setTimeout(async () => {
       try {
-        await updateExerciseSetValuesApi(setId, { [field]: newValue });
+        const payload: any = { [field]: newValue };
+        if (field === 'weight') {
+          payload.bodyweight = bodyweightOverride !== undefined
+            ? bodyweightOverride
+            : (newValue === 0);
+        }
+        await updateExerciseSetValuesApi(setId, payload);
       } catch (err) {
         console.log('Failed to update set values on API server');
       } finally {
@@ -257,6 +292,19 @@ export default function Workouts() {
         if (ex.key !== exerciseKey) return ex;
         const lastSet = ex.sets[ex.sets.length - 1];
         nextSetNum = ex.sets.length + 1;
+        const isBw = lastSet
+          ? Boolean(lastSet.bodyweight)
+          : Boolean(
+              ex.type?.toLowerCase() === 'bodyweight' ||
+              ex.type?.toLowerCase() === 'calisthenics' ||
+              ex.name?.toLowerCase().includes('pull-up') ||
+              ex.name?.toLowerCase().includes('push-up') ||
+              ex.name?.toLowerCase().includes('dip')
+            );
+        const defaultWeight = isBw
+          ? (lastSet?.weight ? String(lastSet.weight) : '0')
+          : (lastSet?.weight ? String(lastSet.weight) : '20');
+
         return {
           ...ex,
           sets: [
@@ -264,9 +312,9 @@ export default function Workouts() {
             {
               id: tempSetId,
               setNumber: nextSetNum,
-              weight: lastSet?.weight ? String(lastSet.weight) : '20',
+              weight: defaultWeight,
               reps: lastSet?.reps ? String(lastSet.reps) : '10',
-              bodyweight: lastSet ? Boolean(lastSet.bodyweight) : false,
+              bodyweight: isBw,
               done: false,
             },
           ],
@@ -852,12 +900,32 @@ export default function Workouts() {
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Header */}
-        <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-          Workouts
-        </Text>
-        <Text className="mt-1 mb-4 text-xs text-text-muted dark:text-text-muted-dark font-normal">
-          Track your exercise completion and performance
-        </Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+              Workouts
+            </Text>
+            <Text className="mt-1 text-xs text-text-muted dark:text-text-muted-dark font-normal">
+              Track your exercise completion and performance
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(screen)/calendar' as any)}
+            activeOpacity={0.8}
+            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
+            accessibilityLabel="Activity Calendar"
+          >
+            <Ionicons
+              name="calendar"
+              size={15}
+              color="#10B981"
+            />
+            <Text className="text-xs font-black text-accent dark:text-accent-dark">
+              Calendar
+            </Text>
+          </TouchableOpacity>
+        </View>
 
         {/* Top Segmented Tabs */}
         <WorkoutTabs

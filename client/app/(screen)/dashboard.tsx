@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
-import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter } from 'react-native';
+import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 
@@ -442,13 +443,31 @@ export default function Dashboard() {
         }
       >
         {/* Header Greeting */}
-        <View className="mb-4">
-          <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
-            {getGreeting()}, {userName}
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
-            Your live fitness and accountability overview
-          </Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <View className="flex-1 mr-2">
+            <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
+              {getGreeting()}, {userName}
+            </Text>
+            <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
+              Your live fitness and accountability overview
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(screen)/calendar' as any)}
+            activeOpacity={0.8}
+            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
+            accessibilityLabel="Activity Calendar"
+          >
+            <Ionicons
+              name="calendar"
+              size={15}
+              color={colors.accent}
+            />
+            <Text className="text-xs font-black text-accent dark:text-accent-dark">
+              Calendar
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Motivation-Based Daily Check-In */}

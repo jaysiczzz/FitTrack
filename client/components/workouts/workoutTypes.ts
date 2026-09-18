@@ -115,6 +115,20 @@ export interface WorkoutCalendarSlot {
   durationMinutes: number;
 }
 
+export interface MonthCalendarDay {
+  dateStr: string;
+  dayNumber: number;
+  isCurrentMonth: boolean;
+  isToday: boolean;
+  isSelected: boolean;
+  hasWorkout: boolean;
+  sessionCount: number;
+  totalCalories: number;
+  totalDurationMinutes: number;
+  sessions: CompletedSession[];
+  isPartOfStreak?: boolean;
+}
+
 export const getTodayDateString = (): string => {
   const d = new Date();
   const year = d.getFullYear();

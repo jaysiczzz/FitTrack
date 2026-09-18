@@ -66,7 +66,7 @@ interface TodayWorkoutTabProps {
   onLoadScheduledRoutine?: () => void;
   onNavigateToPlanner?: () => void;
   onToggleSet: (exerciseKey: string, setId: string) => void;
-  onUpdateSet?: (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => void;
+  onUpdateSet?: (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number, bodyweight?: boolean) => void;
   onAddSet?: (exerciseKey: string) => void;
   onDeleteSet?: (exerciseKey: string, setId: string) => void;
   onRemoveExercise: (exerciseKey: string) => void;
@@ -394,7 +394,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 sets={item.sets}
                 personalRecord={getPRForExercise(item.name)}
                 onToggleSet={(setId) => onToggleSet(item.key, setId)}
-                onUpdateSet={(setId, field, val) => onUpdateSet && onUpdateSet(item.key, setId, field, val)}
+                onUpdateSet={(setId, field, val, bw) => onUpdateSet && onUpdateSet(item.key, setId, field, val, bw)}
                 onAddSet={() => onAddSet && onAddSet(item.key)}
                 onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
                 onRemoveExercise={() => onRemoveExercise(item.key)}
