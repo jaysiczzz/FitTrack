@@ -39,12 +39,91 @@ export interface LibraryExercise {
   isSystem?: boolean;
 }
 
+export interface CompletedSessionExerciseSet {
+  id?: string;
+  setNumber: number;
+  weight?: string | number;
+  reps?: string | number;
+  bodyweight?: boolean;
+  done?: boolean;
+}
+
+export interface CompletedSessionExercise {
+  id?: string;
+  exerciseId?: string;
+  name: string;
+  category?: string;
+  setsSummary: string;
+  sets?: CompletedSessionExerciseSet[];
+}
+
 export interface CompletedSession {
   id: string;
   date: string;
+  dateStr?: string;
+  completedAt?: string;
   title: string;
   duration: string;
+  durationMinutes?: number;
   caloriesBurned: number;
   exercisesCount: number;
-  exercises: { name: string; setsSummary: string }[];
+  totalSetsCount?: number;
+  exercises: CompletedSessionExercise[];
 }
+
+export type WorkoutHistoryRange = '7days' | '15days' | 'all';
+
+export interface WorkoutCalendarSlot {
+  dateStr: string;
+  dayLabel: string;
+  dateNum: number;
+  isToday: boolean;
+  hasWorkout: boolean;
+  sessionCount: number;
+  caloriesBurned: number;
+  durationMinutes: number;
+}
+
+export const getTodayDateString = (): string => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const getDateStringFromTimestamp = (isoString?: string | null): string => {
+  if (!isoString) return '';
+  const d = new Date(isoString);
+  if (isNaN(d.getTime())) return '';
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+export const formatDateHeading = (dateStr: string): string => {
+  const todayStr = getTodayDateString();
+  const [year, month, day] = dateStr.split('-').map(Number);
+  const dateObj = new Date(year, month - 1, day);
+
+  const yesterdayObj = new Date();
+  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
+  const yYear = yesterdayObj.getFullYear();
+  const yMonth = String(yesterdayObj.getMonth() + 1).padStart(2, '0');
+  const yDay = String(yesterdayObj.getDate()).padStart(2, '0');
+  const calcYesterdayStr = `${yYear}-${yMonth}-${yDay}`;
+
+  if (dateStr === todayStr) {
+    return `Today (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+  }
+  if (dateStr === calcYesterdayStr) {
+    return `Yesterday (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
+  }
+
+  return dateObj.toLocaleDateString('en-US', {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+  });
+};

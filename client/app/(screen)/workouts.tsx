@@ -6,7 +6,7 @@ import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
 import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
-import { LibraryExercise } from '@/components/workouts/workoutTypes';
+import { LibraryExercise, CompletedSession } from '@/components/workouts/workoutTypes';
 import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
@@ -481,6 +481,55 @@ export default function Workouts() {
     });
   };
 
+  const handleRepeatWorkoutSession = async (session: CompletedSession) => {
+    if (!session.exercises || session.exercises.length === 0) {
+      showToast({
+        message: 'No Exercises in Routine',
+        description: 'This past session does not contain any exercises.',
+        type: 'warning',
+        iconName: 'alert-circle',
+      });
+      return;
+    }
+
+    try {
+      for (const ex of session.exercises) {
+        const defaultSets = ex.sets && ex.sets.length > 0
+          ? ex.sets.map((s) => ({
+              weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
+              reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
+              bodyweight: Boolean(s.bodyweight),
+            }))
+          : undefined;
+
+        await addExerciseToTodaySession({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          category: ex.category || 'Strength',
+          type: 'Compound',
+          defaultSets,
+        });
+      }
+
+      await fetchTodaySession();
+      setActiveTab('today');
+      showToast({
+        message: 'Routine Added to Today! 💪',
+        description: `Loaded ${session.exercises.length} exercises from "${session.title}"`,
+        type: 'success',
+        iconName: 'barbell',
+      });
+    } catch (err) {
+      console.log('Error repeating session routine:', err);
+      showToast({
+        message: 'Failed to Repeat Routine',
+        description: 'Could not add exercises to today\'s session.',
+        type: 'error',
+        iconName: 'alert-circle',
+      });
+    }
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
@@ -493,7 +542,11 @@ export default function Workouts() {
         </Text>
 
         {/* Top Segmented Tabs */}
-        <WorkoutTabs activeTab={activeTab} onChange={setActiveTab} />
+        <WorkoutTabs
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          historyCount={completedSessionsCount}
+        />
 
         {/* Tab Content */}
         {activeTab === 'today' && (
@@ -517,7 +570,12 @@ export default function Workouts() {
           <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
         )}
 
-        {activeTab === 'history' && <WorkoutHistoryTab />}
+        {activeTab === 'history' && (
+          <WorkoutHistoryTab
+            onRepeatSession={handleRepeatWorkoutSession}
+            onSwitchToToday={() => setActiveTab('today')}
+          />
+        )}
       </ScrollView>
 
       {/* AI Workout Generator Modal */}
