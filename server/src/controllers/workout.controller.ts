@@ -271,3 +271,15 @@ export const deleteSetController = asyncHandler(async (req: AuthRequest, res: Re
   await workoutModel.deleteExerciseSet(setId)
   res.json({ success: true })
 })
+
+export const deleteSessionController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const sessionId = Array.isArray(req.params.sessionId) ? req.params.sessionId[0] : req.params.sessionId
+  if (!sessionId) return res.status(400).json({ error: 'Session ID is required' })
+
+  await workoutModel.deleteWorkoutSession(sessionId, userId)
+  res.json({ success: true })
+})
+

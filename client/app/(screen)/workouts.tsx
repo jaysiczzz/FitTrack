@@ -42,6 +42,7 @@ export default function Workouts() {
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const [exerciseToRemove, setExerciseToRemove] = useState<TodayExerciseItem | null>(null);
   const updateTimersRef = useRef<Record<string, any>>({});
 
   const fetchScheduledRoutine = async () => {
@@ -267,17 +268,28 @@ export default function Workouts() {
     }
   };
 
-  const handleRemoveExercise = async (exerciseKey: string) => {
-    const exToRemove = todayExercises.find((e) => e.key === exerciseKey);
-    setTodayExercises((prev) => prev.filter((ex) => ex.key !== exerciseKey));
+  const promptRemoveExercise = (exerciseKey: string) => {
+    const ex = todayExercises.find((e) => e.key === exerciseKey);
+    if (ex) {
+      setExerciseToRemove(ex);
+    }
+  };
+
+  const handleConfirmRemoveExercise = async () => {
+    if (!exerciseToRemove) return;
+    const exToRemove = exerciseToRemove;
+    const keyToDelete = exerciseToRemove.key;
+    setExerciseToRemove(null);
+
+    setTodayExercises((prev) => prev.filter((ex) => ex.key !== keyToDelete));
     try {
-      await deleteWorkoutExerciseApi(exerciseKey);
+      await deleteWorkoutExerciseApi(keyToDelete);
     } catch (err) {
       console.log('Failed to delete exercise on API server');
     }
     showToast({
       message: 'Exercise Removed',
-      description: exToRemove ? `Removed "${exToRemove.name}" from today's session` : undefined,
+      description: `Removed "${exToRemove.name}" from today's workout`,
       type: 'info',
       iconName: 'trash',
     });
@@ -654,7 +666,7 @@ export default function Workouts() {
             onUpdateSet={handleUpdateSet}
             onAddSet={handleAddSet}
             onDeleteSet={handleDeleteSet}
-            onRemoveExercise={handleRemoveExercise}
+            onRemoveExercise={promptRemoveExercise}
             onUpdateExercisePreset={handleUpdateExercisePreset}
             onNavigateToLibrary={() => setActiveTab('library')}
             onOpenAiGenerator={() => setShowAiModal(true)}
@@ -699,6 +711,19 @@ export default function Workouts() {
         cancelText="Keep Training"
         onConfirm={handleConfirmCompleteSession}
         onCancel={() => setShowCompleteModal(false)}
+      />
+
+      {/* Remove Exercise Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(exerciseToRemove)}
+        title="Remove Exercise"
+        message={`Are you sure you want to remove "${exerciseToRemove?.name}" and all its logged sets from today's workout?`}
+        confirmText="Remove"
+        cancelText="Keep"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={handleConfirmRemoveExercise}
+        onCancel={() => setExerciseToRemove(null)}
       />
     </SafeAreaView>
   );

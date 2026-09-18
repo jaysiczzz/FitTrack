@@ -10,11 +10,13 @@ import {
   getDateStringFromTimestamp,
   formatDateHeading,
 } from './workoutTypes';
-import { getWorkoutHistory } from '@/api/workout';
+import { getWorkoutHistory, deleteWorkoutSessionApi } from '@/api/workout';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
+import { useToast } from '@/context/ToastContext';
 import SurfaceCard from '../ui/SurfaceCard';
+import ConfirmModal from '../ui/ConfirmModal';
 
 interface WorkoutHistoryTabProps {
   onRepeatSession?: (session: CompletedSession) => void;
@@ -27,6 +29,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
 }) => {
   const { colors } = useThemeColors();
   const { user } = useAuth();
+  const { showSuccess, showError } = useToast();
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
 
@@ -35,6 +38,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState<WorkoutHistoryRange>('15days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
+  const [sessionToDelete, setSessionToDelete] = useState<CompletedSession | null>(null);
 
   const fetchHistory = useCallback(async () => {
     try {
@@ -147,6 +151,40 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       ...prev,
       [id]: !prev[id],
     }));
+  };
+
+  const handleConfirmDeleteSession = async () => {
+    if (!sessionToDelete) return;
+    const target = sessionToDelete;
+    setSessionToDelete(null);
+
+    try {
+      // 1. Delete on server (or offline queue)
+      try {
+        await deleteWorkoutSessionApi(target.id);
+      } catch (err) {
+        console.log('[Workout History] Failed to delete session on server (or offline):', err);
+      }
+
+      // 2. Remove from local state
+      const updated = history.filter((s) => s.id !== target.id);
+      setHistory(updated);
+
+      // 3. Update cached history in AsyncStorage
+      await AsyncStorage.setItem(historyKey, JSON.stringify(updated));
+
+      // 4. Clean up expanded state
+      setExpandedDates((prev) => {
+        const next = { ...prev };
+        delete next[target.id];
+        return next;
+      });
+
+      showSuccess('Workout session deleted');
+    } catch (err) {
+      console.error('[Workout History] Error deleting session:', err);
+      showError('Failed to delete workout session');
+    }
   };
 
   // Generate 15-day rolling consistency calendar strip
@@ -509,10 +547,20 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                     {session.date}
                   </Text>
-                  <View className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
-                      Completed
-                    </Text>
+                  <View className="flex-row items-center gap-2">
+                    <View className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-0.5 rounded-full">
+                      <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
+                        Completed
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => setSessionToDelete(session)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      accessibilityLabel="Delete workout session"
+                      className="w-7 h-7 rounded-lg items-center justify-center bg-red-500/10 dark:bg-red-500/20 active:opacity-70"
+                    >
+                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                    </TouchableOpacity>
                   </View>
                 </View>
 
@@ -600,6 +648,19 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
           );
         })
       )}
+
+      {/* Delete Workout Session Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(sessionToDelete)}
+        title="Delete Workout"
+        message={`Are you sure you want to delete "${sessionToDelete?.title}" on ${sessionToDelete?.date}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={handleConfirmDeleteSession}
+        onCancel={() => setSessionToDelete(null)}
+      />
     </View>
   );
 };

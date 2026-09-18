@@ -184,3 +184,7 @@ export const createCustomExerciseApi = (data: {
 
 export const deleteCustomExerciseApi = (exerciseId: string) =>
   apiRequest(`/api/workouts/custom/${exerciseId}`, { method: 'DELETE' });
+
+export const deleteWorkoutSessionApi = (sessionId: string) =>
+  apiRequest(`/api/workouts/sessions/${sessionId}`, { method: 'DELETE' });
+
