@@ -59,6 +59,7 @@ export interface PersonalRecordItem {
 
 interface TodayWorkoutTabProps {
   exercises: TodayExerciseItem[];
+  loading?: boolean;
   completedSessionsCount?: number;
   completedStats?: { duration: number; caloriesBurned: number } | null;
   scheduledRoutine?: WorkoutRoutineTemplate | null;
@@ -77,6 +78,7 @@ interface TodayWorkoutTabProps {
 
 const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   exercises,
+  loading = false,
   completedSessionsCount = 0,
   completedStats,
   scheduledRoutine,
@@ -265,113 +267,142 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
         </View>
       </View>
 
-      {/* Scheduled Routine from Planner Spotlight */}
-      {scheduledRoutine && exercises.length === 0 && (
-        <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
-          <View className="flex-row items-center justify-between mb-1.5">
-            <View className="flex-row items-center gap-1.5">
-              <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark animate-pulse" />
-              <Text className="text-[11px] font-black text-accent dark:text-accent-dark uppercase tracking-wider">
-                Today's Planned Routine
-              </Text>
-            </View>
-            <Text className="text-[10px] text-text-muted font-bold">
-              ~{scheduledRoutine.estimatedDurationMinutes} min
+      {/* Exercises List / Loading Skeleton / Empty State */}
+      {loading && exercises.length === 0 ? (
+        <View className="my-2">
+          <SurfaceCard className="p-6 items-center justify-center mb-3">
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
+              Loading Today's Workout...
             </Text>
-          </View>
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+              Fetching your exercises and logged sets
+            </Text>
+          </SurfaceCard>
 
-          <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1">
-            {scheduledRoutine.title}
-          </Text>
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-3">
-            {scheduledRoutine.exercises.length} Exercises ready · {scheduledRoutine.category}
-          </Text>
-
-          {onLoadScheduledRoutine && (
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={onLoadScheduledRoutine}
-              className="bg-accent dark:bg-accent-dark py-2.5 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
-            >
-              <Ionicons name="flash" size={15} color="#FFFFFF" />
-              <Text className="text-white text-xs font-black uppercase tracking-wider">
-                Load Planned Workout ({scheduledRoutine.exercises.length} Exercises)
-              </Text>
-            </TouchableOpacity>
-          )}
-        </SurfaceCard>
-      )}
-
-      {/* Exercises List / Empty State */}
-      {exercises.length === 0 ? (
-        <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
-          <View className="w-12 h-12 rounded-full bg-input dark:bg-input-dark items-center justify-center mb-3">
-            <Ionicons name="barbell" size={26} color={colors.textMuted} />
-          </View>
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-1">
-            No exercises scheduled yet
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
-            Generate a personalized routine with AI, choose from the library, or plan your week.
-          </Text>
-          <View className="flex-row flex-wrap justify-center gap-2">
-            {onOpenAiGenerator && (
-              <TouchableOpacity
-                onPress={onOpenAiGenerator}
-                className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
-              >
-                <Ionicons name="sparkles" size={14} color="#FFFFFF" />
-                <Text className="text-white font-bold text-xs">
-                  AI Routine
-                </Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity
-              onPress={onNavigateToLibrary}
-              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl"
-            >
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                Library
-              </Text>
-            </TouchableOpacity>
-            {onNavigateToPlanner && (
-              <TouchableOpacity
-                onPress={onNavigateToPlanner}
-                className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1"
-              >
-                <Ionicons name="calendar-outline" size={14} color={colors.accent} />
-                <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-                  Planner
-                </Text>
-              </TouchableOpacity>
-            )}
-          </View>
+          {/* Skeleton Placeholder Cards */}
+          {[1, 2].map((k) => (
+            <SurfaceCard key={k} className="mb-3 p-4 opacity-50">
+              <View className="flex-row justify-between items-center mb-3">
+                <View className="w-36 h-4 rounded-md bg-input dark:bg-input-dark" />
+                <View className="w-12 h-4 rounded-md bg-input dark:bg-input-dark" />
+              </View>
+              <View className="w-full h-8 rounded-xl bg-input dark:bg-input-dark mb-2" />
+              <View className="w-full h-8 rounded-xl bg-input dark:bg-input-dark" />
+            </SurfaceCard>
+          ))}
         </View>
       ) : (
-        exercises.map((item) => (
-          <ExerciseCard
-            key={item.key}
-            exerciseId={item.exerciseId}
-            name={item.name}
-            category={item.category}
-            difficulty={item.difficulty}
-            primaryMuscle={item.primaryMuscle}
-            secondaryMuscles={item.secondaryMuscles}
-            equipment={item.equipment}
-            type={item.type}
-            recommendedSets={item.recommendedSets}
-            recommendedReps={item.recommendedReps}
-            recommendedRest={item.recommendedRest}
-            sets={item.sets}
-            personalRecord={getPRForExercise(item.name)}
-            onToggleSet={(setId) => onToggleSet(item.key, setId)}
-            onUpdateSet={(setId, field, val) => onUpdateSet && onUpdateSet(item.key, setId, field, val)}
-            onAddSet={() => onAddSet && onAddSet(item.key)}
-            onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
-            onRemoveExercise={() => onRemoveExercise(item.key)}
-            onViewDetails={() => handleOpenDetailsByName(item)}
-          />
-        ))
+        <>
+          {/* Scheduled Routine from Planner Spotlight */}
+          {scheduledRoutine && exercises.length === 0 && (
+            <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
+              <View className="flex-row items-center justify-between mb-1.5">
+                <View className="flex-row items-center gap-1.5">
+                  <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark animate-pulse" />
+                  <Text className="text-[11px] font-black text-accent dark:text-accent-dark uppercase tracking-wider">
+                    Today's Planned Routine
+                  </Text>
+                </View>
+                <Text className="text-[10px] text-text-muted font-bold">
+                  ~{scheduledRoutine.estimatedDurationMinutes} min
+                </Text>
+              </View>
+
+              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1">
+                {scheduledRoutine.title}
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-3">
+                {scheduledRoutine.exercises.length} Exercises ready · {scheduledRoutine.category}
+              </Text>
+
+              {onLoadScheduledRoutine && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={onLoadScheduledRoutine}
+                  className="bg-accent dark:bg-accent-dark py-2.5 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
+                >
+                  <Ionicons name="flash" size={15} color="#FFFFFF" />
+                  <Text className="text-white text-xs font-black uppercase tracking-wider">
+                    Load Planned Workout ({scheduledRoutine.exercises.length} Exercises)
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </SurfaceCard>
+          )}
+
+          {/* Exercises List / Empty State */}
+          {exercises.length === 0 ? (
+            <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
+              <View className="w-12 h-12 rounded-full bg-input dark:bg-input-dark items-center justify-center mb-3">
+                <Ionicons name="barbell" size={26} color={colors.textMuted} />
+              </View>
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-1">
+                No exercises scheduled yet
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
+                Generate a personalized routine with AI, choose from the library, or plan your week.
+              </Text>
+              <View className="flex-row flex-wrap justify-center gap-2">
+                {onOpenAiGenerator && (
+                  <TouchableOpacity
+                    onPress={onOpenAiGenerator}
+                    className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
+                  >
+                    <Ionicons name="sparkles" size={14} color="#FFFFFF" />
+                    <Text className="text-white font-bold text-xs">
+                      AI Routine
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={onNavigateToLibrary}
+                  className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl"
+                >
+                  <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                    Library
+                  </Text>
+                </TouchableOpacity>
+                {onNavigateToPlanner && (
+                  <TouchableOpacity
+                    onPress={onNavigateToPlanner}
+                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1"
+                  >
+                    <Ionicons name="calendar-outline" size={14} color={colors.accent} />
+                    <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                      Planner
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </View>
+          ) : (
+            exercises.map((item) => (
+              <ExerciseCard
+                key={item.key}
+                exerciseId={item.exerciseId}
+                name={item.name}
+                category={item.category}
+                difficulty={item.difficulty}
+                primaryMuscle={item.primaryMuscle}
+                secondaryMuscles={item.secondaryMuscles}
+                equipment={item.equipment}
+                type={item.type}
+                recommendedSets={item.recommendedSets}
+                recommendedReps={item.recommendedReps}
+                recommendedRest={item.recommendedRest}
+                sets={item.sets}
+                personalRecord={getPRForExercise(item.name)}
+                onToggleSet={(setId) => onToggleSet(item.key, setId)}
+                onUpdateSet={(setId, field, val) => onUpdateSet && onUpdateSet(item.key, setId, field, val)}
+                onAddSet={() => onAddSet && onAddSet(item.key)}
+                onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
+                onRemoveExercise={() => onRemoveExercise(item.key)}
+                onViewDetails={() => handleOpenDetailsByName(item)}
+              />
+            ))
+          )}
+        </>
       )}
 
       {/* Complete Session Button & Validation Banner */}

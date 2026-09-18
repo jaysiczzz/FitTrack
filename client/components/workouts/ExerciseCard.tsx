@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, Platform, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
+import ConfirmModal from '../ui/ConfirmModal';
 
 export type SetRow = {
   id: string;
@@ -58,6 +59,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onViewDetails,
 }) => {
   const { colors } = useThemeColors();
+  const [setToDelete, setSetToDelete] = useState<{ id: string; setNumber: number } | null>(null);
   const isCardio = type.toLowerCase() === 'cardio';
   const isBodyweight = type.toLowerCase() === 'bodyweight' || type.toLowerCase() === 'calisthenics';
   const isStretch = type.toLowerCase() === 'stretch' || type.toLowerCase() === 'mobility';
@@ -251,11 +253,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                           textAlignVertical: 'center',
                           includeFontPadding: false,
                         }}
-                        className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center min-w-[24px]"
+                        className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center flex-1"
                       />
-                      <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">
-                        kg
-                      </Text>
                     </View>
                   )}
 
@@ -299,11 +298,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         textAlignVertical: 'center',
                         includeFontPadding: false,
                       }}
-                      className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center min-w-[20px]"
+                      className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center flex-1"
                     />
-                    <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">
-                      r
-                    </Text>
                   </View>
 
                   <TouchableOpacity
@@ -346,18 +342,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
                 {onDeleteSet && sets.length > 1 && (
                   <TouchableOpacity
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        if (window.confirm(`Delete Set ${displaySetNumber}?`)) {
-                          onDeleteSet(s.id);
-                        }
-                      } else {
-                        Alert.alert('Delete Set', `Remove Set ${displaySetNumber}?`, [
-                          { text: 'Cancel', style: 'cancel' },
-                          { text: 'Delete', style: 'destructive', onPress: () => onDeleteSet(s.id) },
-                        ]);
-                      }
-                    }}
+                    onPress={() => setSetToDelete({ id: s.id, setNumber: displaySetNumber })}
                     className="w-5 h-9 items-center justify-center rounded-lg"
                     activeOpacity={0.7}
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
@@ -383,6 +368,24 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </TouchableOpacity>
         ) : null}
       </View>
+
+      {/* Delete Set Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(setToDelete)}
+        title="Delete Set"
+        message={`Are you sure you want to delete Set ${setToDelete?.setNumber} of "${name}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={() => {
+          if (setToDelete && onDeleteSet) {
+            onDeleteSet(setToDelete.id);
+          }
+          setSetToDelete(null);
+        }}
+        onCancel={() => setSetToDelete(null)}
+      />
     </SurfaceCard>
   );
 };

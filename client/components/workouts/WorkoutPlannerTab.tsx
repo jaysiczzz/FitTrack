@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
@@ -7,6 +7,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import SurfaceCard from '../ui/SurfaceCard';
+import ConfirmModal from '../ui/ConfirmModal';
 import {
   WorkoutRoutineTemplate,
   DayOfWeek,
@@ -46,6 +47,7 @@ export default function WorkoutPlannerTab({
   const [assignModalDay, setAssignModalDay] = useState<{ key: DayOfWeek; label: string; full: string } | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
+  const [routineToDelete, setRoutineToDelete] = useState<WorkoutRoutineTemplate | null>(null);
 
   // Load saved routines and split from storage
   const loadPlannerData = useCallback(async () => {
@@ -136,36 +138,30 @@ export default function WorkoutPlannerTab({
 
   const handleDeleteRoutine = (routineId: string) => {
     const toDelete = routines.find((r) => r.id === routineId);
-    if (!toDelete) return;
+    if (toDelete) {
+      setRoutineToDelete(toDelete);
+    }
+  };
 
-    Alert.alert(
-      'Delete Routine Template',
-      `Are you sure you want to delete "${toDelete.title}"?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => {
-            const updated = routines.filter((r) => r.id !== routineId);
-            saveRoutines(updated);
-            // Also unassign from split if used
-            const updatedSplit = { ...weeklySplit };
-            Object.keys(updatedSplit).forEach((k) => {
-              if (updatedSplit[k as DayOfWeek] === routineId) {
-                updatedSplit[k as DayOfWeek] = null;
-              }
-            });
-            saveSplit(updatedSplit);
-            showToast({
-              message: 'Routine Deleted',
-              type: 'info',
-              iconName: 'trash',
-            });
-          },
-        },
-      ]
-    );
+  const handleConfirmDeleteRoutine = () => {
+    if (!routineToDelete) return;
+    const routineId = routineToDelete.id;
+    const updated = routines.filter((r) => r.id !== routineId);
+    saveRoutines(updated);
+    // Also unassign from split if used
+    const updatedSplit = { ...weeklySplit };
+    Object.keys(updatedSplit).forEach((k) => {
+      if (updatedSplit[k as DayOfWeek] === routineId) {
+        updatedSplit[k as DayOfWeek] = null;
+      }
+    });
+    saveSplit(updatedSplit);
+    setRoutineToDelete(null);
+    showToast({
+      message: 'Routine Deleted',
+      type: 'info',
+      iconName: 'trash',
+    });
   };
 
   return (
@@ -465,6 +461,19 @@ export default function WorkoutPlannerTab({
         visible={showPresetModal}
         onSelectPreset={handleApplyPreset}
         onClose={() => setShowPresetModal(false)}
+      />
+
+      {/* Delete Routine Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(routineToDelete)}
+        title="Delete Routine Template"
+        message={`Are you sure you want to delete "${routineToDelete?.title}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={handleConfirmDeleteRoutine}
+        onCancel={() => setRoutineToDelete(null)}
       />
     </View>
   );

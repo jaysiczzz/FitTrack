@@ -158,32 +158,28 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     const target = sessionToDelete;
     setSessionToDelete(null);
 
+    // 1. Instant optimistic update of local state & cache
+    const updated = history.filter((s) => s.id !== target.id);
+    setHistory(updated);
+    AsyncStorage.setItem(historyKey, JSON.stringify(updated)).catch((err) =>
+      console.log('[Workout History] Failed to save updated history cache:', err)
+    );
+
+    // 2. Clean up expanded state
+    setExpandedDates((prev) => {
+      const next = { ...prev };
+      delete next[target.id];
+      return next;
+    });
+
+    // 3. Instant toast feedback (0ms delay)
+    showSuccess('Workout session deleted');
+
+    // 4. Fire server deletion in background
     try {
-      // 1. Delete on server (or offline queue)
-      try {
-        await deleteWorkoutSessionApi(target.id);
-      } catch (err) {
-        console.log('[Workout History] Failed to delete session on server (or offline):', err);
-      }
-
-      // 2. Remove from local state
-      const updated = history.filter((s) => s.id !== target.id);
-      setHistory(updated);
-
-      // 3. Update cached history in AsyncStorage
-      await AsyncStorage.setItem(historyKey, JSON.stringify(updated));
-
-      // 4. Clean up expanded state
-      setExpandedDates((prev) => {
-        const next = { ...prev };
-        delete next[target.id];
-        return next;
-      });
-
-      showSuccess('Workout session deleted');
+      await deleteWorkoutSessionApi(target.id);
     } catch (err) {
-      console.error('[Workout History] Error deleting session:', err);
-      showError('Failed to delete workout session');
+      console.log('[Workout History] Failed to delete session on server (or offline):', err);
     }
   };
 
