@@ -39,6 +39,37 @@ export interface LibraryExercise {
   isSystem?: boolean;
 }
 
+export interface RoutineExerciseSet {
+  weight?: string | number;
+  reps?: string | number;
+  bodyweight?: boolean;
+}
+
+export interface RoutineExercise {
+  exerciseId?: string;
+  name: string;
+  category?: string;
+  type?: string;
+  muscleGroup?: string;
+  defaultSets: RoutineExerciseSet[];
+}
+
+export interface WorkoutRoutineTemplate {
+  id: string;
+  title: string;
+  description?: string;
+  category: string;
+  targetMuscleGroup?: string;
+  estimatedDurationMinutes: number;
+  exercises: RoutineExercise[];
+  isCustom?: boolean;
+  createdAt?: string;
+}
+
+export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
+
+export type WeeklySplit = Record<DayOfWeek, string | null>;
+
 export interface CompletedSessionExerciseSet {
   id?: string;
   setNumber: number;

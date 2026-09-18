@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, TouchableOpacity, Text, Platform } from 'react-native';
 
-export type WorkoutTabType = 'today' | 'library' | 'history';
+export type WorkoutTabType = 'today' | 'planner' | 'library' | 'history';
 
 interface WorkoutTabsProps {
   activeTab: WorkoutTabType;
@@ -11,7 +11,8 @@ interface WorkoutTabsProps {
 
 const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange, historyCount }) => {
   const tabs: { id: WorkoutTabType; label: string; badge?: number }[] = [
-    { id: 'today', label: 'Today’s Routine' },
+    { id: 'today', label: 'Today' },
+    { id: 'planner', label: 'Planner' },
     { id: 'library', label: 'Library' },
     { id: 'history', label: 'History', badge: historyCount },
   ];

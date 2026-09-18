@@ -1,18 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ScrollView, View, Text, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
 import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
+import WorkoutPlannerTab from '@/components/workouts/WorkoutPlannerTab';
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
-import { LibraryExercise, CompletedSession } from '@/components/workouts/workoutTypes';
+import { LibraryExercise, CompletedSession, WorkoutRoutineTemplate } from '@/components/workouts/workoutTypes';
+import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
 import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorModal';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
 import { AIWorkoutPlan } from '@/api/ai';
 import {
   getTodayWorkoutSession,
@@ -32,12 +36,48 @@ export default function Workouts() {
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
   const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
+  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
   const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
   const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
   const [loading, setLoading] = useState(false);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const updateTimersRef = useRef<Record<string, any>>({});
+
+  const fetchScheduledRoutine = async () => {
+    try {
+      const templatesKey = authStorage.getScopedKey(user?.id, 'workout_planner_templates');
+      const splitKey = authStorage.getScopedKey(user?.id, 'workout_planner_split');
+
+      const [savedTemplates, savedSplit] = await Promise.all([
+        AsyncStorage.getItem(templatesKey),
+        AsyncStorage.getItem(splitKey),
+      ]);
+
+      let templates = DEFAULT_ROUTINE_TEMPLATES;
+      if (savedTemplates) {
+        try {
+          const parsed = JSON.parse(savedTemplates);
+          if (Array.isArray(parsed) && parsed.length > 0) templates = parsed;
+        } catch {}
+      }
+
+      let split = DEFAULT_WEEKLY_SPLIT;
+      if (savedSplit) {
+        try {
+          const parsed = JSON.parse(savedSplit);
+          if (parsed && typeof parsed === 'object') split = parsed;
+        } catch {}
+      }
+
+      const todayDay = getTodayDayOfWeek();
+      const routineId = split[todayDay];
+      const matched = templates.find((r) => r.id === routineId) || null;
+      setTodayScheduledRoutine(matched);
+    } catch {
+      setTodayScheduledRoutine(null);
+    }
+  };
 
   const fetchTodaySession = async () => {
     try {
@@ -125,7 +165,8 @@ export default function Workouts() {
   useEffect(() => {
     fetchTodaySession();
     fetchHistoryCount();
-  }, []);
+    fetchScheduledRoutine();
+  }, [user?.id]);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {
     // Optimistic UI update
@@ -530,6 +571,55 @@ export default function Workouts() {
     }
   };
 
+  const handleStartRoutine = async (routine: WorkoutRoutineTemplate) => {
+    if (!routine.exercises || routine.exercises.length === 0) {
+      showToast({
+        message: 'No Exercises in Routine',
+        description: 'This routine template does not have any exercises.',
+        type: 'warning',
+        iconName: 'alert-circle',
+      });
+      return;
+    }
+
+    try {
+      for (const ex of routine.exercises) {
+        const defaultSets = ex.defaultSets && ex.defaultSets.length > 0
+          ? ex.defaultSets.map((s) => ({
+              weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
+              reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
+              bodyweight: Boolean(s.bodyweight),
+            }))
+          : undefined;
+
+        await addExerciseToTodaySession({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          category: ex.category || 'Strength',
+          type: ex.type || 'Compound',
+          defaultSets,
+        });
+      }
+
+      await fetchTodaySession();
+      setActiveTab('today');
+      showToast({
+        message: `${routine.title} Loaded! 💪`,
+        description: `Added ${routine.exercises.length} exercises to today's workout`,
+        type: 'success',
+        iconName: 'barbell',
+      });
+    } catch (err) {
+      console.log('Error starting routine:', err);
+      showToast({
+        message: 'Failed to Start Routine',
+        description: 'Could not load exercises into today\'s session.',
+        type: 'error',
+        iconName: 'alert-circle',
+      });
+    }
+  };
+
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
@@ -544,7 +634,10 @@ export default function Workouts() {
         {/* Top Segmented Tabs */}
         <WorkoutTabs
           activeTab={activeTab}
-          onChange={setActiveTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === 'today') fetchScheduledRoutine();
+          }}
           historyCount={completedSessionsCount}
         />
 
@@ -554,6 +647,9 @@ export default function Workouts() {
             exercises={todayExercises}
             completedSessionsCount={completedSessionsCount}
             completedStats={completedStats}
+            scheduledRoutine={todayScheduledRoutine}
+            onLoadScheduledRoutine={() => todayScheduledRoutine && handleStartRoutine(todayScheduledRoutine)}
+            onNavigateToPlanner={() => setActiveTab('planner')}
             onToggleSet={handleToggleSet}
             onUpdateSet={handleUpdateSet}
             onAddSet={handleAddSet}
@@ -563,6 +659,13 @@ export default function Workouts() {
             onNavigateToLibrary={() => setActiveTab('library')}
             onOpenAiGenerator={() => setShowAiModal(true)}
             onCompleteSession={() => setShowCompleteModal(true)}
+          />
+        )}
+
+        {activeTab === 'planner' && (
+          <WorkoutPlannerTab
+            onStartRoutine={handleStartRoutine}
+            onSwitchToToday={() => setActiveTab('today')}
           />
         )}
 

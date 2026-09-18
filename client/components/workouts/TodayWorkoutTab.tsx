@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
-import { LibraryExercise } from './workoutTypes';
+import { LibraryExercise, WorkoutRoutineTemplate } from './workoutTypes';
 import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
 import ProgressBar from '@/components/ui/ProgressBar';
@@ -61,6 +61,9 @@ interface TodayWorkoutTabProps {
   exercises: TodayExerciseItem[];
   completedSessionsCount?: number;
   completedStats?: { duration: number; caloriesBurned: number } | null;
+  scheduledRoutine?: WorkoutRoutineTemplate | null;
+  onLoadScheduledRoutine?: () => void;
+  onNavigateToPlanner?: () => void;
   onToggleSet: (exerciseKey: string, setId: string) => void;
   onUpdateSet?: (exerciseKey: string, setId: string, field: 'weight' | 'reps', newValue: number) => void;
   onAddSet?: (exerciseKey: string) => void;
@@ -76,6 +79,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   exercises,
   completedSessionsCount = 0,
   completedStats,
+  scheduledRoutine,
+  onLoadScheduledRoutine,
+  onNavigateToPlanner,
   onToggleSet,
   onUpdateSet,
   onAddSet,
@@ -259,6 +265,43 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
         </View>
       </View>
 
+      {/* Scheduled Routine from Planner Spotlight */}
+      {scheduledRoutine && exercises.length === 0 && (
+        <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
+          <View className="flex-row items-center justify-between mb-1.5">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark animate-pulse" />
+              <Text className="text-[11px] font-black text-accent dark:text-accent-dark uppercase tracking-wider">
+                Today's Planned Routine
+              </Text>
+            </View>
+            <Text className="text-[10px] text-text-muted font-bold">
+              ~{scheduledRoutine.estimatedDurationMinutes} min
+            </Text>
+          </View>
+
+          <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1">
+            {scheduledRoutine.title}
+          </Text>
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-3">
+            {scheduledRoutine.exercises.length} Exercises ready · {scheduledRoutine.category}
+          </Text>
+
+          {onLoadScheduledRoutine && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={onLoadScheduledRoutine}
+              className="bg-accent dark:bg-accent-dark py-2.5 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
+            >
+              <Ionicons name="flash" size={15} color="#FFFFFF" />
+              <Text className="text-white text-xs font-black uppercase tracking-wider">
+                Load Planned Workout ({scheduledRoutine.exercises.length} Exercises)
+              </Text>
+            </TouchableOpacity>
+          )}
+        </SurfaceCard>
+      )}
+
       {/* Exercises List / Empty State */}
       {exercises.length === 0 ? (
         <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
@@ -269,15 +312,15 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             No exercises scheduled yet
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
-            Generate a personalized routine with AI or select exercises from the library.
+            Generate a personalized routine with AI, choose from the library, or plan your week.
           </Text>
-          <View className="flex-row gap-2">
+          <View className="flex-row flex-wrap justify-center gap-2">
             {onOpenAiGenerator && (
               <TouchableOpacity
                 onPress={onOpenAiGenerator}
-                className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-2xl flex-row items-center gap-1.5"
+                className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
               >
-                <Ionicons name="sparkles" size={15} color="#FFFFFF" />
+                <Ionicons name="sparkles" size={14} color="#FFFFFF" />
                 <Text className="text-white font-bold text-xs">
                   AI Routine
                 </Text>
@@ -285,12 +328,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             )}
             <TouchableOpacity
               onPress={onNavigateToLibrary}
-              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-2xl"
+              className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl"
             >
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                Explore Library
+                Library
               </Text>
             </TouchableOpacity>
+            {onNavigateToPlanner && (
+              <TouchableOpacity
+                onPress={onNavigateToPlanner}
+                className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1"
+              >
+                <Ionicons name="calendar-outline" size={14} color={colors.accent} />
+                <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                  Planner
+                </Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
       ) : (
