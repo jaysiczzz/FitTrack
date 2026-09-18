@@ -17,6 +17,7 @@ import {
   deleteSetController,
   createCustomExerciseController,
   deleteCustomExerciseController,
+  deleteSessionController,
 } from '../controllers/workout.controller'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { validateSetOwnership, validateWorkoutExerciseOwnership } from '../middleware/ownership.middleware'
@@ -63,6 +64,7 @@ router.delete('/exercises/:exerciseId', deleteExercise)
 router.post('/today/complete', completeSession)
 router.get('/history', getHistory)
 router.get('/personal-records', getPersonalRecordsController)
+router.delete('/sessions/:sessionId', deleteSessionController)
 
 export default router
 

@@ -1,8 +1,9 @@
-import React from 'react';
-import { View, Text, TouchableOpacity, TextInput, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
+import ConfirmModal from '../ui/ConfirmModal';
 
 export type SetRow = {
   id: string;
@@ -30,7 +31,7 @@ interface ExerciseCardProps {
   sets: SetRow[];
   personalRecord?: string | null;
   onToggleSet: (setId: string) => void;
-  onUpdateSet?: (setId: string, field: 'weight' | 'reps', newValue: number) => void;
+  onUpdateSet?: (setId: string, field: 'weight' | 'reps', newValue: number, bodyweight?: boolean) => void;
   onAddSet?: () => void;
   onDeleteSet?: (setId: string) => void;
   onRemoveExercise?: () => void;
@@ -58,8 +59,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onViewDetails,
 }) => {
   const { colors } = useThemeColors();
+  const [setToDelete, setSetToDelete] = useState<{ id: string; setNumber: number } | null>(null);
   const isCardio = type.toLowerCase() === 'cardio';
-  const isBodyweight = type.toLowerCase() === 'bodyweight' || type.toLowerCase() === 'calisthenics';
+  const isBodyweight =
+    type.toLowerCase() === 'bodyweight' ||
+    type.toLowerCase() === 'calisthenics' ||
+    name.toLowerCase().includes('pull-up') ||
+    name.toLowerCase().includes('push-up') ||
+    name.toLowerCase().includes('chin-up') ||
+    name.toLowerCase().includes('dip') ||
+    sets.some((s) => s.bodyweight);
   const isStretch = type.toLowerCase() === 'stretch' || type.toLowerCase() === 'mobility';
 
   return (
@@ -134,32 +143,34 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
       </View>
 
       {/* Target Prescriptions Bar */}
-      <View className="mb-3 rounded-2xl bg-input dark:bg-input-dark p-2.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between flex-wrap gap-1">
-        <View className="flex-row items-center gap-1.5">
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
-            TARGET:
-          </Text>
-          <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-            {recommendedSets} sets × {recommendedReps} reps
-          </Text>
-        </View>
-
-        {recommendedRest ? (
-          <View className="flex-row items-center gap-1.5">
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
-              REST:
+      <View className="mb-3 rounded-xl bg-input dark:bg-input-dark py-2 px-2.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between">
+        <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-1">
+            <Text className="text-[9px] font-black uppercase text-text-muted dark:text-text-muted-dark">
+              TARGET:
             </Text>
             <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-              {recommendedRest}s
+              {recommendedSets} × {recommendedReps}
             </Text>
           </View>
-        ) : null}
+          {recommendedRest ? (
+            <View className="flex-row items-center gap-1">
+              <Text className="text-text-muted text-xs">·</Text>
+              <Text className="text-[9px] font-black uppercase text-text-muted dark:text-text-muted-dark">
+                REST:
+              </Text>
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                {recommendedRest}s
+              </Text>
+            </View>
+          ) : null}
+        </View>
 
         {onViewDetails ? (
           <TouchableOpacity
             onPress={onViewDetails}
             activeOpacity={0.7}
-            className="bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-0.5 rounded-lg border border-accent/25 dark:border-accent-dark/30"
+            className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-lg border border-accent/30"
           >
             <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
               Guide & Tips
@@ -170,14 +181,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
       {/* Sets Table Header */}
       <View>
-        <View className="mb-2 flex-row justify-between px-1">
-          <Text className="w-10 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+        <View className="mb-2 flex-row items-center justify-between px-0.5">
+          <Text className="w-8 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
             Set
           </Text>
 
-          {!isCardio && !isStretch && !isBodyweight && (
+          {!isCardio && !isStretch && (
             <Text className="flex-1 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-              Weight (kg)
+              {isBodyweight ? 'Weight' : 'Weight (kg)'}
             </Text>
           )}
 
@@ -193,8 +204,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </Text>
           )}
 
-          <Text className="w-20 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-            Status
+          <Text className="w-14 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+            Done
           </Text>
         </View>
 
@@ -203,70 +214,114 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           const displaySetNumber = s.setNumber || idx + 1;
           const currWeight = Number(s.weight) || 0;
           const currReps = Number(s.reps) || 10;
+          const isSetBodyweight = Boolean(s.bodyweight || (isBodyweight && currWeight === 0));
+          const weightStr = s.weight !== undefined && s.weight !== null ? String(s.weight) : '0';
+          const repsStr = s.reps !== undefined && s.reps !== null ? String(s.reps) : '10';
 
           return (
-            <View key={s.id || idx} className="mb-2 flex-row items-center">
+            <View key={s.id || idx} className="mb-2 flex-row items-center justify-between gap-1.5">
               {/* SET Number */}
-              <View className="w-10 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark mr-1.5">
-                <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
+              <View className="w-8 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
+                <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                   {displaySetNumber}
                 </Text>
               </View>
 
-              {/* Weight Stepper Column */}
-              {!isCardio && !isStretch && !isBodyweight && (
-                <View className="flex-1 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1.5 py-1 mr-1.5 h-9">
-                  <TouchableOpacity
-                    onPress={() => onUpdateSet && onUpdateSet(s.id, 'weight', Math.max(0, currWeight - 2.5))}
-                    className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-                    activeOpacity={0.7}
-                  >
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">-</Text>
-                  </TouchableOpacity>
-                  {s.bodyweight ? (
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      BW
-                    </Text>
-                  ) : (
-                    <View className="flex-row items-center justify-center">
+              {/* Weight / Load Column */}
+              {!isCardio && !isStretch && (
+                isSetBodyweight && currWeight === 0 ? (
+                  <View className="flex-1 h-9 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5">
+                    <View className="flex-row items-center justify-center flex-1 gap-1">
+                      <Ionicons name="body" size={12} color={colors.accent} />
+                      <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
+                        Body Weight
+                      </Text>
+                    </View>
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (onUpdateSet) onUpdateSet(s.id, 'weight', 2.5, false);
+                      }}
+                      hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
+                      className="w-5 h-5 rounded bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70"
+                      accessibilityLabel="Add weight"
+                    >
+                      <Ionicons name="add" size={11} color={colors.accent} />
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View className="flex-1 h-9 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1.5">
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!onUpdateSet) return;
+                        const nextW = Math.max(0, Math.round((currWeight - 2.5) * 10) / 10);
+                        onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
+                      }}
+                      className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                      hitSlop={{ top: 12, bottom: 12, left: 10, right: 6 }}
+                      accessibilityLabel="Decrease weight"
+                    >
+                      <Ionicons name="remove" size={12} color={colors.textPrimary} />
+                    </TouchableOpacity>
+
+                    <View className="flex-row items-center justify-center px-1">
                       <TextInput
-                        value={String(currWeight)}
+                        value={weightStr}
                         keyboardType="decimal-pad"
                         selectTextOnFocus
                         onChangeText={(txt) => {
                           const parsed = parseFloat(txt);
                           if (!isNaN(parsed) && onUpdateSet) {
-                            onUpdateSet(s.id, 'weight', Math.max(0, parsed));
+                            const newW = Math.max(0, parsed);
+                            onUpdateSet(s.id, 'weight', newW, newW === 0 && isBodyweight);
+                          } else if (txt === '' && onUpdateSet) {
+                            onUpdateSet(s.id, 'weight', 0, isBodyweight);
                           }
                         }}
-                        className="text-xs font-bold text-text-primary dark:text-text-primary-dark text-center p-0 min-w-[28px]"
+                        style={{
+                          padding: 0,
+                          margin: 0,
+                          textAlignVertical: 'center',
+                          includeFontPadding: false,
+                          width: Math.max(22, weightStr.length * 8.5 + 4),
+                        }}
+                        className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center"
                       />
-                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">kg</Text>
+                      <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">
+                        kg
+                      </Text>
                     </View>
-                  )}
-                  <TouchableOpacity
-                    onPress={() => onUpdateSet && onUpdateSet(s.id, 'weight', currWeight + 2.5)}
-                    className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-                    activeOpacity={0.7}
-                  >
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">+</Text>
-                  </TouchableOpacity>
-                </View>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        if (!onUpdateSet) return;
+                        const nextW = Math.round((currWeight + 2.5) * 10) / 10;
+                        onUpdateSet(s.id, 'weight', nextW, false);
+                      }}
+                      className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                      hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
+                      accessibilityLabel="Increase weight"
+                    >
+                      <Ionicons name="add" size={12} color={colors.textPrimary} />
+                    </TouchableOpacity>
+                  </View>
+                )
               )}
 
               {/* Reps Stepper Column */}
               {!isCardio && !isStretch && (
-                <View className="flex-1 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1.5 py-1 mr-1.5 h-9">
+                <View className="flex-1 h-9 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1.5">
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', Math.max(1, currReps - 1))}
-                    className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-                    activeOpacity={0.7}
+                    className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                    hitSlop={{ top: 12, bottom: 12, left: 10, right: 6 }}
+                    accessibilityLabel="Decrease reps"
                   >
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">-</Text>
+                    <Ionicons name="remove" size={12} color={colors.textPrimary} />
                   </TouchableOpacity>
-                  <View className="flex-row items-center justify-center">
+
+                  <View className="flex-row items-center justify-center px-1">
                     <TextInput
-                      value={String(currReps)}
+                      value={repsStr}
                       keyboardType="number-pad"
                       selectTextOnFocus
                       onChangeText={(txt) => {
@@ -275,65 +330,67 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                           onUpdateSet(s.id, 'reps', Math.max(1, parsed));
                         }
                       }}
-                      className="text-xs font-bold text-text-primary dark:text-text-primary-dark text-center p-0 min-w-[24px]"
+                      style={{
+                        padding: 0,
+                        margin: 0,
+                        textAlignVertical: 'center',
+                        includeFontPadding: false,
+                        width: Math.max(20, repsStr.length * 8.5 + 4),
+                      }}
+                      className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center"
                     />
-                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">r</Text>
                   </View>
+
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
-                    className="w-6 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-                    activeOpacity={0.7}
+                    className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                    hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
+                    accessibilityLabel="Increase reps"
                   >
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">+</Text>
+                    <Ionicons name="add" size={12} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
               )}
 
-              {/* Duration Column */}
+              {/* Duration Column (Cardio / Stretch) */}
               {(isCardio || isStretch) && (
-                <View className="flex-1 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark h-9 mr-1.5">
-                  <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
+                <View className="flex-1 h-9 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2">
+                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {s.duration ? `${s.duration}s` : '60s'}
                   </Text>
                 </View>
               )}
 
-              {/* Interactive "Done" Button & Delete Set Button */}
-              <View className="flex-row items-center gap-1 w-20">
+              {/* Status / Done Checkbox & Delete Set Button */}
+              <View className="w-14 h-9 flex-row items-center justify-end gap-1">
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => onToggleSet(s.id)}
-                  className={`h-9 flex-1 flex-row items-center justify-center rounded-xl border ${
+                  className={`h-9 flex-1 items-center justify-center rounded-xl border ${
                     s.done
-                      ? 'bg-emerald-500/15 border-emerald-500/40'
+                      ? 'bg-emerald-500 border-emerald-500'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
+                  accessibilityLabel="Mark set done"
                 >
-                  {s.done ? (
-                    <View className="w-5 h-5 rounded-full bg-accent dark:bg-accent-dark items-center justify-center mr-1">
-                      <Ionicons name="checkmark" size={12} color="#FFFFFF" />
-                    </View>
-                  ) : null}
-                  <Text
-                    className={
-                      s.done
-                        ? 'font-bold text-accent dark:text-accent-dark text-xs'
-                        : 'font-semibold text-text-muted dark:text-text-muted-dark text-xs'
-                    }
-                  >
-                    {s.done ? 'Done' : 'Mark'}
-                  </Text>
+                  <Ionicons
+                    name="checkmark"
+                    size={16}
+                    color={s.done ? '#FFFFFF' : colors.textMuted}
+                  />
                 </TouchableOpacity>
 
-                {onDeleteSet && sets.length > 1 ? (
+                {onDeleteSet && sets.length > 1 && (
                   <TouchableOpacity
-                    onPress={() => onDeleteSet(s.id)}
-                    className="w-6 h-9 items-center justify-center rounded-lg bg-input dark:bg-input-dark"
+                    onPress={() => setSetToDelete({ id: s.id, setNumber: displaySetNumber })}
+                    className="w-5 h-9 items-center justify-center rounded-lg"
                     activeOpacity={0.7}
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    accessibilityLabel="Delete set"
                   >
-                    <Ionicons name="close" size={14} color={colors.textMuted} />
+                    <Ionicons name="close" size={13} color={colors.textMuted} />
                   </TouchableOpacity>
-                ) : null}
+                )}
               </View>
             </View>
           );
@@ -352,6 +409,24 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           </TouchableOpacity>
         ) : null}
       </View>
+
+      {/* Delete Set Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(setToDelete)}
+        title="Delete Set"
+        message={`Are you sure you want to delete Set ${setToDelete?.setNumber} of "${name}"?`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={() => {
+          if (setToDelete && onDeleteSet) {
+            onDeleteSet(setToDelete.id);
+          }
+          setSetToDelete(null);
+        }}
+        onCancel={() => setSetToDelete(null)}
+      />
     </SurfaceCard>
   );
 };

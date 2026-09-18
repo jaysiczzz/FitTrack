@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
 import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
@@ -25,6 +26,7 @@ import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater } from '@
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
+  const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id;
   const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
@@ -370,13 +372,31 @@ export default function FoodLog() {
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         {/* Screen Header */}
-        <View className="mb-4">
-          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-            Nutrition Log 🥗
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
-            Real-time daily fuel & macro tracking
-          </Text>
+        <View className="flex-row items-center justify-between mb-4">
+          <View>
+            <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+              Nutrition Log 🥗
+            </Text>
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
+              Real-time daily fuel & macro tracking
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            onPress={() => router.push('/(screen)/calendar' as any)}
+            activeOpacity={0.8}
+            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-amber-500/10 border-amber-500/30"
+            accessibilityLabel="Activity Calendar"
+          >
+            <Ionicons
+              name="calendar"
+              size={15}
+              color="#F59E0B"
+            />
+            <Text className="text-xs font-black text-amber-500">
+              Calendar
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Top Navigation Tabs (Today's Log | Library | History) */}

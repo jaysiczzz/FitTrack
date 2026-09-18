@@ -480,6 +480,7 @@ export default function Settings() {
         visible={showLogoutModal}
         title="Log Out"
         message="Are you sure you want to log out of your account?"
+        iconName="log-out-outline"
         confirmText="Log Out"
         cancelText="Cancel"
         isDanger
