@@ -9,6 +9,7 @@ import workoutRoutes from './routes/workout.routes'
 import foodLogRoutes from './routes/foodlog.routes'
 import aiRoutes from './routes/ai.routes'
 import supportRoutes from './routes/support.routes'
+import testimonialRoutes from './routes/testimonial.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 
@@ -34,7 +35,11 @@ app.use(
     origin: (origin, callback) => {
       // Allow requests with no origin (e.g. mobile React Native apps, curl)
       if (!origin) return callback(null, true)
-      if (allowedOrigins.includes(origin) || allowedOrigins.includes('*')) {
+      if (
+        allowedOrigins.includes(origin) ||
+        allowedOrigins.includes('*') ||
+        /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)
+      ) {
         return callback(null, true)
       }
       return callback(new Error('Cross-Origin Request blocked by CORS policy'))
@@ -60,6 +65,7 @@ app.use('/api/workouts', workoutRoutes)
 app.use('/api/food-logs', foodLogRoutes)
 app.use('/api/ai', aiRoutes)
 app.use('/api/support', supportRoutes)
+app.use('/api/testimonials', testimonialRoutes)
 
 app.use(errorHandler)
 

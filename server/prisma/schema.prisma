@@ -23,6 +23,7 @@ model User {
   customExercises Exercise[]
   customFoods     Food[]
   refreshTokens   RefreshToken[]
+  testimonials    Testimonial[]
 }
 
 enum Goal {
@@ -217,4 +218,21 @@ model PasswordResetToken {
   @@index([email])
 }
 
+model Testimonial {
+  id             String    @id @default(uuid())
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName     String
+  rating         Int       @default(5)
+  content        String
+  highlightBadge String?   // e.g. "🏆 +15kg Bench PR", "🔥 -6kg Lost", "⚡ 14-Day Streak"
+  goal           Goal?
+  isFeatured     Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@index([goal])
+  @@index([userId])
+  @@index([isFeatured])
+}
 

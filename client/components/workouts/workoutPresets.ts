@@ -22,6 +22,14 @@ export const getDifficultyPreset = (
     return existingPresets[tier];
   }
 
+  const baseSets =
+    Array.isArray(exercise?.defaultSets) && exercise.defaultSets.length > 0
+      ? exercise.defaultSets
+      : Array.isArray(exercise?.sets) && exercise.sets.length > 0
+      ? exercise.sets
+      : [{ weight: 20, reps: 10 }];
+  const firstSetWeight = Number(baseSets[0]?.weight) || 20;
+
   const isBW = Boolean(
     baseSets[0]?.bodyweight ||
     exercise?.type?.toLowerCase() === 'bodyweight' ||
