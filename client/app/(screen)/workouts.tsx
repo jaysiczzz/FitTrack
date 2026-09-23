@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, ActivityIndicator, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -616,6 +616,7 @@ export default function Workouts() {
     // 2. Perform API sync and refresh counts in the background
     try {
       await completeWorkoutSessionApi();
+      DeviceEventEmitter.emit('WORKOUT_SESSION_COMPLETED');
       fetchTodaySession();
       fetchHistoryCount();
     } catch (err) {

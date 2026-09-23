@@ -18,6 +18,7 @@ interface FoodHistoryDayCardProps {
   isExpanded: boolean;
   onToggleExpand: () => void;
   onReLogItem: (item: FoodLogItem) => void;
+  onDeleteDay?: (day: DailyFoodHistorySummary) => void;
 }
 
 export default function FoodHistoryDayCard({
@@ -27,6 +28,7 @@ export default function FoodHistoryDayCard({
   isExpanded,
   onToggleExpand,
   onReLogItem,
+  onDeleteDay,
 }: FoodHistoryDayCardProps) {
   const { colors } = useThemeColors();
 
@@ -39,17 +41,37 @@ export default function FoodHistoryDayCard({
         className="flex-row justify-between items-center"
       >
         <View className="flex-1 pr-2">
-          <View className="flex-row items-center gap-1.5">
+          <View className="flex-row items-center gap-1.5 flex-wrap">
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-base">
               {day.formattedDate}
             </Text>
             {day.totalProtein >= targetProtein * 0.8 ? (
               <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
-                <Ionicons name="checkmark-circle" size={14} color={colors.accent} />
+                <Ionicons name="checkmark-circle" size={12} color="#10B981" />
                 <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-[9px]">
-                  Target Met
+                  Target Met 🎯
                 </Text>
               </View>
+            ) : (
+              <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
+                <Ionicons name="checkmark-circle" size={12} color="#10B981" />
+                <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-[9px]">
+                  Completed
+                </Text>
+              </View>
+            )}
+            {onDeleteDay ? (
+              <TouchableOpacity
+                onPress={(e) => {
+                  e.stopPropagation?.();
+                  onDeleteDay(day);
+                }}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityLabel="Delete daily food log"
+                className="w-7 h-7 rounded-lg items-center justify-center bg-red-500/10 dark:bg-red-500/20 active:opacity-70 ml-1"
+              >
+                <Ionicons name="trash-outline" size={13} color="#EF4444" />
+              </TouchableOpacity>
             ) : null}
           </View>
 

@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import {
   saveDayLogController,
+  completeDayLogController,
   getHistoryController,
   getDayLogController,
   deleteDayLogController,
@@ -17,6 +18,7 @@ router.get('/search', authMiddleware, searchFoodsOnlineController)
 router.post('/custom', authMiddleware, createCustomFoodController)
 router.delete('/custom/:id', authMiddleware, deleteCustomFoodController)
 router.post('/save-day', authMiddleware, saveDayLogController)
+router.post('/complete-day', authMiddleware, completeDayLogController)
 router.get('/history', authMiddleware, getHistoryController)
 router.get('/:date', authMiddleware, getDayLogController)
 router.delete('/:date', authMiddleware, deleteDayLogController)

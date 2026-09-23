@@ -63,6 +63,8 @@ export interface DailyFoodHistorySummary {
   totalCarbs: number;
   totalFat: number;
   waterMl: number;
+  isCompleted?: boolean;
+  completedAt?: string | null;
 }
 
 export const getTodayDateString = (): string => {

@@ -18,6 +18,8 @@ export interface ProgressBarProps {
   color?: string;
   /** Bar height in pixels (default: 6) */
   height?: number;
+  /** Whether to hide the header row even if current/target or label are provided */
+  hideHeader?: boolean;
   /** Optional custom container className */
   className?: string;
   /** Optional custom track background className */
@@ -33,6 +35,7 @@ export default function ProgressBar({
   valueText,
   color,
   height = 6,
+  hideHeader = false,
   className = 'mb-2.5',
   trackClassName,
 }: ProgressBarProps) {
@@ -69,7 +72,7 @@ export default function ProgressBar({
     return null;
   };
 
-  const hasHeader = Boolean(label || valueText || (current !== undefined && target !== undefined));
+  const hasHeader = !hideHeader && Boolean(label || valueText || (current !== undefined && target !== undefined));
 
   return (
     <View className={className}>

@@ -2,6 +2,7 @@ import { Response, NextFunction } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import {
   saveDailyFoodLogInDb,
+  completeDailyFoodLogInDb,
   getFoodLogHistoryFromDb,
   getDailyFoodLogByDateFromDb,
   deleteDailyFoodLogFromDb,
@@ -22,7 +23,7 @@ export async function saveDayLogController(
       return res.status(401).json({ error: 'Unauthorized user' })
     }
 
-    const { date, items, waterMl } = req.body
+    const { date, items, waterMl, isCompleted } = req.body
     if (!date) {
       return res.status(400).json({ error: 'Date is required (YYYY-MM-DD)' })
     }
@@ -31,12 +32,43 @@ export async function saveDayLogController(
       date,
       items: Array.isArray(items) ? items : [],
       waterMl: Number(waterMl) || 0,
+      isCompleted: typeof isCompleted === 'boolean' ? isCompleted : undefined,
     })
 
     return res.status(200).json({
       success: true,
       message: 'Daily nutrition log saved successfully',
       data: savedLog,
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+export async function completeDayLogController(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const userId = req.user?.id
+    if (!userId) {
+      return res.status(401).json({ error: 'Unauthorized user' })
+    }
+
+    const { date, items, waterMl } = req.body
+    if (!date) {
+      return res.status(400).json({ error: 'Date is required (YYYY-MM-DD)' })
+    }
+
+    const completedLog = Array.isArray(items) && items.length > 0
+      ? await saveDailyFoodLogInDb(userId, { date, items, waterMl: Number(waterMl) || 0, isCompleted: true })
+      : await completeDailyFoodLogInDb(userId, date)
+
+    return res.status(200).json({
+      success: true,
+      message: 'Daily nutrition log marked as completed',
+      data: completedLog,
     })
   } catch (err) {
     next(err)
