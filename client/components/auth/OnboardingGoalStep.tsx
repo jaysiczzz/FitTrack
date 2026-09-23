@@ -1,6 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
+import { useThemeColors } from '@/constants/colors';
+import { getTestimonialsApi, TestimonialItem } from '@/api/testimonial';
 
 interface OnboardingGoalStepProps {
   selectedGoal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | '';
@@ -8,6 +11,7 @@ interface OnboardingGoalStepProps {
   onNext: () => void;
   error?: string;
 }
+
 
 const GOALS = [
   {
@@ -32,6 +36,34 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
   onNext,
   error,
 }) => {
+  const { colors } = useThemeColors();
+  const [activeStory, setActiveStory] = useState<TestimonialItem | null>(null);
+
+  useEffect(() => {
+    if (!selectedGoal) {
+      setActiveStory(null);
+      return;
+    }
+
+    // Live API fetch for verified athlete stories
+    let isMounted = true;
+    getTestimonialsApi(selectedGoal)
+      .then((res) => {
+        if (isMounted && res.testimonials && res.testimonials.length > 0) {
+          setActiveStory(res.testimonials[0]);
+        } else if (isMounted) {
+          setActiveStory(null);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setActiveStory(null);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedGoal]);
+
   return (
     <View className="w-full">
       <View className="mb-4">
@@ -123,6 +155,45 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
           );
         })}
       </View>
+
+      {/* Verified Athlete Social Proof Card */}
+      {selectedGoal && activeStory ? (
+        <View className="mb-3.5 p-3 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25">
+          <View className="flex-row items-center justify-between mb-1.5">
+            <View className="flex-row items-center space-x-2">
+              <View className="w-5 h-5 rounded-full bg-accent/25 items-center justify-center">
+                <Text className="text-[10px] font-black text-accent dark:text-accent-mint">
+                  {activeStory.authorName.charAt(0)}
+                </Text>
+              </View>
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                {activeStory.authorName}
+              </Text>
+              {activeStory.highlightBadge ? (
+                <View className="px-1.5 py-0.5 rounded-full bg-accent/20 border border-accent/30">
+                  <Text className="text-[9px] font-extrabold text-accent dark:text-accent-mint">
+                    {activeStory.highlightBadge}
+                  </Text>
+                </View>
+              ) : null}
+            </View>
+
+            <View className="flex-row items-center space-x-0.5">
+              {[1, 2, 3, 4, 5].map((s) => (
+                <Ionicons
+                  key={s}
+                  name={s <= activeStory.rating ? 'star' : 'star-outline'}
+                  size={10}
+                  color="#F59E0B"
+                />
+              ))}
+            </View>
+          </View>
+          <Text className="text-[11px] italic text-text-primary dark:text-text-primary-dark leading-snug">
+            "{activeStory.content}"
+          </Text>
+        </View>
+      ) : null}
 
       {error ? (
         <Text className="text-red-500 text-[11px] mb-2.5 text-center font-medium">{error}</Text>
