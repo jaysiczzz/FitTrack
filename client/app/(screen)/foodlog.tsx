@@ -21,7 +21,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
-import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
+import { saveDailyFoodLogApi, getDailyFoodLogApi, completeDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
@@ -36,8 +36,11 @@ export default function FoodLog() {
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
+  const [isDayCompleted, setIsDayCompleted] = useState(false);
 
   const isLoadingRef = useRef(false);
+  const waterMlRef = useRef(0);
+  const itemsRef = useRef<FoodLogItem[]>([]);
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
@@ -61,6 +64,14 @@ export default function FoodLog() {
         setGoal(user.goal === 'WEIGHT_LOSS' ? 'WEIGHT_LOSS' : 'MUSCLE_GAIN');
       }
 
+      const todayStr = getTodayDateString();
+      const activeDateKey = authStorage.getScopedKey(userId, 'food_log_active_date');
+      const cachedDate = await AsyncStorage.getItem(activeDateKey);
+      if (cachedDate && cachedDate !== todayStr) {
+        await AsyncStorage.multiRemove([foodKey, waterKey]);
+      }
+      await AsyncStorage.setItem(activeDateKey, todayStr);
+
       // 1. Read user-scoped local storage for instant UI render
       let localItems: FoodLogItem[] = [];
       const savedFood = await AsyncStorage.getItem(foodKey);
@@ -76,29 +87,46 @@ export default function FoodLog() {
               return item;
             });
             setItems(localItems);
+            itemsRef.current = localItems;
           } else {
             setItems([]);
+            itemsRef.current = [];
           }
         } catch {
           setItems([]);
+          itemsRef.current = [];
         }
       } else {
         setItems([]);
+        itemsRef.current = [];
       }
 
       let localWater = 0;
+      let hasLocalWater = false;
       const savedWater = await AsyncStorage.getItem(waterKey);
-      if (savedWater) {
+      if (savedWater !== null) {
         localWater = parseInt(savedWater, 10) || 0;
+        hasLocalWater = true;
       }
       setWaterMl(localWater);
+      waterMlRef.current = localWater;
 
       // 2. Fetch authenticated user's actual database log for today
       if (userId) {
-        const todayStr = getTodayDateString();
+        const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+        const cachedCompleted = await AsyncStorage.getItem(dayCompletedKey);
+        let resolvedCompleted = cachedCompleted === 'true';
+        setIsDayCompleted(resolvedCompleted);
+
         try {
           const cloudRes = await getDailyFoodLogApi(todayStr);
           if (cloudRes?.data) {
+            if (typeof cloudRes.data.isCompleted === 'boolean') {
+              resolvedCompleted = cloudRes.data.isCompleted;
+              setIsDayCompleted(resolvedCompleted);
+              await AsyncStorage.setItem(dayCompletedKey, resolvedCompleted ? 'true' : 'false');
+            }
+
             let resolvedItems = localItems;
             if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
               if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
@@ -124,20 +152,27 @@ export default function FoodLog() {
                   };
                 });
                 setItems(resolvedItems);
+                itemsRef.current = resolvedItems;
                 await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
               } else if (localItems.length > cloudRes.data.meals.length) {
-                autoSyncFoodAndWater(userId, todayStr, localItems, Math.max(localWater, cloudRes.data.waterMl || 0));
+                autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
               }
             } else if (localItems.length > 0) {
-              autoSyncFoodAndWater(userId, todayStr, localItems, localWater);
+              autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
             }
 
             const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
-            const resolvedWater = Math.max(localWater, cloudWater);
-            setWaterMl(resolvedWater);
-            await AsyncStorage.setItem(waterKey, resolvedWater.toString());
-            if (localWater > cloudWater) {
-              autoSyncFoodAndWater(userId, todayStr, resolvedItems, resolvedWater);
+            let resolvedWater = localWater;
+            if (!hasLocalWater) {
+              resolvedWater = cloudWater;
+              setWaterMl(resolvedWater);
+              waterMlRef.current = resolvedWater;
+              await AsyncStorage.setItem(waterKey, resolvedWater.toString());
+            } else {
+              resolvedWater = localWater;
+              if (localWater !== cloudWater) {
+                autoSyncFoodAndWater(userId, todayStr, resolvedItems, localWater);
+              }
             }
           }
         } catch (apiErr) {
@@ -158,7 +193,8 @@ export default function FoodLog() {
   );
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
+    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', (evt?: { sender?: string; waterMl?: number }) => {
+      if (evt?.sender === 'foodlog_screen') return;
       loadInitialData();
     });
     return () => {
@@ -168,10 +204,11 @@ export default function FoodLog() {
 
   const saveFoodLog = async (newItems: FoodLogItem[]) => {
     setItems(newItems);
+    itemsRef.current = newItems;
     try {
       await AsyncStorage.setItem(foodKey, JSON.stringify(newItems));
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
-      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMl);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
+      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMlRef.current);
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -182,9 +219,12 @@ export default function FoodLog() {
     ? Math.max(2000, Math.round((user.weight * 35) / 250) * 250)
     : 2500;
 
-  const saveWater = async (newWater: number) => {
-    const clamped = Math.min(6000, Math.max(0, newWater));
-    if (waterMl < targetWaterMl && clamped >= targetWaterMl) {
+  const handleAddWaterDelta = (delta: number) => {
+    const current = waterMlRef.current;
+    const clamped = Math.min(6000, Math.max(0, current + delta));
+    if (current === clamped) return;
+
+    if (current < targetWaterMl && clamped >= targetWaterMl) {
       showToast({
         message: 'Hydration Goal Reached!',
         description: `You reached your daily water goal of ${targetWaterMl.toLocaleString()} ml.`,
@@ -192,14 +232,24 @@ export default function FoodLog() {
         iconName: 'water',
       });
     }
+
+    waterMlRef.current = clamped;
     setWaterMl(clamped);
-    try {
-      await AsyncStorage.setItem(waterKey, clamped.toString());
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
-      autoSyncFoodAndWater(userId, getTodayDateString(), items, clamped);
-    } catch (err) {
-      console.log('Error saving water:', err);
-    }
+
+    const todayStr = getTodayDateString();
+    const dateWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
+    AsyncStorage.setItem(waterKey, clamped.toString()).catch((err) =>
+      console.log('Error saving water:', err)
+    );
+    AsyncStorage.setItem(dateWaterKey, clamped.toString()).catch(() => {});
+
+    DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', waterMl: clamped });
+    autoSyncFoodAndWater(userId, todayStr, itemsRef.current, clamped);
+  };
+
+  const saveWater = (newWater: number) => {
+    const current = waterMlRef.current;
+    handleAddWaterDelta(newWater - current);
   };
 
   // Add Item handler (supports single item or batch array)
@@ -209,10 +259,11 @@ export default function FoodLog() {
 
     setItems((prevItems) => {
       const updated = [...prevItems, ...toAdd];
+      itemsRef.current = updated;
       AsyncStorage.setItem(foodKey, JSON.stringify(updated))
         .then(() => {
-          DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
-          autoSyncFoodAndWater(userId, getTodayDateString(), updated, waterMl);
+          DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
+          autoSyncFoodAndWater(userId, getTodayDateString(), updated, waterMlRef.current);
         })
         .catch((err) => console.log('Error saving food log:', err));
       return updated;
@@ -278,7 +329,7 @@ export default function FoodLog() {
     });
   };
 
-  // Save & Complete Daily Intake -> Commits snapshot into History and resets active day
+  // Save & Complete Daily Intake -> Commits snapshot into History and marks day completed
   const handleSaveAndCompleteDay = async () => {
     if (items.length === 0 && waterMl === 0) {
       showToast({
@@ -299,6 +350,9 @@ export default function FoodLog() {
     const historyDateKey = authStorage.getScopedKey(userId, `food_log_${todayStr}`);
     const historyWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
     const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
+    const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+
+    setIsDayCompleted(true);
 
     showToast({
       message: 'Daily Intake Completed! 🎉',
@@ -314,6 +368,7 @@ export default function FoodLog() {
       await Promise.all([
         AsyncStorage.setItem(historyDateKey, JSON.stringify(currentItems)),
         AsyncStorage.setItem(historyWaterKey, currentWater.toString()),
+        AsyncStorage.setItem(dayCompletedKey, 'true'),
         (async () => {
           const rawDates = await AsyncStorage.getItem(historyDatesKey);
           let datesArr: string[] = [];
@@ -332,13 +387,38 @@ export default function FoodLog() {
           date: todayStr,
           items: currentItems,
           waterMl: currentWater,
+          isCompleted: true,
         }).catch((apiErr) => {
           console.log('[FoodLog API] Failed to sync to cloud database, cached locally:', apiErr);
         }),
       ]);
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
     } catch (err) {
       console.log('Error in background food log archiving:', err);
+    }
+  };
+
+  const handleReopenDay = async () => {
+    const todayStr = getTodayDateString();
+    const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+    setIsDayCompleted(false);
+    try {
+      await AsyncStorage.setItem(dayCompletedKey, 'false');
+      await saveDailyFoodLogApi({
+        date: todayStr,
+        items: itemsRef.current,
+        waterMl: waterMlRef.current,
+        isCompleted: false,
+      });
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
+      showToast({
+        message: 'Day Reopened',
+        description: 'You can continue logging meals and tracking macros for today.',
+        type: 'info',
+        iconName: 'create-outline',
+      });
+    } catch (e) {
+      console.log('Error reopening day:', e);
     }
   };
 
@@ -375,7 +455,7 @@ export default function FoodLog() {
         <View className="flex-row items-center justify-between mb-4">
           <View>
             <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Nutrition Log 🥗
+              Nutrition
             </Text>
             <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
               Real-time daily fuel & macro tracking
@@ -497,15 +577,42 @@ export default function FoodLog() {
             <WaterTrackerCard
               waterMl={waterMl}
               targetMl={targetWaterMl}
-              onAddWater={(delta) => saveWater(waterMl + delta)}
+              onAddWater={handleAddWaterDelta}
             />
 
             {/* 5. Daily Summary Completion Control */}
-            <View className="mt-2">
-              <Button
-                title="Complete Day"
-                onPress={handleSaveAndCompleteDay}
-              />
+            <View className="mt-2 mb-4">
+              {isDayCompleted ? (
+                <View className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex-row items-center justify-between">
+                  <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                    <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center">
+                      <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        Daily Intake Completed 🎉
+                      </Text>
+                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                        {loggedCalories} kcal · {loggedProtein}g Protein sealed into History
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    onPress={handleReopenDay}
+                    activeOpacity={0.7}
+                    className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  >
+                    <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                      Reopen Day
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <Button
+                  title="Complete Day"
+                  onPress={handleSaveAndCompleteDay}
+                />
+              )}
             </View>
           </>
         )}

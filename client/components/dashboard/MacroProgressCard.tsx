@@ -106,7 +106,7 @@ export default function MacroProgressCard({
             </View>
             <ProgressBar
               percentage={carbsPercent}
-              color="#10B981"
+              color="#0284C7"
               height={5}
               className="mb-0"
             />
@@ -126,7 +126,7 @@ export default function MacroProgressCard({
             </View>
             <ProgressBar
               percentage={fatPercent}
-              color="#10B981"
+              color="#8B5CF6"
               height={5}
               className="mb-0"
             />

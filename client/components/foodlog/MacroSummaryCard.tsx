@@ -28,6 +28,10 @@ export default function MacroSummaryCard({
   const isOverLimit = loggedCalories > targets.calories;
   const isMuscleGain = goal === 'MUSCLE_GAIN';
 
+  const proteinPercent = Math.min(100, Math.round((loggedProtein / Math.max(1, targets.protein)) * 100));
+  const carbsPercent = Math.min(100, Math.round((loggedCarbs / Math.max(1, targets.carbs)) * 100));
+  const fatPercent = Math.min(100, Math.round((loggedFat / Math.max(1, targets.fat)) * 100));
+
   return (
     <SurfaceCard className="mb-3">
       {/* Card Header & Goal Tag */}
@@ -107,8 +111,7 @@ export default function MacroSummaryCard({
             </Text>
           </View>
           <ProgressBar
-            current={loggedProtein}
-            target={targets.protein}
+            percentage={proteinPercent}
             color="#10B981"
             height={5}
             className="mb-0"
@@ -128,9 +131,8 @@ export default function MacroSummaryCard({
             </Text>
           </View>
           <ProgressBar
-            current={loggedCarbs}
-            target={targets.carbs}
-            color="#10B981"
+            percentage={carbsPercent}
+            color="#0284C7"
             height={5}
             className="mb-0"
           />
@@ -149,9 +151,8 @@ export default function MacroSummaryCard({
             </Text>
           </View>
           <ProgressBar
-            current={loggedFat}
-            target={targets.fat}
-            color="#10B981"
+            percentage={fatPercent}
+            color="#8B5CF6"
             height={5}
             className="mb-0"
           />

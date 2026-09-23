@@ -9,12 +9,12 @@ interface WorkoutTabsProps {
   historyCount?: number;
 }
 
-const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange, historyCount }) => {
-  const tabs: { id: WorkoutTabType; label: string; badge?: number }[] = [
+const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
+  const tabs: { id: WorkoutTabType; label: string }[] = [
     { id: 'today', label: 'Today' },
     { id: 'planner', label: 'Planner' },
     { id: 'library', label: 'Library' },
-    { id: 'history', label: 'History', badge: historyCount },
+    { id: 'history', label: 'History' },
   ];
 
   return (
@@ -44,13 +44,6 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange, historyC
             >
               {tab.label}
             </Text>
-            {Boolean(tab.badge && tab.badge > 0) && (
-              <View className="ml-1 bg-emerald-500/20 px-1.5 py-0.5 rounded-full border border-emerald-500/30">
-                <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">
-                  {tab.badge}
-                </Text>
-              </View>
-            )}
           </TouchableOpacity>
         );
       })}

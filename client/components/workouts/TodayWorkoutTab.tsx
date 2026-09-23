@@ -213,8 +213,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
     }
   };
 
-  const hasCompletedWorkouts = completedSessionsCount > 0;
-
   // Calculate set completion status
   const totalSetsCount = exercises.reduce((acc, ex) => acc + ex.sets.length, 0);
   const completedSetsCount = exercises.reduce(
@@ -447,24 +445,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           </TouchableOpacity>
         </View>
       ) : null}
-
-      {/* AI WORKOUT PLAN CARD */}
-      <SurfaceCard className="mt-2 mb-3">
-        <View className="mb-2.5">
-          <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
-            AI Workout Calibration
-          </Text>
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-            {hasCompletedWorkouts ? 'Active personalized protocol' : 'Awaiting workout history'}
-          </Text>
-        </View>
-
-        <Text className="leading-5 text-text-muted dark:text-text-muted-dark text-xs">
-          {hasCompletedWorkouts
-            ? 'Based on your profile and tracked performance, your sessions are balanced for progressive overload and efficient recovery.'
-            : 'Track completed sets to allow the AI to calibrate optimal weight progressions and volume splits for your goal.'}
-        </Text>
-      </SurfaceCard>
 
       {/* TODAY'S TARGET MUSCLE SPLIT */}
       <SurfaceCard className="mb-3">

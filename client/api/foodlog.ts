@@ -32,6 +32,8 @@ export interface ApiDailyFoodLog {
   totalCarbs: number;
   totalFat: number;
   waterMl: number;
+  isCompleted?: boolean;
+  completedAt?: string | null;
   meals: ApiFoodMeal[];
   createdAt: string;
   updatedAt: string;
@@ -41,6 +43,7 @@ export interface SaveDailyFoodLogPayload {
   date: string;
   items: FoodLogItem[];
   waterMl?: number;
+  isCompleted?: boolean;
 }
 
 export interface SaveFoodLogResponse {
@@ -67,6 +70,14 @@ export const saveDailyFoodLogApi = (payload: SaveDailyFoodLogPayload): Promise<S
   });
 };
 
+// 1b. Mark Day's Intake as Officially Completed
+export const completeDailyFoodLogApi = (date: string): Promise<SaveFoodLogResponse> => {
+  return apiRequest('/api/food-logs/complete-day', {
+    method: 'POST',
+    body: { date },
+  });
+};
+
 // 2. Fetch User's Complete Food Log History from Database
 export const getFoodLogHistoryApi = (): Promise<GetFoodHistoryResponse> => {
   return apiRequest('/api/food-logs/history', {
@@ -89,6 +100,7 @@ export const deleteDailyFoodLogApi = (date: string) => {
 };
 
 let syncTimer: any = null;
+let pendingSyncPayload: { userId: string; date: string; items: FoodLogItem[]; waterMl: number } | null = null;
 
 /**
  * Debounced background auto-sync to PostgreSQL database.
@@ -102,21 +114,45 @@ export const autoSyncFoodAndWater = (
 ) => {
   if (!userId) return;
 
+  pendingSyncPayload = { userId, date, items, waterMl };
+
   if (syncTimer) {
     clearTimeout(syncTimer);
   }
 
   syncTimer = setTimeout(async () => {
+    if (!pendingSyncPayload) return;
+    const payload = { ...pendingSyncPayload };
     try {
       await saveDailyFoodLogApi({
-        date,
-        items,
-        waterMl,
+        date: payload.date,
+        items: payload.items,
+        waterMl: payload.waterMl,
       });
     } catch (err) {
       console.log('[FoodLog API] Background auto-sync deferred/failed:', err);
     }
   }, 600);
+};
+
+export const flushSyncFoodAndWater = async () => {
+  if (syncTimer) {
+    clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+  if (pendingSyncPayload) {
+    const payload = { ...pendingSyncPayload };
+    pendingSyncPayload = null;
+    try {
+      await saveDailyFoodLogApi({
+        date: payload.date,
+        items: payload.items,
+        waterMl: payload.waterMl,
+      });
+    } catch (err) {
+      console.log('[FoodLog API] Flush sync failed:', err);
+    }
+  }
 };
 
 

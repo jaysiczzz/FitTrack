@@ -33,6 +33,7 @@ export interface UnifiedDayData {
   workoutMinutes: number;
   // Nutrition details
   hasNutrition: boolean;
+  isNutritionInProgress?: boolean;
   nutritionSummary?: DailyFoodHistorySummary;
   foodCalories: number;
   foodProtein: number;
@@ -233,6 +234,12 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             const totalCarb = items.reduce((sum, item) => sum + (item.carbs || 0), 0);
             const totalFatVal = items.reduce((sum, item) => sum + (item.fat || 0), 0);
 
+            const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${dateStr}`);
+            const rawCompleted = await AsyncStorage.getItem(dayCompletedKey);
+            const isCompleted = dateStr === getTodayDateString()
+              ? (rawCompleted === 'true' || Boolean(backendEntry?.isCompleted))
+              : (rawCompleted === 'true' || (rawCompleted !== 'false' && (backendEntry?.isCompleted ?? true)));
+
             summaries.push({
               date: dateStr,
               formattedDate: formatDateHeading(dateStr),
@@ -242,6 +249,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               totalCarbs: totalCarb,
               totalFat: totalFatVal,
               waterMl,
+              isCompleted,
+              completedAt: backendEntry?.completedAt || null,
             });
           }
 
@@ -334,7 +343,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
       const waterMl = nutrition?.waterMl || 0;
 
       const hasWorkout = sessions.length > 0;
-      const hasNutrition = Boolean(nutrition && (nutrition.items.length > 0 || nutrition.waterMl > 0));
+      const hasNutrition = Boolean(nutrition && nutrition.isCompleted && (nutrition.items.length > 0 || nutrition.waterMl > 0));
+      const isNutritionInProgress = Boolean(nutrition && !nutrition.isCompleted && (nutrition.items.length > 0 || nutrition.waterMl > 0));
 
       return {
         dateStr,
@@ -347,6 +357,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         workoutCalories,
         workoutMinutes,
         hasNutrition,
+        isNutritionInProgress,
         nutritionSummary: nutrition,
         foodCalories,
         foodProtein,
@@ -583,6 +594,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             // Indicator logic based on filter
             const showWorkoutDot = (filter === 'all' || filter === 'workouts') && day.hasWorkout;
             const showNutritionDot = (filter === 'all' || filter === 'nutrition') && day.hasNutrition;
+            const showNutritionPendingDot = (filter === 'all' || filter === 'nutrition') && !day.hasNutrition && day.isNutritionInProgress;
             const isFullyActive = day.hasWorkout && day.hasNutrition;
 
             return (
@@ -607,6 +619,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                       : showNutritionDot
                       ? 'bg-amber-500/15 border-amber-500/40'
+                      : showNutritionPendingDot
+                      ? 'bg-amber-500/5 border-dashed border-amber-500/30'
                       : 'bg-input/40 dark:bg-input-dark/40 border-input-border/40 dark:border-input-border-dark/40'
                   } ${!day.isCurrentMonth ? 'opacity-30' : 'opacity-100'}`}
                 >
@@ -619,6 +633,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                         ? 'font-black text-accent dark:text-accent-dark'
                         : showWorkoutDot || showNutritionDot
                         ? 'font-black text-text-primary dark:text-text-primary-dark'
+                        : showNutritionPendingDot
+                        ? 'font-bold text-amber-600 dark:text-amber-400'
                         : 'font-semibold text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -638,6 +654,13 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       <View
                         className={`w-1.5 h-1.5 rounded-full ${
                           isSelected ? 'bg-amber-200' : 'bg-amber-500'
+                        }`}
+                      />
+                    )}
+                    {showNutritionPendingDot && (
+                      <View
+                        className={`w-1.5 h-1.5 rounded-full border ${
+                          isSelected ? 'border-amber-200' : 'border-amber-500'
                         }`}
                       />
                     )}
@@ -695,7 +718,9 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                     : selectedDayData.hasWorkout
                     ? `${selectedDayData.workoutSessions.length} Workout(s) Logged`
                     : selectedDayData.hasNutrition
-                    ? 'Meals & Hydration Logged'
+                    ? 'Nutrition Day Completed'
+                    : selectedDayData.isNutritionInProgress
+                    ? 'Meals & Hydration (In Progress)'
                     : 'Rest & Fasting Day'}
                 </Text>
               </View>

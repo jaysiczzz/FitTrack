@@ -21,10 +21,59 @@ export interface SaveDailyFoodLogInput {
   date: string
   items: FoodMealInput[]
   waterMl?: number
+  isCompleted?: boolean
+}
+
+export async function completeDailyFoodLogInDb(userId: string, date: string) {
+  const existing = await prisma.dailyFoodLog.findUnique({
+    where: {
+      userId_date: {
+        userId,
+        date,
+      },
+    },
+  })
+
+  if (!existing) {
+    return await prisma.dailyFoodLog.create({
+      data: {
+        userId,
+        date,
+        totalCalories: 0,
+        totalProtein: 0,
+        totalCarbs: 0,
+        totalFat: 0,
+        waterMl: 0,
+        isCompleted: true,
+        completedAt: new Date(),
+      },
+      include: {
+        meals: true,
+      },
+    })
+  }
+
+  return await prisma.dailyFoodLog.update({
+    where: {
+      userId_date: {
+        userId,
+        date,
+      },
+    },
+    data: {
+      isCompleted: true,
+      completedAt: new Date(),
+    },
+    include: {
+      meals: {
+        orderBy: { createdAt: 'asc' },
+      },
+    },
+  })
 }
 
 export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodLogInput) {
-  const { date, items, waterMl = 0 } = input
+  const { date, items, waterMl = 0, isCompleted } = input
 
   const totalCalories = items.reduce((sum, i) => sum + (Number(i.calories) || 0), 0)
   const totalProtein = items.reduce((sum, i) => sum + (Number(i.protein) || 0), 0)
@@ -33,6 +82,20 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
 
   // Use a transaction to upsert DailyFoodLog and replace its meals
   return await prisma.$transaction(async (tx) => {
+    // Check existing log to preserve isCompleted if not explicitly provided
+    const existing = await tx.dailyFoodLog.findUnique({
+      where: {
+        userId_date: {
+          userId,
+          date,
+        },
+      },
+      select: { isCompleted: true, completedAt: true },
+    })
+
+    const finalIsCompleted = isCompleted !== undefined ? isCompleted : (existing?.isCompleted ?? false)
+    const finalCompletedAt = finalIsCompleted ? (existing?.completedAt ?? new Date()) : null
+
     // 1. Upsert the DailyFoodLog parent record
     const dailyLog = await tx.dailyFoodLog.upsert({
       where: {
@@ -47,6 +110,8 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
         totalCarbs,
         totalFat,
         waterMl,
+        isCompleted: finalIsCompleted,
+        completedAt: finalCompletedAt,
         updatedAt: new Date(),
       },
       create: {
@@ -57,6 +122,8 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
         totalCarbs,
         totalFat,
         waterMl,
+        isCompleted: finalIsCompleted,
+        completedAt: finalCompletedAt,
       },
     })
 
@@ -159,7 +226,10 @@ export function formatFoodLogMeal(meal: any) {
 
 export async function getFoodLogHistoryFromDb(userId: string) {
   const history = await prisma.dailyFoodLog.findMany({
-    where: { userId },
+    where: {
+      userId,
+      isCompleted: true,
+    },
     include: {
       meals: {
         orderBy: { createdAt: 'asc' },

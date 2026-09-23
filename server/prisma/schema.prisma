@@ -131,6 +131,8 @@ model DailyFoodLog {
   totalCarbs    Float         @default(0)
   totalFat      Float         @default(0)
   waterMl       Int           @default(0)
+  isCompleted   Boolean       @default(false)
+  completedAt   DateTime?
   meals         FoodLogMeal[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
