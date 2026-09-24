@@ -364,35 +364,63 @@ export interface UserChatContext {
   goal?: string
   caloriesLoggedToday?: number
   targetCalories?: number
+  proteinLoggedToday?: number
+  targetProtein?: number
+  carbsLoggedToday?: number
+  fatLoggedToday?: number
   waterMl?: number
   workoutDoneToday?: boolean
+  todayWorkoutTitle?: string
+  workoutsCompletedThisWeek?: number
+  todayCheckInMood?: string
+  todayCheckInNotes?: string
+  checkInStreak?: number
 }
 
 export async function chatWithAICoach(
   messages: ChatMessage[],
   context: UserChatContext = {}
 ): Promise<string> {
-  const systemPrompt = `You are FitTrack Coach, an elite, motivating, evidence-based fitness and nutrition coach inside the FitTrack mobile app.
+  const goalDisplay =
+    context.goal === 'MUSCLE_GAIN'
+      ? 'Muscle Gain / Hypertrophy'
+      : context.goal === 'WEIGHT_LOSS'
+      ? 'Fat Loss / Cutting'
+      : context.goal || 'General Health & Fitness'
+
+  const systemPrompt = `You are FitTrack Coach, an elite, motivating, evidence-based fitness and sports nutrition coach inside the FitTrack mobile app.
 You are conversing directly with ${context.firstName || 'the user'}.
 
-User Profile & Live Stats Today:
-- Fitness Goal: ${context.goal || 'General Health & Fitness'}
-- Body Stats: ${context.weight ? context.weight + ' kg' : 'N/A'}, ${context.height ? context.height + ' cm' : 'N/A'}, ${context.age ? context.age + ' years old' : 'N/A'}
-- Today's Nutrition: ${context.caloriesLoggedToday ?? 0} kcal logged (Target: ${context.targetCalories || 2000} kcal)
-- Water Intake: ${context.waterMl ?? 0} / 2000 ml
-- Today's Workout: ${context.workoutDoneToday ? 'Completed! 💪' : 'Not completed yet today'}
+=== User Real-Time Profile & Daily Context ===
+- Fitness Goal: ${goalDisplay}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
+- Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
+- Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
+  * Protein: ${context.proteinLoggedToday ?? 0}g / ${context.targetProtein || 140}g
+  * Carbs: ${context.carbsLoggedToday ?? 0}g
+  * Fat: ${context.fatLoggedToday ?? 0}g
+- Water Hydration: ${context.waterMl ?? 0} / 2000 ml
+- Workout Today: ${context.workoutDoneToday ? `Completed (${context.todayWorkoutTitle || 'Session'}) 💪` : 'Not completed yet today'}
+- Workouts This Week: ${context.workoutsCompletedThisWeek ?? 0} sessions
 
-Coaching Principles:
-1. Provide actionable, concise, science-backed guidance on nutrition, macros, workout programming, exercise form, recovery, and fitness mindset.
-2. Keep answers formatted for clean mobile reading: use short paragraphs, bold key terms, and bullet points.
-3. If giving meal ideas, provide approximate calories and protein estimates.
-4. If asked about exercise technique, emphasize safety, breathing, and progressive overload.
-5. If the user mentions injury, chest pain, or medical concerns, compassionately advise seeing a doctor or physical therapist.
-6. Speak in an encouraging, knowledgeable, coaching tone.`
+=== Coaching Principles & Response Guidelines ===
+1. Personalize advice deeply using the user's real-time stats, readiness mood, and goal.
+   - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
+   - If feeling strong or energized, urge progressive overload and intensity.
+   - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+2. Structure answers specifically for clean mobile reading:
+   - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
+   - When suggesting meals or snacks, include estimated calories and protein.
+   - When giving workout tips, specify sets, reps, and form safety cues.
+3. If the user mentions acute injury, chest pain, or medical symptoms, compassionately advise seeing a doctor or physical therapist.
+4. Keep an inspiring, positive, and disciplined coaching tone.`
 
-  const conversationHistory = messages.map((m) => {
-    return `${m.role === 'user' ? 'User' : 'FitTrack Coach'}: ${m.content}`
-  }).join('\n\n')
+  const conversationHistory = messages
+    .map((m) => {
+      return `${m.role === 'user' ? 'User' : 'FitTrack Coach'}: ${m.content}`
+    })
+    .join('\n\n')
 
   const prompt = `${systemPrompt}\n\n=== Conversation History ===\n${conversationHistory}\n\nFitTrack Coach:`
 
