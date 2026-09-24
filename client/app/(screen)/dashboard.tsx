@@ -101,6 +101,7 @@ export default function Dashboard() {
 
   const waterMlRef = useRef(0);
   const dashboardItemsRef = useRef<FoodLogItem[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
 
   // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
@@ -392,9 +393,17 @@ export default function Dashboard() {
     const subW = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
       loadWorkoutProgress();
     });
+    const subC = DeviceEventEmitter.addListener('DAILY_CHECKIN_UPDATED', (evt?: { isCheckedIn?: boolean }) => {
+      if (typeof evt?.isCheckedIn === 'boolean') {
+        setIsCheckedIn(evt.isCheckedIn);
+      } else {
+        loadDailyCheckIn();
+      }
+    });
     return () => {
       sub.remove();
       subW.remove();
+      subC.remove();
     };
   }, [userId]);
 
@@ -486,6 +495,7 @@ export default function Dashboard() {
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
         refreshControl={
@@ -597,6 +607,7 @@ export default function Dashboard() {
           waterMl={waterMl}
           targetWaterMl={targetWater}
           onQuickAddWater={handleQuickAddWater}
+          onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
 
         {/* AI Insights & Predictions */}

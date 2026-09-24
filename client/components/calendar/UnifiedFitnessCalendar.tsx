@@ -6,6 +6,8 @@ import { CompletedSession, formatDateHeading, getTodayDateString } from '../work
 import { DailyFoodHistorySummary, FoodLogItem, getSmartFoodBadge, MEAL_LABELS } from '../foodlog/foodLogTypes';
 import { getWorkoutHistory } from '@/api/workout';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '@/api/foodlog';
+import { getCheckInHistoryApi, CheckInRecord } from '@/api/checkin';
+import { MOODS } from '../dashboard/DailyCheckInCard';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
@@ -42,6 +44,8 @@ export interface UnifiedDayData {
   waterMl: number;
   // Net energy balance
   netCalories: number;
+  // Daily readiness check-in
+  checkIn?: CheckInRecord | null;
 }
 
 interface UnifiedFitnessCalendarProps {
@@ -86,6 +90,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   // Self-managed data fallbacks if not passed in props
   const [localWorkouts, setLocalWorkouts] = useState<CompletedSession[]>([]);
   const [localNutrition, setLocalNutrition] = useState<DailyFoodHistorySummary[]>([]);
+  const [localCheckIns, setLocalCheckIns] = useState<Record<string, CheckInRecord>>({});
   const [loadingData, setLoadingData] = useState(false);
 
   const activeSelectedDate = externalSelectedDate !== undefined ? externalSelectedDate : internalSelectedDate;
@@ -259,6 +264,20 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
           console.log('[Unified Calendar] Nutrition fallback used');
         }
       }
+
+      // 3. Load check-in readiness history
+      try {
+        const checkinRes = await getCheckInHistoryApi(90);
+        if (checkinRes.success && Array.isArray(checkinRes.history) && isMounted) {
+          const map: Record<string, CheckInRecord> = {};
+          checkinRes.history.forEach((c) => {
+            map[c.date] = c;
+          });
+          setLocalCheckIns(map);
+        }
+      } catch (e) {
+        console.log('[Unified Calendar] Check-in history fallback used');
+      }
     };
 
     loadStandaloneData();
@@ -365,6 +384,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         foodFat,
         waterMl,
         netCalories: foodCalories - workoutCalories,
+        checkIn: localCheckIns[dateStr] || null,
       };
     };
 
@@ -392,7 +412,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
     }
 
     return days;
-  }, [currentYear, currentMonth, activeWorkouts, activeNutrition, activeSelectedDate, todayStr]);
+  }, [currentYear, currentMonth, activeWorkouts, activeNutrition, localCheckIns, activeSelectedDate, todayStr]);
 
   // Monthly Overview Analytics
   const currentMonthDays = useMemo(() => calendarDays.filter((d) => d.isCurrentMonth), [calendarDays]);
@@ -664,6 +684,13 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                         }`}
                       />
                     )}
+                    {day.checkIn && (
+                      <View
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isSelected ? 'bg-sky-200' : 'bg-sky-400'
+                        }`}
+                      />
+                    )}
                   </View>
                 </TouchableOpacity>
               </View>
@@ -684,6 +711,12 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               <View className="w-2 h-2 rounded-full bg-amber-500" />
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
                 Meals
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-1">
+              <View className="w-2 h-2 rounded-full bg-sky-400" />
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
+                Readiness
               </Text>
             </View>
             <View className="flex-row items-center gap-1">
@@ -737,6 +770,36 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Daily Readiness Check-In Card if Logged */}
+          {selectedDayData.checkIn && (() => {
+            const mood = MOODS.find((m) => m.id === selectedDayData.checkIn?.moodId);
+            return (
+              <View className="bg-input dark:bg-input-dark p-3 rounded-2xl mb-3 border border-input-border dark:border-input-border-dark flex-row items-start">
+                <Text className="text-2xl mr-3">{mood?.emoji || '⚡'}</Text>
+                <View className="flex-1">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
+                      Daily Readiness: {selectedDayData.checkIn.moodLabel}
+                    </Text>
+                    <View className="bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <Text className="text-[9px] font-bold text-accent dark:text-accent-dark uppercase">
+                        Logged
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1 leading-snug">
+                    {selectedDayData.checkIn.coachTip}
+                  </Text>
+                  {selectedDayData.checkIn.notes ? (
+                    <Text className="text-xs italic text-accent dark:text-accent-dark mt-1.5 font-medium">
+                      “{selectedDayData.checkIn.notes}”
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })()}
 
           {/* Net Calorie Balance Card (When both food and workout exist, or either) */}
           {(selectedDayData.hasWorkout || selectedDayData.hasNutrition) && (
