@@ -28,6 +28,7 @@ interface DailyGoalsCardProps {
   waterMl: number;
   targetWaterMl?: number;
   onQuickAddWater: (amountMl: number) => void;
+  onCheckInPress?: () => void;
 }
 
 export default function DailyGoalsCard({
@@ -42,6 +43,7 @@ export default function DailyGoalsCard({
   waterMl,
   targetWaterMl = 2500,
   onQuickAddWater,
+  onCheckInPress,
 }: DailyGoalsCardProps) {
   const router = useRouter();
   const { colors } = useThemeColors();
@@ -57,6 +59,8 @@ export default function DailyGoalsCard({
       subtitle: isCheckedIn ? 'Completed morning readiness check' : 'Log your mood and energy above',
       isCompleted: isCheckedIn,
       progressText: isCheckedIn ? '1/1 Done' : 'Pending',
+      actionLabel: isCheckedIn ? undefined : (onCheckInPress ? 'Check In' : undefined),
+      onAction: onCheckInPress,
     },
     {
       id: 'nutrition',

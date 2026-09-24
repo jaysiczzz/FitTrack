@@ -24,6 +24,7 @@ model User {
   customFoods     Food[]
   refreshTokens   RefreshToken[]
   testimonials    Testimonial[]
+  dailyCheckIns   DailyCheckIn[]
 }
 
 enum Goal {
@@ -236,5 +237,24 @@ model Testimonial {
   @@index([goal])
   @@index([userId])
   @@index([isFeatured])
+}
+
+model DailyCheckIn {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String   // "YYYY-MM-DD" e.g. "2026-09-24"
+  moodId      String   // "fire" | "strong" | "good" | "tired" | "rest"
+  moodLabel   String   // "Energized", "Strong", "Balanced", "Low Energy", "Recovery"
+  coachTip    String
+  quote       String?
+  quoteAuthor String?
+  notes       String?  // Optional reflection note
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
 
