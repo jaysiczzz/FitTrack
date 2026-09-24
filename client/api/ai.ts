@@ -114,3 +114,15 @@ export const chatWithCoachApi = async (
   });
 };
 
+export const getChatHistoryApi = async (): Promise<{ success: boolean; messages: ChatMessage[] }> => {
+  return apiRequest('/api/ai/chat/history', {
+    method: 'GET',
+  });
+};
+
+export const clearChatHistoryApi = async (): Promise<{ success: boolean; message: string }> => {
+  return apiRequest('/api/ai/chat/history', {
+    method: 'DELETE',
+  });
+};
+
