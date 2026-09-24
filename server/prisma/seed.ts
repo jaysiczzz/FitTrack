@@ -697,6 +697,94 @@ async function seed() {
   }
   console.log(`✅ Seeded ${foodsSeeded} verified staple foods.`)
 
+  // ===================== SEED VERIFIED ATHLETE TESTIMONIALS =====================
+  const SEED_TESTIMONIALS = [
+    {
+      authorName: 'Marcus T.',
+      rating: 5,
+      content: "FitTrack's daily readiness check-in and camera food scanner kept me accountable every single day. Dropping 12kg without feeling starved changed my relationship with food forever.",
+      highlightBadge: '🔥 -12kg in 16 Weeks',
+      goal: 'WEIGHT_LOSS' as const,
+      isFeatured: true,
+      helpfulCount: 42,
+      weightChangeKg: -12.0,
+      durationWeeks: 16,
+      verifiedAthlete: true,
+    },
+    {
+      authorName: 'Sarah L.',
+      rating: 5,
+      content: 'The progressive overload tracking in the workout logger is unmatched. Hit personal bests on both my squat and deadlift within 3 months of following the structured routine!',
+      highlightBadge: '💪 +4.5kg Muscle Mass',
+      goal: 'MUSCLE_GAIN' as const,
+      isFeatured: true,
+      helpfulCount: 38,
+      weightChangeKg: 4.5,
+      durationWeeks: 12,
+      verifiedAthlete: true,
+    },
+    {
+      authorName: 'David K.',
+      rating: 5,
+      content: 'The AI Coach routines broke my 6-month plateau. Having tailored warm-up sets and dynamic target adjustments made all the difference.',
+      highlightBadge: '🏆 100kg Bench Press PR',
+      goal: 'MUSCLE_GAIN' as const,
+      isFeatured: true,
+      helpfulCount: 29,
+      weightChangeKg: 2.0,
+      durationWeeks: 8,
+      verifiedAthlete: true,
+    },
+    {
+      authorName: 'Elena R.',
+      rating: 5,
+      content: 'What I love most is the simplicity. Logging meals with the camera scanner takes literally 10 seconds. Down 7kg and feeling more energetic than ever!',
+      highlightBadge: '⚡ 45-Day Consistency Streak',
+      goal: 'WEIGHT_LOSS' as const,
+      isFeatured: true,
+      helpfulCount: 35,
+      weightChangeKg: -7.0,
+      durationWeeks: 10,
+      verifiedAthlete: true,
+    },
+    {
+      authorName: 'Alex M.',
+      rating: 5,
+      content: 'Finally hitting my daily macro goals with consistency. The macro progress rings and nutrition insights keep me dialed in throughout my bulking phase.',
+      highlightBadge: '🥗 160g Daily Protein Target',
+      goal: 'MUSCLE_GAIN' as const,
+      isFeatured: true,
+      helpfulCount: 24,
+      weightChangeKg: 3.2,
+      durationWeeks: 14,
+      verifiedAthlete: true,
+    },
+    {
+      authorName: 'Jessica P.',
+      rating: 5,
+      content: 'Started using FitTrack for weight loss and ended up falling in love with daily readiness check-ins and recovery tracking. Highly recommend to anyone seeking consistency.',
+      highlightBadge: '🏃‍♀️ First 10K & -5kg',
+      goal: 'WEIGHT_LOSS' as const,
+      isFeatured: true,
+      helpfulCount: 31,
+      weightChangeKg: -5.0,
+      durationWeeks: 9,
+      verifiedAthlete: true,
+    },
+  ]
+
+  let testimonialsSeeded = 0
+  for (const t of SEED_TESTIMONIALS) {
+    const existingT = await prisma.testimonial.findFirst({
+      where: { authorName: t.authorName },
+    })
+    if (!existingT) {
+      await prisma.testimonial.create({ data: t })
+      testimonialsSeeded++
+    }
+  }
+  console.log(`✅ Seeded ${testimonialsSeeded} athlete testimonials.`)
+
   console.log('🎉 FitTrack Seeding Completed Successfully!')
 }
 
