@@ -93,15 +93,20 @@ export async function analyzeMealWithAI(params: {
   imageBase64?: string
   mimeType?: string
 }): Promise<MealAnalysisResult> {
-  const promptText = `Analyze this meal (from text description and/or image) and provide accurate nutritional estimation.
-  User Description: ${params.description || 'Not provided'}
+  const promptText = `Analyze this food image and/or text description and provide comprehensive nutritional estimation.
+  User Description / Context: ${params.description || 'Not provided'}
   
   Guidelines:
-  - If multiple distinct food items are visible on the plate (e.g., grilled chicken breast, white rice, broccoli), identify each item in the "items" array with its individual estimated portion and macros.
-  - Sum the items into the overall meal totals (calories, protein, carbs, fat, fiber, sugar, sodiumMg, saturatedFat).
-  - Estimate a confidenceScore between 0.60 and 0.98 based on visual clarity and portion visibility.
-  - Include relevant dietaryFlags (e.g. "High Protein", "Low Carb", "Keto-Friendly", "High Fiber", "Whole Foods").
-  - Provide a brief 1-sentence health insight or tip in healthNotes.
+  1. NUTRITION FACTS LABEL OR PACKAGED PRODUCT:
+     - If the image contains a Nutrition Facts panel or food packaging, extract the exact stated serving size, calories, protein, total carbohydrates, total fat, dietary fiber, total sugar, sodium (in mg), and saturated fat.
+     - Set confidenceScore to 0.98. Use the exact product/brand name for foodName.
+  2. COMPOSITE OR PLATED MEALS:
+     - If multiple distinct food items are on the plate (e.g. grilled chicken breast, brown rice, steamed broccoli), identify each item in the "items" array with individual portion and macros.
+     - Sum the items into the overall meal totals (calories, protein, carbs, fat, fiber, sugar, sodiumMg, saturatedFat).
+     - Estimate confidenceScore (0.65 - 0.95) based on visual clarity and portion visibility.
+  3. GENERAL METADATA:
+     - Include relevant dietaryFlags (e.g. "High Protein", "Low Carb", "Keto-Friendly", "High Fiber", "Whole Foods", "Gluten-Free").
+     - In healthNotes, provide a concise 1-sentence health insight or coach tip about this food's nutritional profile.
   
   Return a structured JSON.`
 

@@ -10,6 +10,7 @@ import {
   cacheOpenFoodFactsProduct,
   createCustomFoodInDb,
   deleteCustomFoodFromDb,
+  lookupProductByBarcode,
 } from '../services/foodlog.service'
 
 export async function saveDayLogController(
@@ -412,3 +413,31 @@ export async function deleteCustomFoodController(
     next(err)
   }
 }
+
+export async function lookupBarcodeController(
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+) {
+  try {
+    const rawBarcode = Array.isArray(req.params.barcode) ? req.params.barcode[0] : req.params.barcode
+    const barcode = (rawBarcode || '').trim()
+
+    if (!barcode) {
+      return res.status(400).json({ success: false, error: 'Barcode parameter is required' })
+    }
+
+    const food = await lookupProductByBarcode(barcode)
+    if (!food) {
+      return res.status(404).json({
+        success: false,
+        message: 'Product not found for this barcode in verified catalog or Open Food Facts.',
+      })
+    }
+
+    return res.status(200).json({ success: true, food })
+  } catch (err) {
+    next(err)
+  }
+}
+

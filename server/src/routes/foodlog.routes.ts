@@ -6,6 +6,7 @@ import {
   getDayLogController,
   deleteDayLogController,
   searchFoodsOnlineController,
+  lookupBarcodeController,
   createCustomFoodController,
   deleteCustomFoodController,
 } from '../controllers/foodlog.controller'
@@ -15,6 +16,7 @@ const router = Router()
 
 // All food log routes require user authentication
 router.get('/search', authMiddleware, searchFoodsOnlineController)
+router.get('/barcode/:barcode', authMiddleware, lookupBarcodeController)
 router.post('/custom', authMiddleware, createCustomFoodController)
 router.delete('/custom/:id', authMiddleware, deleteCustomFoodController)
 router.post('/save-day', authMiddleware, saveDayLogController)

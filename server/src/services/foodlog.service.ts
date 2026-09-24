@@ -363,6 +363,177 @@ export async function cacheOpenFoodFactsProduct(product: {
   }
 }
 
+export async function lookupProductByBarcode(barcode: string) {
+  const cleanBarcode = barcode.trim()
+  if (!cleanBarcode) return null
+
+  // 1. Check local database first
+  const localMatch = await prisma.food.findFirst({
+    where: { barcode: cleanBarcode },
+  })
+
+  if (localMatch) {
+    return {
+      id: localMatch.id,
+      name: localMatch.name,
+      brand: localMatch.brand || undefined,
+      barcode: localMatch.barcode || cleanBarcode,
+      category: localMatch.category || 'Packaged Food',
+      servingSize: localMatch.servingSize,
+      servingWeightG: localMatch.servingWeightG,
+      servingUnit: localMatch.servingUnit,
+      calories: localMatch.calories,
+      protein: localMatch.protein,
+      carbs: localMatch.carbs,
+      fat: localMatch.fat,
+      fiber: localMatch.fiber || undefined,
+      description: localMatch.description || undefined,
+      ingredients: localMatch.ingredients || undefined,
+      icon: localMatch.icon || '📦',
+      isVerified: localMatch.isVerified,
+      isCustom: localMatch.source === 'USER_CUSTOM',
+      isOnlineResult: localMatch.source === 'OPEN_FOOD_FACTS',
+      imageUri: localMatch.imageUrl || undefined,
+    }
+  }
+
+  // 2. Fetch from Open Food Facts API
+  const url = `https://world.openfoodfacts.org/api/v2/product/${encodeURIComponent(cleanBarcode)}.json`
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 6000)
+
+  try {
+    const resp = await fetch(url, {
+      signal: controller.signal,
+      headers: {
+        'User-Agent': 'FitTrack-Fitness-App - Version 1.0 - www.fittrack.com',
+      },
+    })
+
+    if (!resp.ok) return null
+    const data = await resp.json()
+
+    if (data?.status === 1 && data.product) {
+      const p = data.product
+      const name = (p.product_name || p.product_name_en || 'Packaged Product').trim()
+      const brand = (p.brands || '').split(',')[0]?.trim() || undefined
+      const nutriments = p.nutriments || {}
+
+      const servingSize = p.serving_size || '100g'
+      const servingWeightG = Number(p.serving_quantity) || 100
+
+      const cals = Math.round(
+        Number(
+          nutriments['energy-kcal_serving'] ||
+            nutriments['energy-kcal_100g'] ||
+            nutriments['energy-kcal'] ||
+            (nutriments['energy_100g'] ? nutriments['energy_100g'] / 4.184 : 0)
+        )
+      )
+
+      const protein =
+        Math.round(
+          Number(nutriments.proteins_serving || nutriments.proteins_100g || nutriments.proteins || 0) * 10
+        ) / 10
+      const carbs =
+        Math.round(
+          Number(
+            nutriments.carbohydrates_serving ||
+              nutriments.carbohydrates_100g ||
+              nutriments.carbohydrates ||
+              0
+          ) * 10
+        ) / 10
+      const fat =
+        Math.round(
+          Number(nutriments.fat_serving || nutriments.fat_100g || nutriments.fat || 0) * 10
+        ) / 10
+      const fiber =
+        nutriments.fiber_serving || nutriments.fiber_100g || nutriments.fiber
+          ? Math.round(
+              Number(nutriments.fiber_serving || nutriments.fiber_100g || nutriments.fiber) * 10
+            ) / 10
+          : undefined
+      const sugar =
+        nutriments.sugars_serving || nutriments.sugars_100g || nutriments.sugars
+          ? Math.round(
+              Number(nutriments.sugars_serving || nutriments.sugars_100g || nutriments.sugars) * 10
+            ) / 10
+          : undefined
+      const sodiumMg =
+        nutriments.sodium_serving || nutriments.sodium_100g || nutriments.sodium
+          ? Math.round(
+              Number(nutriments.sodium_serving || nutriments.sodium_100g || nutriments.sodium) * 1000
+            )
+          : undefined
+      const saturatedFat =
+        nutriments['saturated-fat_serving'] ||
+        nutriments['saturated-fat_100g'] ||
+        nutriments['saturated-fat']
+          ? Math.round(
+              Number(
+                nutriments['saturated-fat_serving'] ||
+                  nutriments['saturated-fat_100g'] ||
+                  nutriments['saturated-fat']
+              ) * 10
+            ) / 10
+          : undefined
+
+      const ingredients = p.ingredients_text || p.ingredients_text_en || undefined
+      const imageUrl = p.image_front_url || p.image_url || undefined
+
+      // Cache product in local database for fast future lookups
+      await cacheOpenFoodFactsProduct({
+        name,
+        brand,
+        barcode: cleanBarcode,
+        category: p.categories?.split(',')[0]?.trim() || 'Packaged Food',
+        servingSize,
+        servingWeightG,
+        servingUnit: 'g',
+        calories: cals,
+        protein,
+        carbs,
+        fat,
+        fiber,
+        ingredients,
+        imageUrl,
+      })
+
+      return {
+        id: `off-${cleanBarcode}`,
+        name,
+        brand,
+        barcode: cleanBarcode,
+        category: p.categories?.split(',')[0]?.trim() || 'Packaged Food',
+        servingSize,
+        servingWeightG,
+        servingUnit: 'g',
+        calories: cals,
+        protein,
+        carbs,
+        fat,
+        fiber,
+        sugar,
+        sodiumMg,
+        saturatedFat,
+        ingredients,
+        icon: '📦',
+        isVerified: true,
+        isCustom: false,
+        isOnlineResult: true,
+        imageUri: imageUrl,
+      }
+    }
+  } catch (err) {
+    console.log('[Barcode Lookup] Error fetching from Open Food Facts:', err)
+  } finally {
+    clearTimeout(timeout)
+  }
+
+  return null
+}
+
 export async function createCustomFoodInDb(userId: string, data: {
   name: string
   brand?: string
