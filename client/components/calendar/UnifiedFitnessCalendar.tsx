@@ -6,6 +6,8 @@ import { CompletedSession, formatDateHeading, getTodayDateString } from '../work
 import { DailyFoodHistorySummary, FoodLogItem, getSmartFoodBadge, MEAL_LABELS } from '../foodlog/foodLogTypes';
 import { getWorkoutHistory } from '@/api/workout';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '@/api/foodlog';
+import { getCheckInHistoryApi, CheckInRecord } from '@/api/checkin';
+import { MOODS } from '../dashboard/DailyCheckInCard';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
@@ -33,6 +35,7 @@ export interface UnifiedDayData {
   workoutMinutes: number;
   // Nutrition details
   hasNutrition: boolean;
+  isNutritionInProgress?: boolean;
   nutritionSummary?: DailyFoodHistorySummary;
   foodCalories: number;
   foodProtein: number;
@@ -41,6 +44,8 @@ export interface UnifiedDayData {
   waterMl: number;
   // Net energy balance
   netCalories: number;
+  // Daily readiness check-in
+  checkIn?: CheckInRecord | null;
 }
 
 interface UnifiedFitnessCalendarProps {
@@ -85,6 +90,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   // Self-managed data fallbacks if not passed in props
   const [localWorkouts, setLocalWorkouts] = useState<CompletedSession[]>([]);
   const [localNutrition, setLocalNutrition] = useState<DailyFoodHistorySummary[]>([]);
+  const [localCheckIns, setLocalCheckIns] = useState<Record<string, CheckInRecord>>({});
   const [loadingData, setLoadingData] = useState(false);
 
   const activeSelectedDate = externalSelectedDate !== undefined ? externalSelectedDate : internalSelectedDate;
@@ -233,6 +239,12 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             const totalCarb = items.reduce((sum, item) => sum + (item.carbs || 0), 0);
             const totalFatVal = items.reduce((sum, item) => sum + (item.fat || 0), 0);
 
+            const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${dateStr}`);
+            const rawCompleted = await AsyncStorage.getItem(dayCompletedKey);
+            const isCompleted = dateStr === getTodayDateString()
+              ? (rawCompleted === 'true' || Boolean(backendEntry?.isCompleted))
+              : (rawCompleted === 'true' || (rawCompleted !== 'false' && (backendEntry?.isCompleted ?? true)));
+
             summaries.push({
               date: dateStr,
               formattedDate: formatDateHeading(dateStr),
@@ -242,6 +254,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               totalCarbs: totalCarb,
               totalFat: totalFatVal,
               waterMl,
+              isCompleted,
+              completedAt: backendEntry?.completedAt || null,
             });
           }
 
@@ -249,6 +263,20 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         } catch (e) {
           console.log('[Unified Calendar] Nutrition fallback used');
         }
+      }
+
+      // 3. Load check-in readiness history
+      try {
+        const checkinRes = await getCheckInHistoryApi(90);
+        if (checkinRes.success && Array.isArray(checkinRes.history) && isMounted) {
+          const map: Record<string, CheckInRecord> = {};
+          checkinRes.history.forEach((c) => {
+            map[c.date] = c;
+          });
+          setLocalCheckIns(map);
+        }
+      } catch (e) {
+        console.log('[Unified Calendar] Check-in history fallback used');
       }
     };
 
@@ -334,7 +362,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
       const waterMl = nutrition?.waterMl || 0;
 
       const hasWorkout = sessions.length > 0;
-      const hasNutrition = Boolean(nutrition && (nutrition.items.length > 0 || nutrition.waterMl > 0));
+      const hasNutrition = Boolean(nutrition && nutrition.isCompleted && (nutrition.items.length > 0 || nutrition.waterMl > 0));
+      const isNutritionInProgress = Boolean(nutrition && !nutrition.isCompleted && (nutrition.items.length > 0 || nutrition.waterMl > 0));
 
       return {
         dateStr,
@@ -347,6 +376,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         workoutCalories,
         workoutMinutes,
         hasNutrition,
+        isNutritionInProgress,
         nutritionSummary: nutrition,
         foodCalories,
         foodProtein,
@@ -354,6 +384,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         foodFat,
         waterMl,
         netCalories: foodCalories - workoutCalories,
+        checkIn: localCheckIns[dateStr] || null,
       };
     };
 
@@ -381,7 +412,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
     }
 
     return days;
-  }, [currentYear, currentMonth, activeWorkouts, activeNutrition, activeSelectedDate, todayStr]);
+  }, [currentYear, currentMonth, activeWorkouts, activeNutrition, localCheckIns, activeSelectedDate, todayStr]);
 
   // Monthly Overview Analytics
   const currentMonthDays = useMemo(() => calendarDays.filter((d) => d.isCurrentMonth), [calendarDays]);
@@ -583,6 +614,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             // Indicator logic based on filter
             const showWorkoutDot = (filter === 'all' || filter === 'workouts') && day.hasWorkout;
             const showNutritionDot = (filter === 'all' || filter === 'nutrition') && day.hasNutrition;
+            const showNutritionPendingDot = (filter === 'all' || filter === 'nutrition') && !day.hasNutrition && day.isNutritionInProgress;
             const isFullyActive = day.hasWorkout && day.hasNutrition;
 
             return (
@@ -607,6 +639,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                       : showNutritionDot
                       ? 'bg-amber-500/15 border-amber-500/40'
+                      : showNutritionPendingDot
+                      ? 'bg-amber-500/5 border-dashed border-amber-500/30'
                       : 'bg-input/40 dark:bg-input-dark/40 border-input-border/40 dark:border-input-border-dark/40'
                   } ${!day.isCurrentMonth ? 'opacity-30' : 'opacity-100'}`}
                 >
@@ -619,6 +653,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                         ? 'font-black text-accent dark:text-accent-dark'
                         : showWorkoutDot || showNutritionDot
                         ? 'font-black text-text-primary dark:text-text-primary-dark'
+                        : showNutritionPendingDot
+                        ? 'font-bold text-amber-600 dark:text-amber-400'
                         : 'font-semibold text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -638,6 +674,20 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       <View
                         className={`w-1.5 h-1.5 rounded-full ${
                           isSelected ? 'bg-amber-200' : 'bg-amber-500'
+                        }`}
+                      />
+                    )}
+                    {showNutritionPendingDot && (
+                      <View
+                        className={`w-1.5 h-1.5 rounded-full border ${
+                          isSelected ? 'border-amber-200' : 'border-amber-500'
+                        }`}
+                      />
+                    )}
+                    {day.checkIn && (
+                      <View
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isSelected ? 'bg-sky-200' : 'bg-sky-400'
                         }`}
                       />
                     )}
@@ -661,6 +711,12 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               <View className="w-2 h-2 rounded-full bg-amber-500" />
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
                 Meals
+              </Text>
+            </View>
+            <View className="flex-row items-center gap-1">
+              <View className="w-2 h-2 rounded-full bg-sky-400" />
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
+                Readiness
               </Text>
             </View>
             <View className="flex-row items-center gap-1">
@@ -695,7 +751,9 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                     : selectedDayData.hasWorkout
                     ? `${selectedDayData.workoutSessions.length} Workout(s) Logged`
                     : selectedDayData.hasNutrition
-                    ? 'Meals & Hydration Logged'
+                    ? 'Nutrition Day Completed'
+                    : selectedDayData.isNutritionInProgress
+                    ? 'Meals & Hydration (In Progress)'
                     : 'Rest & Fasting Day'}
                 </Text>
               </View>
@@ -712,6 +770,36 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
+
+          {/* Daily Readiness Check-In Card if Logged */}
+          {selectedDayData.checkIn && (() => {
+            const mood = MOODS.find((m) => m.id === selectedDayData.checkIn?.moodId);
+            return (
+              <View className="bg-input dark:bg-input-dark p-3 rounded-2xl mb-3 border border-input-border dark:border-input-border-dark flex-row items-start">
+                <Text className="text-2xl mr-3">{mood?.emoji || '⚡'}</Text>
+                <View className="flex-1">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
+                      Daily Readiness: {selectedDayData.checkIn.moodLabel}
+                    </Text>
+                    <View className="bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
+                      <Text className="text-[9px] font-bold text-accent dark:text-accent-dark uppercase">
+                        Logged
+                      </Text>
+                    </View>
+                  </View>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1 leading-snug">
+                    {selectedDayData.checkIn.coachTip}
+                  </Text>
+                  {selectedDayData.checkIn.notes ? (
+                    <Text className="text-xs italic text-accent dark:text-accent-dark mt-1.5 font-medium">
+                      “{selectedDayData.checkIn.notes}”
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+            );
+          })()}
 
           {/* Net Calorie Balance Card (When both food and workout exist, or either) */}
           {(selectedDayData.hasWorkout || selectedDayData.hasNutrition) && (

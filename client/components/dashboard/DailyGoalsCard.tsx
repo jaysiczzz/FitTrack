@@ -24,9 +24,11 @@ interface DailyGoalsCardProps {
   completedExercisesCount: number;
   totalExercisesCount: number;
   workoutSessionDone: boolean;
+  isNutritionDone?: boolean;
   waterMl: number;
   targetWaterMl?: number;
   onQuickAddWater: (amountMl: number) => void;
+  onCheckInPress?: () => void;
 }
 
 export default function DailyGoalsCard({
@@ -37,15 +39,17 @@ export default function DailyGoalsCard({
   completedExercisesCount,
   totalExercisesCount,
   workoutSessionDone,
+  isNutritionDone = false,
   waterMl,
   targetWaterMl = 2500,
   onQuickAddWater,
+  onCheckInPress,
 }: DailyGoalsCardProps) {
   const router = useRouter();
   const { colors } = useThemeColors();
 
-  const isNutritionDone = caloriesLogged >= targetCalories * 0.75 || caloriesLogged > 1200;
-  const isWorkoutDone = workoutSessionDone || (totalExercisesCount > 0 && completedExercisesCount === totalExercisesCount) || activeMinutes >= 20;
+  const isNutritionDoneResolved = Boolean(isNutritionDone);
+  const isWorkoutDoneResolved = Boolean(workoutSessionDone);
   const isHydrationDone = waterMl >= targetWaterMl;
 
   const goals: DailyGoalItem[] = [
@@ -55,27 +59,31 @@ export default function DailyGoalsCard({
       subtitle: isCheckedIn ? 'Completed morning readiness check' : 'Log your mood and energy above',
       isCompleted: isCheckedIn,
       progressText: isCheckedIn ? '1/1 Done' : 'Pending',
+      actionLabel: isCheckedIn ? undefined : (onCheckInPress ? 'Check In' : undefined),
+      onAction: onCheckInPress,
     },
     {
       id: 'nutrition',
-      title: 'Nutrition & Calorie Target',
-      subtitle: `${caloriesLogged.toLocaleString()} / ${targetCalories.toLocaleString()} kcal`,
-      isCompleted: isNutritionDone,
-      progressText: `${Math.min(100, Math.round((caloriesLogged / targetCalories) * 100))}%`,
-      actionLabel: 'Log Food',
+      title: 'Nutrition & Daily Intake',
+      subtitle: isNutritionDoneResolved
+        ? `Completed · ${caloriesLogged.toLocaleString()} / ${targetCalories.toLocaleString()} kcal`
+        : `${caloriesLogged.toLocaleString()} / ${targetCalories.toLocaleString()} kcal (In Progress)`,
+      isCompleted: isNutritionDoneResolved,
+      progressText: isNutritionDoneResolved ? 'Done ✓' : `${Math.min(100, Math.round((caloriesLogged / targetCalories) * 100))}%`,
+      actionLabel: isNutritionDoneResolved ? 'View Food' : 'Log Food',
       onAction: () => router.push('/(screen)/foodlog' as any),
     },
     {
       id: 'workout',
       title: 'Daily Workout Session',
-      subtitle: workoutSessionDone
-        ? 'Session completed for today'
+      subtitle: isWorkoutDoneResolved
+        ? 'Session completed for today 🏆'
         : totalExercisesCount > 0
-        ? `${completedExercisesCount}/${totalExercisesCount} exercises completed`
+        ? `${completedExercisesCount}/${totalExercisesCount} exercises checked (In Progress)`
         : 'No exercises started yet',
-      isCompleted: isWorkoutDone,
-      progressText: workoutSessionDone ? 'Done' : `${activeMinutes} min`,
-      actionLabel: 'Workouts',
+      isCompleted: isWorkoutDoneResolved,
+      progressText: isWorkoutDoneResolved ? 'Done ✓' : `${activeMinutes} min`,
+      actionLabel: isWorkoutDoneResolved ? 'History' : 'Workouts',
       onAction: () => router.push('/(screen)/workouts' as any),
     },
     {

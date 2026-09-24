@@ -23,6 +23,8 @@ model User {
   customExercises Exercise[]
   customFoods     Food[]
   refreshTokens   RefreshToken[]
+  testimonials    Testimonial[]
+  dailyCheckIns   DailyCheckIn[]
 }
 
 enum Goal {
@@ -130,6 +132,8 @@ model DailyFoodLog {
   totalCarbs    Float         @default(0)
   totalFat      Float         @default(0)
   waterMl       Int           @default(0)
+  isCompleted   Boolean       @default(false)
+  completedAt   DateTime?
   meals         FoodLogMeal[]
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
@@ -217,4 +221,40 @@ model PasswordResetToken {
   @@index([email])
 }
 
+model Testimonial {
+  id             String    @id @default(uuid())
+  userId         String?
+  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName     String
+  rating         Int       @default(5)
+  content        String
+  highlightBadge String?   // e.g. "🏆 +15kg Bench PR", "🔥 -6kg Lost", "⚡ 14-Day Streak"
+  goal           Goal?
+  isFeatured     Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @default(now()) @updatedAt
+
+  @@index([goal])
+  @@index([userId])
+  @@index([isFeatured])
+}
+
+model DailyCheckIn {
+  id          String   @id @default(uuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  date        String   // "YYYY-MM-DD" e.g. "2026-09-24"
+  moodId      String   // "fire" | "strong" | "good" | "tired" | "rest"
+  moodLabel   String   // "Energized", "Strong", "Balanced", "Low Energy", "Recovery"
+  coachTip    String
+  quote       String?
+  quoteAuthor String?
+  notes       String?  // Optional reflection note
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
 

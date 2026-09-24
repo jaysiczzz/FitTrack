@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -97,6 +97,11 @@ export default function Dashboard() {
   const [carbsLogged, setCarbsLogged] = useState(0);
   const [fatLogged, setFatLogged] = useState(0);
   const [waterMl, setWaterMl] = useState(0);
+  const [isNutritionDone, setIsNutritionDone] = useState(false);
+
+  const waterMlRef = useRef(0);
+  const dashboardItemsRef = useRef<FoodLogItem[]>([]);
+  const scrollRef = useRef<ScrollView>(null);
 
   // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
@@ -105,6 +110,7 @@ export default function Dashboard() {
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
   const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
+  const [todayCompletedWorkoutStats, setTodayCompletedWorkoutStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
 
   // AI Insights State
   const [insights, setInsights] = useState<AIInsight[]>([
@@ -174,8 +180,16 @@ export default function Dashboard() {
   const loadFoodProgress = async () => {
     try {
       const todayKey = getTodayDateKey();
+      const activeDateKey = authStorage.getScopedKey(userId, 'food_log_active_date');
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayKey}`);
+
+      const cachedDate = await AsyncStorage.getItem(activeDateKey);
+      if (cachedDate && cachedDate !== todayKey) {
+        await AsyncStorage.multiRemove([foodKey, waterKey]);
+      }
+      await AsyncStorage.setItem(activeDateKey, todayKey);
 
       let localItems: FoodLogItem[] = [];
       const savedLog = await AsyncStorage.getItem(foodKey);
@@ -185,12 +199,20 @@ export default function Dashboard() {
           if (Array.isArray(parsed)) localItems = parsed;
         } catch {}
       }
+      dashboardItemsRef.current = localItems;
 
       let localWater = 0;
+      let hasLocalWater = false;
       const waterSaved = await AsyncStorage.getItem(waterKey);
-      if (waterSaved) {
+      if (waterSaved !== null) {
         localWater = parseInt(waterSaved, 10) || 0;
+        hasLocalWater = true;
       }
+      waterMlRef.current = localWater;
+      setWaterMl(localWater);
+
+      const cachedCompleted = await AsyncStorage.getItem(dayCompletedKey);
+      let isCompleted = cachedCompleted === 'true';
 
       let items = localItems;
       let finalWater = localWater;
@@ -200,6 +222,11 @@ export default function Dashboard() {
         try {
           const cloudRes = await getDailyFoodLogApi(todayKey);
           if (cloudRes?.data) {
+            if (typeof cloudRes.data.isCompleted === 'boolean') {
+              isCompleted = cloudRes.data.isCompleted;
+              await AsyncStorage.setItem(dayCompletedKey, isCompleted ? 'true' : 'false');
+            }
+
             if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
               if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
                 items = cloudRes.data.meals.map((m: any) => ({
@@ -219,18 +246,23 @@ export default function Dashboard() {
                   loggedAt: m.loggedAt || undefined,
                 }));
                 await AsyncStorage.setItem(foodKey, JSON.stringify(items));
+                dashboardItemsRef.current = items;
               } else if (localItems.length > cloudRes.data.meals.length) {
-                autoSyncFoodAndWater(userId, todayKey, localItems, Math.max(localWater, cloudRes.data.waterMl || 0));
+                autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
               }
             } else if (localItems.length > 0) {
-              autoSyncFoodAndWater(userId, todayKey, localItems, localWater);
+              autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
             }
 
             const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
-            finalWater = Math.max(localWater, cloudWater);
-            await AsyncStorage.setItem(waterKey, finalWater.toString());
-            if (localWater > cloudWater) {
-              autoSyncFoodAndWater(userId, todayKey, items, finalWater);
+            if (!hasLocalWater) {
+              finalWater = cloudWater;
+              await AsyncStorage.setItem(waterKey, finalWater.toString());
+            } else {
+              finalWater = localWater;
+              if (localWater !== cloudWater) {
+                autoSyncFoodAndWater(userId, todayKey, items, localWater);
+              }
             }
           }
         } catch (e) {
@@ -255,6 +287,8 @@ export default function Dashboard() {
       setCarbsLogged(totalCarbs);
       setFatLogged(totalFat);
       setWaterMl(finalWater);
+      waterMlRef.current = finalWater;
+      setIsNutritionDone(isCompleted);
     } catch (err) {
       console.log('Error calculating food progress:', err);
     }
@@ -262,9 +296,45 @@ export default function Dashboard() {
 
   const loadWorkoutProgress = async () => {
     try {
-      // 1. Fetch today's active session exercises
+      const todayKey = getTodayDateKey();
+
+      // 1. Fetch completed workout history first
+      const historyRes = await getWorkoutHistory();
+      const sessions: ApiWorkoutSession[] = historyRes.sessions || [];
+
+      // Check if a workout was genuinely completed today
+      const todayCompletedSession = sessions.find((s) => {
+        const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+        if (!timestamp) return false;
+        const d = new Date(timestamp);
+        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return dateKey === todayKey;
+      });
+
+      // 2. Fetch today's active session exercises
       const todayRes = await getTodayWorkoutSession();
-      if (todayRes.session && todayRes.session.exercises) {
+      const isExplicitlyCompleted = Boolean(todayCompletedSession || todayRes?.session?.completed);
+
+      if (todayCompletedSession) {
+        setTodayCompletedWorkoutStats({
+          duration: todayCompletedSession.duration || 35,
+          caloriesBurned: todayCompletedSession.caloriesBurned || 240,
+        });
+        setActiveMinutesToday(todayCompletedSession.duration || 35);
+      } else if (todayRes?.session?.exercises) {
+        setTodayCompletedWorkoutStats(null);
+        const completedSetsCount = todayRes.session.exercises.reduce(
+          (acc: number, ex: ApiWorkoutExercise) =>
+            acc + (ex.sets ? ex.sets.filter((s) => s.done).length : 0),
+          0
+        );
+        setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
+      } else {
+        setTodayCompletedWorkoutStats(null);
+        setActiveMinutesToday(0);
+      }
+
+      if (todayRes?.session?.exercises && !todayCompletedSession) {
         const formatted: DashboardWorkoutExercise[] = todayRes.session.exercises.map((ex: ApiWorkoutExercise) => {
           const allSetsDone = Boolean(ex.sets && ex.sets.length > 0 && ex.sets.every((s) => s.done));
           return {
@@ -274,56 +344,27 @@ export default function Dashboard() {
           };
         });
         setTodayExercises(formatted);
-
-        const completedSetsCount = todayRes.session.exercises.reduce(
-          (acc: number, ex: ApiWorkoutExercise) =>
-            acc + (ex.sets ? ex.sets.filter((s) => s.done).length : 0),
-          0
-        );
-        setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
-        const isTodaySessionDone = Boolean(
-          todayRes.session.completed ||
-          (formatted.length > 0 && formatted.every((e) => e.isCompleted))
-        );
-        setWorkoutSessionDone(isTodaySessionDone);
       } else {
         setTodayExercises([]);
-        setActiveMinutesToday(0);
-        setWorkoutSessionDone(false);
       }
 
-      // 2. Fetch completed workout history for streak and weekly count
-      const historyRes = await getWorkoutHistory();
-      if (historyRes.sessions) {
-        const sessions: ApiWorkoutSession[] = historyRes.sessions;
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
-        startOfWeek.setHours(0, 0, 0, 0);
+      setWorkoutSessionDone(isExplicitlyCompleted);
 
-        const isTodaySessionDone = Boolean(
-          todayRes?.session?.completed ||
-          (todayRes?.session?.exercises &&
-            todayRes.session.exercises.length > 0 &&
-            todayRes.session.exercises.every(
-              (e: ApiWorkoutExercise) => e.sets && e.sets.length > 0 && e.sets.every((s) => s.done)
-            ))
-        );
+      // 3. Weekly count & Streak ONLY increment on completed sessions!
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+      startOfWeek.setHours(0, 0, 0, 0);
 
-        const completedThisWeek = sessions.filter((s) => {
-          const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
-          if (!timestamp) return false;
-          const compDate = new Date(timestamp);
-          return compDate >= startOfWeek;
-        });
+      const completedThisWeek = sessions.filter((s) => {
+        const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+        if (!timestamp) return false;
+        const compDate = new Date(timestamp);
+        return compDate >= startOfWeek;
+      });
 
-        const thisWeekCount =
-          completedThisWeek.length +
-          (isTodaySessionDone && !sessions.some((s) => s.id === todayRes?.session?.id) ? 1 : 0);
-
-        setWorkoutsThisWeek(thisWeekCount);
-        setCurrentStreak(calculateWorkoutStreak(sessions, isTodaySessionDone));
-      }
+      setWorkoutsThisWeek(completedThisWeek.length);
+      setCurrentStreak(calculateWorkoutStreak(sessions, isExplicitlyCompleted));
     } catch (err) {
       console.log('Error calculating workout progress:', err);
     }
@@ -345,11 +386,24 @@ export default function Dashboard() {
   );
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
+    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', (evt?: { sender?: string; waterMl?: number }) => {
+      if (evt?.sender === 'dashboard_screen') return;
       loadFoodProgress();
+    });
+    const subW = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      loadWorkoutProgress();
+    });
+    const subC = DeviceEventEmitter.addListener('DAILY_CHECKIN_UPDATED', (evt?: { isCheckedIn?: boolean }) => {
+      if (typeof evt?.isCheckedIn === 'boolean') {
+        setIsCheckedIn(evt.isCheckedIn);
+      } else {
+        loadDailyCheckIn();
+      }
     });
     return () => {
       sub.remove();
+      subW.remove();
+      subC.remove();
     };
   }, [userId]);
 
@@ -360,7 +414,8 @@ export default function Dashboard() {
   };
 
   const handleQuickAddWater = async (amount: number = 250) => {
-    if (waterMl >= targetWater) {
+    const current = waterMlRef.current;
+    if (current >= targetWater) {
       showToast({
         message: 'Daily Hydration Complete',
         description: `You've reached your ${targetWater.toLocaleString()}ml daily target.`,
@@ -370,13 +425,24 @@ export default function Dashboard() {
       return;
     }
 
-    const newTotal = Math.min(targetWater, waterMl + amount);
+    const newTotal = Math.min(targetWater, current + amount);
+    waterMlRef.current = newTotal;
     setWaterMl(newTotal);
 
     try {
       const todayKey = getTodayDateKey();
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      const dateWaterKey = authStorage.getScopedKey(userId, `water_log_${todayKey}`);
+
+      await Promise.all([
+        AsyncStorage.setItem(waterKey, newTotal.toString()),
+        AsyncStorage.setItem(dateWaterKey, newTotal.toString()),
+      ]);
+      await AsyncStorage.removeItem('water_log_today').catch(() => {});
+
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'dashboard_screen', waterMl: newTotal });
+
       const savedFood = await AsyncStorage.getItem(foodKey);
       let currentItems: FoodLogItem[] = [];
       if (savedFood) {
@@ -385,11 +451,9 @@ export default function Dashboard() {
           if (Array.isArray(parsed)) currentItems = parsed;
         } catch {}
       }
+      dashboardItemsRef.current = currentItems;
 
-      await AsyncStorage.setItem(waterKey, newTotal.toString());
-      await AsyncStorage.removeItem('water_log_today').catch(() => {});
       autoSyncFoodAndWater(userId, todayKey, currentItems, newTotal);
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     } catch (e) {
       console.log('Error saving quick water:', e);
     }
@@ -431,6 +495,7 @@ export default function Dashboard() {
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
+        ref={scrollRef}
         className="flex-1"
         contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
         refreshControl={
@@ -511,7 +576,11 @@ export default function Dashboard() {
         </View>
 
         {/* Today's Workout Session Card */}
-        <TodayWorkoutCard exercises={todayExercises} />
+        <TodayWorkoutCard
+          exercises={todayExercises}
+          isSessionCompleted={workoutSessionDone}
+          completedStats={todayCompletedWorkoutStats}
+        />
 
         {/* Daily Nutrition Macro Breakdown */}
         <MacroProgressCard
@@ -534,9 +603,11 @@ export default function Dashboard() {
           completedExercisesCount={completedExercisesCount}
           totalExercisesCount={todayExercises.length}
           workoutSessionDone={workoutSessionDone}
+          isNutritionDone={isNutritionDone}
           waterMl={waterMl}
           targetWaterMl={targetWater}
           onQuickAddWater={handleQuickAddWater}
+          onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
         />
 
         {/* AI Insights & Predictions */}

@@ -1,13 +1,14 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { getFoodLogHistoryApi, ApiDailyFoodLog } from '../../api/foodlog';
+import { getFoodLogHistoryApi, deleteDailyFoodLogApi, ApiDailyFoodLog } from '../../api/foodlog';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
 import FoodHistoryDayCard from './FoodHistoryDayCard';
+import ConfirmModal from '../ui/ConfirmModal';
 import { useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 import {
@@ -53,6 +54,7 @@ export default function FoodHistoryTab({
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('15days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
+  const [dayToDelete, setDayToDelete] = useState<DailyFoodHistorySummary | null>(null);
 
   const loadHistory = useCallback(async () => {
     setLoading(true);
@@ -92,29 +94,6 @@ export default function FoodHistoryTab({
         } catch {
           // ignore
         }
-      }
-
-      // Check if today has active meals
-      const rawTodayItems = await AsyncStorage.getItem(foodTodayKey);
-      const rawTodayWater = await AsyncStorage.getItem(waterTodayKey);
-      let todayActiveItems: FoodLogItem[] = [];
-      let todayActiveWater = 0;
-
-      if (rawTodayItems) {
-        try {
-          const parsed = JSON.parse(rawTodayItems);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            todayActiveItems = parsed;
-          }
-        } catch {}
-      }
-      if (rawTodayWater) {
-        todayActiveWater = parseInt(rawTodayWater, 10) || 0;
-      }
-
-      // If today has active meals, include in view
-      if (todayActiveItems.length > 0 || todayActiveWater > 0) {
-        dateSet.add(todayStr);
       }
 
       const allDates = Array.from(dateSet).sort((a, b) => b.localeCompare(a));
@@ -176,10 +155,13 @@ export default function FoodHistoryTab({
           }
         }
 
-        // Fallback for today if active items exist before saving
-        if (dateStr === todayStr && items.length === 0 && todayActiveItems.length > 0) {
-          items = todayActiveItems;
-          waterMl = todayActiveWater;
+        // Only include in History if day has been explicitly marked as completed
+        const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${dateStr}`);
+        const rawCompleted = await AsyncStorage.getItem(dayCompletedKey);
+        const isCompleted = rawCompleted === 'true' || Boolean(backendEntry?.isCompleted);
+
+        if (!isCompleted) {
+          continue;
         }
 
         if (items.length > 0 || waterMl > 0) {
@@ -197,6 +179,8 @@ export default function FoodHistoryTab({
             totalCarbs,
             totalFat,
             waterMl,
+            isCompleted: true,
+            completedAt: backendEntry?.completedAt || null,
           });
         }
       }
@@ -234,6 +218,63 @@ export default function FoodHistoryTab({
       loggedAt: new Date().toISOString(),
     });
     showSuccess(`Re-logged "${item.title}"`, `Added to today's ${MEAL_LABELS[item.mealType] || 'log'}`);
+  };
+
+  const handleConfirmDeleteDay = async () => {
+    if (!dayToDelete) return;
+    const target = dayToDelete;
+    setDayToDelete(null);
+
+    // 1. Instant optimistic update of local state
+    const updated = historyList.filter((d) => d.date !== target.date);
+    setHistoryList(updated);
+
+    // 2. Clean up expanded state
+    setExpandedDates((prev) => {
+      const next = { ...prev };
+      delete next[target.date];
+      return next;
+    });
+
+    // 3. Clear local storage records for this date
+    try {
+      const dayFoodKey = authStorage.getScopedKey(userId, `food_log_${target.date}`);
+      const dayWaterKey = authStorage.getScopedKey(userId, `water_log_${target.date}`);
+      const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${target.date}`);
+      const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
+
+      await Promise.all([
+        AsyncStorage.removeItem(dayFoodKey),
+        AsyncStorage.removeItem(dayWaterKey),
+        AsyncStorage.removeItem(dayCompletedKey),
+      ]);
+
+      const rawDates = await AsyncStorage.getItem(historyDatesKey);
+      if (rawDates) {
+        try {
+          const parsed = JSON.parse(rawDates);
+          if (Array.isArray(parsed)) {
+            const filteredDates = parsed.filter((d: string) => d !== target.date);
+            await AsyncStorage.setItem(historyDatesKey, JSON.stringify(filteredDates));
+          }
+        } catch {
+          // ignore
+        }
+      }
+    } catch (err) {
+      console.log('[Food History] Failed to clean up local storage for date:', err);
+    }
+
+    // 4. Instant toast feedback
+    showSuccess('Nutrition record deleted');
+    DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'food_history_tab' });
+
+    // 5. Fire server deletion in background
+    try {
+      await deleteDailyFoodLogApi(target.date);
+    } catch (err) {
+      console.log('[Food History] Failed to delete food log on server (or offline):', err);
+    }
   };
 
   // Generate the 15-day rolling calendar strip
@@ -579,9 +620,23 @@ export default function FoodHistoryTab({
             isExpanded={Boolean(expandedDates[day.date])}
             onToggleExpand={() => toggleExpand(day.date)}
             onReLogItem={handleReLog}
+            onDeleteDay={(d) => setDayToDelete(d)}
           />
         ))
       )}
+
+      {/* Delete Food History Day Record Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(dayToDelete)}
+        title="Delete Daily Record"
+        message={`Are you sure you want to delete the nutrition log for ${dayToDelete?.formattedDate || dayToDelete?.date}? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        onConfirm={handleConfirmDeleteDay}
+        onCancel={() => setDayToDelete(null)}
+      />
     </View>
   );
 }
