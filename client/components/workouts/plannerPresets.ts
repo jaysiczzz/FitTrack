@@ -1,4 +1,4 @@
-import { WorkoutRoutineTemplate, DayOfWeek, WeeklySplit } from './workoutTypes';
+import { WorkoutRoutineTemplate, DayOfWeek, WeeklySplit, MesocycleWeekInfo } from './workoutTypes';
 
 export const DAYS_OF_WEEK: { key: DayOfWeek; label: string; full: string }[] = [
   { key: 'mon', label: 'Mon', full: 'Monday' },
@@ -10,8 +10,8 @@ export const DAYS_OF_WEEK: { key: DayOfWeek; label: string; full: string }[] = [
   { key: 'sun', label: 'Sun', full: 'Sunday' },
 ];
 
-export const getTodayDayOfWeek = (): DayOfWeek => {
-  const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+export const getDayOfWeekFromDate = (d: Date): DayOfWeek => {
+  const day = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
   const map: Record<number, DayOfWeek> = {
     0: 'sun',
     1: 'mon',
@@ -22,6 +22,10 @@ export const getTodayDayOfWeek = (): DayOfWeek => {
     6: 'sat',
   };
   return map[day] || 'mon';
+};
+
+export const getTodayDayOfWeek = (): DayOfWeek => {
+  return getDayOfWeekFromDate(new Date());
 };
 
 export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
@@ -332,5 +336,52 @@ export const SPLIT_PRESETS: {
       sat: null,
       sun: null,
     },
+  },
+];
+
+export const MESOCYCLE_WEEKS: MesocycleWeekInfo[] = [
+  {
+    weekNumber: 1,
+    phase: 'accumulation',
+    title: 'Week 1: Accumulation Phase',
+    subtitle: 'Volume Foundation & Movement Quality',
+    focus: 'Build baseline work capacity, dial in exercise technique, and establish working weights.',
+    intensityLabel: 'Moderate (RPE 6-7)',
+    targetRPE: 'RPE 6 - 7 · 3-4 reps in reserve',
+    volumeMultiplier: '100% Base Volume',
+    tips: 'Focus on crisp form, controlled eccentric tempos, and smooth bar paths.',
+  },
+  {
+    weekNumber: 2,
+    phase: 'progression',
+    title: 'Week 2: Progression Phase',
+    subtitle: 'Overload & Progressive Resistance',
+    focus: 'Add 2.5-5kg to main compound lifts or aim for 1-2 additional repetitions on accessories.',
+    intensityLabel: 'High-Moderate (RPE 7.5-8.5)',
+    targetRPE: 'RPE 7.5 - 8.5 · 2 reps in reserve',
+    volumeMultiplier: '+5% to +10% Load / Sets',
+    tips: 'Push heavier working sets while maintaining strict range of motion.',
+  },
+  {
+    weekNumber: 3,
+    phase: 'peak',
+    title: 'Week 3: Peak Volume & Intensity',
+    subtitle: 'Maximum Effort & Overreach Threshold',
+    focus: 'Reach peak weekly volume and maximum mechanical tension before scheduled recovery.',
+    intensityLabel: 'Max Effort (RPE 8.5-9.5)',
+    targetRPE: 'RPE 8.5 - 9.5 · 0-1 rep in reserve',
+    volumeMultiplier: 'Peak Threshold (Top Sets)',
+    tips: 'Give everything to your primary lifts; prioritize quality sleep & 1g protein/lb bodyweight.',
+  },
+  {
+    weekNumber: 4,
+    phase: 'deload',
+    title: 'Week 4: Deload & Active Recovery',
+    subtitle: 'CNS & Joint Supercompensation',
+    focus: 'Drop working volume by 40-50% and keep loads submaximal to shed systemic fatigue.',
+    intensityLabel: 'Active Recovery (RPE 5-6)',
+    targetRPE: 'RPE 5 - 6 · 4-5 reps in reserve',
+    volumeMultiplier: '50% - 60% Volume',
+    tips: 'Allow connective tissues and nervous system to adapt; you will come back stronger next cycle!',
   },
 ];
