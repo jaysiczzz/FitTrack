@@ -24,6 +24,7 @@ model User {
   customFoods     Food[]
   refreshTokens   RefreshToken[]
   testimonials    Testimonial[]
+  testimonialVotes TestimonialVote[]
   dailyCheckIns   DailyCheckIn[]
   notificationPreference NotificationPreference?
   aiChatMessages  AiChatMessage[]
@@ -224,21 +225,39 @@ model PasswordResetToken {
 }
 
 model Testimonial {
-  id             String    @id @default(uuid())
-  userId         String?
-  user           User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
-  authorName     String
-  rating         Int       @default(5)
-  content        String
-  highlightBadge String?   // e.g. "🏆 +15kg Bench PR", "🔥 -6kg Lost", "⚡ 14-Day Streak"
-  goal           Goal?
-  isFeatured     Boolean   @default(true)
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @default(now()) @updatedAt
+  id              String    @id @default(uuid())
+  userId          String?
+  user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  authorName      String
+  rating          Int       @default(5)
+  content         String
+  highlightBadge  String?   // e.g. "🏆 +15kg Bench PR", "🔥 -6kg Lost", "⚡ 14-Day Streak"
+  goal            Goal?
+  isFeatured      Boolean   @default(true)
+  helpfulCount    Int       @default(0)
+  weightChangeKg  Float?
+  durationWeeks   Int?
+  verifiedAthlete Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @default(now()) @updatedAt
+  votes           TestimonialVote[]
 
   @@index([goal])
   @@index([userId])
   @@index([isFeatured])
+}
+
+model TestimonialVote {
+  id            String      @id @default(uuid())
+  testimonialId String
+  testimonial   Testimonial @relation(fields: [testimonialId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt     DateTime    @default(now())
+
+  @@unique([testimonialId, userId])
+  @@index([userId])
+  @@index([testimonialId])
 }
 
 model DailyCheckIn {
