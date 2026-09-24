@@ -21,6 +21,20 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
   }
 }
 
+export const optionalAuthMiddleware = (req: AuthRequest, res: Response, next: NextFunction) => {
+  const token = req.headers.authorization?.split(' ')[1]
+
+  if (token) {
+    try {
+      req.user = verifyToken(token)
+    } catch {
+      // Ignored for optional auth
+    }
+  }
+
+  next()
+}
+
 export const adminMiddleware = async (req: AuthRequest, res: Response, next: NextFunction) => {
   if (!req.user || !req.user.id) {
     return res.status(401).json({ error: 'Unauthorized: Authentication required' })

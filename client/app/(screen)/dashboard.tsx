@@ -11,6 +11,8 @@ import StatCard from '@/components/dashboard/StatCard';
 import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
 import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
+import CommunityStoriesCard from '@/components/dashboard/CommunityStoriesCard';
+import TestimonialModal from '@/components/settings/TestimonialModal';
 
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
@@ -90,6 +92,10 @@ export default function Dashboard() {
 
   // Check-In state
   const [isCheckedIn, setIsCheckedIn] = useState(false);
+
+  // Testimonials & Athlete Stories Modal State
+  const [showTestimonialsModal, setShowTestimonialsModal] = useState(false);
+  const [testimonialInitialTab, setTestimonialInitialTab] = useState<'feed' | 'write'>('feed');
 
   // Nutrition Progress States
   const [caloriesLogged, setCaloriesLogged] = useState(0);
@@ -616,7 +622,26 @@ export default function Dashboard() {
           loading={loadingAi}
           onRefresh={refreshAIInsights}
         />
+
+        {/* Community Athlete Stories & Testimonials */}
+        <CommunityStoriesCard
+          onOpenFeed={() => {
+            setTestimonialInitialTab('feed');
+            setShowTestimonialsModal(true);
+          }}
+          onOpenWrite={() => {
+            setTestimonialInitialTab('write');
+            setShowTestimonialsModal(true);
+          }}
+        />
       </ScrollView>
+
+      {/* Athlete Testimonials Full Feed & Submission Modal */}
+      <TestimonialModal
+        visible={showTestimonialsModal}
+        initialTab={testimonialInitialTab}
+        onClose={() => setShowTestimonialsModal(false)}
+      />
     </SafeAreaView>
   );
 }

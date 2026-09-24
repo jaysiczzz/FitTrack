@@ -221,3 +221,15 @@ export const createCustomFoodApi = (data: {
 
 export const deleteCustomFoodApi = (foodId: string) =>
   apiRequest(`/api/food-logs/custom/${foodId}`, { method: 'DELETE' });
+
+export const lookupFoodByBarcodeApi = async (
+  barcode: string
+): Promise<{ success: boolean; food?: any; message?: string }> => {
+  try {
+    return await apiRequest(`/api/food-logs/barcode/${encodeURIComponent(barcode)}`, {
+      method: 'GET',
+    });
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Barcode lookup failed' };
+  }
+};
