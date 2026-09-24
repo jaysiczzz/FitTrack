@@ -70,6 +70,31 @@ export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export type WeeklySplit = Record<DayOfWeek, string | null>;
 
+export type PlannerViewMode = 'daily' | 'weekly' | 'monthly';
+
+export interface MonthlyScheduleDay {
+  routineId: string | null;
+  isRestDay: boolean;
+  customNotes?: string | null;
+  updatedAt?: string;
+}
+
+export type MonthlySchedule = Record<string, MonthlyScheduleDay>;
+
+export type MesocyclePhase = 'accumulation' | 'progression' | 'peak' | 'deload';
+
+export interface MesocycleWeekInfo {
+  weekNumber: number; // 1 to 4
+  phase: MesocyclePhase;
+  title: string;
+  subtitle: string;
+  focus: string;
+  intensityLabel: string;
+  targetRPE: string;
+  volumeMultiplier: string;
+  tips: string;
+}
+
 export interface CompletedSessionExerciseSet {
   id?: string;
   setNumber: number;
