@@ -25,6 +25,7 @@ model User {
   refreshTokens   RefreshToken[]
   testimonials    Testimonial[]
   dailyCheckIns   DailyCheckIn[]
+  notificationPreference NotificationPreference?
 }
 
 enum Goal {
@@ -256,5 +257,29 @@ model DailyCheckIn {
   @@unique([userId, date])
   @@index([userId])
   @@index([date])
+}
+
+model NotificationPreference {
+  id                 String   @id @default(uuid())
+  userId             String   @unique
+  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mealReminders      Boolean  @default(true)
+  breakfastTime      String   @default("08:30")
+  lunchTime          String   @default("12:30")
+  dinnerTime         String   @default("19:00")
+  hydrationReminders Boolean  @default(true)
+  hydrationTime1     String   @default("11:00")
+  hydrationTime2     String   @default("15:00")
+  workoutReminders   Boolean  @default(true)
+  workoutTime        String   @default("17:30")
+  checkinReminders   Boolean  @default(true)
+  checkinTime        String   @default("09:00")
+  soundEnabled       Boolean  @default(true)
+  vibrationEnabled   Boolean  @default(true)
+  quietHoursEnabled  Boolean  @default(false)
+  quietHoursStart    String   @default("22:00")
+  quietHoursEnd      String   @default("07:00")
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 
