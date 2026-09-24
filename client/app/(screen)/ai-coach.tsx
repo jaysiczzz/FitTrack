@@ -8,7 +8,6 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
-  Alert,
   Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -18,23 +17,65 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
-import { chatWithCoachApi, ChatMessage } from '@/api/ai';
+import {
+  chatWithCoachApi,
+  getChatHistoryApi,
+  clearChatHistoryApi,
+  ChatMessage,
+} from '@/api/ai';
 import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
-const STARTER_PROMPTS = [
-  '🥗 What should I eat for my next meal based on my goals?',
-  '🏋️ Suggest an effective workout routine for today',
-  '🔥 How do I break through a stubborn weight plateau?',
-  '🍗 Quick high-protein snacks under 200 calories',
-  '💧 How much water and electrolytes do I need today?',
-  '💪 Form tips and cues for squats and deadlifts',
+interface PromptCategory {
+  id: string;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+  prompt: string;
+}
+
+const QUICK_TOPICS: PromptCategory[] = [
+  {
+    id: 'nutrition',
+    label: 'Nutrition & Macros',
+    icon: 'restaurant-outline',
+    prompt: 'What should I eat for my next meal based on my current calorie and protein targets?',
+  },
+  {
+    id: 'workout',
+    label: 'Daily Workout',
+    icon: 'barbell-outline',
+    prompt: 'Suggest an effective workout routine tailored to my training goal today.',
+  },
+  {
+    id: 'readiness',
+    label: 'Energy & Recovery',
+    icon: 'pulse-outline',
+    prompt: 'How should I tailor today’s workout based on my daily readiness check-in and recovery level?',
+  },
+  {
+    id: 'hydration',
+    label: 'Hydration Strategy',
+    icon: 'water-outline',
+    prompt: 'How much water and electrolytes should I drink today to maximize training recovery?',
+  },
+  {
+    id: 'plateau',
+    label: 'Break Plateau',
+    icon: 'flame-outline',
+    prompt: 'What evidence-based adjustments can I make to break through my current weight and strength plateau?',
+  },
+  {
+    id: 'technique',
+    label: 'Form & Safety',
+    icon: 'shield-checkmark-outline',
+    prompt: 'What are the most critical form cues and breathing tips for squats, deadlifts, and bench press?',
+  },
 ];
 
 const INITIAL_GREETING: ChatMessage = {
   role: 'model',
   content:
-    "👋 Hi there! I'm your **FitTrack AI Coach**.\n\nI have live access to your profile goals, today's logged nutrition, and your workout schedule. Whether you need a quick meal recommendation, workout tips, or motivation, I'm here to help you crush your goals.\n\nWhat would you like to focus on today?",
+    "👋 Hi there! I'm your **FitTrack AI Coach**.\n\nI have live access to your profile goals, daily readiness check-in, logged nutrition, and workout streak. Whether you need a quick meal recommendation, workout tips, or recovery guidance, I'm here to help you crush your goals.\n\nWhat would you like to focus on today?",
   createdAt: new Date().toISOString(),
 };
 
@@ -49,14 +90,17 @@ export default function AiCoachScreen() {
   const [isSending, setIsSending] = useState(false);
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [failedMessage, setFailedMessage] = useState<string | null>(null);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const storageKey = authStorage.getScopedKey(user?.id, 'ai_coach_chat_history');
 
-  // Load chat history from AsyncStorage
+  // Load chat history: Local cache first, then cloud synchronization
   useEffect(() => {
     let isMounted = true;
+
     async function loadHistory() {
+      // 1. Instant local cache load
       try {
         const stored = await AsyncStorage.getItem(storageKey);
         if (stored && isMounted) {
@@ -65,10 +109,24 @@ export default function AiCoachScreen() {
             setMessages(parsed);
           }
         }
-      } catch (err) {
-        console.error('Failed to load coach chat history:', err);
+      } catch (cacheErr) {
+        console.warn('Failed to load local coach chat cache:', cacheErr);
       } finally {
         if (isMounted) setIsLoadingHistory(false);
+      }
+
+      // 2. Cloud DB synchronization
+      try {
+        const cloudRes = await getChatHistoryApi();
+        if (cloudRes?.success && Array.isArray(cloudRes.messages) && cloudRes.messages.length > 0) {
+          if (isMounted) {
+            setMessages(cloudRes.messages);
+            await AsyncStorage.setItem(storageKey, JSON.stringify(cloudRes.messages));
+          }
+        }
+      } catch (cloudErr) {
+        // Graceful offline fallback: keep local cache
+        console.log('Cloud chat sync offline or unreachable, using local storage.');
       }
     }
 
@@ -78,13 +136,13 @@ export default function AiCoachScreen() {
     };
   }, [storageKey]);
 
-  // Save messages to AsyncStorage when updated
-  const persistMessages = useCallback(
+  // Save messages to local storage
+  const persistMessagesLocally = useCallback(
     async (newMessages: ChatMessage[]) => {
       try {
         await AsyncStorage.setItem(storageKey, JSON.stringify(newMessages));
       } catch (err) {
-        console.error('Failed to persist coach chat history:', err);
+        console.error('Failed to persist coach chat history locally:', err);
       }
     },
     [storageKey]
@@ -103,8 +161,15 @@ export default function AiCoachScreen() {
   const handleConfirmClear = async () => {
     const resetList = [INITIAL_GREETING];
     setMessages(resetList);
-    await persistMessages(resetList);
+    await persistMessagesLocally(resetList);
     setShowClearConfirm(false);
+
+    try {
+      await clearChatHistoryApi();
+    } catch (err) {
+      console.warn('Could not clear cloud chat history:', err);
+    }
+
     showSuccess('Chat Cleared', 'Conversation history was reset.');
   };
 
@@ -113,6 +178,7 @@ export default function AiCoachScreen() {
     if (!textToSend || isSending) return;
 
     setInputText('');
+    setFailedMessage(null);
     Keyboard.dismiss();
 
     const userMsg: ChatMessage = {
@@ -127,7 +193,6 @@ export default function AiCoachScreen() {
     scrollToBottom(true);
 
     try {
-      // API call expects { role, content }[]
       const apiPayload = updatedMessages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -143,20 +208,30 @@ export default function AiCoachScreen() {
         };
         const finalMessages = [...updatedMessages, coachMsg];
         setMessages(finalMessages);
-        await persistMessages(finalMessages);
+        await persistMessagesLocally(finalMessages);
       } else {
-        showError('Coach Offline', 'Could not get a response from your AI Coach. Please try again.');
+        setFailedMessage(textToSend);
+        showError('Coach Offline', 'Could not get a response from your AI Coach. Tap retry below.');
       }
     } catch (err: any) {
       console.error('Coach Chat Error:', err);
-      showError('Message Failed', 'Unable to reach AI Coach right now. Check your internet connection.');
+      setFailedMessage(textToSend);
+      showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
     } finally {
       setIsSending(false);
       scrollToBottom(true);
     }
   };
 
-  // Render markdown-like bold and bullet segments simply and cleanly
+  const handleRetryFailed = () => {
+    if (failedMessage) {
+      const msg = failedMessage;
+      setFailedMessage(null);
+      handleSend(msg);
+    }
+  };
+
+  // Enhanced markdown-like formatting with headers, numbered lists, bullets, and bold
   const renderMessageContent = (content: string, isUser: boolean) => {
     const lines = content.split('\n');
 
@@ -167,27 +242,62 @@ export default function AiCoachScreen() {
             return <View key={lineIdx} className="h-1.5" />;
           }
 
+          const trimmed = line.trim();
+
+          // Subheadings (e.g. ### Header or ## Header)
+          const isHeading = trimmed.startsWith('###') || trimmed.startsWith('##');
+          if (isHeading) {
+            const cleanHeading = trimmed.replace(/^#{2,3}\s*/, '');
+            return (
+              <Text
+                key={lineIdx}
+                selectable
+                className={`text-sm font-black mt-1 mb-0.5 ${
+                  isUser ? 'text-white' : 'text-text-primary dark:text-text-primary-dark'
+                }`}
+              >
+                {cleanHeading}
+              </Text>
+            );
+          }
+
           // Bullet point lines
-          const isBullet = line.trim().startsWith('•') || line.trim().startsWith('-') || line.trim().startsWith('*');
-          const cleanLine = isBullet ? line.trim().replace(/^[-*•]\s*/, '') : line;
+          const isBullet = trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*');
+          // Numbered step lines (e.g. 1. 2. 3.)
+          const numberedMatch = trimmed.match(/^(\d+\.)\s+/);
+          const isNumbered = !!numberedMatch;
+
+          const prefix = isBullet ? '•' : isNumbered && numberedMatch ? numberedMatch[1] : '';
+          const cleanLine = isBullet
+            ? trimmed.replace(/^[-*•]\s*/, '')
+            : isNumbered
+            ? trimmed.replace(/^\d+\.\s*/, '')
+            : line;
 
           // Simple bold formatting split
           const parts = cleanLine.split(/(\*\*[^*]+\*\*)/g);
 
           return (
-            <View key={lineIdx} className={isBullet ? 'flex-row items-start pl-1' : ''}>
-              {isBullet && (
+            <View
+              key={lineIdx}
+              className={isBullet || isNumbered ? 'flex-row items-start pl-1' : ''}
+            >
+              {(isBullet || isNumbered) && (
                 <Text
-                  className={`text-xs mr-1.5 ${
+                  selectable
+                  className={`text-xs mr-1.5 font-bold ${
                     isUser
-                      ? 'text-white font-bold'
-                      : 'text-accent dark:text-accent-dark font-black'
+                      ? 'text-white'
+                      : isNumbered
+                      ? 'text-accent dark:text-accent-dark font-black'
+                      : 'text-accent dark:text-accent-dark'
                   }`}
                 >
-                  •
+                  {prefix}
                 </Text>
               )}
               <Text
+                selectable
                 className={`text-sm leading-5 flex-1 ${
                   isUser
                     ? 'text-white font-medium'
@@ -199,6 +309,7 @@ export default function AiCoachScreen() {
                     return (
                       <Text
                         key={pIdx}
+                        selectable
                         className={`font-black ${
                           isUser
                             ? 'text-white'
@@ -209,7 +320,7 @@ export default function AiCoachScreen() {
                       </Text>
                     );
                   }
-                  return <Text key={pIdx}>{part}</Text>;
+                  return <Text key={pIdx} selectable>{part}</Text>;
                 })}
               </Text>
             </View>
@@ -228,6 +339,7 @@ export default function AiCoachScreen() {
             onPress={() => router.back()}
             activeOpacity={0.7}
             className="w-10 h-10 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
+            accessibilityLabel="Go back"
           >
             <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
@@ -241,7 +353,10 @@ export default function AiCoachScreen() {
 
           <View className="flex-1">
             <View className="flex-row items-center gap-1.5">
-              <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-base" numberOfLines={1}>
+              <Text
+                className="text-text-primary dark:text-text-primary-dark font-extrabold text-base"
+                numberOfLines={1}
+              >
                 FitTrack Coach
               </Text>
               <View className="bg-accent/15 dark:bg-accent-dark/20 px-1.5 py-0.5 rounded-md">
@@ -249,7 +364,7 @@ export default function AiCoachScreen() {
               </View>
             </View>
             <Text className="text-text-muted dark:text-text-muted-dark text-[11px]" numberOfLines={1}>
-              Personalized Nutrition & Training
+              Real-Time Nutrition, Workout & Readiness Coach
             </Text>
           </View>
         </View>
@@ -269,12 +384,31 @@ export default function AiCoachScreen() {
         <View className="flex-row items-center flex-1 pr-2">
           <Ionicons name="sync-circle-outline" size={16} color={colors.accent} style={{ marginRight: 6 }} />
           <Text className="text-[11px] font-medium text-accent dark:text-accent-dark" numberOfLines={1}>
-            Live Profile, Daily Nutrition & Workouts Connected
+            Live Profile, Daily Check-In & Nutrition Synced
           </Text>
         </View>
         <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
           Synced
         </Text>
+      </View>
+
+      {/* Quick Topic Chips Carousel */}
+      <View className="bg-surface/50 dark:bg-surface-dark/50 border-b border-input-border dark:border-input-border-dark py-2 px-3">
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+          {QUICK_TOPICS.map((topic) => (
+            <TouchableOpacity
+              key={topic.id}
+              activeOpacity={0.7}
+              onPress={() => handleSend(topic.prompt)}
+              className="mr-2 px-3 py-1.5 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
+            >
+              <Ionicons name={topic.icon} size={12} color={colors.accent} style={{ marginRight: 5 }} />
+              <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
+                {topic.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Main Chat Stream */}
@@ -316,7 +450,7 @@ export default function AiCoachScreen() {
                     )}
 
                     <View
-                      className={`max-w-[82%] px-4 py-3 rounded-2xl ${
+                      className={`max-w-[84%] px-4 py-3 rounded-2xl ${
                         isUser
                           ? 'bg-accent dark:bg-accent-dark rounded-tr-xs shadow-xs'
                           : 'bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-tl-xs shadow-xs'
@@ -352,37 +486,32 @@ export default function AiCoachScreen() {
                   <View className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-3 rounded-2xl rounded-tl-xs flex-row items-center gap-2">
                     <ActivityIndicator size="small" color={colors.accent} />
                     <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
-                      Coach is tailoring advice...
+                      Coach is analyzing your stats & crafting guidance...
                     </Text>
-                  </View>
-                </View>
-              )}
-
-              {/* Quick Starter Suggestions (shown when conversation is fresh) */}
-              {messages.length <= 2 && !isSending && (
-                <View className="mt-4 mb-2">
-                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-2.5 px-1">
-                    Quick Suggestions
-                  </Text>
-                  <View className="flex-row flex-wrap gap-2">
-                    {STARTER_PROMPTS.map((prompt, idx) => (
-                      <TouchableOpacity
-                        key={idx}
-                        activeOpacity={0.7}
-                        onPress={() => handleSend(prompt)}
-                        className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-3 py-2 rounded-xl shadow-2xs active:bg-input"
-                      >
-                        <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
-                          {prompt}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
                   </View>
                 </View>
               )}
             </>
           )}
         </ScrollView>
+
+        {/* Failed Message Retry Banner */}
+        {failedMessage && (
+          <View className="mx-4 mb-2 p-2.5 bg-danger/10 border border-danger/30 rounded-xl flex-row items-center justify-between">
+            <View className="flex-row items-center flex-1 mr-2">
+              <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
+              <Text className="text-xs text-danger dark:text-danger-dark font-medium" numberOfLines={1}>
+                Message failed to send
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={handleRetryFailed}
+              className="bg-danger/20 px-2.5 py-1 rounded-lg"
+            >
+              <Text className="text-xs font-bold text-danger dark:text-danger-dark">Retry</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Bottom Chat Input Bar */}
         <View className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark">
@@ -391,7 +520,7 @@ export default function AiCoachScreen() {
               <TextInput
                 value={inputText}
                 onChangeText={setInputText}
-                placeholder="Ask about meals, workouts, or goals..."
+                placeholder="Ask your coach anything about food, workouts, or goals..."
                 placeholderTextColor={colors.textMuted}
                 multiline
                 maxLength={600}

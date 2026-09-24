@@ -1,5 +1,13 @@
 import { Router } from 'express'
-import { analyzeMeal, getInsights, generateWorkout, suggestMeals, chatCoach } from '../controllers/ai.controller'
+import {
+  analyzeMeal,
+  getInsights,
+  generateWorkout,
+  suggestMeals,
+  chatCoach,
+  getChatHistory,
+  clearChatHistory,
+} from '../controllers/ai.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { aiLimiter } from '../middleware/rateLimit.middleware'
 
@@ -14,6 +22,8 @@ router.get('/insights', getInsights)
 router.post('/generate-workout', generateWorkout)
 router.post('/suggest-meals', suggestMeals)
 router.post('/chat', chatCoach)
+router.get('/chat/history', getChatHistory)
+router.delete('/chat/history', clearChatHistory)
 
 export default router
 
