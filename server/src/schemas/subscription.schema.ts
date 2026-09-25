@@ -11,6 +11,9 @@ export const createCheckoutSessionSchema = z.object({
       .default('CARD'),
     currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
     phoneNumber: z.string().optional(),
+    cardNumber: z.string().optional(),
+    cardExpiry: z.string().optional(),
+    cardCvc: z.string().optional(),
   }),
 })
 
@@ -27,30 +30,27 @@ export const confirmSubscriptionSchema = z.object({
 
 export const depositWalletSchema = z.object({
   body: z.object({
-    amount: z
+    amount: z.coerce
       .number({ message: 'Deposit amount must be a number' })
       .positive('Deposit amount must be greater than 0')
       .max(100000, 'Maximum single deposit limit reached'),
     currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
-    paymentMethod: z
-      .enum(['STRIPE', 'CARD', 'GCASH', 'GRABPAY', 'MAYA'])
-      .optional()
-      .default('GCASH'),
+    paymentMethod: z.string().optional().default('GCASH'),
     phoneNumber: z.string().optional(),
+    cardNumber: z.string().optional(),
+    cardExpiry: z.string().optional(),
+    cardCvc: z.string().optional(),
   }),
 })
 
 export const confirmDepositSchema = z.object({
   body: z.object({
     paymentIntentId: z.string().min(1, 'PaymentIntent ID is required'),
-    amount: z
+    amount: z.coerce
       .number({ message: 'Deposit amount must be a number' })
       .positive('Deposit amount must be greater than 0'),
     currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
-    paymentMethod: z
-      .enum(['STRIPE', 'CARD', 'GCASH', 'GRABPAY', 'MAYA'])
-      .optional()
-      .default('GCASH'),
+    paymentMethod: z.string().optional().default('GCASH'),
   }),
 })
 

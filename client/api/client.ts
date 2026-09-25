@@ -76,7 +76,7 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
       body: body as BodyInit,
     });
   } catch (err: any) {
-    console.error(`[API Error] Could not connect to ${url}:`, err);
+    console.warn(`[API Connection] Could not reach ${url}:`, err?.message || err);
     throw new Error(`Unable to connect to server at ${API_URL}. Please check your connection or server status.`);
   }
 
