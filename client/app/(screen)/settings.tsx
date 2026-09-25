@@ -18,6 +18,14 @@ import ResetPasswordModal from '@/components/settings/ResetPasswordModal';
 import HelpSupportModal from '@/components/settings/HelpSupportModal';
 import PrivacyPolicyModal from '@/components/settings/PrivacyPolicyModal';
 import TestimonialModal from '@/components/settings/TestimonialModal';
+import SubscriptionModal from '@/components/subscription/SubscriptionModal';
+import EWalletModal from '@/components/subscription/EWalletModal';
+import AdminRevenueModal from '@/components/subscription/AdminRevenueModal';
+import {
+  getCurrentSubscriptionApi,
+  getUserWalletApi,
+  UserSubscription,
+} from '@/api/subscription';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
@@ -48,6 +56,34 @@ export default function Settings() {
   const [helpInitialTab, setHelpInitialTab] = useState<'faq' | 'contact'>('faq');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showTestimonialModal, setShowTestimonialModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [showEWalletModal, setShowEWalletModal] = useState(false);
+  const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
+
+  // Subscription & Wallet State
+  const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  const loadBillingSummary = useCallback(async () => {
+    try {
+      const [subRes, walletRes] = await Promise.all([
+        getCurrentSubscriptionApi().catch(() => null),
+        getUserWalletApi().catch(() => null),
+      ]);
+      if (subRes?.success && subRes.subscription) {
+        setCurrentSub(subRes.subscription);
+      }
+      if (walletRes?.success && walletRes.wallet) {
+        setWalletBalance(walletRes.wallet.balance);
+      }
+    } catch {
+      // Non-critical background fetch
+    }
+  }, []);
+
+  useEffect(() => {
+    loadBillingSummary();
+  }, [loadBillingSummary]);
 
   // Notifications
   const [hasPermission, setHasPermission] = useState(false);
@@ -198,6 +234,119 @@ export default function Settings() {
         <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark mt-1">
           Manage your account, preferences, and daily reminders
         </Text>
+
+        {/* Membership & Billing Section */}
+        <SurfaceCard className="mb-3">
+          <View className="flex-row items-center justify-between mb-2">
+            <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
+              Membership & Billing
+            </Text>
+            {currentSub?.tier && currentSub.tier !== 'FREE' ? (
+              <View className="flex-row items-center bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                <Ionicons name="sparkles" size={11} color="#F59E0B" />
+                <Text className="text-[10px] font-black text-amber-500 uppercase ml-1">
+                  {currentSub.tier === 'LIFETIME_FOUNDER' ? 'Lifetime Founder' : currentSub.tier.replace('_', ' ')}
+                </Text>
+              </View>
+            ) : (
+              <View className="flex-row items-center bg-zinc-500/15 border border-zinc-500/30 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark uppercase">
+                  Free Plan
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Subscription Tier Row */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={() => setShowSubscriptionModal(true)}
+          >
+            <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
+              <Ionicons name="diamond" size={14} color="#F59E0B" />
+            </View>
+            <View className="flex-1">
+              <View className="flex-row items-center gap-1.5">
+                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                  FitTrack Pro Subscription
+                </Text>
+                {currentSub?.tier && currentSub.tier !== 'FREE' ? (
+                  <View className="bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
+                    <Text className="text-[9px] font-bold text-emerald-500 uppercase">Active</Text>
+                  </View>
+                ) : (
+                  <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
+                    <Text className="text-[9px] font-bold text-accent uppercase">Upgrade</Text>
+                  </View>
+                )}
+              </View>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                {currentSub?.tier && currentSub.tier !== 'FREE'
+                  ? `Active plan • Auto-renew ${currentSub.cancelAtPeriodEnd ? 'canceling' : 'enabled'}`
+                  : 'Unlock AI Food Scanner, Macro Coach & Pro Workouts'}
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
+          {/* e-Wallet Row */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={() => setShowEWalletModal(true)}
+          >
+            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
+              <Ionicons name="wallet" size={14} color="#10B981" />
+            </View>
+            <View className="flex-1">
+              <View className="flex-row items-center justify-between pr-2">
+                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                  FitTrack e-Wallet
+                </Text>
+                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                  ${walletBalance.toFixed(2)} USD
+                </Text>
+              </View>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Manage balance, instant top-ups, & direct payments
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+        </SurfaceCard>
+
+        {/* Admin Management Section (Visible for ADMIN role) */}
+        {user?.role === 'ADMIN' && (
+          <SurfaceCard className="mb-3 border-amber-500/30 dark:border-amber-500/30">
+            <View className="flex-row items-center justify-between mb-2">
+              <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
+                Admin Management
+              </Text>
+              <View className="bg-amber-500/20 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-bold text-amber-500 uppercase">
+                  Executive Access
+                </Text>
+              </View>
+            </View>
+
+            <Pressable
+              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+              onPress={() => setShowAdminRevenueModal(true)}
+            >
+              <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
+                <Ionicons name="trending-up" size={14} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                  Revenue & e-Wallet Dashboard
+                </Text>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                  MRR metrics, Stripe fees, platform payouts & subscribers
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            </Pressable>
+          </SurfaceCard>
+        )}
 
         {/* 1. Account & Security Section */}
         <SurfaceCard className="mb-3">
@@ -810,6 +959,29 @@ export default function Settings() {
       <PrivacyPolicyModal
         visible={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
+      />
+
+      {/* Subscription Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        onSubscriptionUpdated={() => loadBillingSummary()}
+      />
+
+      {/* e-Wallet Modal */}
+      <EWalletModal
+        visible={showEWalletModal}
+        onClose={() => setShowEWalletModal(false)}
+        onBalanceUpdated={(newBal) => setWalletBalance(newBal)}
+      />
+
+      {/* Admin Revenue Dashboard Modal */}
+      <AdminRevenueModal
+        visible={showAdminRevenueModal}
+        onClose={() => {
+          setShowAdminRevenueModal(false);
+          loadBillingSummary();
+        }}
       />
 
       {/* Customizable Time Picker Modal */}
