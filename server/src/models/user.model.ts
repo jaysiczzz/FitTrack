@@ -15,6 +15,7 @@ export const findById = (id: string) => {
             lastName: true,
             height: true,
             weight: true,
+            targetWeight: true,
             age: true,
             goal: true,
             createdAt: true,
@@ -29,6 +30,7 @@ export const createUser = (data: {
     password: string;
     height: number;
     weight: number;
+    targetWeight?: number;
     age: number;
     goal: Goal;
 }) => {
@@ -42,6 +44,7 @@ export const updateUser = (
         lastName?: string;
         height?: number;
         weight?: number;
+        targetWeight?: number | null;
         age?: number;
         goal?: Goal;
     }
@@ -56,6 +59,7 @@ export const updateUser = (
             lastName: true,
             height: true,
             weight: true,
+            targetWeight: true,
             age: true,
             goal: true,
             createdAt: true,
