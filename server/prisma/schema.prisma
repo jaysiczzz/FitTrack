@@ -15,6 +15,7 @@ model User {
   role            Role             @default(USER)
   height          Int              // cm
   weight          Float            // kg
+  targetWeight    Float?           // kg
   age             Int
   goal            Goal
   createdAt       DateTime         @default(now())
@@ -29,6 +30,7 @@ model User {
   notificationPreference NotificationPreference?
   aiChatMessages  AiChatMessage[]
   workoutPlan     WorkoutPlan?
+  weightLogs      WeightLog[]
 }
 
 enum Goal {
@@ -330,4 +332,19 @@ model WorkoutPlan {
 
   @@index([userId])
 }
-
+
+model WeightLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weight    Float    // kg
+  date      String   // "YYYY-MM-DD" e.g. "2026-09-25"
+  notes     String?  // Optional reflection note e.g. "Morning weigh-in"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
+}
+

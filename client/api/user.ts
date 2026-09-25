@@ -5,6 +5,7 @@ export interface UserProfilePayload {
   lastName?: string;
   height?: number;
   weight?: number;
+  targetWeight?: number | null;
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
 }
