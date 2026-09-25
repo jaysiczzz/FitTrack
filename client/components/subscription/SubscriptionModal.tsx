@@ -30,6 +30,17 @@ import {
   CurrencyType,
   PaymentMethodType,
 } from '@/api/subscription';
+import {
+  formatPhilippinePhone,
+  validatePhilippinePhone,
+  formatCardNumber,
+  validateCardNumber,
+  formatCardExpiry,
+  validateCardExpiry,
+  formatCardCvc,
+  validateCardCvc,
+  detectCardBrand,
+} from '@/utils/paymentValidation';
 
 interface SubscriptionModalProps {
   visible: boolean;
@@ -192,28 +203,30 @@ export default function SubscriptionModal({
     const selectedPlan = plans.find((p) => p.tier === selectedTier);
     if (!selectedPlan || selectedPlan.price <= 0) return;
 
-    // Input validation
+    // Strict Input validation
     if (paymentMethod === 'GCASH' || paymentMethod === 'MAYA') {
-      const cleanPhone = phoneNumber.replace(/[\s\-]/g, '');
-      if (!cleanPhone || cleanPhone.length < 10) {
+      const phoneValidation = validatePhilippinePhone(phoneNumber);
+      if (!phoneValidation.valid) {
         showWarning(
-          'Mobile Number Required',
-          `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number (e.g. 0917 123 4567).`
+          'Invalid Mobile Number',
+          phoneValidation.error || `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
         );
         return;
       }
     } else if (paymentMethod === 'CARD') {
-      const cleanCard = cardNumber.replace(/\s/g, '');
-      if (!cleanCard || cleanCard.length < 13) {
-        showWarning('Card Number Required', 'Please enter a valid 16-digit card number (e.g. 4242 4242 4242 4242).');
+      const cardValidation = validateCardNumber(cardNumber);
+      if (!cardValidation.valid) {
+        showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
         return;
       }
-      if (!cardExpiry || !cardExpiry.includes('/')) {
-        showWarning('Expiry Date Required', 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+      const expiryValidation = validateCardExpiry(cardExpiry);
+      if (!expiryValidation.valid) {
+        showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
         return;
       }
-      if (!cardCvc || cardCvc.length < 3) {
-        showWarning('CVC Required', 'Please enter the 3-digit card security code (CVC).');
+      const cvcValidation = validateCardCvc(cardCvc);
+      if (!cvcValidation.valid) {
+        showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
         return;
       }
     }
@@ -644,19 +657,28 @@ export default function SubscriptionModal({
                   <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
                     {paymentMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
                   </Text>
+                  {validatePhilippinePhone(phoneNumber).valid && (
+                    <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                      <Ionicons name="checkmark-circle" size={10} color="#10B981" />
+                      <Text className="text-[10px] font-bold text-emerald-500">Valid Format</Text>
+                    </View>
+                  )}
                 </View>
 
                 <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark mb-1.5">
                   <Text className="text-xs font-bold text-text-muted mr-2">🇵🇭 +63</Text>
                   <TextInput
                     value={phoneNumber}
-                    onChangeText={setPhoneNumber}
+                    onChangeText={(val) => setPhoneNumber(formatPhilippinePhone(val))}
                     keyboardType="phone-pad"
+                    maxLength={13}
                     placeholder="0917 123 4567"
                     placeholderTextColor={colors.textMuted}
                     className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
                   />
-                  <Text className="text-[10px] font-bold text-emerald-500">Fast Verified</Text>
+                  <Text className="text-[10px] font-bold text-text-muted">
+                    {phoneNumber.replace(/\D/g, '').length}/11
+                  </Text>
                 </View>
 
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-4">
@@ -673,7 +695,11 @@ export default function SubscriptionModal({
                   </Text>
                   <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     <Ionicons name="shield-checkmark" size={10} color="#10B981" />
-                    <Text className="text-[10px] font-bold text-emerald-500">Stripe Live API</Text>
+                    <Text className="text-[10px] font-bold text-emerald-500">
+                      {detectCardBrand(cardNumber) !== 'generic'
+                        ? detectCardBrand(cardNumber).toUpperCase()
+                        : 'Stripe Live API'}
+                    </Text>
                   </View>
                 </View>
 
@@ -682,13 +708,18 @@ export default function SubscriptionModal({
                   <Ionicons name="card" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
                   <TextInput
                     value={cardNumber}
-                    onChangeText={setCardNumber}
+                    onChangeText={(val) => setCardNumber(formatCardNumber(val))}
                     keyboardType="number-pad"
+                    maxLength={19}
                     placeholder="4242 4242 4242 4242"
                     placeholderTextColor={colors.textMuted}
                     className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
                   />
-                  <Ionicons name="lock-closed" size={13} color="#10B981" />
+                  {validateCardNumber(cardNumber).valid ? (
+                    <Ionicons name="checkmark-circle" size={15} color="#10B981" />
+                  ) : (
+                    <Ionicons name="lock-closed" size={13} color="#10B981" />
+                  )}
                 </View>
 
                 {/* Expiry and CVC Row */}
@@ -696,22 +727,31 @@ export default function SubscriptionModal({
                   <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
                     <TextInput
                       value={cardExpiry}
-                      onChangeText={setCardExpiry}
+                      onChangeText={(val) => setCardExpiry(formatCardExpiry(val))}
                       placeholder="MM/YY"
+                      keyboardType="number-pad"
+                      maxLength={5}
                       placeholderTextColor={colors.textMuted}
                       className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
                     />
+                    {validateCardExpiry(cardExpiry).valid && (
+                      <Ionicons name="checkmark" size={12} color="#10B981" />
+                    )}
                   </View>
                   <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
                     <TextInput
                       value={cardCvc}
-                      onChangeText={setCardCvc}
+                      onChangeText={(val) => setCardCvc(formatCardCvc(val))}
                       placeholder="CVC"
                       keyboardType="number-pad"
+                      maxLength={4}
                       placeholderTextColor={colors.textMuted}
                       secureTextEntry
                       className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
                     />
+                    {validateCardCvc(cardCvc).valid && (
+                      <Ionicons name="checkmark" size={12} color="#10B981" />
+                    )}
                   </View>
                 </View>
 

@@ -10,10 +10,10 @@ export const createCheckoutSessionSchema = z.object({
       .optional()
       .default('CARD'),
     currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
-    phoneNumber: z.string().optional(),
-    cardNumber: z.string().optional(),
-    cardExpiry: z.string().optional(),
-    cardCvc: z.string().optional(),
+    phoneNumber: z.string().max(20).optional(),
+    cardNumber: z.string().max(25).optional(),
+    cardExpiry: z.string().max(10).optional(),
+    cardCvc: z.string().max(10).optional(),
   }),
 })
 
@@ -36,10 +36,10 @@ export const depositWalletSchema = z.object({
       .max(100000, 'Maximum single deposit limit reached'),
     currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
     paymentMethod: z.string().optional().default('GCASH'),
-    phoneNumber: z.string().optional(),
-    cardNumber: z.string().optional(),
-    cardExpiry: z.string().optional(),
-    cardCvc: z.string().optional(),
+    phoneNumber: z.string().max(20).optional(),
+    cardNumber: z.string().max(25).optional(),
+    cardExpiry: z.string().max(10).optional(),
+    cardCvc: z.string().max(10).optional(),
   }),
 })
 

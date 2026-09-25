@@ -23,6 +23,19 @@ import {
   PaymentMethodType,
 } from '@/api/subscription';
 import { USD_PHP_EXCHANGE_RATE, convertCurrency, formatCurrency } from '@/constants/currency';
+import {
+  formatPhilippinePhone,
+  validatePhilippinePhone,
+  formatCardNumber,
+  validateCardNumber,
+  formatCardExpiry,
+  validateCardExpiry,
+  formatCardCvc,
+  validateCardCvc,
+  formatTopUpAmount,
+  validateTopUpAmount,
+  detectCardBrand,
+} from '@/utils/paymentValidation';
 
 interface EWalletModalProps {
   visible: boolean;
@@ -97,33 +110,37 @@ export default function EWalletModal({
   const convertedPreviewUSD = currency === 'PHP' ? numericTopUp / USD_PHP_EXCHANGE_RATE : numericTopUp;
 
   const handleDeposit = async () => {
-    if (isNaN(numericTopUp) || numericTopUp <= 0) {
-      showWarning('Invalid Amount', 'Please enter a valid deposit amount greater than 0.');
+    const amountValidation = validateTopUpAmount(topUpAmount, currency);
+    if (!amountValidation.valid) {
+      showWarning('Invalid Amount', amountValidation.error || 'Please enter a valid deposit amount.');
       return;
     }
+    const cleanAmount = amountValidation.amount;
 
-    // Input Validation
+    // Strict Input Validation
     if (depositMethod === 'GCASH' || depositMethod === 'MAYA') {
-      const cleanPhone = phoneNumber.replace(/[\s\-]/g, '');
-      if (!cleanPhone || cleanPhone.length < 10) {
+      const phoneValidation = validatePhilippinePhone(phoneNumber);
+      if (!phoneValidation.valid) {
         showWarning(
-          'Mobile Number Required',
-          `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number (e.g. 0917 123 4567).`
+          'Invalid Mobile Number',
+          phoneValidation.error || `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
         );
         return;
       }
     } else if (depositMethod === 'CARD') {
-      const cleanCard = cardNumber.replace(/\s/g, '');
-      if (!cleanCard || cleanCard.length < 13) {
-        showWarning('Card Number Required', 'Please enter a valid 16-digit card number (e.g. 4242 4242 4242 4242).');
+      const cardValidation = validateCardNumber(cardNumber);
+      if (!cardValidation.valid) {
+        showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
         return;
       }
-      if (!cardExpiry || !cardExpiry.includes('/')) {
-        showWarning('Expiry Date Required', 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+      const expiryValidation = validateCardExpiry(cardExpiry);
+      if (!expiryValidation.valid) {
+        showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
         return;
       }
-      if (!cardCvc || cardCvc.length < 3) {
-        showWarning('CVC Required', 'Please enter the 3-digit card security code (CVC).');
+      const cvcValidation = validateCardCvc(cardCvc);
+      if (!cvcValidation.valid) {
+        showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
         return;
       }
     }
@@ -312,22 +329,34 @@ export default function EWalletModal({
                 {/* Payment Rail Inputs */}
                 {depositMethod === 'GCASH' || depositMethod === 'MAYA' ? (
                   <View className="p-3 bg-surface dark:bg-surface-dark rounded-xl border border-input-border dark:border-input-border-dark mb-3">
-                    <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1.5">
-                      {depositMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
-                    </Text>
+                    <View className="flex-row items-center justify-between mb-1.5">
+                      <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
+                        {depositMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
+                      </Text>
+                      {validatePhilippinePhone(phoneNumber).valid && (
+                        <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                          <Ionicons name="checkmark-circle" size={10} color="#10B981" />
+                          <Text className="text-[10px] font-bold text-emerald-500">Valid Format</Text>
+                        </View>
+                      )}
+                    </View>
                     <View className="flex-row items-center bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark mb-1">
                       <Text className="text-xs font-bold text-text-muted mr-2">🇵🇭 +63</Text>
                       <TextInput
                         value={phoneNumber}
-                        onChangeText={setPhoneNumber}
+                        onChangeText={(val) => setPhoneNumber(formatPhilippinePhone(val))}
                         keyboardType="phone-pad"
+                        maxLength={13}
                         placeholder="0917 123 4567"
                         placeholderTextColor={colors.textMuted}
                         className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
                       />
+                      <Text className="text-[10px] font-bold text-text-muted">
+                        {phoneNumber.replace(/\D/g, '').length}/11
+                      </Text>
                     </View>
                     <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                      Enter your 11-digit Philippine registered mobile number.
+                      Enter your 11-digit Philippine registered mobile number (starts with 09).
                     </Text>
                   </View>
                 ) : (
@@ -336,7 +365,14 @@ export default function EWalletModal({
                       <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
                         Credit / Debit Card Details
                       </Text>
-                      <Text className="text-[10px] font-bold text-emerald-500">Stripe Live API</Text>
+                      <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                        <Ionicons name="shield-checkmark" size={10} color="#10B981" />
+                        <Text className="text-[10px] font-bold text-emerald-500">
+                          {detectCardBrand(cardNumber) !== 'generic'
+                            ? detectCardBrand(cardNumber).toUpperCase()
+                            : 'Stripe Live API'}
+                        </Text>
+                      </View>
                     </View>
 
                     {/* Card Number */}
@@ -344,35 +380,50 @@ export default function EWalletModal({
                       <Ionicons name="card" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
                       <TextInput
                         value={cardNumber}
-                        onChangeText={setCardNumber}
+                        onChangeText={(val) => setCardNumber(formatCardNumber(val))}
                         keyboardType="number-pad"
+                        maxLength={19}
                         placeholder="4242 4242 4242 4242"
                         placeholderTextColor={colors.textMuted}
-                        className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                        className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 font-mono"
                       />
+                      {validateCardNumber(cardNumber).valid ? (
+                        <Ionicons name="checkmark-circle" size={15} color="#10B981" />
+                      ) : (
+                        <Ionicons name="lock-closed" size={12} color="#10B981" />
+                      )}
                     </View>
 
                     {/* Expiry & CVC */}
                     <View className="flex-row gap-2">
-                      <View className="flex-1 bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
+                      <View className="flex-1 flex-row items-center bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
                         <TextInput
                           value={cardExpiry}
-                          onChangeText={setCardExpiry}
+                          onChangeText={(val) => setCardExpiry(formatCardExpiry(val))}
                           placeholder="MM/YY"
+                          keyboardType="number-pad"
+                          maxLength={5}
                           placeholderTextColor={colors.textMuted}
-                          className="text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                          className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center font-mono"
                         />
+                        {validateCardExpiry(cardExpiry).valid && (
+                          <Ionicons name="checkmark" size={12} color="#10B981" />
+                        )}
                       </View>
-                      <View className="flex-1 bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
+                      <View className="flex-1 flex-row items-center bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
                         <TextInput
                           value={cardCvc}
-                          onChangeText={setCardCvc}
+                          onChangeText={(val) => setCardCvc(formatCardCvc(val))}
                           placeholder="CVC"
                           keyboardType="number-pad"
+                          maxLength={4}
                           placeholderTextColor={colors.textMuted}
                           secureTextEntry
-                          className="text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                          className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center font-mono"
                         />
+                        {validateCardCvc(cardCvc).valid && (
+                          <Ionicons name="checkmark" size={12} color="#10B981" />
+                        )}
                       </View>
                     </View>
                   </View>
@@ -412,8 +463,9 @@ export default function EWalletModal({
                   <Text className="text-sm font-bold text-text-muted mr-1">{symbol}</Text>
                   <TextInput
                     value={topUpAmount}
-                    onChangeText={setTopUpAmount}
+                    onChangeText={(val) => setTopUpAmount(formatTopUpAmount(val))}
                     keyboardType="decimal-pad"
+                    maxLength={8}
                     placeholder={currency === 'PHP' ? '500' : '25.00'}
                     placeholderTextColor={colors.textMuted}
                     className="flex-1 text-sm font-bold text-text-primary dark:text-text-primary-dark py-0"
