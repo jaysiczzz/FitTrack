@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   TextInput,
 } from 'react-native';
+import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
@@ -134,12 +135,8 @@ export default function SubscriptionModal({
   const [walletBalance, setWalletBalance] = useState<number>(0);
 
   // Philippines payment rails
-  const [phoneNumber, setPhoneNumber] = useState('0917 123 4567');
+  const [phoneNumber, setPhoneNumber] = useState('');
 
-  // Card details state (Stripe checkout simulation & test card)
-  const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4242');
-  const [cardExpiry, setCardExpiry] = useState('12/28');
-  const [cardCvc, setCardCvc] = useState('123');
 
   const [loading, setLoading] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -186,16 +183,6 @@ export default function SubscriptionModal({
     loadData(newCurrency);
   };
 
-  const handleFillTestCard = () => {
-    setCardNumber('4242 4242 4242 4242');
-    setCardExpiry('12/28');
-    setCardCvc('123');
-  };
-
-  const handleFillTestPhone = () => {
-    setPhoneNumber('0917 888 9999');
-  };
-
   const handleSubscribe = async () => {
     const selectedPlan = plans.find((p) => p.tier === selectedTier);
     if (!selectedPlan || selectedPlan.price <= 0) return;
@@ -220,26 +207,33 @@ export default function SubscriptionModal({
           currency,
           phoneNumber
         );
-        if (checkoutRes.success && checkoutRes.paymentIntentId) {
-          const confirmRes = await confirmSubscriptionApi(
-            selectedTier,
-            checkoutRes.paymentIntentId,
-            currency,
-            paymentMethod
-          );
-          if (confirmRes.success) {
-            setCurrentSub(confirmRes.subscription);
-            setIsPro(true);
-            setShowSuccessBanner(true);
-            const methodLabel =
-              paymentMethod === 'GCASH'
-                ? 'GCash'
-                : paymentMethod === 'MAYA'
-                ? 'Maya'
-                : 'Credit / Debit Card';
-            const refText = checkoutRes.referenceNumber ? ` (Ref: ${checkoutRes.referenceNumber})` : '';
-            showSuccess(`Subscribed via ${methodLabel}!`, `Welcome to ${confirmRes.planInfo.name}!${refText}`);
-            if (onSubscriptionUpdated) onSubscriptionUpdated(selectedTier);
+        if (checkoutRes.success) {
+          // In Live Production, open official PayMongo / Stripe Checkout URL
+          if (checkoutRes.checkoutUrl && !checkoutRes.isSimulated) {
+            await Linking.openURL(checkoutRes.checkoutUrl);
+          }
+
+          if (checkoutRes.paymentIntentId) {
+            const confirmRes = await confirmSubscriptionApi(
+              selectedTier,
+              checkoutRes.paymentIntentId,
+              currency,
+              paymentMethod
+            );
+            if (confirmRes.success) {
+              setCurrentSub(confirmRes.subscription);
+              setIsPro(true);
+              setShowSuccessBanner(true);
+              const methodLabel =
+                paymentMethod === 'GCASH'
+                  ? 'GCash'
+                  : paymentMethod === 'MAYA'
+                  ? 'Maya'
+                  : 'Credit / Debit Card';
+              const refText = checkoutRes.referenceNumber ? ` (Ref: ${checkoutRes.referenceNumber})` : '';
+              showSuccess(`Subscribed via ${methodLabel}!`, `Welcome to ${confirmRes.planInfo.name}!${refText}`);
+              if (onSubscriptionUpdated) onSubscriptionUpdated(selectedTier);
+            }
           }
         }
       }
@@ -614,14 +608,6 @@ export default function SubscriptionModal({
                   <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
                     {paymentMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
                   </Text>
-                  <TouchableOpacity
-                    onPress={handleFillTestPhone}
-                    className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20"
-                  >
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                      Demo PH Number
-                    </Text>
-                  </TouchableOpacity>
                 </View>
 
                 <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark mb-1.5">
@@ -637,63 +623,40 @@ export default function SubscriptionModal({
                   <Text className="text-[10px] font-bold text-emerald-500">Fast Verified</Text>
                 </View>
 
-                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-4">
                   {paymentMethod === 'GCASH'
-                    ? 'A payment prompt or reference token will be generated on your GCash app.'
-                    : 'Instant authorization directly linked to your Maya account.'}
+                    ? 'When you tap "Subscribe", you will be redirected to the official PayMongo GCash verification screen to authorize with your MPIN and SMS OTP.'
+                    : 'When you tap "Subscribe", you will be redirected to the official Maya portal to authorize instant payment directly from your Maya account.'}
                 </Text>
               </View>
             ) : paymentMethod === 'CARD' ? (
               <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
                 <View className="flex-row items-center justify-between mb-2">
                   <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
-                    Card Information (Philippine & International)
+                    Official Stripe SSL Card Checkout
                   </Text>
-                  <TouchableOpacity
-                    onPress={handleFillTestCard}
-                    className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20"
-                  >
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                      1-Tap Test Card
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                    <Ionicons name="shield-checkmark" size={10} color="#10B981" />
+                    <Text className="text-[10px] font-bold text-emerald-500">PCI-DSS Compliant</Text>
+                  </View>
                 </View>
 
-                {/* Card Number Input */}
                 <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark mb-2">
-                  <Ionicons name="card" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-                  <TextInput
-                    value={cardNumber}
-                    onChangeText={setCardNumber}
-                    placeholder="4242 4242 4242 4242"
-                    placeholderTextColor={colors.textMuted}
-                    className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
-                  />
-                  <Text className="text-[10px] font-bold text-emerald-500">Stripe SSL</Text>
+                  <Ionicons name="card" size={18} color={colors.accent} style={{ marginRight: 8 }} />
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      Visa · Mastercard · JCB · Amex
+                    </Text>
+                    <Text className="text-[10px] text-text-muted">
+                      Philippine & Global Debit / Credit Cards
+                    </Text>
+                  </View>
+                  <Ionicons name="lock-closed" size={14} color="#10B981" />
                 </View>
 
-                {/* Expiry and CVC Row */}
-                <View className="flex-row gap-2">
-                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
-                    <TextInput
-                      value={cardExpiry}
-                      onChangeText={setCardExpiry}
-                      placeholder="MM/YY"
-                      placeholderTextColor={colors.textMuted}
-                      className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
-                    />
-                  </View>
-                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
-                    <TextInput
-                      value={cardCvc}
-                      onChangeText={setCardCvc}
-                      placeholder="CVC (123)"
-                      placeholderTextColor={colors.textMuted}
-                      secureTextEntry
-                      className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
-                    />
-                  </View>
-                </View>
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-4">
+                  When you tap "Subscribe", you will be securely redirected to Stripe's encrypted payment portal to complete 3D-Secure bank OTP verification. FitTrack never stores your raw card details.
+                </Text>
               </View>
             ) : (
               <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">

@@ -110,6 +110,10 @@ export const getAdminRevenueOverview = asyncHandler(async (req: AuthRequest, res
 
   res.json({
     success: true,
+    platformWallet: {
+      balance: platformWallet.balance,
+      currency: platformWallet.currency,
+    },
     metrics: {
       platformWalletBalance: platformWallet.balance,
       grossRevenue: Number(grossRevenue.toFixed(2)),
@@ -159,36 +163,38 @@ export const processAdminPayout = asyncHandler(async (req: AuthRequest, res: Res
     })
   }
 
-  const updatedWallet = await prisma.wallet.update({
-    where: { id: platformWallet.id },
-    data: {
-      balance: {
-        decrement: payoutAmount,
+  const [updatedWallet, tx] = await prisma.$transaction([
+    prisma.wallet.update({
+      where: { id: platformWallet.id },
+      data: {
+        balance: {
+          decrement: payoutAmount,
+        },
       },
-    },
-  })
+    }),
+    prisma.walletTransaction.create({
+      data: {
+        walletId: platformWallet.id,
+        userId: req.user?.id,
+        type: 'PAYOUT',
+        amount: -payoutAmount,
+        fee: 0.0,
+        netAmount: -payoutAmount,
+        currency: platformWallet.currency || 'PHP',
+        status: 'COMPLETED',
+        paymentMethod: 'MANUAL',
+        referenceId: `payout_${Date.now().toString(36)}`,
+        description: `Admin Payout to ${destination}${notes ? ` (${notes})` : ''}`,
+      },
+    }),
+  ])
 
-  // Record payout transaction
-  const tx = await prisma.walletTransaction.create({
-    data: {
-      walletId: platformWallet.id,
-      userId: req.user?.id,
-      type: 'PAYOUT',
-      amount: -payoutAmount,
-      fee: 0.0,
-      netAmount: -payoutAmount,
-      currency: 'USD',
-      status: 'COMPLETED',
-      paymentMethod: 'MANUAL',
-      referenceId: `payout_${Date.now().toString(36)}`,
-      description: `Admin Payout to ${destination}${notes ? ` (${notes})` : ''}`,
-    },
-  })
-
+  const symbol = platformWallet.currency === 'USD' ? '$' : '₱'
   res.json({
     success: true,
-    message: `Successfully processed payout of $${payoutAmount.toFixed(2)} to ${destination}!`,
+    message: `Successfully processed payout of ${symbol}${payoutAmount.toFixed(2)} to ${destination}!`,
     newBalance: updatedWallet.balance,
+    currency: platformWallet.currency || 'PHP',
     transaction: tx,
   })
 })

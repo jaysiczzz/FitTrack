@@ -9,7 +9,9 @@ import {
   SUBSCRIPTION_PLANS,
   getPlanPricing,
 } from './subscription.controller'
-import { createPaymentIntent, verifyPaymentIntent } from '../services/stripe.service'
+import { createPaymentIntent, verifyPaymentIntent, createStripeCheckoutSession } from '../services/stripe.service'
+import { createPayMongoCheckoutSession, verifyPayMongoPayment } from '../services/paymongo.service'
+import { convertCurrency, formatCurrencyString, USD_PHP_EXCHANGE_RATE } from '../utils/currency.utils'
 
 /**
  * GET /api/wallet/me
@@ -21,7 +23,7 @@ export const getUserWallet = asyncHandler(async (req: AuthRequest, res: Response
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const wallet = await getOrCreateUserWallet(userId)
+  const wallet = await getOrCreateUserWallet(userId, 'PHP')
 
   const transactions = await prisma.walletTransaction.findMany({
     where: { userId },
@@ -36,13 +38,17 @@ export const getUserWallet = asyncHandler(async (req: AuthRequest, res: Response
       balance: wallet.balance,
       currency: wallet.currency,
     },
+    exchangeRate: {
+      USD_PHP: USD_PHP_EXCHANGE_RATE,
+      note: `1 USD = ₱${USD_PHP_EXCHANGE_RATE.toFixed(2)} PHP`,
+    },
     transactions,
   })
 })
 
 /**
  * POST /api/wallet/deposit/initiate
- * Creates a Stripe PaymentIntent to top up the user's e-wallet via GCash, Maya, or Card
+ * Creates a PayMongo Checkout Session (GCash/Maya) or Stripe Checkout Session (Card)
  */
 export const initiateDeposit = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
@@ -59,55 +65,72 @@ export const initiateDeposit = asyncHandler(async (req: AuthRequest, res: Respon
 
   const isUSD = String(currency).toUpperCase() === 'USD'
   const targetCurrency = isUSD ? 'USD' : 'PHP'
-  const symbol = isUSD ? '$' : '₱'
-  const stripePaymentMethod = String(paymentMethod).toUpperCase()
+  const selectedMethod = String(paymentMethod).toUpperCase() as 'GCASH' | 'MAYA' | 'CARD' | 'GRABPAY'
 
-  let stripePmTypes: string[] = ['card']
-  if (stripePaymentMethod === 'GCASH') {
-    stripePmTypes = ['gcash']
-  } else if (stripePaymentMethod === 'GRABPAY') {
-    stripePmTypes = ['grabpay']
-  } else if (stripePaymentMethod === 'MAYA') {
-    stripePmTypes = ['card']
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { email: true, firstName: true, lastName: true },
+  })
+
+  // 1. GCash & Maya via PayMongo Official Checkout
+  if (selectedMethod === 'GCASH' || selectedMethod === 'MAYA' || selectedMethod === 'GRABPAY') {
+    const { convertedAmount: phpAmount } = convertCurrency(depositAmount, targetCurrency, 'PHP')
+    const paymongoSession = await createPayMongoCheckoutSession({
+      amount: phpAmount,
+      description: `FitTrack e-Wallet Deposit: ₱${phpAmount.toFixed(2)} via ${selectedMethod}`,
+      paymentMethod: selectedMethod,
+      customerEmail: user?.email,
+      customerName: user ? `${user.firstName} ${user.lastName}` : undefined,
+      customerPhone: phoneNumber,
+      metadata: {
+        userId,
+        action: 'wallet_deposit',
+        depositAmount: String(depositAmount),
+        currency: targetCurrency,
+      },
+    })
+
+    return res.json({
+      success: true,
+      checkoutUrl: paymongoSession.checkoutUrl,
+      paymentIntentId: paymongoSession.id,
+      amount: paymongoSession.amount,
+      currency: 'PHP',
+      referenceNumber: paymongoSession.referenceNumber,
+      paymentMethod: selectedMethod,
+      isSimulated: paymongoSession.isSimulated,
+    })
   }
 
-  const paymentIntent = await createPaymentIntent({
+  // 2. Card via Stripe Official Hosted Checkout Session
+  const stripeSession = await createStripeCheckoutSession({
     amount: depositAmount,
-    currency: targetCurrency.toLowerCase(),
-    paymentMethodTypes: stripePmTypes,
-    description: `FitTrack e-Wallet Deposit: ${symbol}${depositAmount.toFixed(2)} via ${stripePaymentMethod}`,
+    currency: targetCurrency,
+    planName: `FitTrack e-Wallet Deposit (${formatCurrencyString(depositAmount, targetCurrency)})`,
+    customerEmail: user?.email,
     metadata: {
       userId,
       action: 'wallet_deposit',
       depositAmount: String(depositAmount),
       currency: targetCurrency,
-      paymentMethod: stripePaymentMethod,
-      phoneNumber: phoneNumber || '',
+      paymentMethod: 'CARD',
     },
   })
 
-  const phReferenceNumber =
-    stripePaymentMethod === 'GCASH'
-      ? `GCASH-${Math.floor(10000000 + Math.random() * 90000000)}`
-      : stripePaymentMethod === 'MAYA'
-      ? `MAYA-${Math.floor(10000000 + Math.random() * 90000000)}`
-      : undefined
-
-  res.json({
+  return res.json({
     success: true,
-    clientSecret: paymentIntent.clientSecret,
-    paymentIntentId: paymentIntent.id,
-    amount: paymentIntent.amount,
-    currency: paymentIntent.currency,
-    referenceNumber: phReferenceNumber,
-    paymentMethod: stripePaymentMethod,
-    isSimulated: paymentIntent.isSimulated,
+    checkoutUrl: stripeSession.checkoutUrl,
+    paymentIntentId: stripeSession.sessionId,
+    amount: depositAmount,
+    currency: targetCurrency,
+    paymentMethod: 'CARD',
+    isSimulated: stripeSession.isSimulated,
   })
 })
 
 /**
  * POST /api/wallet/deposit/confirm
- * Confirms payment intent and credits user's e-wallet
+ * Confirms payment intent and credits user's e-wallet with realistic FX conversion
  */
 export const confirmDeposit = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
@@ -119,45 +142,60 @@ export const confirmDeposit = asyncHandler(async (req: AuthRequest, res: Respons
   const depositAmount = Number(amount)
   const isUSD = String(currency).toUpperCase() === 'USD'
   const targetCurrency = isUSD ? 'USD' : 'PHP'
-  const symbol = isUSD ? '$' : '₱'
+  const selectedMethod = String(paymentMethod).toUpperCase()
 
-  const verified = await verifyPaymentIntent(paymentIntentId, depositAmount, targetCurrency)
-  if (verified.status !== 'succeeded') {
-    return res.status(400).json({ error: `Payment not verified (status: ${verified.status}).` })
+  // Verify via PayMongo or Stripe
+  if (paymentIntentId.startsWith('cs_pm_') || selectedMethod === 'GCASH' || selectedMethod === 'MAYA') {
+    const verified = await verifyPayMongoPayment(paymentIntentId)
+    if (!verified.paid && process.env.NODE_ENV === 'production') {
+      return res.status(400).json({ error: 'PayMongo payment has not been confirmed yet.' })
+    }
+  } else {
+    const verified = await verifyPaymentIntent(paymentIntentId, depositAmount, targetCurrency)
+    if (verified.status !== 'succeeded') {
+      return res.status(400).json({ error: `Payment not verified (status: ${verified.status}).` })
+    }
   }
 
-  const wallet = await getOrCreateUserWallet(userId, targetCurrency)
+  // Fetch or create user wallet (standardized in PHP)
+  const wallet = await getOrCreateUserWallet(userId, 'PHP')
 
-  const updatedWallet = await prisma.wallet.update({
-    where: { id: wallet.id },
-    data: {
-      balance: {
-        increment: depositAmount,
+  // Convert foreign deposits to the wallet's native currency (e.g. 100 USD -> 5,800.00 PHP)
+  const { convertedAmount: creditedAmount } = convertCurrency(depositAmount, targetCurrency, wallet.currency)
+
+  // Atomically increment wallet balance and record ledger transaction
+  const [updatedWallet, transaction] = await prisma.$transaction([
+    prisma.wallet.update({
+      where: { id: wallet.id },
+      data: {
+        balance: {
+          increment: creditedAmount,
+        },
       },
-      currency: targetCurrency,
-    },
-  })
-
-  // Create transaction record
-  const transaction = await prisma.walletTransaction.create({
-    data: {
-      walletId: wallet.id,
-      userId,
-      type: 'DEPOSIT',
-      amount: depositAmount,
-      fee: 0.0,
-      netAmount: depositAmount,
-      currency: targetCurrency,
-      status: 'COMPLETED',
-      paymentMethod: String(paymentMethod).toUpperCase(),
-      referenceId: paymentIntentId,
-      description: `e-Wallet Top-up: +${symbol}${depositAmount.toFixed(2)} via ${paymentMethod}`,
-    },
-  })
+    }),
+    prisma.walletTransaction.create({
+      data: {
+        walletId: wallet.id,
+        userId,
+        type: 'DEPOSIT',
+        amount: creditedAmount,
+        fee: 0.0,
+        netAmount: creditedAmount,
+        currency: wallet.currency,
+        status: 'COMPLETED',
+        paymentMethod: selectedMethod,
+        referenceId: paymentIntentId,
+        description:
+          targetCurrency === wallet.currency
+            ? `e-Wallet Top-up: +${formatCurrencyString(depositAmount, targetCurrency)} via ${selectedMethod}`
+            : `e-Wallet Top-up: +${formatCurrencyString(depositAmount, targetCurrency)} (Credited ${formatCurrencyString(creditedAmount, wallet.currency)} at 1 USD = ₱${USD_PHP_EXCHANGE_RATE}) via ${selectedMethod}`,
+      },
+    }),
+  ])
 
   res.json({
     success: true,
-    message: `Successfully topped up ${symbol}${depositAmount.toFixed(2)} to your e-wallet!`,
+    message: `Successfully credited ${formatCurrencyString(creditedAmount, wallet.currency)} to your e-wallet!`,
     balance: updatedWallet.balance,
     currency: updatedWallet.currency,
     transaction,
@@ -186,37 +224,12 @@ export const paySubscriptionWithWallet = asyncHandler(async (req: AuthRequest, r
     return res.status(400).json({ error: 'Invalid paid subscription tier.' })
   }
 
-  const userWallet = await getOrCreateUserWallet(userId, pricing.currency)
-
-  if (userWallet.balance < pricing.price) {
-    return res.status(400).json({
-      error: `Insufficient e-wallet balance (${pricing.symbol}${userWallet.balance.toFixed(2)}). Needed: ${pricing.symbol}${pricing.price.toFixed(2)}.`,
-      balance: userWallet.balance,
-      required: pricing.price,
-      currency: pricing.currency,
-    })
-  }
-
-  // Deduct from user wallet
-  const updatedUserWallet = await prisma.wallet.update({
-    where: { id: userWallet.id },
-    data: {
-      balance: {
-        decrement: pricing.price,
-      },
-    },
-  })
-
-  // Credit platform master revenue wallet
+  // Ensure platform wallet exists before transaction
   const platformWallet = await getOrCreatePlatformWallet()
-  await prisma.wallet.update({
-    where: { id: platformWallet.id },
-    data: {
-      balance: {
-        increment: pricing.price,
-      },
-    },
-  })
+  const userWallet = await getOrCreateUserWallet(userId, 'PHP')
+
+  // Calculate required amount in user's wallet currency (e.g. $9.99 converts to ₱579.42 PHP)
+  const { convertedAmount: requiredWalletBalance } = convertCurrency(pricing.price, pricing.currency, userWallet.currency)
 
   // Calculate dates
   const now = new Date()
@@ -230,58 +243,125 @@ export const paySubscriptionWithWallet = asyncHandler(async (req: AuthRequest, r
     periodEnd = new Date(now.getTime() + 100 * 365 * 24 * 60 * 60 * 1000)
   }
 
-  // Update subscription
-  const sub = await prisma.subscription.upsert({
-    where: { userId },
-    update: {
-      tier: plan.tier,
-      status: SubscriptionStatus.ACTIVE,
-      stripePaymentIntentId: `wallet_tx_${Date.now().toString(36)}`,
-      amount: pricing.price,
-      currency: pricing.currency,
-      interval: plan.interval,
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-      cancelAtPeriodEnd: false,
-    },
-    create: {
-      userId,
-      tier: plan.tier,
-      status: SubscriptionStatus.ACTIVE,
-      stripePaymentIntentId: `wallet_tx_${Date.now().toString(36)}`,
-      amount: pricing.price,
-      currency: pricing.currency,
-      interval: plan.interval,
-      currentPeriodStart: now,
-      currentPeriodEnd: periodEnd,
-      cancelAtPeriodEnd: false,
-    },
-  })
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const liveUserWallet = await tx.wallet.findUnique({
+        where: { userId },
+      })
 
-  // Record transaction in ledger
-  await prisma.walletTransaction.create({
-    data: {
-      walletId: platformWallet.id,
-      userId,
-      type: 'SUBSCRIPTION',
-      amount: pricing.price,
-      fee: 0.0,
-      netAmount: pricing.price,
-      currency: pricing.currency,
-      status: 'COMPLETED',
-      paymentMethod: 'E_WALLET',
-      referenceId: `wallet_tx_${Date.now().toString(36)}`,
-      description: `Subscription activated via e-Wallet: ${plan.name} (${pricing.symbol}${pricing.price})`,
-    },
-  })
+      if (!liveUserWallet || liveUserWallet.balance < requiredWalletBalance) {
+        throw new Error(
+          `INSUFFICIENT_BALANCE:${formatCurrencyString(liveUserWallet?.balance || 0, userWallet.currency)}:${formatCurrencyString(requiredWalletBalance, userWallet.currency)}`
+        )
+      }
 
-  res.json({
-    success: true,
-    message: `Congratulations! ${plan.name} has been activated using your e-wallet balance.`,
-    subscription: sub,
-    remainingBalance: updatedUserWallet.balance,
-    currency: pricing.currency,
-    isPro: true,
-    planInfo: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
-  })
+      // Convert debit to platform currency
+      const { convertedAmount: platformCreditAmount } = convertCurrency(requiredWalletBalance, userWallet.currency, platformWallet.currency)
+
+      // 1. Deduct from user wallet
+      const updatedUserWallet = await tx.wallet.update({
+        where: { id: liveUserWallet.id },
+        data: {
+          balance: {
+            decrement: requiredWalletBalance,
+          },
+        },
+      })
+
+      // 2. Credit platform master revenue wallet
+      await tx.wallet.update({
+        where: { id: platformWallet.id },
+        data: {
+          balance: {
+            increment: platformCreditAmount,
+          },
+        },
+      })
+
+      const referenceId = `wallet_tx_${Date.now().toString(36)}`
+
+      // 3. Upsert subscription
+      const sub = await tx.subscription.upsert({
+        where: { userId },
+        update: {
+          tier: plan.tier,
+          status: SubscriptionStatus.ACTIVE,
+          stripePaymentIntentId: referenceId,
+          amount: pricing.price,
+          currency: pricing.currency,
+          interval: plan.interval,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: false,
+        },
+        create: {
+          userId,
+          tier: plan.tier,
+          status: SubscriptionStatus.ACTIVE,
+          stripePaymentIntentId: referenceId,
+          amount: pricing.price,
+          currency: pricing.currency,
+          interval: plan.interval,
+          currentPeriodStart: now,
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: false,
+        },
+      })
+
+      // 4. Record user-side debit in personal ledger
+      await tx.walletTransaction.create({
+        data: {
+          walletId: liveUserWallet.id,
+          userId,
+          type: 'SUBSCRIPTION',
+          amount: -requiredWalletBalance,
+          fee: 0.0,
+          netAmount: -requiredWalletBalance,
+          currency: userWallet.currency,
+          status: 'COMPLETED',
+          paymentMethod: 'E_WALLET',
+          referenceId,
+          description: `Subscription paid via e-wallet: ${plan.name} (${formatCurrencyString(requiredWalletBalance, userWallet.currency)})`,
+        },
+      })
+
+      // 5. Record platform master revenue credit in platform ledger
+      await tx.walletTransaction.create({
+        data: {
+          walletId: platformWallet.id,
+          userId,
+          type: 'SUBSCRIPTION',
+          amount: platformCreditAmount,
+          fee: 0.0,
+          netAmount: platformCreditAmount,
+          currency: platformWallet.currency,
+          status: 'COMPLETED',
+          paymentMethod: 'E_WALLET',
+          referenceId,
+          description: `Subscription activated via e-Wallet: ${plan.name} (${formatCurrencyString(platformCreditAmount, platformWallet.currency)})`,
+        },
+      })
+
+      return { sub, updatedUserWallet }
+    })
+
+    res.json({
+      success: true,
+      message: `Congratulations! ${plan.name} has been activated using your e-wallet balance.`,
+      subscription: result.sub,
+      remainingBalance: result.updatedUserWallet.balance,
+      currency: result.updatedUserWallet.currency,
+      isPro: true,
+      planInfo: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
+    })
+  } catch (err: any) {
+    if (err?.message?.startsWith('INSUFFICIENT_BALANCE:')) {
+      const [, current, required] = err.message.split(':')
+      return res.status(400).json({
+        error: `Insufficient e-wallet balance (${current}). Required: ${required}.`,
+        currency: userWallet.currency,
+      })
+    }
+    throw err
+  }
 })

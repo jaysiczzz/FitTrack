@@ -33,7 +33,10 @@ export async function getOrCreateStripeCustomer(email: string, name?: string): P
   const secretKey = getStripeKey();
 
   if (!secretKey) {
-    // Simulated customer ID
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is not configured on the production server.');
+    }
+    // Simulated customer ID for development
     return {
       id: `cus_sim_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`,
       email,
@@ -86,7 +89,9 @@ export async function getOrCreateStripeCustomer(email: string, name?: string): P
       isSimulated: false,
     };
   } catch (err) {
-    console.warn('[StripeService] Stripe customer call fallback to simulation:', err);
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    }
     return {
       id: `cus_sim_${Date.now().toString(36)}`,
       email,
@@ -111,6 +116,9 @@ export async function createPaymentIntent(params: {
   const amountCents = Math.round(amount * 100);
 
   if (!secretKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is not configured on the production server.');
+    }
     const simId = `pi_sim_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
     return {
       id: simId,
@@ -167,7 +175,9 @@ export async function createPaymentIntent(params: {
       isSimulated: false,
     };
   } catch (err) {
-    console.warn('[StripeService] Stripe createPaymentIntent fallback to simulation:', err);
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    }
     const simId = `pi_sim_${Date.now().toString(36)}`;
     return {
       id: simId,
@@ -195,8 +205,37 @@ export async function verifyPaymentIntent(
 }> {
   const secretKey = getStripeKey();
 
-  if (!secretKey || paymentIntentId.startsWith('pi_sim_') || paymentIntentId.startsWith('wallet_tx_') || paymentIntentId.startsWith('gcash_') || paymentIntentId.startsWith('maya_')) {
-    // Simulated sandbox auto-success
+  // In production, reject simulated payment tokens
+  if (
+    paymentIntentId.startsWith('pi_sim_') ||
+    paymentIntentId.startsWith('gcash_sim_') ||
+    paymentIntentId.startsWith('maya_sim_')
+  ) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Simulated payment tokens are not accepted in production.');
+    }
+    return {
+      id: paymentIntentId,
+      status: 'succeeded',
+      amount: expectedAmount || 499.0,
+      currency: expectedCurrency.toUpperCase(),
+    };
+  }
+
+  // Wallet internal transfers
+  if (paymentIntentId.startsWith('wallet_tx_')) {
+    return {
+      id: paymentIntentId,
+      status: 'succeeded',
+      amount: expectedAmount || 499.0,
+      currency: expectedCurrency.toUpperCase(),
+    };
+  }
+
+  if (!secretKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is required in production.');
+    }
     return {
       id: paymentIntentId,
       status: 'succeeded',
@@ -206,26 +245,35 @@ export async function verifyPaymentIntent(
   }
 
   try {
-    const res = await fetch(`${STRIPE_API_BASE}/payment_intents/${paymentIntentId}`, {
+    const isCheckoutSession = paymentIntentId.startsWith('cs_');
+    const endpoint = isCheckoutSession
+      ? `${STRIPE_API_BASE}/checkout/sessions/${paymentIntentId}`
+      : `${STRIPE_API_BASE}/payment_intents/${paymentIntentId}`;
+
+    const res = await fetch(endpoint, {
       headers: {
         Authorization: `Bearer ${secretKey}`,
       },
     });
 
     if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err?.error?.message || 'Could not verify PaymentIntent');
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err?.error?.message || 'Could not verify payment with Stripe');
     }
 
-    const pi = await res.json();
+    const data = await res.json();
+    const isPaid = isCheckoutSession ? data.payment_status === 'paid' : data.status === 'succeeded';
+
     return {
-      id: pi.id,
-      status: pi.status,
-      amount: pi.amount / 100,
-      currency: pi.currency.toUpperCase(),
+      id: data.id,
+      status: isPaid ? 'succeeded' : (data.status || 'requires_payment_method'),
+      amount: (data.amount_total || data.amount || 0) / 100,
+      currency: (data.currency || expectedCurrency).toUpperCase(),
     };
   } catch (err) {
-    console.warn('[StripeService] Payment verification fallback:', err);
+    if (process.env.NODE_ENV === 'production') {
+      throw err;
+    }
     return {
       id: paymentIntentId,
       status: 'succeeded',
@@ -233,4 +281,94 @@ export async function verifyPaymentIntent(
       currency: expectedCurrency.toUpperCase(),
     };
   }
+}
+
+export interface StripeCheckoutResult {
+  sessionId: string;
+  checkoutUrl: string;
+  amount: number;
+  currency: string;
+  isSimulated: boolean;
+}
+
+/**
+ * Creates an official Stripe Hosted Checkout Session (Card, Apple Pay, Google Pay)
+ */
+export async function createStripeCheckoutSession(params: {
+  amount: number;
+  currency: string;
+  planName: string;
+  customerEmail?: string;
+  successUrl?: string;
+  cancelUrl?: string;
+  metadata?: Record<string, string>;
+}): Promise<StripeCheckoutResult> {
+  const secretKey = getStripeKey();
+  const {
+    amount,
+    currency = 'php',
+    planName,
+    customerEmail,
+    successUrl = 'https://fittrack.app/checkout/success',
+    cancelUrl = 'https://fittrack.app/checkout/cancel',
+    metadata = {},
+  } = params;
+
+  const amountCents = Math.round(amount * 100);
+
+  if (!secretKey) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('STRIPE_SECRET_KEY is not configured on the production server.');
+    }
+    const simSessionId = `cs_sim_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
+    return {
+      sessionId: simSessionId,
+      checkoutUrl: `https://checkout.stripe.com/pay/${simSessionId}?plan=${encodeURIComponent(planName)}&amount=${amount}`,
+      amount,
+      currency: currency.toUpperCase(),
+      isSimulated: true,
+    };
+  }
+
+  const body = new URLSearchParams({
+    'payment_method_types[]': 'card',
+    'mode': 'payment',
+    'line_items[0][price_data][currency]': currency.toLowerCase(),
+    'line_items[0][price_data][product_data][name]': planName,
+    'line_items[0][price_data][unit_amount]': String(amountCents),
+    'line_items[0][quantity]': '1',
+    'success_url': `${successUrl}?session_id={CHECKOUT_SESSION_ID}`,
+    'cancel_url': cancelUrl,
+  });
+
+  if (customerEmail) {
+    body.append('customer_email', customerEmail);
+  }
+
+  Object.entries(metadata).forEach(([k, v]) => {
+    body.append(`metadata[${k}]`, v);
+  });
+
+  const res = await fetch(`${STRIPE_API_BASE}/checkout/sessions`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body: body.toString(),
+  });
+
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err?.error?.message || 'Failed to create Stripe Checkout Session');
+  }
+
+  const session = await res.json();
+  return {
+    sessionId: session.id,
+    checkoutUrl: session.url || '',
+    amount,
+    currency: currency.toUpperCase(),
+    isSimulated: false,
+  };
 }

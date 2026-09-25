@@ -7,7 +7,17 @@ import {
   getOrCreateStripeCustomer,
   createPaymentIntent,
   verifyPaymentIntent,
+  createStripeCheckoutSession,
 } from '../services/stripe.service'
+import {
+  createPayMongoCheckoutSession,
+  verifyPayMongoPayment,
+} from '../services/paymongo.service'
+import {
+  convertCurrency,
+  formatCurrencyString,
+  USD_PHP_EXCHANGE_RATE,
+} from '../utils/currency.utils'
 
 export interface PlanDefinition {
   id: string
@@ -260,13 +270,18 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
 
   // Handle e-Wallet payment option
   if (paymentMethod === 'E_WALLET') {
-    const wallet = await getOrCreateUserWallet(userId, pricing.currency)
-    if (wallet.balance < pricing.price) {
+    const userWallet = await getOrCreateUserWallet(userId, 'PHP')
+    const { convertedAmount: requiredWalletBalance } = convertCurrency(
+      pricing.price,
+      pricing.currency,
+      userWallet.currency
+    )
+    if (userWallet.balance < requiredWalletBalance) {
       return res.status(400).json({
-        error: `Insufficient e-wallet balance (${pricing.symbol}${wallet.balance.toFixed(2)}). Required: ${pricing.symbol}${pricing.price.toFixed(2)}. Please top up your wallet via GCash, Maya, or Card.`,
-        requiredAmount: pricing.price,
-        currentBalance: wallet.balance,
-        currency: pricing.currency,
+        error: `Insufficient e-wallet balance (${formatCurrencyString(userWallet.balance, userWallet.currency)}). Required: ${formatCurrencyString(requiredWalletBalance, userWallet.currency)}. Please top up your wallet via GCash, Maya, or Card.`,
+        requiredAmount: requiredWalletBalance,
+        currentBalance: userWallet.balance,
+        currency: userWallet.currency,
       })
     }
 
@@ -278,59 +293,70 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
     })
   }
 
-  // Map payment method types for Stripe
-  const stripePaymentMethod = String(paymentMethod).toUpperCase()
-  let stripePmTypes: string[] = ['card']
-  if (stripePaymentMethod === 'GCASH') {
-    stripePmTypes = ['gcash']
-  } else if (stripePaymentMethod === 'GRABPAY') {
-    stripePmTypes = ['grabpay']
-  } else if (stripePaymentMethod === 'MAYA') {
-    stripePmTypes = ['card']
+  const selectedMethod = String(paymentMethod).toUpperCase() as 'GCASH' | 'MAYA' | 'CARD' | 'GRABPAY'
+
+  // 1. GCash & Maya via PayMongo Official Checkout
+  if (selectedMethod === 'GCASH' || selectedMethod === 'MAYA' || selectedMethod === 'GRABPAY') {
+    const { convertedAmount: phpPrice } = convertCurrency(pricing.price, pricing.currency, 'PHP')
+    const paymongoSession = await createPayMongoCheckoutSession({
+      amount: phpPrice,
+      description: `FitTrack Subscription: ${plan.name}`,
+      paymentMethod: selectedMethod,
+      customerEmail: user.email,
+      customerName: `${user.firstName} ${user.lastName}`,
+      customerPhone: phoneNumber,
+      metadata: {
+        userId,
+        tier,
+        planName: plan.name,
+        currency: 'PHP',
+        paymentMethod: selectedMethod,
+      },
+    })
+
+    return res.json({
+      success: true,
+      paymentMethod: selectedMethod,
+      plan: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
+      checkoutUrl: paymongoSession.checkoutUrl,
+      paymentIntentId: paymongoSession.id,
+      amount: phpPrice,
+      currency: 'PHP',
+      referenceNumber: paymongoSession.referenceNumber,
+      isSimulated: paymongoSession.isSimulated,
+    })
   }
 
-  // Stripe PaymentIntent
-  const stripeCustomer = await getOrCreateStripeCustomer(user.email, `${user.firstName} ${user.lastName}`)
-  const paymentIntent = await createPaymentIntent({
+  // 2. Card via Stripe Hosted Checkout Session
+  const stripeSession = await createStripeCheckoutSession({
     amount: pricing.price,
-    currency: pricing.currency.toLowerCase(),
-    customerId: stripeCustomer.id,
-    paymentMethodTypes: stripePmTypes,
-    description: `FitTrack Subscription (${pricing.currency}): ${plan.name} via ${stripePaymentMethod}`,
+    currency: pricing.currency,
+    planName: `FitTrack ${plan.name} (${formatCurrencyString(pricing.price, pricing.currency)})`,
+    customerEmail: user.email,
     metadata: {
       userId,
       tier,
       planName: plan.name,
       currency: pricing.currency,
-      paymentMethod: stripePaymentMethod,
-      phoneNumber: phoneNumber || '',
+      paymentMethod: 'CARD',
     },
   })
 
-  // Simulated reference number for Philippine e-wallets
-  const phReferenceNumber =
-    stripePaymentMethod === 'GCASH'
-      ? `GCASH-${Math.floor(10000000 + Math.random() * 90000000)}`
-      : stripePaymentMethod === 'MAYA'
-      ? `MAYA-${Math.floor(10000000 + Math.random() * 90000000)}`
-      : undefined
-
-  res.json({
+  return res.json({
     success: true,
-    paymentMethod: stripePaymentMethod,
+    paymentMethod: 'CARD',
     plan: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
-    clientSecret: paymentIntent.clientSecret,
-    paymentIntentId: paymentIntent.id,
-    amount: paymentIntent.amount,
-    currency: paymentIntent.currency,
-    referenceNumber: phReferenceNumber,
-    isSimulated: paymentIntent.isSimulated,
+    checkoutUrl: stripeSession.checkoutUrl,
+    paymentIntentId: stripeSession.sessionId,
+    amount: pricing.price,
+    currency: pricing.currency,
+    isSimulated: stripeSession.isSimulated,
   })
 })
 
 /**
  * POST /api/subscriptions/confirm
- * Confirms payment with Stripe, activates subscription tier, and records transaction in ledger
+ * Confirms payment with Stripe / PayMongo, activates subscription tier, and records transaction in ledger
  */
 export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
@@ -346,13 +372,23 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
   }
 
   const pricing = getPlanPricing(tier, currency)
+  const selectedMethod = String(paymentMethod).toUpperCase()
 
   // Verify payment status
-  const verified = await verifyPaymentIntent(paymentIntentId, pricing.price, pricing.currency)
-  if (verified.status !== 'succeeded') {
-    return res.status(400).json({
-      error: `Payment has not succeeded yet (status: ${verified.status}).`,
-    })
+  if (paymentIntentId.startsWith('cs_pm_') || selectedMethod === 'GCASH' || selectedMethod === 'MAYA') {
+    const verified = await verifyPayMongoPayment(paymentIntentId)
+    if (!verified.paid && process.env.NODE_ENV === 'production') {
+      return res.status(400).json({
+        error: 'PayMongo payment has not been completed yet.',
+      })
+    }
+  } else {
+    const verified = await verifyPaymentIntent(paymentIntentId, pricing.price, pricing.currency)
+    if (verified.status !== 'succeeded') {
+      return res.status(400).json({
+        error: `Payment has not succeeded yet (status: ${verified.status}).`,
+      })
+    }
   }
 
   // Calculate subscription active period
@@ -395,38 +431,43 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
     },
   })
 
-  // Credit platform master revenue wallet
+  // Atomically credit platform master wallet and record ledger
   const platformWallet = await getOrCreatePlatformWallet()
   const feeRate = pricing.currency === 'PHP' ? 0.025 : 0.029
   const fixedFee = pricing.currency === 'PHP' ? 15.0 : 0.30
-  const stripeFee = Number((pricing.price * feeRate + fixedFee).toFixed(2))
-  const netAmount = Number(Math.max(0, pricing.price - stripeFee).toFixed(2))
+  const processingFee = Number((pricing.price * feeRate + fixedFee).toFixed(2))
+  const netAmount = Number(Math.max(0, pricing.price - processingFee).toFixed(2))
 
-  await prisma.wallet.update({
-    where: { id: platformWallet.id },
-    data: {
-      balance: {
-        increment: netAmount,
+  // Convert net amount to platform wallet currency
+  const { convertedAmount: platformNetCredit } = convertCurrency(netAmount, pricing.currency, platformWallet.currency)
+  const { convertedAmount: platformGrossCredit } = convertCurrency(pricing.price, pricing.currency, platformWallet.currency)
+  const { convertedAmount: platformFee } = convertCurrency(processingFee, pricing.currency, platformWallet.currency)
+
+  await prisma.$transaction([
+    prisma.wallet.update({
+      where: { id: platformWallet.id },
+      data: {
+        balance: {
+          increment: platformNetCredit,
+        },
       },
-    },
-  })
-
-  // Record transaction in ledger
-  await prisma.walletTransaction.create({
-    data: {
-      walletId: platformWallet.id,
-      userId,
-      type: 'SUBSCRIPTION',
-      amount: pricing.price,
-      fee: stripeFee,
-      netAmount,
-      currency: pricing.currency,
-      status: 'COMPLETED',
-      paymentMethod: String(paymentMethod).toUpperCase(),
-      referenceId: paymentIntentId,
-      description: `Subscription activated: ${plan.name} (${pricing.symbol}${pricing.price}) via ${paymentMethod}`,
-    },
-  })
+    }),
+    prisma.walletTransaction.create({
+      data: {
+        walletId: platformWallet.id,
+        userId,
+        type: 'SUBSCRIPTION',
+        amount: platformGrossCredit,
+        fee: platformFee,
+        netAmount: platformNetCredit,
+        currency: platformWallet.currency,
+        status: 'COMPLETED',
+        paymentMethod: selectedMethod,
+        referenceId: paymentIntentId,
+        description: `Subscription activated: ${plan.name} (${formatCurrencyString(pricing.price, pricing.currency)}) via ${selectedMethod}`,
+      },
+    }),
+  ])
 
   res.json({
     success: true,
@@ -481,6 +522,18 @@ export const reactivateSubscription = asyncHandler(async (req: AuthRequest, res:
   const userId = req.user?.id
   if (!userId) {
     return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const sub = await prisma.subscription.findUnique({
+    where: { userId },
+  })
+
+  if (!sub || sub.tier === SubscriptionTier.FREE) {
+    return res.status(400).json({ error: 'No active subscription found to reactivate.' })
+  }
+
+  if (!sub.cancelAtPeriodEnd) {
+    return res.status(400).json({ error: 'Subscription is already active with auto-renewal enabled.' })
   }
 
   const updated = await prisma.subscription.update({

@@ -37,7 +37,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
   // Payout state
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
-  const [payoutDestination, setPayoutDestination] = useState('Bank Wire (Account ending in 8842)');
+  const [payoutDestination, setPayoutDestination] = useState('');
   const [payoutNotes, setPayoutNotes] = useState('');
   const [processingPayout, setProcessingPayout] = useState(false);
 
@@ -77,14 +77,20 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
       showWarning('Invalid Amount', 'Please enter a valid payout amount.');
       return;
     }
+    if (!payoutDestination.trim()) {
+      showWarning('Missing Destination', 'Please specify a payout destination (e.g. bank account or wire).');
+      return;
+    }
 
     setProcessingPayout(true);
     try {
-      const res = await processAdminPayoutApi(amountNum, payoutDestination, payoutNotes);
+      const res = await processAdminPayoutApi(amountNum, payoutDestination.trim(), payoutNotes);
       if (res.success) {
-        showSuccess('Payout Processed', `$${amountNum.toFixed(2)} dispatched to ${payoutDestination}`);
+        const symbol = data?.platformWallet?.currency === 'USD' ? '$' : '₱';
+        showSuccess('Payout Processed', `${symbol}${amountNum.toFixed(2)} dispatched to ${payoutDestination.trim()}`);
         setShowPayoutModal(false);
         setPayoutAmount('');
+        setPayoutDestination('');
         fetchRevenueData();
       }
     } catch (err: any) {
@@ -462,6 +468,8 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
                 <TextInput
                   value={payoutDestination}
                   onChangeText={setPayoutDestination}
+                  placeholder="e.g. BDO / BPI Account 1234-5678 or Bank Wire"
+                  placeholderTextColor={colors.textMuted}
                   className="bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border text-xs text-text-primary dark:text-text-primary-dark mb-4"
                 />
 

@@ -95,6 +95,10 @@ export interface AdminRevenueMetrics {
 
 export interface AdminRevenueResponse {
   success: boolean;
+  platformWallet?: {
+    balance: number;
+    currency: string;
+  };
   metrics: AdminRevenueMetrics;
   tierBreakdown: {
     free: number;
@@ -136,6 +140,7 @@ export const createCheckoutSessionApi = (
   plan: SubscriptionPlanItem;
   clientSecret?: string;
   paymentIntentId?: string;
+  checkoutUrl?: string;
   amount?: number;
   currency?: string;
   referenceNumber?: string;
@@ -193,8 +198,9 @@ export const initiateWalletDepositApi = (
   phoneNumber?: string
 ): Promise<{
   success: boolean;
-  clientSecret: string;
+  clientSecret?: string;
   paymentIntentId: string;
+  checkoutUrl?: string;
   amount: number;
   currency: string;
   referenceNumber?: string;

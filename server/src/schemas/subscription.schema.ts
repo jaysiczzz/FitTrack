@@ -40,6 +40,20 @@ export const depositWalletSchema = z.object({
   }),
 })
 
+export const confirmDepositSchema = z.object({
+  body: z.object({
+    paymentIntentId: z.string().min(1, 'PaymentIntent ID is required'),
+    amount: z
+      .number({ message: 'Deposit amount must be a number' })
+      .positive('Deposit amount must be greater than 0'),
+    currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
+    paymentMethod: z
+      .enum(['STRIPE', 'CARD', 'GCASH', 'GRABPAY', 'MAYA'])
+      .optional()
+      .default('GCASH'),
+  }),
+})
+
 export const walletPaySchema = z.object({
   body: z.object({
     tier: z.enum(['PRO_MONTHLY', 'PRO_ANNUAL', 'LIFETIME_FOUNDER'], {
