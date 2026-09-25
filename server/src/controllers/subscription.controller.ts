@@ -9,14 +9,29 @@ import {
   verifyPaymentIntent,
 } from '../services/stripe.service'
 
-export const SUBSCRIPTION_PLANS = {
+export interface PlanDefinition {
+  id: string
+  tier: SubscriptionTier
+  name: string
+  badge: string
+  price: number // backward compatibility (defaults to PHP or USD)
+  priceUSD: number
+  pricePHP: number
+  currency: string
+  interval: string | null
+  features: string[]
+}
+
+export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
   FREE: {
     id: 'FREE',
     tier: SubscriptionTier.FREE,
     name: 'FitTrack Free',
     badge: 'Starter',
     price: 0,
-    currency: 'USD',
+    priceUSD: 0,
+    pricePHP: 0,
+    currency: 'PHP',
     interval: null,
     features: [
       'Basic workout and exercise set tracking',
@@ -31,8 +46,10 @@ export const SUBSCRIPTION_PLANS = {
     tier: SubscriptionTier.PRO_MONTHLY,
     name: 'FitTrack Pro Monthly',
     badge: 'Most Popular',
-    price: 9.99,
-    currency: 'USD',
+    price: 499.00,
+    priceUSD: 9.99,
+    pricePHP: 499.00,
+    currency: 'PHP',
     interval: 'month',
     features: [
       'Everything in Free tier',
@@ -48,12 +65,14 @@ export const SUBSCRIPTION_PLANS = {
     tier: SubscriptionTier.PRO_ANNUAL,
     name: 'FitTrack Pro Annual',
     badge: 'Best Value · Save 33%',
-    price: 79.99,
-    currency: 'USD',
+    price: 3999.00,
+    priceUSD: 79.99,
+    pricePHP: 3999.00,
+    currency: 'PHP',
     interval: 'year',
     features: [
       'All Pro Monthly features included',
-      'Save 33% compared to monthly ($6.67/month)',
+      'Save 33% compared to monthly (₱333/month)',
       'Priority customer service and ticket resolution',
       'Advanced 1RM and volume analytics',
       'Early access to all upcoming features',
@@ -64,8 +83,10 @@ export const SUBSCRIPTION_PLANS = {
     tier: SubscriptionTier.LIFETIME_FOUNDER,
     name: 'Founder Lifetime Pass',
     badge: 'Limited VIP',
-    price: 199.99,
-    currency: 'USD',
+    price: 9999.00,
+    priceUSD: 199.99,
+    pricePHP: 9999.00,
+    currency: 'PHP',
     interval: 'lifetime',
     features: [
       'Permanent lifetime Pro access with zero recurring fees',
@@ -74,6 +95,16 @@ export const SUBSCRIPTION_PLANS = {
       'All future premium fitness models included forever',
     ],
   },
+}
+
+export function getPlanPricing(tierKey: string, currency: string = 'PHP') {
+  const plan = SUBSCRIPTION_PLANS[tierKey] || SUBSCRIPTION_PLANS.FREE
+  const isUSD = currency.toUpperCase() === 'USD'
+  return {
+    price: isUSD ? plan.priceUSD : plan.pricePHP,
+    currency: isUSD ? 'USD' : 'PHP',
+    symbol: isUSD ? '$' : '₱',
+  }
 }
 
 export async function getOrCreatePlatformWallet() {
@@ -85,14 +116,14 @@ export async function getOrCreatePlatformWallet() {
       data: {
         isPlatform: true,
         balance: 0.0,
-        currency: 'USD',
+        currency: 'PHP',
       },
     })
   }
   return wallet
 }
 
-export async function getOrCreateUserWallet(userId: string) {
+export async function getOrCreateUserWallet(userId: string, defaultCurrency: string = 'PHP') {
   let wallet = await prisma.wallet.findUnique({
     where: { userId },
   })
@@ -102,7 +133,7 @@ export async function getOrCreateUserWallet(userId: string) {
         userId,
         isPlatform: false,
         balance: 0.0,
-        currency: 'USD',
+        currency: defaultCurrency.toUpperCase(),
       },
     })
   }
@@ -111,12 +142,24 @@ export async function getOrCreateUserWallet(userId: string) {
 
 /**
  * GET /api/subscriptions/plans
- * Returns available subscription tiers and feature matrices
+ * Returns available subscription tiers and feature matrices with PHP & USD pricing
  */
 export const getSubscriptionPlans = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const currency = (req.query.currency as string) || 'PHP'
+  const isUSD = currency.toUpperCase() === 'USD'
+
+  const formattedPlans = Object.values(SUBSCRIPTION_PLANS).map((p) => ({
+    ...p,
+    price: isUSD ? p.priceUSD : p.pricePHP,
+    currency: isUSD ? 'USD' : 'PHP',
+    symbol: isUSD ? '$' : '₱',
+  }))
+
   res.json({
     success: true,
-    plans: Object.values(SUBSCRIPTION_PLANS),
+    currency: isUSD ? 'USD' : 'PHP',
+    symbol: isUSD ? '$' : '₱',
+    plans: formattedPlans,
   })
 })
 
@@ -194,11 +237,16 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const { tier, paymentMethod = 'STRIPE' } = req.body
+  const { tier, paymentMethod = 'CARD', currency = 'PHP', phoneNumber } = req.body
   const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS]
 
-  if (!plan || plan.price <= 0) {
+  if (!plan) {
     return res.status(400).json({ error: 'Invalid paid subscription tier selected.' })
+  }
+
+  const pricing = getPlanPricing(tier, currency)
+  if (pricing.price <= 0) {
+    return res.status(400).json({ error: 'Free tier does not require checkout.' })
   }
 
   const user = await prisma.user.findUnique({
@@ -212,45 +260,70 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
 
   // Handle e-Wallet payment option
   if (paymentMethod === 'E_WALLET') {
-    const wallet = await getOrCreateUserWallet(userId)
-    if (wallet.balance < plan.price) {
+    const wallet = await getOrCreateUserWallet(userId, pricing.currency)
+    if (wallet.balance < pricing.price) {
       return res.status(400).json({
-        error: `Insufficient e-wallet balance ($${wallet.balance.toFixed(2)}). Please top up or pay with Stripe.`,
-        requiredAmount: plan.price,
+        error: `Insufficient e-wallet balance (${pricing.symbol}${wallet.balance.toFixed(2)}). Required: ${pricing.symbol}${pricing.price.toFixed(2)}. Please top up your wallet via GCash, Maya, or Card.`,
+        requiredAmount: pricing.price,
         currentBalance: wallet.balance,
+        currency: pricing.currency,
       })
     }
 
     return res.json({
       success: true,
       paymentMethod: 'E_WALLET',
-      plan,
+      plan: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
       canPayImmediately: true,
     })
+  }
+
+  // Map payment method types for Stripe
+  const stripePaymentMethod = String(paymentMethod).toUpperCase()
+  let stripePmTypes: string[] = ['card']
+  if (stripePaymentMethod === 'GCASH') {
+    stripePmTypes = ['gcash']
+  } else if (stripePaymentMethod === 'GRABPAY') {
+    stripePmTypes = ['grabpay']
+  } else if (stripePaymentMethod === 'MAYA') {
+    stripePmTypes = ['card']
   }
 
   // Stripe PaymentIntent
   const stripeCustomer = await getOrCreateStripeCustomer(user.email, `${user.firstName} ${user.lastName}`)
   const paymentIntent = await createPaymentIntent({
-    amount: plan.price,
-    currency: 'usd',
+    amount: pricing.price,
+    currency: pricing.currency.toLowerCase(),
     customerId: stripeCustomer.id,
-    description: `FitTrack Subscription: ${plan.name}`,
+    paymentMethodTypes: stripePmTypes,
+    description: `FitTrack Subscription (${pricing.currency}): ${plan.name} via ${stripePaymentMethod}`,
     metadata: {
       userId,
       tier,
       planName: plan.name,
+      currency: pricing.currency,
+      paymentMethod: stripePaymentMethod,
+      phoneNumber: phoneNumber || '',
     },
   })
 
+  // Simulated reference number for Philippine e-wallets
+  const phReferenceNumber =
+    stripePaymentMethod === 'GCASH'
+      ? `GCASH-${Math.floor(10000000 + Math.random() * 90000000)}`
+      : stripePaymentMethod === 'MAYA'
+      ? `MAYA-${Math.floor(10000000 + Math.random() * 90000000)}`
+      : undefined
+
   res.json({
     success: true,
-    paymentMethod: 'STRIPE',
-    plan,
+    paymentMethod: stripePaymentMethod,
+    plan: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
     clientSecret: paymentIntent.clientSecret,
     paymentIntentId: paymentIntent.id,
     amount: paymentIntent.amount,
     currency: paymentIntent.currency,
+    referenceNumber: phReferenceNumber,
     isSimulated: paymentIntent.isSimulated,
   })
 })
@@ -265,15 +338,17 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const { tier, paymentIntentId } = req.body
+  const { tier, paymentIntentId, currency = 'PHP', paymentMethod = 'CARD' } = req.body
   const plan = SUBSCRIPTION_PLANS[tier as keyof typeof SUBSCRIPTION_PLANS]
 
   if (!plan) {
     return res.status(400).json({ error: 'Invalid subscription tier' })
   }
 
+  const pricing = getPlanPricing(tier, currency)
+
   // Verify payment status
-  const verified = await verifyPaymentIntent(paymentIntentId)
+  const verified = await verifyPaymentIntent(paymentIntentId, pricing.price, pricing.currency)
   if (verified.status !== 'succeeded') {
     return res.status(400).json({
       error: `Payment has not succeeded yet (status: ${verified.status}).`,
@@ -299,8 +374,8 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
       tier: plan.tier,
       status: SubscriptionStatus.ACTIVE,
       stripePaymentIntentId: paymentIntentId,
-      amount: plan.price,
-      currency: 'USD',
+      amount: pricing.price,
+      currency: pricing.currency,
       interval: plan.interval,
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
@@ -311,8 +386,8 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
       tier: plan.tier,
       status: SubscriptionStatus.ACTIVE,
       stripePaymentIntentId: paymentIntentId,
-      amount: plan.price,
-      currency: 'USD',
+      amount: pricing.price,
+      currency: pricing.currency,
       interval: plan.interval,
       currentPeriodStart: now,
       currentPeriodEnd: periodEnd,
@@ -322,8 +397,10 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
 
   // Credit platform master revenue wallet
   const platformWallet = await getOrCreatePlatformWallet()
-  const stripeFee = Number((plan.price * 0.029 + 0.3).toFixed(2)) // Stripe 2.9% + $0.30 standard fee
-  const netAmount = Number((plan.price - stripeFee).toFixed(2))
+  const feeRate = pricing.currency === 'PHP' ? 0.025 : 0.029
+  const fixedFee = pricing.currency === 'PHP' ? 15.0 : 0.30
+  const stripeFee = Number((pricing.price * feeRate + fixedFee).toFixed(2))
+  const netAmount = Number(Math.max(0, pricing.price - stripeFee).toFixed(2))
 
   await prisma.wallet.update({
     where: { id: platformWallet.id },
@@ -340,14 +417,14 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
       walletId: platformWallet.id,
       userId,
       type: 'SUBSCRIPTION',
-      amount: plan.price,
+      amount: pricing.price,
       fee: stripeFee,
       netAmount,
-      currency: 'USD',
+      currency: pricing.currency,
       status: 'COMPLETED',
-      paymentMethod: 'STRIPE',
+      paymentMethod: String(paymentMethod).toUpperCase(),
       referenceId: paymentIntentId,
-      description: `Subscription activated: ${plan.name}`,
+      description: `Subscription activated: ${plan.name} (${pricing.symbol}${pricing.price}) via ${paymentMethod}`,
     },
   })
 
@@ -356,7 +433,7 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
     message: `Congratulations! You have upgraded to ${plan.name}.`,
     subscription: updatedSub,
     isPro: true,
-    planInfo: plan,
+    planInfo: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
   })
 })
 

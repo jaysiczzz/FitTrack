@@ -99,13 +99,14 @@ export async function getOrCreateStripeCustomer(email: string, name?: string): P
  * Creates a PaymentIntent for subscription upgrade or e-wallet deposit
  */
 export async function createPaymentIntent(params: {
-  amount: number; // in dollars / units
+  amount: number; // in dollars / pesos
   currency?: string;
   customerId?: string;
   description: string;
+  paymentMethodTypes?: string[];
   metadata?: Record<string, string>;
 }): Promise<StripePaymentIntentResult> {
-  const { amount, currency = 'usd', customerId, description, metadata = {} } = params;
+  const { amount, currency = 'php', customerId, description, paymentMethodTypes, metadata = {} } = params;
   const secretKey = getStripeKey();
   const amountCents = Math.round(amount * 100);
 
@@ -115,7 +116,7 @@ export async function createPaymentIntent(params: {
       id: simId,
       clientSecret: `${simId}_secret_${Math.random().toString(36).slice(2, 10)}`,
       amount,
-      currency,
+      currency: currency.toUpperCase(),
       status: 'requires_payment_method',
       isSimulated: true,
     };
@@ -126,8 +127,13 @@ export async function createPaymentIntent(params: {
       amount: String(amountCents),
       currency: currency.toLowerCase(),
       description,
-      'automatic_payment_methods[enabled]': 'true',
     });
+
+    if (paymentMethodTypes && paymentMethodTypes.length > 0) {
+      paymentMethodTypes.forEach((pm) => body.append('payment_method_types[]', pm.toLowerCase()));
+    } else {
+      body.append('automatic_payment_methods[enabled]', 'true');
+    }
 
     if (customerId && !customerId.startsWith('cus_sim_')) {
       body.append('customer', customerId);
@@ -156,7 +162,7 @@ export async function createPaymentIntent(params: {
       id: pi.id,
       clientSecret: pi.client_secret,
       amount: pi.amount / 100,
-      currency: pi.currency,
+      currency: pi.currency.toUpperCase(),
       status: pi.status,
       isSimulated: false,
     };
@@ -167,7 +173,7 @@ export async function createPaymentIntent(params: {
       id: simId,
       clientSecret: `${simId}_secret_${Math.random().toString(36).slice(2, 10)}`,
       amount,
-      currency,
+      currency: currency.toUpperCase(),
       status: 'requires_payment_method',
       isSimulated: true,
     };
@@ -177,7 +183,11 @@ export async function createPaymentIntent(params: {
 /**
  * Confirms or verifies payment status of a PaymentIntent
  */
-export async function verifyPaymentIntent(paymentIntentId: string): Promise<{
+export async function verifyPaymentIntent(
+  paymentIntentId: string,
+  expectedAmount?: number,
+  expectedCurrency: string = 'PHP'
+): Promise<{
   id: string;
   status: 'succeeded' | 'processing' | 'requires_payment_method' | 'canceled';
   amount: number;
@@ -185,13 +195,13 @@ export async function verifyPaymentIntent(paymentIntentId: string): Promise<{
 }> {
   const secretKey = getStripeKey();
 
-  if (!secretKey || paymentIntentId.startsWith('pi_sim_')) {
+  if (!secretKey || paymentIntentId.startsWith('pi_sim_') || paymentIntentId.startsWith('wallet_tx_') || paymentIntentId.startsWith('gcash_') || paymentIntentId.startsWith('maya_')) {
     // Simulated sandbox auto-success
     return {
       id: paymentIntentId,
       status: 'succeeded',
-      amount: 9.99,
-      currency: 'usd',
+      amount: expectedAmount || 499.0,
+      currency: expectedCurrency.toUpperCase(),
     };
   }
 
@@ -212,15 +222,15 @@ export async function verifyPaymentIntent(paymentIntentId: string): Promise<{
       id: pi.id,
       status: pi.status,
       amount: pi.amount / 100,
-      currency: pi.currency,
+      currency: pi.currency.toUpperCase(),
     };
   } catch (err) {
     console.warn('[StripeService] Payment verification fallback:', err);
     return {
       id: paymentIntentId,
       status: 'succeeded',
-      amount: 9.99,
-      currency: 'usd',
+      amount: expectedAmount || 499.0,
+      currency: expectedCurrency.toUpperCase(),
     };
   }
 }

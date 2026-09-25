@@ -63,6 +63,7 @@ export default function Settings() {
   // Subscription & Wallet State
   const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
   const [walletBalance, setWalletBalance] = useState<number>(0);
+  const [walletCurrency, setWalletCurrency] = useState<string>('PHP');
 
   const loadBillingSummary = useCallback(async () => {
     try {
@@ -75,6 +76,9 @@ export default function Settings() {
       }
       if (walletRes?.success && walletRes.wallet) {
         setWalletBalance(walletRes.wallet.balance);
+        if (walletRes.wallet.currency) {
+          setWalletCurrency(walletRes.wallet.currency.toUpperCase());
+        }
       }
     } catch {
       // Non-critical background fetch
@@ -303,11 +307,11 @@ export default function Settings() {
                   FitTrack e-Wallet
                 </Text>
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  ${walletBalance.toFixed(2)} USD
+                  {walletCurrency === 'USD' ? '$' : '₱'}{walletBalance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} {walletCurrency}
                 </Text>
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Manage balance, instant top-ups, & direct payments
+                GCash, Maya, Card & instant in-app payments
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />

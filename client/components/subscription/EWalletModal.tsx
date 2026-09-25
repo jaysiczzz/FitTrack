@@ -18,6 +18,8 @@ import {
   initiateWalletDepositApi,
   confirmWalletDepositApi,
   WalletTransactionItem,
+  CurrencyType,
+  PaymentMethodType,
 } from '@/api/subscription';
 
 interface EWalletModalProps {
@@ -26,7 +28,8 @@ interface EWalletModalProps {
   onBalanceUpdated?: (newBalance: number) => void;
 }
 
-const TOPUP_PRESETS = [10, 25, 50, 100];
+const TOPUP_PRESETS_PHP = [100, 300, 500, 1000, 2500];
+const TOPUP_PRESETS_USD = [10, 25, 50, 100];
 
 export default function EWalletModal({
   visible,
@@ -36,11 +39,14 @@ export default function EWalletModal({
   const { colors, isDark } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
+  const [currency, setCurrency] = useState<CurrencyType>('PHP');
   const [balance, setBalance] = useState<number>(0.0);
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);
-  const [topUpAmount, setTopUpAmount] = useState<string>('25');
+  const [topUpAmount, setTopUpAmount] = useState<string>('500');
+  const [depositMethod, setDepositMethod] = useState<PaymentMethodType>('GCASH');
+  const [phoneNumber, setPhoneNumber] = useState('0917 123 4567');
   const [depositing, setDepositing] = useState(false);
 
   const loadWallet = async () => {
@@ -49,6 +55,9 @@ export default function EWalletModal({
       const res = await getUserWalletApi();
       if (res.success && res.wallet) {
         setBalance(res.wallet.balance);
+        if (res.wallet.currency) {
+          setCurrency(res.wallet.currency.toUpperCase() as CurrencyType);
+        }
         setTransactions(res.transactions || []);
         if (onBalanceUpdated) onBalanceUpdated(res.wallet.balance);
       }
@@ -69,21 +78,38 @@ export default function EWalletModal({
   const handleDeposit = async () => {
     const amountNum = parseFloat(topUpAmount);
     if (isNaN(amountNum) || amountNum <= 0) {
-      showWarning('Invalid Amount', 'Please enter a valid deposit amount greater than $0.');
+      showWarning('Invalid Amount', 'Please enter a valid deposit amount greater than 0.');
       return;
     }
 
     setDepositing(true);
     try {
-      const initRes = await initiateWalletDepositApi(amountNum);
+      const initRes = await initiateWalletDepositApi(
+        amountNum,
+        currency,
+        depositMethod,
+        phoneNumber
+      );
       if (initRes.success && initRes.paymentIntentId) {
-        const confirmRes = await confirmWalletDepositApi(initRes.paymentIntentId, amountNum);
+        const confirmRes = await confirmWalletDepositApi(
+          initRes.paymentIntentId,
+          amountNum,
+          currency,
+          depositMethod
+        );
         if (confirmRes.success) {
           setBalance(confirmRes.balance);
           setTransactions((prev) => [confirmRes.transaction, ...prev]);
           setShowTopUp(false);
           if (onBalanceUpdated) onBalanceUpdated(confirmRes.balance);
-          showSuccess('Funds Added', `$${amountNum.toFixed(2)} added to your e-wallet!`);
+          const symbol = currency === 'PHP' ? '₱' : '$';
+          const refText = initRes.referenceNumber ? ` (Ref: ${initRes.referenceNumber})` : '';
+          const methodLabel =
+            depositMethod === 'GCASH' ? 'GCash' : depositMethod === 'MAYA' ? 'Maya' : 'Card';
+          showSuccess(
+            'Funds Deposited!',
+            `Successfully credited ${symbol}${amountNum.toLocaleString()} via ${methodLabel}!${refText}`
+          );
         }
       }
     } catch (err: any) {
@@ -92,6 +118,9 @@ export default function EWalletModal({
       setDepositing(false);
     }
   };
+
+  const symbol = currency === 'PHP' ? '₱' : '$';
+  const presets = currency === 'PHP' ? TOPUP_PRESETS_PHP : TOPUP_PRESETS_USD;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -110,21 +139,49 @@ export default function EWalletModal({
                   FitTrack e-Wallet
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  In-app balance for subscriptions and training perks
+                  Manage balance with GCash, Maya & Card top-ups
                 </Text>
               </View>
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
 
-          <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+          <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">
-              <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
-                Available e-Wallet Balance
-              </Text>
-              <Text className="text-4xl font-black text-accent dark:text-accent-dark mb-3">
-                ${balance.toFixed(2)}
+              <View className="flex-row items-center justify-between w-full mb-1">
+                <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark">
+                  Available Balance
+                </Text>
+                {/* Currency Switcher */}
+                <View className="flex-row bg-surface dark:bg-surface-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCurrency('PHP');
+                      setTopUpAmount('500');
+                    }}
+                    className={`px-2 py-0.5 rounded ${currency === 'PHP' ? 'bg-accent' : ''}`}
+                  >
+                    <Text className={`text-[10px] font-bold ${currency === 'PHP' ? 'text-white' : 'text-text-muted'}`}>
+                      ₱ PHP
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCurrency('USD');
+                      setTopUpAmount('25');
+                    }}
+                    className={`px-2 py-0.5 rounded ${currency === 'USD' ? 'bg-accent' : ''}`}
+                  >
+                    <Text className={`text-[10px] font-bold ${currency === 'USD' ? 'text-white' : 'text-text-muted'}`}>
+                      $ USD
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Text className="text-4xl font-black text-accent dark:text-accent-dark my-2">
+                {symbol}{balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Text>
 
               <TouchableOpacity
@@ -134,7 +191,7 @@ export default function EWalletModal({
               >
                 <Ionicons name={showTopUp ? 'chevron-up' : 'add-circle'} size={15} color="#FFFFFF" />
                 <Text className="text-white text-xs font-bold">
-                  {showTopUp ? 'Cancel Top-Up' : 'Top-Up Balance via Stripe'}
+                  {showTopUp ? 'Cancel Top-Up' : 'Top-Up via GCash / Maya / Card'}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -143,16 +200,85 @@ export default function EWalletModal({
             {showTopUp && (
               <View className="p-4 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-2">
-                  Select Deposit Amount
+                  1. Select Payment Rail
+                </Text>
+
+                {/* Payment Rail Options */}
+                <View className="flex-row gap-2 mb-3">
+                  <TouchableOpacity
+                    onPress={() => setDepositMethod('GCASH')}
+                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                      depositMethod === 'GCASH'
+                        ? 'bg-sky-500/15 border-sky-500'
+                        : 'bg-input dark:bg-input-dark border-input-border'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-sky-600' : 'text-text-primary'}`}>
+                      GCash (PH)
+                    </Text>
+                    <Text className="text-[9px] text-text-muted">Instant</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setDepositMethod('MAYA')}
+                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                      depositMethod === 'MAYA'
+                        ? 'bg-emerald-500/15 border-emerald-500'
+                        : 'bg-input dark:bg-input-dark border-input-border'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${depositMethod === 'MAYA' ? 'text-emerald-600' : 'text-text-primary'}`}>
+                      Maya (PH)
+                    </Text>
+                    <Text className="text-[9px] text-text-muted">Instant</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    onPress={() => setDepositMethod('CARD')}
+                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                      depositMethod === 'CARD'
+                        ? 'bg-accent/15 border-accent'
+                        : 'bg-input dark:bg-input-dark border-input-border'
+                    }`}
+                  >
+                    <Text className={`text-xs font-bold ${depositMethod === 'CARD' ? 'text-accent' : 'text-text-primary'}`}>
+                      Card (Stripe)
+                    </Text>
+                    <Text className="text-[9px] text-text-muted">Visa/Mastercard</Text>
+                  </TouchableOpacity>
+                </View>
+
+                {/* Mobile Number for GCash / Maya */}
+                {(depositMethod === 'GCASH' || depositMethod === 'MAYA') && (
+                  <View className="mb-3">
+                    <Text className="text-[10px] uppercase font-bold text-text-muted mb-1">
+                      {depositMethod === 'GCASH' ? 'GCash Registered Mobile Number' : 'Maya Mobile Number'}
+                    </Text>
+                    <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
+                      <Text className="text-xs font-bold text-text-muted mr-1.5">🇵🇭 +63</Text>
+                      <TextInput
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                        keyboardType="phone-pad"
+                        placeholder="0917 123 4567"
+                        placeholderTextColor={colors.textMuted}
+                        className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                      />
+                    </View>
+                  </View>
+                )}
+
+                <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-2">
+                  2. Select Amount ({currency})
                 </Text>
 
                 {/* Quick Presets */}
-                <View className="flex-row gap-2 mb-3">
-                  {TOPUP_PRESETS.map((amount) => (
+                <View className="flex-row flex-wrap gap-2 mb-3">
+                  {presets.map((amount) => (
                     <TouchableOpacity
                       key={amount}
                       onPress={() => setTopUpAmount(String(amount))}
-                      className={`flex-1 py-2 rounded-xl items-center border ${
+                      className={`flex-1 min-w-[28%] py-2 rounded-xl items-center border ${
                         topUpAmount === String(amount)
                           ? 'bg-accent/15 border-accent dark:border-accent-dark'
                           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -165,7 +291,7 @@ export default function EWalletModal({
                             : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                       >
-                        ${amount}
+                        {symbol}{amount.toLocaleString()}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -173,16 +299,18 @@ export default function EWalletModal({
 
                 {/* Custom Amount Input */}
                 <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark mb-3">
-                  <Text className="text-sm font-bold text-text-muted mr-1">$</Text>
+                  <Text className="text-sm font-bold text-text-muted mr-1">{symbol}</Text>
                   <TextInput
                     value={topUpAmount}
                     onChangeText={setTopUpAmount}
                     keyboardType="decimal-pad"
-                    placeholder="25.00"
+                    placeholder={currency === 'PHP' ? '500' : '25.00'}
                     placeholderTextColor={colors.textMuted}
                     className="flex-1 text-sm font-bold text-text-primary dark:text-text-primary-dark py-0"
                   />
-                  <Text className="text-[10px] font-bold text-emerald-500">Stripe Gateway</Text>
+                  <Text className="text-[10px] font-bold text-emerald-500">
+                    {depositMethod === 'GCASH' ? 'GCash Rail' : depositMethod === 'MAYA' ? 'Maya Rail' : 'Stripe Rail'}
+                  </Text>
                 </View>
 
                 {/* Confirm Deposit Button */}
@@ -195,10 +323,10 @@ export default function EWalletModal({
                   {depositing ? (
                     <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
                   ) : (
-                    <Ionicons name="card" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                    <Ionicons name="flash" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
                   )}
                   <Text className="text-white text-xs font-bold">
-                    Authorize & Add ${parseFloat(topUpAmount) ? parseFloat(topUpAmount).toFixed(2) : '0.00'}
+                    Add {symbol}{parseFloat(topUpAmount) ? parseFloat(topUpAmount).toLocaleString() : '0.00'} via {depositMethod === 'GCASH' ? 'GCash' : depositMethod === 'MAYA' ? 'Maya' : 'Card'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -219,58 +347,58 @@ export default function EWalletModal({
                 <ActivityIndicator size="small" color={colors.accent} />
               </View>
             ) : transactions.length === 0 ? (
-              <View className="py-6 items-center justify-center bg-input/20 dark:bg-input-dark/20 rounded-2xl border border-input-border/40">
-                <Ionicons name="receipt-outline" size={24} color={colors.textMuted} className="mb-1" />
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+              <View className="py-8 items-center justify-center border border-dashed border-input-border dark:border-input-border-dark rounded-2xl">
+                <Ionicons name="receipt-outline" size={28} color={colors.textMuted} />
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
                   No e-wallet transactions yet.
                 </Text>
               </View>
             ) : (
               <View className="gap-2 mb-6">
                 {transactions.map((tx) => {
-                  const isPositive = tx.amount > 0;
-                  const dateStr = new Date(tx.createdAt).toLocaleDateString('en-US', {
-                    month: 'short',
-                    day: 'numeric',
-                    year: 'numeric',
-                  });
-
+                  const isDeposit = tx.type === 'DEPOSIT';
+                  const txSymbol = tx.currency === 'USD' ? '$' : '₱';
                   return (
                     <View
                       key={tx.id}
-                      className="p-3 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark flex-row items-center justify-between"
+                      className="p-3 bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark flex-row items-center justify-between"
                     >
-                      <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                         <View
-                          className={`w-7 h-7 rounded-xl items-center justify-center ${
-                            isPositive ? 'bg-emerald-500/15' : 'bg-amber-500/15'
+                          className={`w-7 h-7 rounded-full items-center justify-center ${
+                            isDeposit ? 'bg-emerald-500/15' : 'bg-accent/15'
                           }`}
                         >
                           <Ionicons
-                            name={isPositive ? 'arrow-down' : 'arrow-up'}
-                            size={14}
-                            color={isPositive ? '#10B981' : '#F59E0B'}
+                            name={isDeposit ? 'arrow-down' : 'diamond'}
+                            size={13}
+                            color={isDeposit ? '#10B981' : colors.accent}
                           />
                         </View>
                         <View className="flex-1">
                           <Text
-                            className="text-xs font-bold text-text-primary dark:text-text-primary-dark"
                             numberOfLines={1}
+                            className="text-xs font-semibold text-text-primary dark:text-text-primary-dark"
                           >
                             {tx.description}
                           </Text>
                           <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                            {dateStr} · {tx.paymentMethod}
+                            {new Date(tx.createdAt).toLocaleDateString(undefined, {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric',
+                            })}{' '}
+                            • {tx.paymentMethod}
                           </Text>
                         </View>
                       </View>
 
                       <Text
-                        className={`text-sm font-black ${
-                          isPositive ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'
+                        className={`text-xs font-black ${
+                          isDeposit ? 'text-emerald-500' : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                       >
-                        {isPositive ? `+$${tx.amount.toFixed(2)}` : `-$${Math.abs(tx.amount).toFixed(2)}`}
+                        {isDeposit ? '+' : ''}{txSymbol}{Math.abs(tx.amount).toFixed(2)}
                       </Text>
                     </View>
                   );

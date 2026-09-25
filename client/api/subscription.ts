@@ -3,13 +3,19 @@ import { apiRequest } from './client';
 export type SubscriptionTierType = 'FREE' | 'PRO_MONTHLY' | 'PRO_ANNUAL' | 'LIFETIME_FOUNDER';
 export type SubscriptionStatusType = 'ACTIVE' | 'CANCELED' | 'EXPIRED' | 'PAST_DUE';
 
+export type CurrencyType = 'PHP' | 'USD';
+export type PaymentMethodType = 'CARD' | 'GCASH' | 'GRABPAY' | 'MAYA' | 'E_WALLET' | 'STRIPE';
+
 export interface SubscriptionPlanItem {
   id: string;
   tier: SubscriptionTierType;
   name: string;
   badge: string;
   price: number;
+  priceUSD?: number;
+  pricePHP?: number;
   currency: string;
+  symbol?: string;
   interval: 'month' | 'year' | 'lifetime' | null;
   features: string[];
 }
@@ -111,15 +117,19 @@ export interface AdminRevenueResponse {
 }
 
 // 1. Subscription endpoints
-export const getSubscriptionPlansApi = (): Promise<{ success: boolean; plans: SubscriptionPlanItem[] }> =>
-  apiRequest('/api/subscriptions/plans');
+export const getSubscriptionPlansApi = (
+  currency: CurrencyType = 'PHP'
+): Promise<{ success: boolean; currency: string; symbol: string; plans: SubscriptionPlanItem[] }> =>
+  apiRequest(`/api/subscriptions/plans?currency=${currency}`);
 
 export const getCurrentSubscriptionApi = (): Promise<CurrentSubscriptionResponse> =>
   apiRequest('/api/subscriptions/me');
 
 export const createCheckoutSessionApi = (
   tier: SubscriptionTierType,
-  paymentMethod: 'STRIPE' | 'E_WALLET' = 'STRIPE'
+  paymentMethod: PaymentMethodType = 'CARD',
+  currency: CurrencyType = 'PHP',
+  phoneNumber?: string
 ): Promise<{
   success: boolean;
   paymentMethod: string;
@@ -128,17 +138,20 @@ export const createCheckoutSessionApi = (
   paymentIntentId?: string;
   amount?: number;
   currency?: string;
+  referenceNumber?: string;
   isSimulated?: boolean;
   canPayImmediately?: boolean;
 }> =>
   apiRequest('/api/subscriptions/checkout', {
     method: 'POST',
-    body: { tier, paymentMethod },
+    body: { tier, paymentMethod, currency, phoneNumber },
   });
 
 export const confirmSubscriptionApi = (
   tier: SubscriptionTierType,
-  paymentIntentId: string
+  paymentIntentId: string,
+  currency: CurrencyType = 'PHP',
+  paymentMethod: PaymentMethodType = 'CARD'
 ): Promise<{
   success: boolean;
   message: string;
@@ -148,7 +161,7 @@ export const confirmSubscriptionApi = (
 }> =>
   apiRequest('/api/subscriptions/confirm', {
     method: 'POST',
-    body: { tier, paymentIntentId },
+    body: { tier, paymentIntentId, currency, paymentMethod },
   });
 
 export const cancelSubscriptionApi = (): Promise<{
@@ -174,47 +187,57 @@ export const getUserWalletApi = (): Promise<UserWalletResponse> =>
   apiRequest('/api/wallet/me');
 
 export const initiateWalletDepositApi = (
-  amount: number
+  amount: number,
+  currency: CurrencyType = 'PHP',
+  paymentMethod: PaymentMethodType = 'GCASH',
+  phoneNumber?: string
 ): Promise<{
   success: boolean;
   clientSecret: string;
   paymentIntentId: string;
   amount: number;
   currency: string;
+  referenceNumber?: string;
+  paymentMethod: string;
   isSimulated: boolean;
 }> =>
   apiRequest('/api/wallet/deposit/initiate', {
     method: 'POST',
-    body: { amount },
+    body: { amount, currency, paymentMethod, phoneNumber },
   });
 
 export const confirmWalletDepositApi = (
   paymentIntentId: string,
-  amount: number
+  amount: number,
+  currency: CurrencyType = 'PHP',
+  paymentMethod: PaymentMethodType = 'GCASH'
 ): Promise<{
   success: boolean;
   message: string;
   balance: number;
+  currency: string;
   transaction: WalletTransactionItem;
 }> =>
   apiRequest('/api/wallet/deposit/confirm', {
     method: 'POST',
-    body: { paymentIntentId, amount },
+    body: { paymentIntentId, amount, currency, paymentMethod },
   });
 
 export const paySubscriptionWithWalletApi = (
-  tier: SubscriptionTierType
+  tier: SubscriptionTierType,
+  currency: CurrencyType = 'PHP'
 ): Promise<{
   success: boolean;
   message: string;
   subscription: UserSubscription;
   remainingBalance: number;
+  currency: string;
   isPro: boolean;
   planInfo: SubscriptionPlanItem;
 }> =>
   apiRequest('/api/wallet/pay-subscription', {
     method: 'POST',
-    body: { tier },
+    body: { tier, currency },
   });
 
 // 3. Admin Revenue endpoints

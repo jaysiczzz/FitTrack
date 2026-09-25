@@ -8,7 +8,6 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -27,6 +26,8 @@ import {
   SubscriptionPlanItem,
   UserSubscription,
   SubscriptionTierType,
+  CurrencyType,
+  PaymentMethodType,
 } from '@/api/subscription';
 
 interface SubscriptionModalProps {
@@ -42,7 +43,10 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     name: 'FitTrack Free',
     badge: 'Starter',
     price: 0,
-    currency: 'USD',
+    priceUSD: 0,
+    pricePHP: 0,
+    currency: 'PHP',
+    symbol: '₱',
     interval: null,
     features: [
       'Basic workout & set logging',
@@ -57,8 +61,11 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     tier: 'PRO_MONTHLY',
     name: 'Pro Monthly',
     badge: 'Most Popular',
-    price: 9.99,
-    currency: 'USD',
+    price: 499,
+    priceUSD: 9.99,
+    pricePHP: 499,
+    currency: 'PHP',
+    symbol: '₱',
     interval: 'month',
     features: [
       'Everything in Free tier',
@@ -74,12 +81,15 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     tier: 'PRO_ANNUAL',
     name: 'Pro Annual',
     badge: 'Best Value · Save 33%',
-    price: 79.99,
-    currency: 'USD',
+    price: 3999,
+    priceUSD: 79.99,
+    pricePHP: 3999,
+    currency: 'PHP',
+    symbol: '₱',
     interval: 'year',
     features: [
       'All Pro Monthly features included',
-      'Save 33% compared to monthly ($6.67/mo)',
+      'Save 33% compared to monthly (₱333/mo)',
       'Priority customer service & ticket support',
       'Advanced 1RM and volume analytics',
       'Early access to all upcoming features',
@@ -90,8 +100,11 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     tier: 'LIFETIME_FOUNDER',
     name: 'Lifetime Founder',
     badge: 'Limited Pass',
-    price: 199.99,
-    currency: 'USD',
+    price: 9999,
+    priceUSD: 199.99,
+    pricePHP: 9999,
+    currency: 'PHP',
+    symbol: '₱',
     interval: 'lifetime',
     features: [
       'Permanent lifetime Pro access with zero recurring fees',
@@ -111,13 +124,17 @@ export default function SubscriptionModal({
   const { showSuccess, showError, showWarning } = useToast();
   const { user } = useAuth();
 
+  const [currency, setCurrency] = useState<CurrencyType>('PHP');
   const [plans, setPlans] = useState<SubscriptionPlanItem[]>(DEFAULT_PLANS);
   const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [isPro, setIsPro] = useState(false);
   const [selectedTier, setSelectedTier] = useState<SubscriptionTierType>('PRO_ANNUAL');
-  const [paymentMethod, setPaymentMethod] = useState<'STRIPE' | 'E_WALLET'>('STRIPE');
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodType>('GCASH');
   const [walletBalance, setWalletBalance] = useState<number>(0);
+
+  // Philippines payment rails
+  const [phoneNumber, setPhoneNumber] = useState('0917 123 4567');
 
   // Card details state (Stripe checkout simulation & test card)
   const [cardNumber, setCardNumber] = useState('•••• •••• •••• 4242');
@@ -130,16 +147,16 @@ export default function SubscriptionModal({
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
 
   // Fetch plans & current status
-  const loadData = async () => {
+  const loadData = async (targetCurrency: CurrencyType = currency) => {
     try {
       setLoading(true);
       const [plansRes, subRes, walletRes] = await Promise.all([
-        getSubscriptionPlansApi().catch(() => null),
+        getSubscriptionPlansApi(targetCurrency).catch(() => null),
         getCurrentSubscriptionApi().catch(() => null),
         getUserWalletApi().catch(() => null),
       ]);
 
-      if (plansRes?.success && plansRes.plans.length > 0) {
+      if (plansRes?.success && plansRes.plans && plansRes.plans.length > 0) {
         setPlans(plansRes.plans);
       }
       if (subRes?.success && subRes.subscription) {
@@ -159,15 +176,24 @@ export default function SubscriptionModal({
 
   useEffect(() => {
     if (visible) {
-      loadData();
+      loadData(currency);
       setShowSuccessBanner(false);
     }
   }, [visible]);
+
+  const handleCurrencyChange = (newCurrency: CurrencyType) => {
+    setCurrency(newCurrency);
+    loadData(newCurrency);
+  };
 
   const handleFillTestCard = () => {
     setCardNumber('4242 4242 4242 4242');
     setCardExpiry('12/28');
     setCardCvc('123');
+  };
+
+  const handleFillTestPhone = () => {
+    setPhoneNumber('0917 888 9999');
   };
 
   const handleSubscribe = async () => {
@@ -177,7 +203,7 @@ export default function SubscriptionModal({
     setProcessingPayment(true);
     try {
       if (paymentMethod === 'E_WALLET') {
-        const res = await paySubscriptionWithWalletApi(selectedTier);
+        const res = await paySubscriptionWithWalletApi(selectedTier, currency);
         if (res.success) {
           setCurrentSub(res.subscription);
           setIsPro(true);
@@ -187,16 +213,32 @@ export default function SubscriptionModal({
           if (onSubscriptionUpdated) onSubscriptionUpdated(selectedTier);
         }
       } else {
-        // Stripe flow
-        const checkoutRes = await createCheckoutSessionApi(selectedTier, 'STRIPE');
+        // GCash, Maya, Card, or Stripe
+        const checkoutRes = await createCheckoutSessionApi(
+          selectedTier,
+          paymentMethod,
+          currency,
+          phoneNumber
+        );
         if (checkoutRes.success && checkoutRes.paymentIntentId) {
-          // Confirm payment
-          const confirmRes = await confirmSubscriptionApi(selectedTier, checkoutRes.paymentIntentId);
+          const confirmRes = await confirmSubscriptionApi(
+            selectedTier,
+            checkoutRes.paymentIntentId,
+            currency,
+            paymentMethod
+          );
           if (confirmRes.success) {
             setCurrentSub(confirmRes.subscription);
             setIsPro(true);
             setShowSuccessBanner(true);
-            showSuccess('Subscribed with Stripe!', `Welcome to ${confirmRes.planInfo.name}!`);
+            const methodLabel =
+              paymentMethod === 'GCASH'
+                ? 'GCash'
+                : paymentMethod === 'MAYA'
+                ? 'Maya'
+                : 'Credit / Debit Card';
+            const refText = checkoutRes.referenceNumber ? ` (Ref: ${checkoutRes.referenceNumber})` : '';
+            showSuccess(`Subscribed via ${methodLabel}!`, `Welcome to ${confirmRes.planInfo.name}!${refText}`);
             if (onSubscriptionUpdated) onSubscriptionUpdated(selectedTier);
           }
         }
@@ -238,7 +280,8 @@ export default function SubscriptionModal({
     }
   };
 
-  const selectedPlan = plans.find((p) => p.tier === selectedTier) || plans[1];
+  const selectedPlan = plans.find((p) => p.tier === selectedTier) || plans[1] || DEFAULT_PLANS[1];
+  const symbol = currency === 'PHP' ? '₱' : '$';
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -257,46 +300,107 @@ export default function SubscriptionModal({
                   FitTrack Pro
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  Unlock AI fitness coaching, camera food scanner & cloud sync
+                  AI fitness coach, food scanner & Philippines e-wallets
                 </Text>
               </View>
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
 
-          <ScrollView className="mt-3.5" showsVerticalScrollIndicator={false}>
-            {/* Active Subscription Status Banner */}
-            {currentSub && currentSub.tier !== 'FREE' && (
-              <View className="mb-4 p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30">
-                <View className="flex-row items-center justify-between mb-1">
+          <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+            {/* Currency Selector */}
+            <View className="flex-row items-center justify-between p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
+              <View>
+                <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                  Select Currency
+                </Text>
+                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">
+                  Tailored for Philippines & Global athletes
+                </Text>
+              </View>
+              <View className="flex-row bg-surface dark:bg-surface-dark p-0.5 rounded-xl border border-input-border dark:border-input-border-dark">
+                <TouchableOpacity
+                  onPress={() => handleCurrencyChange('PHP')}
+                  className={`px-3 py-1.5 rounded-lg flex-row items-center gap-1 ${
+                    currency === 'PHP' ? 'bg-accent shadow-xs' : ''
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-bold ${
+                      currency === 'PHP' ? 'text-white' : 'text-text-muted'
+                    }`}
+                  >
+                    🇵🇭 PHP (₱)
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleCurrencyChange('USD')}
+                  className={`px-3 py-1.5 rounded-lg flex-row items-center gap-1 ${
+                    currency === 'USD' ? 'bg-accent shadow-xs' : ''
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-bold ${
+                      currency === 'USD' ? 'text-white' : 'text-text-muted'
+                    }`}
+                  >
+                    🇺🇸 USD ($)
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Success Banner if upgraded */}
+            {showSuccessBanner && (
+              <View className="p-3.5 bg-emerald-500/15 border border-emerald-500/30 rounded-2xl mb-4 flex-row items-center gap-2.5">
+                <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                <View className="flex-1">
+                  <Text className="text-xs font-bold text-emerald-500">
+                    Pro Membership Active!
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                    All premium features unlocked. Thank you for supporting FitTrack!
+                  </Text>
+                </View>
+              </View>
+            )}
+
+            {/* Current Subscription Status Banner */}
+            {isPro && currentSub && (
+              <View className="p-3.5 bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
+                <View className="flex-row items-center justify-between mb-1.5">
                   <View className="flex-row items-center gap-1.5">
                     <Ionicons name="shield-checkmark" size={16} color="#10B981" />
-                    <Text className="text-xs font-black text-accent dark:text-accent-dark uppercase tracking-wider">
-                      Active: {currentSub.tier.replace('_', ' ')}
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      Current Plan:{' '}
+                      <Text className="text-accent dark:text-accent-dark">
+                        {currentSub.tier === 'LIFETIME_FOUNDER'
+                          ? 'Founder Lifetime'
+                          : currentSub.tier.replace('_', ' ')}
+                      </Text>
                     </Text>
                   </View>
-                  {daysRemaining !== null && (
-                    <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
-                      {daysRemaining} {daysRemaining === 1 ? 'day left' : 'days left'}
+                  <View className="bg-emerald-500/20 px-2 py-0.5 rounded-full">
+                    <Text className="text-[10px] font-bold text-emerald-500 uppercase">
+                      Active
                     </Text>
-                  )}
+                  </View>
                 </View>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-tight">
-                  {currentSub.cancelAtPeriodEnd
-                    ? '⚠️ Auto-renewal is off. Access continues until the current cycle expires.'
-                    : 'Auto-renewal is active via secure Stripe billing.'}
-                </Text>
 
                 {currentSub.tier !== 'LIFETIME_FOUNDER' && (
-                  <View className="flex-row justify-end mt-2 pt-2 border-t border-emerald-500/20">
+                  <View className="flex-row items-center justify-between pt-2 border-t border-input-border dark:border-input-border-dark">
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                      {daysRemaining !== null ? `${daysRemaining} days remaining` : 'Renews automatically'}
+                    </Text>
+
                     {currentSub.cancelAtPeriodEnd ? (
                       <TouchableOpacity
                         onPress={handleReactivate}
                         disabled={canceling}
-                        className="px-3 py-1 rounded-xl bg-accent dark:bg-accent-dark"
+                        className="px-2.5 py-1 rounded-xl bg-accent/15 border border-accent/30"
                       >
-                        <Text className="text-[11px] font-bold text-white">
-                          Reactivate Auto-Renew
+                        <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                          Resume Auto-Renew
                         </Text>
                       </TouchableOpacity>
                     ) : (
@@ -360,13 +464,21 @@ export default function SubscriptionModal({
                       <View className="flex-row items-baseline justify-between pl-6">
                         <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                           {plan.interval === 'year'
-                            ? 'Billed annually · Cancel anytime'
+                            ? currency === 'PHP'
+                              ? 'Billed ₱3,999 annually · Save 33%'
+                              : 'Billed $79.99 annually · Save 33%'
                             : plan.interval === 'lifetime'
-                            ? 'One-time payment · Forever access'
-                            : 'Billed monthly · Cancel anytime'}
+                            ? 'One-time payment · Lifetime VIP pass'
+                            : currency === 'PHP'
+                            ? '₱499 billed monthly · Cancel anytime'
+                            : '$9.99 billed monthly · Cancel anytime'}
                         </Text>
                         <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
-                          ${plan.price.toFixed(2)}
+                          {symbol}
+                          {plan.price.toLocaleString(undefined, {
+                            minimumFractionDigits: currency === 'PHP' ? 0 : 2,
+                            maximumFractionDigits: 2,
+                          })}
                           <Text className="text-xs text-text-muted font-normal">
                             {plan.interval ? ` / ${plan.interval}` : ''}
                           </Text>
@@ -396,59 +508,146 @@ export default function SubscriptionModal({
 
             {/* Payment Method Selector */}
             <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-2">
-              Payment Method
+              Select Payment Method
             </Text>
 
-            <View className="flex-row gap-2 mb-4">
-              {/* Stripe Card Option */}
+            <View className="flex-row flex-wrap gap-2 mb-3">
+              {/* GCash (PH) */}
               <TouchableOpacity
-                onPress={() => setPaymentMethod('STRIPE')}
+                onPress={() => setPaymentMethod('GCASH')}
                 activeOpacity={0.8}
-                className={`flex-1 p-3 rounded-2xl border ${
-                  paymentMethod === 'STRIPE'
+                className={`flex-1 min-w-[45%] p-3 rounded-2xl border ${
+                  paymentMethod === 'GCASH'
+                    ? 'bg-sky-500/15 border-sky-500'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
+                <View className="flex-row items-center justify-between mb-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Ionicons name="phone-portrait" size={15} color={paymentMethod === 'GCASH' ? '#0284C7' : colors.textMuted} />
+                    <Text className={`text-xs font-bold ${paymentMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary'}`}>
+                      GCash
+                    </Text>
+                  </View>
+                  <View className="bg-sky-500/20 px-1.5 py-0.5 rounded">
+                    <Text className="text-[8px] font-bold text-sky-600 dark:text-sky-400 uppercase">PH Choice</Text>
+                  </View>
+                </View>
+                <Text className="text-[10px] text-text-muted">
+                  Direct GCash E-Wallet
+                </Text>
+              </TouchableOpacity>
+
+              {/* Maya (PH) */}
+              <TouchableOpacity
+                onPress={() => setPaymentMethod('MAYA')}
+                activeOpacity={0.8}
+                className={`flex-1 min-w-[45%] p-3 rounded-2xl border ${
+                  paymentMethod === 'MAYA'
+                    ? 'bg-emerald-500/15 border-emerald-500'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
+                <View className="flex-row items-center justify-between mb-1">
+                  <View className="flex-row items-center gap-1.5">
+                    <Ionicons name="flash" size={15} color={paymentMethod === 'MAYA' ? '#10B981' : colors.textMuted} />
+                    <Text className={`text-xs font-bold ${paymentMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'}`}>
+                      Maya
+                    </Text>
+                  </View>
+                  <View className="bg-emerald-500/20 px-1.5 py-0.5 rounded">
+                    <Text className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Instant</Text>
+                  </View>
+                </View>
+                <Text className="text-[10px] text-text-muted">
+                  Maya Wallet & Card
+                </Text>
+              </TouchableOpacity>
+
+              {/* Card (Stripe Gateway) */}
+              <TouchableOpacity
+                onPress={() => setPaymentMethod('CARD')}
+                activeOpacity={0.8}
+                className={`flex-1 min-w-[45%] p-3 rounded-2xl border ${
+                  paymentMethod === 'CARD'
                     ? 'bg-accent/15 border-accent dark:border-accent-dark'
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Ionicons name="card-outline" size={16} color={paymentMethod === 'STRIPE' ? colors.accent : colors.textMuted} />
-                  <Text className={`text-xs font-bold ${paymentMethod === 'STRIPE' ? 'text-accent dark:text-accent-dark' : 'text-text-primary'}`}>
+                  <Ionicons name="card-outline" size={15} color={paymentMethod === 'CARD' ? colors.accent : colors.textMuted} />
+                  <Text className={`text-xs font-bold ${paymentMethod === 'CARD' ? 'text-accent dark:text-accent-dark' : 'text-text-primary'}`}>
                     Credit / Debit Card
                   </Text>
                 </View>
                 <Text className="text-[10px] text-text-muted">
-                  Powered by Stripe Gateway
+                  Visa, MC, BDO, BPI, Maya
                 </Text>
               </TouchableOpacity>
 
-              {/* FitTrack e-Wallet Option */}
+              {/* FitTrack e-Wallet */}
               <TouchableOpacity
                 onPress={() => setPaymentMethod('E_WALLET')}
                 activeOpacity={0.8}
-                className={`flex-1 p-3 rounded-2xl border ${
+                className={`flex-1 min-w-[45%] p-3 rounded-2xl border ${
                   paymentMethod === 'E_WALLET'
-                    ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                    ? 'bg-amber-500/15 border-amber-500'
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
                 <View className="flex-row items-center gap-1.5 mb-1">
-                  <Ionicons name="wallet-outline" size={16} color={paymentMethod === 'E_WALLET' ? colors.accent : colors.textMuted} />
-                  <Text className={`text-xs font-bold ${paymentMethod === 'E_WALLET' ? 'text-accent dark:text-accent-dark' : 'text-text-primary'}`}>
+                  <Ionicons name="wallet-outline" size={15} color={paymentMethod === 'E_WALLET' ? '#F59E0B' : colors.textMuted} />
+                  <Text className={`text-xs font-bold ${paymentMethod === 'E_WALLET' ? 'text-amber-500' : 'text-text-primary'}`}>
                     FitTrack e-Wallet
                   </Text>
                 </View>
                 <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                  Balance: ${walletBalance.toFixed(2)}
+                  Bal: {symbol}{walletBalance.toFixed(2)}
                 </Text>
               </TouchableOpacity>
             </View>
 
             {/* Payment Details Container */}
-            {paymentMethod === 'STRIPE' ? (
+            {paymentMethod === 'GCASH' || paymentMethod === 'MAYA' ? (
               <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
                 <View className="flex-row items-center justify-between mb-2">
                   <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
-                    Card Information
+                    {paymentMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
+                  </Text>
+                  <TouchableOpacity
+                    onPress={handleFillTestPhone}
+                    className="px-2 py-0.5 rounded-md bg-accent/10 border border-accent/20"
+                  >
+                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                      Demo PH Number
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+
+                <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark mb-1.5">
+                  <Text className="text-xs font-bold text-text-muted mr-2">🇵🇭 +63</Text>
+                  <TextInput
+                    value={phoneNumber}
+                    onChangeText={setPhoneNumber}
+                    keyboardType="phone-pad"
+                    placeholder="0917 123 4567"
+                    placeholderTextColor={colors.textMuted}
+                    className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                  />
+                  <Text className="text-[10px] font-bold text-emerald-500">Fast Verified</Text>
+                </View>
+
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                  {paymentMethod === 'GCASH'
+                    ? 'A payment prompt or reference token will be generated on your GCash app.'
+                    : 'Instant authorization directly linked to your Maya account.'}
+                </Text>
+              </View>
+            ) : paymentMethod === 'CARD' ? (
+              <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
+                <View className="flex-row items-center justify-between mb-2">
+                  <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
+                    Card Information (Philippine & International)
                   </Text>
                   <TouchableOpacity
                     onPress={handleFillTestCard}
@@ -501,18 +700,21 @@ export default function SubscriptionModal({
                 <View className="flex-row justify-between items-center mb-1">
                   <Text className="text-xs text-text-muted">Required Amount:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    ${selectedPlan.price.toFixed(2)}
+                    {symbol}
+                    {selectedPlan.price.toLocaleString(undefined, {
+                      minimumFractionDigits: currency === 'PHP' ? 0 : 2,
+                    })}
                   </Text>
                 </View>
                 <View className="flex-row justify-between items-center mb-2">
                   <Text className="text-xs text-text-muted">Available e-Wallet Balance:</Text>
                   <Text className={`text-xs font-bold ${walletBalance >= selectedPlan.price ? 'text-accent' : 'text-danger'}`}>
-                    ${walletBalance.toFixed(2)}
+                    {symbol}{walletBalance.toFixed(2)}
                   </Text>
                 </View>
                 {walletBalance < selectedPlan.price && (
                   <Text className="text-[11px] text-danger dark:text-danger-dark font-semibold">
-                    ⚠️ Insufficient balance. Please switch to Card (Stripe) or top up your e-wallet.
+                    ⚠️ Insufficient balance. Please switch to GCash, Maya, Card, or top up your e-wallet.
                   </Text>
                 )}
               </View>
@@ -523,7 +725,7 @@ export default function SubscriptionModal({
               onPress={handleSubscribe}
               disabled={processingPayment || (paymentMethod === 'E_WALLET' && walletBalance < selectedPlan.price)}
               activeOpacity={0.8}
-              className={`w-full py-4 rounded-2xl items-center justify-center flex-row shadow-sm mb-4 ${
+              className={`w-full py-4 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 ${
                 paymentMethod === 'E_WALLET' && walletBalance < selectedPlan.price
                   ? 'bg-input border border-input-border opacity-60'
                   : 'bg-accent dark:bg-accent-dark'
@@ -535,12 +737,16 @@ export default function SubscriptionModal({
                 <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
               )}
               <Text className="text-white font-black text-sm">
-                Pay ${selectedPlan.price.toFixed(2)} & Unlock Pro
+                Pay {symbol}
+                {selectedPlan.price.toLocaleString(undefined, {
+                  minimumFractionDigits: currency === 'PHP' ? 0 : 2,
+                })}{' '}
+                via {paymentMethod === 'GCASH' ? 'GCash' : paymentMethod === 'MAYA' ? 'Maya' : paymentMethod === 'CARD' ? 'Card' : 'e-Wallet'}
               </Text>
             </TouchableOpacity>
 
             <Text className="text-[10px] text-center text-text-muted dark:text-text-muted-dark mb-6">
-              🔒 Encrypted with 256-bit Stripe security. Cancel anytime with one tap.
+              🔒 Encrypted with 256-bit bank-grade SSL. Cancel anytime with one tap.
             </Text>
           </ScrollView>
         </View>

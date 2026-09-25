@@ -5,7 +5,12 @@ export const createCheckoutSessionSchema = z.object({
     tier: z.enum(['PRO_MONTHLY', 'PRO_ANNUAL', 'LIFETIME_FOUNDER'], {
       message: 'Invalid subscription tier selected',
     }),
-    paymentMethod: z.enum(['STRIPE', 'E_WALLET']).optional().default('STRIPE'),
+    paymentMethod: z
+      .enum(['STRIPE', 'CARD', 'GCASH', 'GRABPAY', 'MAYA', 'E_WALLET'])
+      .optional()
+      .default('CARD'),
+    currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
+    phoneNumber: z.string().optional(),
   }),
 })
 
@@ -15,6 +20,8 @@ export const confirmSubscriptionSchema = z.object({
       message: 'Invalid subscription tier',
     }),
     paymentIntentId: z.string().min(1, 'PaymentIntent ID is required'),
+    currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
+    paymentMethod: z.string().optional().default('CARD'),
   }),
 })
 
@@ -23,8 +30,13 @@ export const depositWalletSchema = z.object({
     amount: z
       .number({ message: 'Deposit amount must be a number' })
       .positive('Deposit amount must be greater than 0')
-      .max(10000, 'Maximum single deposit is $10,000'),
-    currency: z.string().default('USD').optional(),
+      .max(100000, 'Maximum single deposit limit reached'),
+    currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
+    paymentMethod: z
+      .enum(['STRIPE', 'CARD', 'GCASH', 'GRABPAY', 'MAYA'])
+      .optional()
+      .default('GCASH'),
+    phoneNumber: z.string().optional(),
   }),
 })
 
@@ -33,6 +45,7 @@ export const walletPaySchema = z.object({
     tier: z.enum(['PRO_MONTHLY', 'PRO_ANNUAL', 'LIFETIME_FOUNDER'], {
       message: 'Invalid subscription tier',
     }),
+    currency: z.enum(['USD', 'PHP', 'usd', 'php']).optional().default('PHP'),
   }),
 })
 
