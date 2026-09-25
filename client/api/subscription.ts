@@ -133,7 +133,12 @@ export const createCheckoutSessionApi = (
   tier: SubscriptionTierType,
   paymentMethod: PaymentMethodType = 'CARD',
   currency: CurrencyType = 'PHP',
-  phoneNumber?: string
+  phoneNumber?: string,
+  cardDetails?: {
+    cardNumber?: string;
+    cardExpiry?: string;
+    cardCvc?: string;
+  }
 ): Promise<{
   success: boolean;
   paymentMethod: string;
@@ -149,7 +154,15 @@ export const createCheckoutSessionApi = (
 }> =>
   apiRequest('/api/subscriptions/checkout', {
     method: 'POST',
-    body: { tier, paymentMethod, currency, phoneNumber },
+    body: {
+      tier,
+      paymentMethod,
+      currency,
+      phoneNumber,
+      cardNumber: cardDetails?.cardNumber,
+      cardExpiry: cardDetails?.cardExpiry,
+      cardCvc: cardDetails?.cardCvc,
+    },
   });
 
 export const confirmSubscriptionApi = (
@@ -195,7 +208,12 @@ export const initiateWalletDepositApi = (
   amount: number,
   currency: CurrencyType = 'PHP',
   paymentMethod: PaymentMethodType = 'GCASH',
-  phoneNumber?: string
+  phoneNumber?: string,
+  cardDetails?: {
+    cardNumber?: string;
+    cardExpiry?: string;
+    cardCvc?: string;
+  }
 ): Promise<{
   success: boolean;
   clientSecret?: string;
@@ -209,7 +227,15 @@ export const initiateWalletDepositApi = (
 }> =>
   apiRequest('/api/wallet/deposit/initiate', {
     method: 'POST',
-    body: { amount, currency, paymentMethod, phoneNumber },
+    body: {
+      amount,
+      currency,
+      paymentMethod,
+      phoneNumber,
+      cardNumber: cardDetails?.cardNumber,
+      cardExpiry: cardDetails?.cardExpiry,
+      cardCvc: cardDetails?.cardCvc,
+    },
   });
 
 export const confirmWalletDepositApi = (

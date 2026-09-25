@@ -49,7 +49,13 @@ export default function EWalletModal({
   const [showTopUp, setShowTopUp] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState<string>('500');
   const [depositMethod, setDepositMethod] = useState<PaymentMethodType>('GCASH');
+
+  // Payment input details
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+
   const [depositing, setDepositing] = useState(false);
 
   const loadWallet = async () => {
@@ -96,13 +102,44 @@ export default function EWalletModal({
       return;
     }
 
+    // Input Validation
+    if (depositMethod === 'GCASH' || depositMethod === 'MAYA') {
+      const cleanPhone = phoneNumber.replace(/[\s\-]/g, '');
+      if (!cleanPhone || cleanPhone.length < 10) {
+        showWarning(
+          'Mobile Number Required',
+          `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number (e.g. 0917 123 4567).`
+        );
+        return;
+      }
+    } else if (depositMethod === 'CARD') {
+      const cleanCard = cardNumber.replace(/\s/g, '');
+      if (!cleanCard || cleanCard.length < 13) {
+        showWarning('Card Number Required', 'Please enter a valid 16-digit card number (e.g. 4242 4242 4242 4242).');
+        return;
+      }
+      if (!cardExpiry || !cardExpiry.includes('/')) {
+        showWarning('Expiry Date Required', 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+        return;
+      }
+      if (!cardCvc || cardCvc.length < 3) {
+        showWarning('CVC Required', 'Please enter the 3-digit card security code (CVC).');
+        return;
+      }
+    }
+
     setDepositing(true);
     try {
       const initRes = await initiateWalletDepositApi(
         numericTopUp,
         currency,
         depositMethod,
-        phoneNumber
+        phoneNumber,
+        {
+          cardNumber,
+          cardExpiry,
+          cardCvc,
+        }
       );
 
       if (initRes.success && initRes.paymentIntentId) {
@@ -122,6 +159,9 @@ export default function EWalletModal({
           setRawBalance(confirmRes.balance);
           setTransactions((prev) => [confirmRes.transaction, ...prev]);
           setShowTopUp(false);
+          setCardNumber('');
+          setCardExpiry('');
+          setCardCvc('');
           if (onBalanceUpdated) onBalanceUpdated(confirmRes.balance);
           showSuccess('Funds Deposited!', confirmRes.message);
         }
@@ -150,7 +190,7 @@ export default function EWalletModal({
                   FitTrack e-Wallet
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  Live GCash, Maya & Stripe Card Top-Ups
+                  GCash, Maya & Stripe Card Top-Ups
                 </Text>
               </View>
             </View>
@@ -237,7 +277,7 @@ export default function EWalletModal({
                     <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-sky-600' : 'text-text-primary'}`}>
                       GCash (PH)
                     </Text>
-                    <Text className="text-[9px] text-text-muted">PayMongo Gateway</Text>
+                    <Text className="text-[9px] text-text-muted">PayMongo Rail</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -269,30 +309,74 @@ export default function EWalletModal({
                   </TouchableOpacity>
                 </View>
 
-                {/* Information banner for selected payment rail */}
-                <View className="p-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark mb-3">
-                  <View className="flex-row items-center gap-1.5 mb-1">
-                    <Ionicons
-                      name={depositMethod === 'CARD' ? 'card' : 'phone-portrait'}
-                      size={13}
-                      color={depositMethod === 'GCASH' ? '#0284C7' : depositMethod === 'MAYA' ? '#10B981' : colors.accent}
-                    />
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      {depositMethod === 'GCASH'
-                        ? 'GCash Mobile Payment'
-                        : depositMethod === 'MAYA'
-                        ? 'Maya Checkout'
-                        : 'Stripe Secure Card Checkout'}
+                {/* Payment Rail Inputs */}
+                {depositMethod === 'GCASH' || depositMethod === 'MAYA' ? (
+                  <View className="p-3 bg-surface dark:bg-surface-dark rounded-xl border border-input-border dark:border-input-border-dark mb-3">
+                    <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-1.5">
+                      {depositMethod === 'GCASH' ? 'GCash Mobile Number' : 'Maya Mobile Number'}
+                    </Text>
+                    <View className="flex-row items-center bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark mb-1">
+                      <Text className="text-xs font-bold text-text-muted mr-2">🇵🇭 +63</Text>
+                      <TextInput
+                        value={phoneNumber}
+                        onChangeText={setPhoneNumber}
+                        keyboardType="phone-pad"
+                        placeholder="0917 123 4567"
+                        placeholderTextColor={colors.textMuted}
+                        className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                      />
+                    </View>
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                      Enter your 11-digit Philippine registered mobile number.
                     </Text>
                   </View>
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-4">
-                    {depositMethod === 'GCASH'
-                      ? 'You will authorize this deposit through the official GCash verification portal using your MPIN and SMS OTP.'
-                      : depositMethod === 'MAYA'
-                      ? 'You will authorize this deposit via the official Maya portal linked to your Philippine digital bank.'
-                      : 'You will enter your card details on Stripe\'s official SSL-encrypted payment sheet with 3D Secure bank OTP.'}
-                  </Text>
-                </View>
+                ) : (
+                  <View className="p-3 bg-surface dark:bg-surface-dark rounded-xl border border-input-border dark:border-input-border-dark mb-3">
+                    <View className="flex-row items-center justify-between mb-1.5">
+                      <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
+                        Credit / Debit Card Details
+                      </Text>
+                      <Text className="text-[10px] font-bold text-emerald-500">Stripe Live API</Text>
+                    </View>
+
+                    {/* Card Number */}
+                    <View className="flex-row items-center bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark mb-2">
+                      <Ionicons name="card" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+                      <TextInput
+                        value={cardNumber}
+                        onChangeText={setCardNumber}
+                        keyboardType="number-pad"
+                        placeholder="4242 4242 4242 4242"
+                        placeholderTextColor={colors.textMuted}
+                        className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                      />
+                    </View>
+
+                    {/* Expiry & CVC */}
+                    <View className="flex-row gap-2">
+                      <View className="flex-1 bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
+                        <TextInput
+                          value={cardExpiry}
+                          onChangeText={setCardExpiry}
+                          placeholder="MM/YY"
+                          placeholderTextColor={colors.textMuted}
+                          className="text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                        />
+                      </View>
+                      <View className="flex-1 bg-input/60 dark:bg-input-dark/60 px-3 py-2 rounded-lg border border-input-border dark:border-input-border-dark">
+                        <TextInput
+                          value={cardCvc}
+                          onChangeText={setCardCvc}
+                          placeholder="CVC"
+                          keyboardType="number-pad"
+                          placeholderTextColor={colors.textMuted}
+                          secureTextEntry
+                          className="text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                        />
+                      </View>
+                    </View>
+                  </View>
+                )}
 
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-2">
                   2. Select Amount ({currency})
@@ -345,7 +429,7 @@ export default function EWalletModal({
                         : `🇵🇭 Depositing ₱${numericTopUp.toFixed(2)} PHP (≈ $${convertedPreviewUSD.toFixed(2)} USD)`}
                     </Text>
                     <Text className="text-[9px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                      Rate: 1 USD = ₱{USD_PHP_EXCHANGE_RATE.toFixed(2)} PHP (Zero hidden fees)
+                      Rate: 1 USD = ₱{USD_PHP_EXCHANGE_RATE.toFixed(2)} PHP (Direct ledger credit)
                     </Text>
                   </View>
                 )}

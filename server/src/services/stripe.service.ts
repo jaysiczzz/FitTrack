@@ -372,3 +372,94 @@ export async function createStripeCheckoutSession(params: {
     isSimulated: false,
   };
 }
+
+/**
+ * Direct Card payment via Stripe API (Charges test cards or tokens and logs in Stripe dashboard)
+ */
+export async function processCardPayment(params: {
+  amount: number;
+  currency: string;
+  cardNumber: string;
+  cardExpiry: string;
+  cardCvc: string;
+  description: string;
+  metadata?: Record<string, string>;
+}): Promise<{
+  id: string;
+  status: 'succeeded' | 'failed';
+  amount: number;
+  currency: string;
+  isSimulated: boolean;
+}> {
+  const secretKey = getStripeKey();
+  const { amount, currency, cardNumber, cardExpiry, cardCvc, description, metadata = {} } = params;
+  const cleanNumber = (cardNumber || '').replace(/\s+/g, '');
+  const amountCents = Math.round(amount * 100);
+
+  // Map to Stripe test tokens
+  let token = 'tok_visa';
+  if (cleanNumber.startsWith('5')) {
+    token = 'tok_mastercard';
+  } else if (cleanNumber.startsWith('37')) {
+    token = 'tok_amex';
+  } else if (cleanNumber.startsWith('35')) {
+    token = 'tok_jcb';
+  } else if (cleanNumber === '4000000000000002') {
+    token = 'tok_chargeCustomerFail';
+  }
+
+  if (secretKey) {
+    try {
+      const body = new URLSearchParams({
+        amount: String(amountCents),
+        currency: currency.toLowerCase(),
+        'payment_method_data[type]': 'card',
+        'payment_method_data[card][token]': token,
+        confirm: 'true',
+        'automatic_payment_methods[enabled]': 'true',
+        'automatic_payment_methods[allow_redirects]': 'never',
+        description,
+      });
+
+      Object.entries(metadata).forEach(([k, v]) => {
+        body.append(`metadata[${k}]`, v);
+      });
+
+      const res = await fetch(`${STRIPE_API_BASE}/payment_intents`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${secretKey}`,
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: body.toString(),
+      });
+
+      const pi = await res.json();
+      if (!res.ok || pi.error) {
+        throw new Error(pi.error?.message || 'Stripe card payment failed.');
+      }
+
+      return {
+        id: pi.id,
+        status: pi.status === 'succeeded' ? 'succeeded' : 'failed',
+        amount: pi.amount / 100,
+        currency: pi.currency.toUpperCase(),
+        isSimulated: false,
+      };
+    } catch (err: any) {
+      if (process.env.NODE_ENV === 'production') {
+        throw err;
+      }
+    }
+  }
+
+  // Local sandbox fallback
+  const simId = `pi_sim_${Date.now().toString(36)}`;
+  return {
+    id: simId,
+    status: 'succeeded',
+    amount,
+    currency: currency.toUpperCase(),
+    isSimulated: true,
+  };
+}

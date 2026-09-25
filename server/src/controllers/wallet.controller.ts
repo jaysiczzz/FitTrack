@@ -9,7 +9,12 @@ import {
   SUBSCRIPTION_PLANS,
   getPlanPricing,
 } from './subscription.controller'
-import { createPaymentIntent, verifyPaymentIntent, createStripeCheckoutSession } from '../services/stripe.service'
+import {
+  createPaymentIntent,
+  verifyPaymentIntent,
+  createStripeCheckoutSession,
+  processCardPayment,
+} from '../services/stripe.service'
 import { createPayMongoCheckoutSession, verifyPayMongoPayment } from '../services/paymongo.service'
 import { convertCurrency, formatCurrencyString, USD_PHP_EXCHANGE_RATE } from '../utils/currency.utils'
 
@@ -102,7 +107,32 @@ export const initiateDeposit = asyncHandler(async (req: AuthRequest, res: Respon
     })
   }
 
-  // 2. Card via Stripe Official Hosted Checkout Session
+  // 2. Card via Stripe Direct API or Hosted Checkout
+  const { cardNumber, cardExpiry, cardCvc } = req.body
+  if (cardNumber && cardExpiry && cardCvc) {
+    const cardResult = await processCardPayment({
+      amount: depositAmount,
+      currency: targetCurrency,
+      cardNumber,
+      cardExpiry,
+      cardCvc,
+      description: `FitTrack e-Wallet Deposit: ${formatCurrencyString(depositAmount, targetCurrency)}`,
+      metadata: {
+        userId,
+        action: 'wallet_deposit',
+      },
+    })
+
+    return res.json({
+      success: true,
+      paymentIntentId: cardResult.id,
+      amount: depositAmount,
+      currency: targetCurrency,
+      paymentMethod: 'CARD',
+      isSimulated: cardResult.isSimulated,
+    })
+  }
+
   const stripeSession = await createStripeCheckoutSession({
     amount: depositAmount,
     currency: targetCurrency,

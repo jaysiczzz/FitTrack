@@ -137,6 +137,11 @@ export default function SubscriptionModal({
   // Philippines payment rails
   const [phoneNumber, setPhoneNumber] = useState('');
 
+  // Card details state
+  const [cardNumber, setCardNumber] = useState('');
+  const [cardExpiry, setCardExpiry] = useState('');
+  const [cardCvc, setCardCvc] = useState('');
+
 
   const [loading, setLoading] = useState(false);
   const [processingPayment, setProcessingPayment] = useState(false);
@@ -187,6 +192,32 @@ export default function SubscriptionModal({
     const selectedPlan = plans.find((p) => p.tier === selectedTier);
     if (!selectedPlan || selectedPlan.price <= 0) return;
 
+    // Input validation
+    if (paymentMethod === 'GCASH' || paymentMethod === 'MAYA') {
+      const cleanPhone = phoneNumber.replace(/[\s\-]/g, '');
+      if (!cleanPhone || cleanPhone.length < 10) {
+        showWarning(
+          'Mobile Number Required',
+          `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number (e.g. 0917 123 4567).`
+        );
+        return;
+      }
+    } else if (paymentMethod === 'CARD') {
+      const cleanCard = cardNumber.replace(/\s/g, '');
+      if (!cleanCard || cleanCard.length < 13) {
+        showWarning('Card Number Required', 'Please enter a valid 16-digit card number (e.g. 4242 4242 4242 4242).');
+        return;
+      }
+      if (!cardExpiry || !cardExpiry.includes('/')) {
+        showWarning('Expiry Date Required', 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+        return;
+      }
+      if (!cardCvc || cardCvc.length < 3) {
+        showWarning('CVC Required', 'Please enter the 3-digit card security code (CVC).');
+        return;
+      }
+    }
+
     setProcessingPayment(true);
     try {
       if (paymentMethod === 'E_WALLET') {
@@ -205,7 +236,12 @@ export default function SubscriptionModal({
           selectedTier,
           paymentMethod,
           currency,
-          phoneNumber
+          phoneNumber,
+          {
+            cardNumber,
+            cardExpiry,
+            cardCvc,
+          }
         );
         if (checkoutRes.success) {
           // In Live Production, open official PayMongo / Stripe Checkout URL
@@ -633,29 +669,54 @@ export default function SubscriptionModal({
               <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
                 <View className="flex-row items-center justify-between mb-2">
                   <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted">
-                    Official Stripe SSL Card Checkout
+                    Credit / Debit Card (Stripe)
                   </Text>
                   <View className="flex-row items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
                     <Ionicons name="shield-checkmark" size={10} color="#10B981" />
-                    <Text className="text-[10px] font-bold text-emerald-500">PCI-DSS Compliant</Text>
+                    <Text className="text-[10px] font-bold text-emerald-500">Stripe Live API</Text>
                   </View>
                 </View>
 
+                {/* Card Number Input */}
                 <View className="flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark mb-2">
-                  <Ionicons name="card" size={18} color={colors.accent} style={{ marginRight: 8 }} />
-                  <View className="flex-1">
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      Visa · Mastercard · JCB · Amex
-                    </Text>
-                    <Text className="text-[10px] text-text-muted">
-                      Philippine & Global Debit / Credit Cards
-                    </Text>
+                  <Ionicons name="card" size={16} color={colors.textMuted} style={{ marginRight: 8 }} />
+                  <TextInput
+                    value={cardNumber}
+                    onChangeText={setCardNumber}
+                    keyboardType="number-pad"
+                    placeholder="4242 4242 4242 4242"
+                    placeholderTextColor={colors.textMuted}
+                    className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                  />
+                  <Ionicons name="lock-closed" size={13} color="#10B981" />
+                </View>
+
+                {/* Expiry and CVC Row */}
+                <View className="flex-row gap-2 mb-2">
+                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
+                    <TextInput
+                      value={cardExpiry}
+                      onChangeText={setCardExpiry}
+                      placeholder="MM/YY"
+                      placeholderTextColor={colors.textMuted}
+                      className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                    />
                   </View>
-                  <Ionicons name="lock-closed" size={14} color="#10B981" />
+                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
+                    <TextInput
+                      value={cardCvc}
+                      onChangeText={setCardCvc}
+                      placeholder="CVC"
+                      keyboardType="number-pad"
+                      placeholderTextColor={colors.textMuted}
+                      secureTextEntry
+                      className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0 text-center"
+                    />
+                  </View>
                 </View>
 
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-4">
-                  When you tap "Subscribe", you will be securely redirected to Stripe's encrypted payment portal to complete 3D-Secure bank OTP verification. FitTrack never stores your raw card details.
+                  Directly verified via Stripe Live API. Supports Visa, Mastercard, JCB, and Philippine bank cards (BDO, BPI, UnionBank).
                 </Text>
               </View>
             ) : (

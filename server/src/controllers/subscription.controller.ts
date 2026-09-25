@@ -8,6 +8,7 @@ import {
   createPaymentIntent,
   verifyPaymentIntent,
   createStripeCheckoutSession,
+  processCardPayment,
 } from '../services/stripe.service'
 import {
   createPayMongoCheckoutSession,
@@ -327,7 +328,34 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
     })
   }
 
-  // 2. Card via Stripe Hosted Checkout Session
+  // 2. Card via Stripe Direct API or Hosted Checkout
+  const { cardNumber, cardExpiry, cardCvc } = req.body
+  if (cardNumber && cardExpiry && cardCvc) {
+    const cardResult = await processCardPayment({
+      amount: pricing.price,
+      currency: pricing.currency,
+      cardNumber,
+      cardExpiry,
+      cardCvc,
+      description: `FitTrack Subscription: ${plan.name} (${formatCurrencyString(pricing.price, pricing.currency)})`,
+      metadata: {
+        userId,
+        tier,
+        planName: plan.name,
+      },
+    })
+
+    return res.json({
+      success: true,
+      paymentMethod: 'CARD',
+      plan: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
+      paymentIntentId: cardResult.id,
+      amount: pricing.price,
+      currency: pricing.currency,
+      isSimulated: cardResult.isSimulated,
+    })
+  }
+
   const stripeSession = await createStripeCheckoutSession({
     amount: pricing.price,
     currency: pricing.currency,
