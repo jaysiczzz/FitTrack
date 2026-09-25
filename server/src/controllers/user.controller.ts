@@ -31,6 +31,7 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
         lastName?: string;
         height?: number;
         weight?: number;
+        targetWeight?: number | null;
         age?: number;
         goal?: Goal;
     } = {}
@@ -56,6 +57,18 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
             return res.status(400).json({ error: 'Weight must be between 1 and 500 kg' })
         }
         updateData.weight = weight
+    }
+
+    if (req.body.targetWeight !== undefined) {
+        if (req.body.targetWeight === null || req.body.targetWeight === '') {
+            updateData.targetWeight = null
+        } else {
+            const targetWeight = Number(req.body.targetWeight)
+            if (Number.isNaN(targetWeight) || targetWeight <= 0 || targetWeight > 500) {
+                return res.status(400).json({ error: 'Target weight must be between 1 and 500 kg' })
+            }
+            updateData.targetWeight = targetWeight
+        }
     }
 
     if (req.body.age !== undefined) {

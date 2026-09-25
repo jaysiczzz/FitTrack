@@ -7,7 +7,7 @@ import SurfaceCard from '../ui/SurfaceCard';
 
 interface AssignRoutineModalProps {
   visible: boolean;
-  day: { key: DayOfWeek; label: string; full: string } | null;
+  day: { key?: DayOfWeek | string; label: string; full: string } | null;
   currentRoutineId: string | null;
   routines: WorkoutRoutineTemplate[];
   onSelect: (routineId: string | null) => void;

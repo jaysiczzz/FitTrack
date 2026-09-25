@@ -18,6 +18,9 @@ import {
   createCustomExerciseController,
   deleteCustomExerciseController,
   deleteSessionController,
+  getWorkoutPlanController,
+  updateWorkoutPlanController,
+  scheduleMonthlyRoutineController,
 } from '../controllers/workout.controller'
 import { authMiddleware, adminMiddleware } from '../middleware/auth.middleware'
 import { validateSetOwnership, validateWorkoutExerciseOwnership } from '../middleware/ownership.middleware'
@@ -65,6 +68,11 @@ router.post('/today/complete', completeSession)
 router.get('/history', getHistory)
 router.get('/personal-records', getPersonalRecordsController)
 router.delete('/sessions/:sessionId', deleteSessionController)
+
+// Workout Planner (Daily, Weekly, Monthly) Routes
+router.get('/plan', getWorkoutPlanController)
+router.put('/plan', updateWorkoutPlanController)
+router.post('/plan/schedule-date', scheduleMonthlyRoutineController)
 
 export default router
 

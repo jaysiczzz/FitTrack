@@ -1,6 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import * as workoutModel from '../models/workout.model'
+import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 
 export const getLibrary = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -281,5 +282,109 @@ export const deleteSessionController = asyncHandler(async (req: AuthRequest, res
 
   await workoutModel.deleteWorkoutSession(sessionId, userId)
   res.json({ success: true })
+})
+
+/**
+ * GET /api/workouts/plan
+ * Fetches user's daily, weekly, and monthly workout plan.
+ */
+export const getWorkoutPlanController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const plan = await prisma.workoutPlan.findUnique({
+    where: { userId },
+  })
+
+  res.json({
+    success: true,
+    plan: plan || null,
+  })
+})
+
+/**
+ * PUT /api/workouts/plan
+ * Updates/syncs the user's weekly split, templates, monthly schedule, and mesocycle.
+ */
+export const updateWorkoutPlanController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const {
+    weeklySplit,
+    routineTemplates,
+    monthlySchedule,
+    monthlyTargetDays,
+    currentMesocycleWeek,
+  } = req.body
+
+  const plan = await prisma.workoutPlan.upsert({
+    where: { userId },
+    create: {
+      userId,
+      weeklySplit: weeklySplit || {},
+      routineTemplates: routineTemplates || [],
+      monthlySchedule: monthlySchedule || {},
+      monthlyTargetDays: Number(monthlyTargetDays) || 20,
+      currentMesocycleWeek: Number(currentMesocycleWeek) || 1,
+    },
+    update: {
+      weeklySplit: weeklySplit !== undefined ? weeklySplit : undefined,
+      routineTemplates: routineTemplates !== undefined ? routineTemplates : undefined,
+      monthlySchedule: monthlySchedule !== undefined ? monthlySchedule : undefined,
+      monthlyTargetDays: monthlyTargetDays !== undefined ? Number(monthlyTargetDays) : undefined,
+      currentMesocycleWeek: currentMesocycleWeek !== undefined ? Number(currentMesocycleWeek) : undefined,
+    },
+  })
+
+  res.json({
+    success: true,
+    plan,
+    message: 'Workout plan synchronized successfully',
+  })
+})
+
+/**
+ * POST /api/workouts/plan/schedule-date
+ * Schedules or modifies a specific date's routine or rest day in the monthly calendar.
+ */
+export const scheduleMonthlyRoutineController = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) return res.status(401).json({ error: 'Unauthorized' })
+
+  const { dateKey, routineId, isRestDay, customNotes } = req.body
+  if (!dateKey) return res.status(400).json({ error: 'dateKey is required (YYYY-MM-DD)' })
+
+  const existing = await prisma.workoutPlan.findUnique({
+    where: { userId },
+  })
+
+  const currentSchedule: Record<string, any> = (existing?.monthlySchedule as Record<string, any>) || {}
+  currentSchedule[dateKey] = {
+    routineId: routineId || null,
+    isRestDay: Boolean(isRestDay),
+    customNotes: customNotes || null,
+    updatedAt: new Date().toISOString(),
+  }
+
+  const plan = await prisma.workoutPlan.upsert({
+    where: { userId },
+    create: {
+      userId,
+      weeklySplit: {},
+      routineTemplates: [],
+      monthlySchedule: currentSchedule,
+    },
+    update: {
+      monthlySchedule: currentSchedule,
+    },
+  })
+
+  res.json({
+    success: true,
+    dateKey,
+    scheduled: currentSchedule[dateKey],
+    plan,
+  })
 })
 

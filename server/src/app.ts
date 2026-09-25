@@ -12,6 +12,7 @@ import supportRoutes from './routes/support.routes'
 import testimonialRoutes from './routes/testimonial.routes'
 import checkinRoutes from './routes/checkin.routes'
 import notificationRoutes from './routes/notification.routes'
+import weightRoutes from './routes/weight.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 
@@ -70,6 +71,7 @@ app.use('/api/support', supportRoutes)
 app.use('/api/testimonials', testimonialRoutes)
 app.use('/api/checkin', checkinRoutes)
 app.use('/api/user/notifications', notificationRoutes)
+app.use('/api/weight', weightRoutes)
 
 app.use(errorHandler)
 

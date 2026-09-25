@@ -188,3 +188,54 @@ export const deleteCustomExerciseApi = (exerciseId: string) =>
 export const deleteWorkoutSessionApi = (sessionId: string) =>
   apiRequest(`/api/workouts/sessions/${sessionId}`, { method: 'DELETE' });
 
+export interface MonthlyScheduleDay {
+  routineId: string | null;
+  isRestDay: boolean;
+  customNotes?: string | null;
+  updatedAt?: string;
+}
+
+export interface WorkoutPlanData {
+  id?: string;
+  userId?: string;
+  weeklySplit: Record<string, string | null>;
+  routineTemplates: any[];
+  monthlySchedule?: Record<string, MonthlyScheduleDay>;
+  monthlyTargetDays?: number;
+  currentMesocycleWeek?: number;
+}
+
+export const getWorkoutPlanApi = (): Promise<{
+  success: boolean;
+  plan: WorkoutPlanData | null;
+}> => apiRequest('/api/workouts/plan');
+
+export const updateWorkoutPlanApi = (
+  payload: Partial<WorkoutPlanData>
+): Promise<{
+  success: boolean;
+  plan: WorkoutPlanData;
+  message: string;
+}> =>
+  apiRequest('/api/workouts/plan', {
+    method: 'PUT',
+    body: payload,
+  });
+
+export const scheduleMonthlyRoutineApi = (payload: {
+  dateKey: string;
+  routineId?: string | null;
+  isRestDay?: boolean;
+  customNotes?: string;
+}): Promise<{
+  success: boolean;
+  dateKey: string;
+  scheduled: MonthlyScheduleDay;
+  plan: WorkoutPlanData;
+}> =>
+  apiRequest('/api/workouts/plan/schedule-date', {
+    method: 'POST',
+    body: payload,
+  });
+
+

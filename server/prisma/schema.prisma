@@ -15,6 +15,7 @@ model User {
   role            Role             @default(USER)
   height          Int              // cm
   weight          Float            // kg
+  targetWeight    Float?           // kg
   age             Int
   goal            Goal
   createdAt       DateTime         @default(now())
@@ -28,6 +29,8 @@ model User {
   dailyCheckIns   DailyCheckIn[]
   notificationPreference NotificationPreference?
   aiChatMessages  AiChatMessage[]
+  workoutPlan     WorkoutPlan?
+  weightLogs      WeightLog[]
 }
 
 enum Goal {
@@ -313,5 +316,35 @@ model AiChatMessage {
 
   @@index([userId])
   @@index([userId, createdAt])
+}
+
+model WorkoutPlan {
+  id                   String   @id @default(uuid())
+  userId               String   @unique
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weeklySplit          Json     // { mon: "routine-id", tue: null, ... }
+  routineTemplates     Json     // array of templates
+  monthlySchedule      Json?    // { "2026-09-25": { routineId: "...", isRestDay: false } }
+  monthlyTargetDays    Int      @default(20)
+  currentMesocycleWeek Int      @default(1) // 1 to 4
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model WeightLog {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weight    Float    // kg
+  date      String   // "YYYY-MM-DD" e.g. "2026-09-25"
+  notes     String?  // Optional reflection note e.g. "Morning weigh-in"
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+  @@index([userId])
+  @@index([date])
 }
 

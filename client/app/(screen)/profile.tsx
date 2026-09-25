@@ -16,6 +16,7 @@ import { getUserProfile, updateUserProfile } from '@/api/user';
 import { useAuth } from '@/context/AuthContext';
 import { COLORS, useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+import WeightProgressCard from '@/components/profile/WeightProgressCard';
 
 interface UserData {
   id?: string;
@@ -24,6 +25,7 @@ interface UserData {
   lastName?: string;
   height?: number;
   weight?: number;
+  targetWeight?: number | null;
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
 }
@@ -218,6 +220,11 @@ export default function Profile() {
             </View>
           </View>
         </SurfaceCard>
+
+        {/* Weight & Body Progress Card */}
+        <WeightProgressCard
+          onWeightUpdated={(newW) => setWeight(String(newW))}
+        />
 
         {/* Feedback Alert Message */}
         {message ? (
