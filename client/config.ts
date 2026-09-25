@@ -1,4 +1,5 @@
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
 export const FALLBACK_API_URL = 'https://fittrack-au2r.onrender.com';
 
@@ -17,7 +18,18 @@ const getApiUrl = () => {
     return 'http://localhost:3000';
   }
 
-  // 3. Standalone Mobile / Physical Device default -> Live Render Production URL
+  // 3. Local network development on mobile (Expo Go / Emulator)
+  if (__DEV__) {
+    const hostUri = Constants.expoConfig?.hostUri || (Constants as any).manifest2?.extra?.expoClient?.hostUri;
+    if (hostUri) {
+      const hostIp = hostUri.split(':')[0];
+      if (hostIp) {
+        return `http://${hostIp}:3000`;
+      }
+    }
+  }
+
+  // 4. Standalone Mobile / Physical Device default -> Live Render Production URL
   return FALLBACK_API_URL;
 };
 

@@ -31,6 +31,9 @@ model User {
   aiChatMessages  AiChatMessage[]
   workoutPlan     WorkoutPlan?
   weightLogs      WeightLog[]
+  subscription    Subscription?
+  wallet          Wallet?
+  walletTransactions WalletTransaction[]
 }
 
 enum Goal {
@@ -347,4 +350,95 @@ model WeightLog {
   @@index([userId])
   @@index([date])
 }
+
+model Subscription {
+  id                    String             @id @default(uuid())
+  userId                String             @unique
+  user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tier                  SubscriptionTier   @default(FREE)
+  status                SubscriptionStatus @default(ACTIVE)
+  stripeCustomerId      String?
+  stripeSubscriptionId  String?
+  stripePaymentIntentId String?
+  amount                Float              @default(0.0)
+  currency              String             @default("USD")
+  interval              String?            // "month" | "year" | "lifetime"
+  currentPeriodStart    DateTime           @default(now())
+  currentPeriodEnd      DateTime?
+  cancelAtPeriodEnd     Boolean            @default(false)
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+
+  @@index([userId])
+  @@index([tier])
+  @@index([status])
+}
+
+enum SubscriptionTier {
+  FREE
+  PRO_MONTHLY
+  PRO_ANNUAL
+  LIFETIME_FOUNDER
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  EXPIRED
+  PAST_DUE
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  userId       String?             @unique // null for system/platform master revenue wallet
+  user         User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  isPlatform   Boolean             @default(false)
+  balance      Float               @default(0.0)
+  currency     String              @default("USD")
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  transactions WalletTransaction[]
+
+  @@index([userId])
+}
+
+model WalletTransaction {
+  id            String            @id @default(uuid())
+  walletId      String
+  wallet        Wallet            @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  userId        String?
+  user          User?             @relation(fields: [userId], references: [id], onDelete: SetNull)
+  type          TransactionType   // SUBSCRIPTION, DEPOSIT, PAYOUT, REFUND, CREDIT
+  amount        Float
+  currency      String            @default("USD")
+  fee           Float             @default(0.0)
+  netAmount     Float
+  status        TransactionStatus @default(COMPLETED)
+  paymentMethod String            @default("STRIPE") // "STRIPE" | "E_WALLET" | "MANUAL"
+  referenceId   String?           // Stripe payment intent id or session id
+  description   String
+  createdAt     DateTime          @default(now())
+
+  @@index([walletId])
+  @@index([userId])
+  @@index([type])
+  @@index([createdAt])
+}
+
+enum TransactionType {
+  SUBSCRIPTION
+  DEPOSIT
+  PAYOUT
+  REFUND
+  CREDIT
+}
+
+enum TransactionStatus {
+  COMPLETED
+  PENDING
+  FAILED
+  REFUNDED
+}
+
+
 

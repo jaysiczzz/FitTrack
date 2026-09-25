@@ -13,6 +13,9 @@ import testimonialRoutes from './routes/testimonial.routes'
 import checkinRoutes from './routes/checkin.routes'
 import notificationRoutes from './routes/notification.routes'
 import weightRoutes from './routes/weight.routes'
+import subscriptionRoutes from './routes/subscription.routes'
+import walletRoutes from './routes/wallet.routes'
+import adminRevenueRoutes from './routes/adminRevenue.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 
@@ -72,6 +75,9 @@ app.use('/api/testimonials', testimonialRoutes)
 app.use('/api/checkin', checkinRoutes)
 app.use('/api/user/notifications', notificationRoutes)
 app.use('/api/weight', weightRoutes)
+app.use('/api/subscriptions', subscriptionRoutes)
+app.use('/api/wallet', walletRoutes)
+app.use('/api/admin/revenue', adminRevenueRoutes)
 
 app.use(errorHandler)
 
