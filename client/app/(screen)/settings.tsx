@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
@@ -42,12 +43,31 @@ import {
   formatTimeDisplay,
 } from '@/utils/notificationService';
 
+import { hapticFeedback } from '@/utils/haptics';
+
 export default function Settings() {
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
   const { colors } = useThemeColors();
   const { user, logout } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
+
+  // Optimistic Theme State
+  const [isDarkLocal, setIsDarkLocal] = useState(colorScheme === 'dark');
+
+  useEffect(() => {
+    setIsDarkLocal(colorScheme === 'dark');
+  }, [colorScheme]);
+
+  const handleToggleTheme = (isDark: boolean) => {
+    hapticFeedback.light();
+    setIsDarkLocal(isDark);
+    const newTheme = isDark ? 'dark' : 'light';
+    AsyncStorage.setItem('fittrack_app_theme', newTheme).catch(() => {});
+    setTimeout(() => {
+      setColorScheme(newTheme);
+    }, 40);
+  };
 
   // Modals
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -209,12 +229,14 @@ export default function Settings() {
 
   const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
-    try {
-      await logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-      router.replace('/(auth)');
-    }
+    setTimeout(async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.error('Logout error:', err);
+        router.replace('/(auth)');
+      }
+    }, 120);
   };
 
   return (
@@ -781,13 +803,13 @@ export default function Settings() {
                 Dark Mode
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                {colorScheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
+                {isDarkLocal ? 'Dark theme enabled' : 'Light theme enabled'}
               </Text>
             </View>
 
             <Switch
-              value={colorScheme === 'dark'}
-              onValueChange={(isDark) => setColorScheme(isDark ? 'dark' : 'light')}
+              value={isDarkLocal}
+              onValueChange={handleToggleTheme}
               thumbColor={colors.surface}
               trackColor={{
                 false: colors.inputBorder,
@@ -825,7 +847,7 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
-          {/* Contact Support */}
+          {/* Contact Support & Feedback */}
           <Pressable
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => {
@@ -834,14 +856,14 @@ export default function Settings() {
             }}
           >
             <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
-              <Ionicons name="mail" size={14} color="#A855F7" />
+              <Ionicons name="chatbubbles" size={14} color="#A855F7" />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                Contact Support
+                Contact Support & Feedback
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Reach our team or report an issue
+                Reach our team, report an issue, or suggest features
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -856,39 +878,17 @@ export default function Settings() {
               <Ionicons name="sparkles" size={14} color={colors.accent} />
             </View>
             <View className="flex-1">
-              <View className="flex-row items-center space-x-1.5">
+              <View className="flex-row items-center gap-1.5">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                   Athlete Stories & Reviews
                 </Text>
-                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full">
+                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full gap-1">
                   <Ionicons name="star" size={10} color="#F59E0B" />
-                  <Text className="text-[10px] font-bold text-amber-500 ml-0.5">Community</Text>
+                  <Text className="text-[10px] font-bold text-amber-500">Community</Text>
                 </View>
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Read transformations or share your journey
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-
-          {/* Rate / Feedback */}
-          <Pressable
-            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-            onPress={() => {
-              setHelpInitialTab('contact');
-              setShowHelpModal(true);
-            }}
-          >
-            <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
-              <Ionicons name="chatbubble-ellipses" size={14} color="#FBBF24" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                Share Suggestions & Feedback
-              </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Help us improve future FitTrack releases
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />

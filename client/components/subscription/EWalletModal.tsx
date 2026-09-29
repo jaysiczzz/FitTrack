@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ConfirmModal from '../ui/ConfirmModal';
 import {
   getUserWalletApi,
   initiateWalletDepositApi,
@@ -70,6 +71,7 @@ export default function EWalletModal({
   const [cardCvc, setCardCvc] = useState('');
 
   const [depositing, setDepositing] = useState(false);
+  const [showDepositConfirmModal, setShowDepositConfirmModal] = useState(false);
 
   const loadWallet = async () => {
     try {
@@ -109,15 +111,13 @@ export default function EWalletModal({
   const convertedCreditPHP = currency === 'USD' ? numericTopUp * USD_PHP_EXCHANGE_RATE : numericTopUp;
   const convertedPreviewUSD = currency === 'PHP' ? numericTopUp / USD_PHP_EXCHANGE_RATE : numericTopUp;
 
-  const handleDeposit = async () => {
+  const validateDepositInputs = (): boolean => {
     const amountValidation = validateTopUpAmount(topUpAmount, currency);
     if (!amountValidation.valid) {
       showWarning('Invalid Amount', amountValidation.error || 'Please enter a valid deposit amount.');
-      return;
+      return false;
     }
-    const cleanAmount = amountValidation.amount;
 
-    // Strict Input Validation
     if (depositMethod === 'GCASH' || depositMethod === 'MAYA') {
       const phoneValidation = validatePhilippinePhone(phoneNumber);
       if (!phoneValidation.valid) {
@@ -125,25 +125,37 @@ export default function EWalletModal({
           'Invalid Mobile Number',
           phoneValidation.error || `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
         );
-        return;
+        return false;
       }
     } else if (depositMethod === 'CARD') {
       const cardValidation = validateCardNumber(cardNumber);
       if (!cardValidation.valid) {
         showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
-        return;
+        return false;
       }
       const expiryValidation = validateCardExpiry(cardExpiry);
       if (!expiryValidation.valid) {
         showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
-        return;
+        return false;
       }
       const cvcValidation = validateCardCvc(cardCvc);
       if (!cvcValidation.valid) {
         showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  const promptConfirmDeposit = () => {
+    if (validateDepositInputs()) {
+      setShowDepositConfirmModal(true);
+    }
+  };
+
+  const handleDeposit = async () => {
+    setShowDepositConfirmModal(false);
+    if (!validateDepositInputs()) return;
 
     setDepositing(true);
     try {
@@ -191,7 +203,8 @@ export default function EWalletModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <>
+      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
 
@@ -288,13 +301,13 @@ export default function EWalletModal({
                     className={`flex-1 py-2 px-2 rounded-xl items-center border ${
                       depositMethod === 'GCASH'
                         ? 'bg-sky-500/15 border-sky-500'
-                        : 'bg-input dark:bg-input-dark border-input-border'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-sky-600' : 'text-text-primary'}`}>
+                    <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
                       GCash (PH)
                     </Text>
-                    <Text className="text-[9px] text-text-muted">PayMongo Rail</Text>
+                    <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">PayMongo Rail</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
@@ -302,27 +315,27 @@ export default function EWalletModal({
                     className={`flex-1 py-2 px-2 rounded-xl items-center border ${
                       depositMethod === 'MAYA'
                         ? 'bg-emerald-500/15 border-emerald-500'
-                        : 'bg-input dark:bg-input-dark border-input-border'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    <Text className={`text-xs font-bold ${depositMethod === 'MAYA' ? 'text-emerald-600' : 'text-text-primary'}`}>
+                    <Text className={`text-xs font-bold ${depositMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
                       Maya (PH)
                     </Text>
-                    <Text className="text-[9px] text-text-muted">Digital Bank</Text>
+                    <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Digital Bank</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => setDepositMethod('CARD')}
                     className={`flex-1 py-2 px-2 rounded-xl items-center border ${
                       depositMethod === 'CARD'
-                        ? 'bg-accent/15 border-accent'
-                        : 'bg-input dark:bg-input-dark border-input-border'
+                        ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    <Text className={`text-xs font-bold ${depositMethod === 'CARD' ? 'text-accent' : 'text-text-primary'}`}>
+                    <Text className={`text-xs font-bold ${depositMethod === 'CARD' ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'}`}>
                       Card (Stripe)
                     </Text>
-                    <Text className="text-[9px] text-text-muted">Visa / Mastercard</Text>
+                    <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Visa / Mastercard</Text>
                   </TouchableOpacity>
                 </View>
 
@@ -488,7 +501,7 @@ export default function EWalletModal({
 
                 {/* Action Button */}
                 <TouchableOpacity
-                  onPress={handleDeposit}
+                  onPress={promptConfirmDeposit}
                   disabled={depositing}
                   activeOpacity={0.8}
                   className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
@@ -584,5 +597,18 @@ export default function EWalletModal({
         </View>
       </View>
     </Modal>
+
+      <ConfirmModal
+        visible={showDepositConfirmModal}
+        title="Confirm E-Wallet Top-Up"
+        message={`Are you sure you want to top up ${symbol}${numericTopUp.toFixed(2)} to your FitTrack e-Wallet via ${
+          depositMethod === 'GCASH' ? 'GCash' : depositMethod === 'MAYA' ? 'Maya' : 'Credit/Debit Card'
+        }?`}
+        confirmText="Confirm & Top Up"
+        cancelText="Cancel"
+        onConfirm={handleDeposit}
+        onCancel={() => setShowDepositConfirmModal(false)}
+      />
+    </>
   );
 }
