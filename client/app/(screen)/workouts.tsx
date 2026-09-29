@@ -32,6 +32,25 @@ import {
   getWorkoutHistory,
   ApiWorkoutExercise,
 } from '@/api/workout';
+import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
+
+const EXERCISE_CATALOG_MAP = new Map<string, LibraryExercise>();
+COMMON_EXERCISES_CATALOG.forEach((ex) => {
+  if (ex.id) EXERCISE_CATALOG_MAP.set(ex.id.toLowerCase().trim(), ex);
+  if (ex.name) EXERCISE_CATALOG_MAP.set(ex.name.toLowerCase().trim(), ex);
+});
+
+function getExerciseMetadata(nameOrId?: string, fallbackName?: string): Partial<LibraryExercise> | null {
+  if (nameOrId) {
+    const found = EXERCISE_CATALOG_MAP.get(nameOrId.toLowerCase().trim());
+    if (found) return found;
+  }
+  if (fallbackName) {
+    const found = EXERCISE_CATALOG_MAP.get(fallbackName.toLowerCase().trim());
+    if (found) return found;
+  }
+  return null;
+}
 
 export default function Workouts() {
   const router = useRouter();
@@ -642,27 +661,31 @@ export default function Workouts() {
         done: false,
       }));
 
+      const meta = getExerciseMetadata(undefined, ex.name);
+
       return {
         key: tempKey,
         name: ex.name,
-        category: ex.category || 'Strength',
-        type: 'Compound',
-        difficulty: 'Intermediate',
-        primaryMuscle: 'Full Body',
-        muscleGroup: 'Full Body',
-        secondaryMuscles: [],
-        bodyPart: 'Full Body',
-        equipment: 'Dumbbell',
-        equipmentAlternatives: [],
-        instructions: [],
-        formTips: [],
-        commonMistakes: [],
+        category: ex.category || meta?.category || 'Strength',
+        type: (meta?.type as any) || 'Compound',
+        difficulty: (meta?.difficulty as any) || 'Intermediate',
+        primaryMuscle: meta?.primaryMuscle || 'Full Body',
+        muscleGroup: meta?.muscleGroup || meta?.primaryMuscle || 'Full Body',
+        secondaryMuscles: meta?.secondaryMuscles || [],
+        bodyPart: meta?.bodyPart || 'Upper Body',
+        equipment: meta?.equipment ? (Array.isArray(meta.equipment) ? meta.equipment[0] : meta.equipment) : 'Dumbbell',
+        equipmentAlternatives: meta?.equipmentAlternatives || [],
+        instructions: meta?.instructions || [],
+        formTips: meta?.formTips || [],
+        commonMistakes: meta?.commonMistakes || [],
         recommendedSets: setCount,
         recommendedReps: ex.reps || 10,
-        recommendedRest: 90,
-        recommendedTempo: '2-0-1-0',
-        similarExercises: [],
-        tags: ['AI Generated'],
+        recommendedRest: meta?.recommendedRest || 90,
+        recommendedTempo: meta?.recommendedTempo || '2-0-1-0',
+        similarExercises: meta?.similarExercises || [],
+        tags: meta?.tags || ['AI Generated'],
+        imageUrl: meta?.imageUrl || null,
+        thumbnailUrl: meta?.thumbnailUrl || null,
         sets,
       };
     });
@@ -682,24 +705,22 @@ export default function Workouts() {
       iconName: 'sparkles',
     });
 
-    // 4. Background parallel sync
+    // 4. Background sequential sync to preserve exact exercise order
     try {
-      await Promise.all(
-        exercises.map((ex) => {
-          const defaultSets = Array.from({ length: ex.sets || 3 }).map((_, i) => ({
-            weight: ex.suggestedWeightKg || (i === 0 ? 30 : 35),
-            reps: ex.reps || 10,
-            bodyweight: ex.category?.toLowerCase().includes('bodyweight') || false,
-          }));
-          return addExerciseToTodaySession({
-            name: ex.name,
-            category: ex.category || 'Strength',
-            type: 'Compound',
-            defaultSets,
-          });
-        })
-      );
-      fetchTodaySession();
+      for (const ex of exercises) {
+        const defaultSets = Array.from({ length: ex.sets || 3 }).map((_, i) => ({
+          weight: ex.suggestedWeightKg || (i === 0 ? 30 : 35),
+          reps: ex.reps || 10,
+          bodyweight: ex.category?.toLowerCase().includes('bodyweight') || false,
+        }));
+        await addExerciseToTodaySession({
+          name: ex.name,
+          category: ex.category || 'Strength',
+          type: 'Compound',
+          defaultSets,
+        });
+      }
+      await fetchTodaySession();
     } catch (err) {
       console.log('Error syncing AI exercises in background:', err);
     }
@@ -728,28 +749,32 @@ export default function Workouts() {
         done: false,
       }));
 
+      const meta = getExerciseMetadata(ex.exerciseId, ex.name);
+
       return {
         key: tempKey,
-        exerciseId: ex.exerciseId || ex.id,
+        exerciseId: ex.exerciseId || ex.id || meta?.id,
         name: ex.name,
-        category: ex.category || 'Strength',
-        type: 'Compound',
-        difficulty: 'Intermediate',
-        primaryMuscle: 'Full Body',
-        muscleGroup: 'Full Body',
-        secondaryMuscles: [],
-        bodyPart: 'Full Body',
-        equipment: 'Barbell',
-        equipmentAlternatives: [],
-        instructions: [],
-        formTips: [],
-        commonMistakes: [],
+        category: ex.category || meta?.category || 'Strength',
+        type: (meta?.type as any) || 'Compound',
+        difficulty: (meta?.difficulty as any) || 'Intermediate',
+        primaryMuscle: meta?.primaryMuscle || (ex as any).primaryMuscle || 'Full Body',
+        muscleGroup: meta?.muscleGroup || meta?.primaryMuscle || (ex as any).muscleGroup || 'Full Body',
+        secondaryMuscles: meta?.secondaryMuscles || (ex as any).secondaryMuscles || [],
+        bodyPart: meta?.bodyPart || (ex as any).bodyPart || 'Upper Body',
+        equipment: meta?.equipment ? (Array.isArray(meta.equipment) ? meta.equipment[0] : meta.equipment) : 'Barbell',
+        equipmentAlternatives: meta?.equipmentAlternatives || [],
+        instructions: meta?.instructions || [],
+        formTips: meta?.formTips || [],
+        commonMistakes: meta?.commonMistakes || [],
         recommendedSets: sets.length,
         recommendedReps: 10,
-        recommendedRest: 90,
-        recommendedTempo: '2-0-1-0',
-        similarExercises: [],
-        tags: [],
+        recommendedRest: meta?.recommendedRest || 90,
+        recommendedTempo: meta?.recommendedTempo || '2-0-1-0',
+        similarExercises: meta?.similarExercises || [],
+        tags: meta?.tags || [],
+        imageUrl: meta?.imageUrl || null,
+        thumbnailUrl: meta?.thumbnailUrl || null,
         sets,
       };
     });
@@ -770,28 +795,26 @@ export default function Workouts() {
       iconName: 'barbell',
     });
 
-    // 3. Background parallel sync
+    // 3. Background sequential sync to preserve exact exercise order
     try {
-      await Promise.all(
-        session.exercises.map((ex) => {
-          const defaultSets = ex.sets && ex.sets.length > 0
-            ? ex.sets.map((s) => ({
-                weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
-                reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
-                bodyweight: Boolean(s.bodyweight),
-              }))
-            : undefined;
+      for (const ex of session.exercises) {
+        const defaultSets = ex.sets && ex.sets.length > 0
+          ? ex.sets.map((s) => ({
+              weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
+              reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
+              bodyweight: Boolean(s.bodyweight),
+            }))
+          : undefined;
 
-          return addExerciseToTodaySession({
-            exerciseId: ex.exerciseId,
-            name: ex.name,
-            category: ex.category || 'Strength',
-            type: 'Compound',
-            defaultSets,
-          });
-        })
-      );
-      fetchTodaySession();
+        await addExerciseToTodaySession({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          category: ex.category || 'Strength',
+          type: 'Compound',
+          defaultSets,
+        });
+      }
+      await fetchTodaySession();
     } catch (err) {
       console.log('Error syncing repeated routine in background:', err);
     }
@@ -828,28 +851,32 @@ export default function Workouts() {
         done: false,
       }));
 
+      const meta = getExerciseMetadata(ex.exerciseId, ex.name);
+
       return {
         key: tempKey,
-        exerciseId: ex.exerciseId,
+        exerciseId: ex.exerciseId || meta?.id,
         name: ex.name,
-        category: ex.category || routine.category || 'Strength',
-        type: ex.type || 'Compound',
-        difficulty: 'Intermediate',
-        primaryMuscle: 'Full Body',
-        muscleGroup: 'Full Body',
-        secondaryMuscles: [],
-        bodyPart: 'Full Body',
-        equipment: 'Barbell',
-        equipmentAlternatives: [],
-        instructions: [],
-        formTips: [],
-        commonMistakes: [],
+        category: ex.category || meta?.category || routine.category || 'Strength',
+        type: ex.type || (meta?.type as any) || 'Compound',
+        difficulty: (meta?.difficulty as any) || 'Intermediate',
+        primaryMuscle: meta?.primaryMuscle || (ex as any).primaryMuscle || (routine.category?.includes('Push') ? 'Chest' : routine.category?.includes('Pull') ? 'Back' : routine.category?.includes('Leg') ? 'Quads' : 'Full Body'),
+        muscleGroup: meta?.muscleGroup || meta?.primaryMuscle || (ex as any).muscleGroup || 'Full Body',
+        secondaryMuscles: meta?.secondaryMuscles || [],
+        bodyPart: meta?.bodyPart || (ex as any).bodyPart || (routine.category?.includes('Leg') ? 'Lower Body' : 'Upper Body'),
+        equipment: meta?.equipment ? (Array.isArray(meta.equipment) ? meta.equipment[0] : meta.equipment) : 'Barbell',
+        equipmentAlternatives: meta?.equipmentAlternatives || [],
+        instructions: meta?.instructions || [],
+        formTips: meta?.formTips || [],
+        commonMistakes: meta?.commonMistakes || [],
         recommendedSets: sets.length,
         recommendedReps: 10,
-        recommendedRest: 90,
-        recommendedTempo: '2-0-1-0',
-        similarExercises: [],
-        tags: [],
+        recommendedRest: meta?.recommendedRest || 90,
+        recommendedTempo: meta?.recommendedTempo || '2-0-1-0',
+        similarExercises: meta?.similarExercises || [],
+        tags: meta?.tags || [],
+        imageUrl: meta?.imageUrl || null,
+        thumbnailUrl: meta?.thumbnailUrl || null,
         sets,
       };
     });
@@ -870,28 +897,26 @@ export default function Workouts() {
       iconName: 'barbell',
     });
 
-    // 3. Background parallel sync
+    // 3. Sequential background sync to guarantee exact order preserved on server
     try {
-      await Promise.all(
-        routine.exercises.map((ex) => {
-          const defaultSets = ex.defaultSets && ex.defaultSets.length > 0
-            ? ex.defaultSets.map((s) => ({
-                weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
-                reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
-                bodyweight: Boolean(s.bodyweight),
-              }))
-            : undefined;
+      for (const ex of routine.exercises) {
+        const defaultSets = ex.defaultSets && ex.defaultSets.length > 0
+          ? ex.defaultSets.map((s) => ({
+              weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
+              reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
+              bodyweight: Boolean(s.bodyweight),
+            }))
+          : undefined;
 
-          return addExerciseToTodaySession({
-            exerciseId: ex.exerciseId,
-            name: ex.name,
-            category: ex.category || 'Strength',
-            type: ex.type || 'Compound',
-            defaultSets,
-          });
-        })
-      );
-      fetchTodaySession();
+        await addExerciseToTodaySession({
+          exerciseId: ex.exerciseId,
+          name: ex.name,
+          category: ex.category || routine.category || 'Strength',
+          type: ex.type || 'Compound',
+          defaultSets,
+        });
+      }
+      await fetchTodaySession();
     } catch (err) {
       console.log('Error syncing started routine in background:', err);
     }

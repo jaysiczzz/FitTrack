@@ -38,13 +38,6 @@ interface AiScanModalProps {
   initialMode?: 'photo' | 'barcode' | 'text';
 }
 
-const SAMPLE_BARCODES = [
-  { label: '🥣 Oats', code: '070501000108' },
-  { label: '🥛 Greek Yogurt', code: '052159701007' },
-  { label: '🍫 Protein Bar', code: '888849000011' },
-  { label: '🥪 Whole Wheat', code: '073410013535' },
-];
-
 export default function AiScanModal({
   visible,
   onClose,
@@ -710,30 +703,6 @@ export default function AiScanModal({
                         <Text className="text-white font-bold text-xs">Lookup</Text>
                       )}
                     </TouchableOpacity>
-                  </View>
-
-                  {/* Sample Barcodes Quick Chips */}
-                  <View className="mb-3">
-                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1.5">
-                      Sample Packaged Items:
-                    </Text>
-                    <View className="flex-row flex-wrap gap-1.5">
-                      {SAMPLE_BARCODES.map((item) => (
-                        <TouchableOpacity
-                          key={item.code}
-                          activeOpacity={0.7}
-                          onPress={() => {
-                            setBarcodeInput(item.code);
-                            handleLookupBarcode(item.code);
-                          }}
-                          className="bg-surface dark:bg-surface-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark flex-row items-center"
-                        >
-                          <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
-                            {item.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
                   </View>
 
                   {/* Or Snap Photo of Package/Label */}

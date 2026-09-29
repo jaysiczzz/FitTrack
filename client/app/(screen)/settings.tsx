@@ -844,7 +844,7 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
-          {/* Contact Support */}
+          {/* Contact Support & Feedback */}
           <Pressable
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => {
@@ -853,14 +853,14 @@ export default function Settings() {
             }}
           >
             <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
-              <Ionicons name="mail" size={14} color="#A855F7" />
+              <Ionicons name="chatbubbles" size={14} color="#A855F7" />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                Contact Support
+                Contact Support & Feedback
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Reach our team or report an issue
+                Reach our team, report an issue, or suggest features
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -886,28 +886,6 @@ export default function Settings() {
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Read transformations or share your journey
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-
-          {/* Rate / Feedback */}
-          <Pressable
-            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-            onPress={() => {
-              setHelpInitialTab('contact');
-              setShowHelpModal(true);
-            }}
-          >
-            <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
-              <Ionicons name="chatbubble-ellipses" size={14} color="#FBBF24" />
-            </View>
-            <View className="flex-1">
-              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                Share Suggestions & Feedback
-              </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Help us improve future FitTrack releases
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
