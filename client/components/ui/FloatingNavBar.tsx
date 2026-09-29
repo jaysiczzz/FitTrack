@@ -142,7 +142,7 @@ export default function FloatingNavBar() {
                   className="flex-1 items-center justify-center py-1"
                 >
                   <View
-                    className={`w-10 h-7.5 rounded-full items-center justify-center mb-0.5 ${
+                    className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
                       isActive
                         ? 'bg-accent/15 dark:bg-accent-dark/20'
                         : 'bg-transparent'
@@ -150,7 +150,7 @@ export default function FloatingNavBar() {
                   >
                     <Ionicons
                       name={isActive ? item.activeIcon : item.inactiveIcon}
-                      size={22}
+                      size={20}
                       color={isActive ? colors.accent : colors.textMuted}
                     />
                   </View>
@@ -213,7 +213,7 @@ export default function FloatingNavBar() {
                   className="flex-1 items-center justify-center py-1"
                 >
                   <View
-                    className={`w-10 h-7.5 rounded-full items-center justify-center mb-0.5 ${
+                    className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
                       isActive
                         ? 'bg-accent/15 dark:bg-accent-dark/20'
                         : 'bg-transparent'
@@ -221,7 +221,7 @@ export default function FloatingNavBar() {
                   >
                     <Ionicons
                       name={isActive ? item.activeIcon : item.inactiveIcon}
-                      size={22}
+                      size={20}
                       color={isActive ? colors.accent : colors.textMuted}
                     />
                   </View>

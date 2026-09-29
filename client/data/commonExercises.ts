@@ -368,8 +368,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Maintain lumbar arch to protect lower spine.",
     "injuryPreventionTips": "Brace core hard before initiating row.",
     "beginnerModification": "Single-arm Dumbbell Row",
@@ -593,8 +593,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Avoid leaning backward excessively.",
     "injuryPreventionTips": "Warm up rotator cuff muscles prior to pressing.",
     "beginnerModification": "Seated Dumbbell Shoulder Press",
@@ -732,8 +732,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Do not overload bar beyond strict form capabilities.",
     "injuryPreventionTips": "Keep wrists straight throughout curl.",
     "beginnerModification": "Dumbbell Alternating Curl",
@@ -804,8 +804,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Use a barbell hip pad for comfort.",
     "injuryPreventionTips": "Lock out hips with glutes, not lower back.",
     "beginnerModification": "Bodyweight Glute Bridge on floor",
@@ -873,8 +873,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 15
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Maintain grip strength security on bar.",
     "injuryPreventionTips": "Control descent to prevent hip strain.",
     "beginnerModification": "Hanging Knee Tuck or Lying Leg Raise",
@@ -1076,8 +1076,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Move within a comfortable pain-free range of motion.",
     "injuryPreventionTips": "Keep neck extension gentle during Cow pose.",
     "beginnerModification": "Seated Cat-Cow on chair",
@@ -1153,8 +1153,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Do not overstretch shoulders behind torso plane under heavy load.",
     "injuryPreventionTips": "Warm up rotator cuff with light internal and external rotations.",
     "beginnerModification": "Pec Deck Machine Fly",
@@ -1231,8 +1231,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "bodyweight": true
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Stop descent if feeling acute pressure in the sternum or front shoulder capsule.",
     "injuryPreventionTips": "Ensure shoulder blades stay depressed and engaged throughout.",
     "beginnerModification": "Band-Assisted Dips or Bench Dips",
@@ -1312,8 +1312,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 3
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1603287681836-b174ce5074c2?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1603287681836-b174ce5074c2?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Do not bounce reps off the floor. Reset hip wedge on each rep.",
     "injuryPreventionTips": "Warm up hips and hamstrings thoroughly before loading heavy weight.",
     "beginnerModification": "Trap Bar Deadlift or Romanian Deadlift",
@@ -1392,8 +1392,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1521804906057-1df8fdb718b7?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1521804906057-1df8fdb718b7?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Always pull in front of head to the clavicle, never behind head.",
     "injuryPreventionTips": "Do not let weight stack slam at the top; keep continuous tension on lats.",
     "beginnerModification": "Band-Assisted Lat Pulldown",
@@ -1471,8 +1471,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Keep spine neutral; avoid rounding lumbar under load.",
     "injuryPreventionTips": "Keep knees softly bent throughout to protect hamstrings and lower back.",
     "beginnerModification": "Resistance Band Seated Row",
@@ -1550,8 +1550,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Keep three points of contact stable on bench and floor.",
     "injuryPreventionTips": "Keep neck aligned with spine; avoid looking straight up at mirror.",
     "beginnerModification": "Chest-Supported Incline DB Row",
@@ -1629,8 +1629,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Use spotter or safely drop dumbbells to knees when fatigued.",
     "injuryPreventionTips": "Warm up delts with light lateral raises and shoulder circles.",
     "beginnerModification": "Machine Shoulder Press",
@@ -1707,8 +1707,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 12
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Prioritize form and rear delt burn over heavy poundages.",
     "injuryPreventionTips": "Crucial exercise for preventing shoulder impingement from heavy benching.",
     "beginnerModification": "Resistance Band Face Pulls",
@@ -1785,8 +1785,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Always keep safety stops in place at a safe depth.",
     "injuryPreventionTips": "Warm up knees with bodyweight squats or light leg extensions.",
     "beginnerModification": "Machine Seated Horizontal Leg Press",
@@ -1865,8 +1865,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Find your balance with bodyweight first before holding dumbbells.",
     "injuryPreventionTips": "Warm up hip flexors to prevent groin or quad tightness.",
     "beginnerModification": "Bodyweight Static Split Squat on floor",
@@ -1941,8 +1941,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Avoid hyper-extending knees violently at top.",
     "injuryPreventionTips": "Use moderate weight and high time-under-tension for knee joint longevity.",
     "beginnerModification": "Resistance Band Knee Extensions",
@@ -2019,8 +2019,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Do not allow weight to pull knees into hyperextension at bottom.",
     "injuryPreventionTips": "Crucial counterpart to quad extensions for ACL injury prevention.",
     "beginnerModification": "Stability Ball Hamstring Curls",
@@ -2096,8 +2096,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Ensure foot placement is secure so feet do not slip off step.",
     "injuryPreventionTips": "Stretch calves after heavy running or jumping workouts.",
     "beginnerModification": "Single-Leg Bodyweight Calf Raise on floor",
@@ -2173,8 +2173,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Select weight that allows strict control without elbow pain.",
     "injuryPreventionTips": "Do not hyperextend wrists at bottom.",
     "beginnerModification": "Seated Incline Dumbbell Hammer Curl",
@@ -2251,8 +2251,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Do not overload to the point of elbow tendinitis.",
     "injuryPreventionTips": "Warm up elbow joints with light sets before working weight.",
     "beginnerModification": "Resistance Band Pushdowns",
@@ -2328,8 +2328,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Always use collars on the barbell and stop well before muscular failure.",
     "injuryPreventionTips": "Use an EZ-bar rather than straight barbell to relieve wrist strain.",
     "beginnerModification": "Dumbbell Lying Tricep Extension",
@@ -2398,8 +2398,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "duration": 1200
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&auto=format&fit=crop&q=60",
+    "thumbnailUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=200&auto=format&fit=crop&q=60",
     "safetyInstructions": "Maintain upright posture; avoid slumping spine at the catch position.",
     "injuryPreventionTips": "Adjust damper setting between 3 and 5 for optimal drag factor.",
     "beginnerModification": "500m intervals with 1 minute rest",

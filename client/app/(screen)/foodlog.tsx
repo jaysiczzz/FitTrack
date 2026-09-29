@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { hapticFeedback } from '@/utils/haptics';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
 import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
@@ -37,6 +38,7 @@ export default function FoodLog() {
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
   const [isDayCompleted, setIsDayCompleted] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const isLoadingRef = useRef(false);
   const waterMlRef = useRef(0);
@@ -183,6 +185,7 @@ export default function FoodLog() {
       console.log('Error loading initial food log:', err);
     } finally {
       isLoadingRef.current = false;
+      setLoading(false);
     }
   };
 
@@ -538,49 +541,63 @@ export default function FoodLog() {
                 Today's Logged Meals
               </Text>
 
-              {/* Breakfast */}
-              <MealCategoryCard
-                type="breakfast"
-                title="Breakfast"
-                items={breakfastItems}
-                onAddPress={openSearchForMeal}
-                onScanPress={openScanForMeal}
-                onDeleteItem={promptDeleteItem}
-                onEditItem={(item) => setItemToEdit(item)}
-              />
+              {loading && items.length === 0 ? (
+                <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
+                  <ActivityIndicator size="small" color="#10B981" />
+                  <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
+                    Loading Today's Meals...
+                  </Text>
+                  <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+                    Fetching your logged food and hydration
+                  </Text>
+                </View>
+              ) : (
+                <>
+                  {/* Breakfast */}
+                  <MealCategoryCard
+                    type="breakfast"
+                    title="Breakfast"
+                    items={breakfastItems}
+                    onAddPress={openSearchForMeal}
+                    onScanPress={openScanForMeal}
+                    onDeleteItem={promptDeleteItem}
+                    onEditItem={(item) => setItemToEdit(item)}
+                  />
 
-              {/* Lunch */}
-              <MealCategoryCard
-                type="lunch"
-                title="Lunch"
-                items={lunchItems}
-                onAddPress={openSearchForMeal}
-                onScanPress={openScanForMeal}
-                onDeleteItem={promptDeleteItem}
-                onEditItem={(item) => setItemToEdit(item)}
-              />
+                  {/* Lunch */}
+                  <MealCategoryCard
+                    type="lunch"
+                    title="Lunch"
+                    items={lunchItems}
+                    onAddPress={openSearchForMeal}
+                    onScanPress={openScanForMeal}
+                    onDeleteItem={promptDeleteItem}
+                    onEditItem={(item) => setItemToEdit(item)}
+                  />
 
-              {/* Dinner */}
-              <MealCategoryCard
-                type="dinner"
-                title="Dinner"
-                items={dinnerItems}
-                onAddPress={openSearchForMeal}
-                onScanPress={openScanForMeal}
-                onDeleteItem={promptDeleteItem}
-                onEditItem={(item) => setItemToEdit(item)}
-              />
+                  {/* Dinner */}
+                  <MealCategoryCard
+                    type="dinner"
+                    title="Dinner"
+                    items={dinnerItems}
+                    onAddPress={openSearchForMeal}
+                    onScanPress={openScanForMeal}
+                    onDeleteItem={promptDeleteItem}
+                    onEditItem={(item) => setItemToEdit(item)}
+                  />
 
-              {/* Snacks & Drinks */}
-              <MealCategoryCard
-                type="snack"
-                title="Snacks & Drinks"
-                items={snackItems}
-                onAddPress={openSearchForMeal}
-                onScanPress={openScanForMeal}
-                onDeleteItem={promptDeleteItem}
-                onEditItem={(item) => setItemToEdit(item)}
-              />
+                  {/* Snacks & Drinks */}
+                  <MealCategoryCard
+                    type="snack"
+                    title="Snacks & Drinks"
+                    items={snackItems}
+                    onAddPress={openSearchForMeal}
+                    onScanPress={openScanForMeal}
+                    onDeleteItem={promptDeleteItem}
+                    onEditItem={(item) => setItemToEdit(item)}
+                  />
+                </>
+              )}
             </View>
 
             {/* 4. Hydration Water Tracker */}

@@ -389,6 +389,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 recommendedSets={item.recommendedSets}
                 recommendedReps={item.recommendedReps}
                 recommendedRest={item.recommendedRest}
+                imageUrl={item.thumbnailUrl || item.imageUrl}
                 sets={item.sets}
                 personalRecord={getPRForExercise(item.name)}
                 onToggleSet={(setId) => onToggleSet(item.key, setId)}

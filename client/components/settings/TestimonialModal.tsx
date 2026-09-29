@@ -308,7 +308,7 @@ export default function TestimonialModal({
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
-              <View className="flex-row items-center space-x-1.5">
+              <View className="flex-row items-center gap-1.5">
                 <Ionicons name="sparkles" size={18} color={colors.accent} />
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                   Athlete Stories & Reviews
@@ -325,7 +325,7 @@ export default function TestimonialModal({
           <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl my-3">
             <TouchableOpacity
               onPress={() => setActiveTab('feed')}
-              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row space-x-1.5 ${
+              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
                 activeTab === 'feed'
                   ? 'bg-surface dark:bg-surface-dark shadow-sm'
                   : 'bg-transparent'
@@ -349,7 +349,7 @@ export default function TestimonialModal({
 
             <TouchableOpacity
               onPress={() => setActiveTab('write')}
-              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row space-x-1.5 ${
+              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
                 activeTab === 'write'
                   ? 'bg-surface dark:bg-surface-dark shadow-sm'
                   : 'bg-transparent'
@@ -377,14 +377,14 @@ export default function TestimonialModal({
             <View className="flex-1">
               {/* Rating Summary Card */}
               <View className="p-3.5 rounded-2xl bg-accent/10 border border-accent/20 mb-3 flex-row items-center justify-between">
-                <View className="flex-row items-center space-x-3">
+                <View className="flex-row items-center gap-3">
                   <View className="items-center justify-center bg-accent/20 rounded-xl px-2.5 py-1.5">
                     <Text className="text-xl font-black text-accent dark:text-accent-mint">
                       {averageRating.toFixed(1)}
                     </Text>
                   </View>
                   <View>
-                    <View className="flex-row items-center space-x-0.5">
+                    <View className="flex-row items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Ionicons
                           key={s}
@@ -411,9 +411,9 @@ export default function TestimonialModal({
               </View>
 
               {/* Goal Filter Chips & Sort Selector */}
-              <View className="space-y-2 mb-3">
+              <View className="gap-2 mb-3">
                 {/* Goal Filters */}
-                <View className="flex-row space-x-2">
+                <View className="flex-row gap-2">
                   {[
                     { key: 'ALL', label: 'All Stories' },
                     { key: 'MUSCLE_GAIN', label: 'Muscle Gain' },
@@ -445,7 +445,7 @@ export default function TestimonialModal({
                 </View>
 
                 {/* Sort Chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row space-x-1.5 pt-1">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} className="pt-1">
                   {[
                     { key: 'featured', label: '✨ Featured' },
                     { key: 'helpful', label: '🔥 Most Inspiring' },
@@ -514,7 +514,7 @@ export default function TestimonialModal({
                     />
                   }
                 >
-                  <View className="space-y-3 pb-8">
+                  <View className="gap-3 pb-8">
                     {testimonials.map((item) => {
                       const hasUpvoted = votedIds.has(item.id);
                       return (
@@ -524,14 +524,14 @@ export default function TestimonialModal({
                         >
                           {/* Header: Avatar, Name, Rating */}
                           <View className="flex-row items-center justify-between mb-2">
-                            <View className="flex-row items-center space-x-2.5">
+                            <View className="flex-row items-center gap-2.5">
                               <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
                                 <Text className="text-xs font-extrabold text-accent dark:text-accent-mint">
                                   {item.authorName.charAt(0).toUpperCase()}
                                 </Text>
                               </View>
                               <View>
-                                <View className="flex-row items-center space-x-1">
+                                <View className="flex-row items-center gap-1">
                                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                                     {item.authorName}
                                   </Text>
@@ -550,7 +550,7 @@ export default function TestimonialModal({
                             </View>
 
                             {/* Star Rating */}
-                            <View className="flex-row items-center space-x-0.5">
+                            <View className="flex-row items-center gap-0.5">
                               {[1, 2, 3, 4, 5].map((s) => (
                                 <Ionicons
                                   key={s}
@@ -603,7 +603,7 @@ export default function TestimonialModal({
                             <TouchableOpacity
                               onPress={() => handleUpvote(item)}
                               activeOpacity={0.7}
-                              className={`flex-row items-center space-x-1 px-2.5 py-1 rounded-full border ${
+                              className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full border ${
                                 hasUpvoted
                                   ? 'bg-rose-500/15 border-rose-500/35'
                                   : 'bg-surface dark:bg-surface-dark border-input-border/70 dark:border-input-border-dark/70'
@@ -648,7 +648,7 @@ export default function TestimonialModal({
                     <TouchableOpacity
                       onPress={handleAutoFill}
                       activeOpacity={0.7}
-                      className="px-2 py-1 rounded-lg bg-accent/15 border border-accent/30 flex-row items-center space-x-1"
+                      className="px-2 py-1 rounded-lg bg-accent/15 border border-accent/30 flex-row items-center gap-1"
                     >
                       <Ionicons name="sparkles" size={11} color={colors.accent} />
                       <Text className="text-[10px] font-bold text-accent dark:text-accent-mint">
@@ -667,7 +667,7 @@ export default function TestimonialModal({
                     Overall Experience
                   </Text>
                   <View className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark">
-                    <View className="flex-row items-center space-x-1.5">
+                    <View className="flex-row items-center gap-1.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <TouchableOpacity
                           key={s}
@@ -690,7 +690,7 @@ export default function TestimonialModal({
                 </View>
 
                 {/* Optional Metric Inputs: Weight Change & Duration */}
-                <View className="flex-row space-x-2.5 mb-4">
+                <View className="flex-row gap-2.5 mb-4">
                   <View className="flex-1">
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
                       Weight Change (kg)

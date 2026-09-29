@@ -15,6 +15,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ConfirmModal from '../ui/ConfirmModal';
 import {
   getSubscriptionPlansApi,
   getCurrentSubscriptionApi,
@@ -158,6 +159,7 @@ export default function SubscriptionModal({
   const [processingPayment, setProcessingPayment] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
+  const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
 
   // Fetch plans & current status
   const loadData = async (targetCurrency: CurrencyType = currency) => {
@@ -199,9 +201,9 @@ export default function SubscriptionModal({
     loadData(newCurrency);
   };
 
-  const handleSubscribe = async () => {
+  const validatePaymentInputs = (): boolean => {
     const selectedPlan = plans.find((p) => p.tier === selectedTier);
-    if (!selectedPlan || selectedPlan.price <= 0) return;
+    if (!selectedPlan || selectedPlan.price <= 0) return false;
 
     // Strict Input validation
     if (paymentMethod === 'GCASH' || paymentMethod === 'MAYA') {
@@ -211,25 +213,40 @@ export default function SubscriptionModal({
           'Invalid Mobile Number',
           phoneValidation.error || `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
         );
-        return;
+        return false;
       }
     } else if (paymentMethod === 'CARD') {
       const cardValidation = validateCardNumber(cardNumber);
       if (!cardValidation.valid) {
         showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
-        return;
+        return false;
       }
       const expiryValidation = validateCardExpiry(cardExpiry);
       if (!expiryValidation.valid) {
         showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
-        return;
+        return false;
       }
       const cvcValidation = validateCardCvc(cardCvc);
       if (!cvcValidation.valid) {
         showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
-        return;
+        return false;
       }
     }
+    return true;
+  };
+
+  const promptConfirmSubscribe = () => {
+    if (validatePaymentInputs()) {
+      setShowPaymentConfirmModal(true);
+    }
+  };
+
+  const handleSubscribe = async () => {
+    setShowPaymentConfirmModal(false);
+    const selectedPlan = plans.find((p) => p.tier === selectedTier);
+    if (!selectedPlan || selectedPlan.price <= 0) return;
+
+    if (!validatePaymentInputs()) return;
 
     setProcessingPayment(true);
     try {
@@ -327,7 +344,8 @@ export default function SubscriptionModal({
   const symbol = currency === 'PHP' ? '₱' : '$';
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <>
+      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
 
@@ -568,7 +586,7 @@ export default function SubscriptionModal({
                 <View className="flex-row items-center justify-between mb-1">
                   <View className="flex-row items-center gap-1.5">
                     <Ionicons name="phone-portrait" size={15} color={paymentMethod === 'GCASH' ? '#0284C7' : colors.textMuted} />
-                    <Text className={`text-xs font-bold ${paymentMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary'}`}>
+                    <Text className={`text-xs font-bold ${paymentMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
                       GCash
                     </Text>
                   </View>
@@ -576,7 +594,7 @@ export default function SubscriptionModal({
                     <Text className="text-[8px] font-bold text-sky-600 dark:text-sky-400 uppercase">PH Choice</Text>
                   </View>
                 </View>
-                <Text className="text-[10px] text-text-muted">
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
                   Direct GCash E-Wallet
                 </Text>
               </TouchableOpacity>
@@ -594,7 +612,7 @@ export default function SubscriptionModal({
                 <View className="flex-row items-center justify-between mb-1">
                   <View className="flex-row items-center gap-1.5">
                     <Ionicons name="flash" size={15} color={paymentMethod === 'MAYA' ? '#10B981' : colors.textMuted} />
-                    <Text className={`text-xs font-bold ${paymentMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary'}`}>
+                    <Text className={`text-xs font-bold ${paymentMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
                       Maya
                     </Text>
                   </View>
@@ -602,7 +620,7 @@ export default function SubscriptionModal({
                     <Text className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Instant</Text>
                   </View>
                 </View>
-                <Text className="text-[10px] text-text-muted">
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
                   Maya Wallet & Card
                 </Text>
               </TouchableOpacity>
@@ -619,11 +637,11 @@ export default function SubscriptionModal({
               >
                 <View className="flex-row items-center gap-1.5 mb-1">
                   <Ionicons name="card-outline" size={15} color={paymentMethod === 'CARD' ? colors.accent : colors.textMuted} />
-                  <Text className={`text-xs font-bold ${paymentMethod === 'CARD' ? 'text-accent dark:text-accent-dark' : 'text-text-primary'}`}>
+                  <Text className={`text-xs font-bold ${paymentMethod === 'CARD' ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'}`}>
                     Credit / Debit Card
                   </Text>
                 </View>
-                <Text className="text-[10px] text-text-muted">
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
                   Visa, MC, BDO, BPI, Maya
                 </Text>
               </TouchableOpacity>
@@ -640,7 +658,7 @@ export default function SubscriptionModal({
               >
                 <View className="flex-row items-center gap-1.5 mb-1">
                   <Ionicons name="wallet-outline" size={15} color={paymentMethod === 'E_WALLET' ? '#F59E0B' : colors.textMuted} />
-                  <Text className={`text-xs font-bold ${paymentMethod === 'E_WALLET' ? 'text-amber-500' : 'text-text-primary'}`}>
+                  <Text className={`text-xs font-bold ${paymentMethod === 'E_WALLET' ? 'text-amber-500' : 'text-text-primary dark:text-text-primary-dark'}`}>
                     FitTrack e-Wallet
                   </Text>
                 </View>
@@ -786,7 +804,7 @@ export default function SubscriptionModal({
 
             {/* Subscribe Action Button */}
             <TouchableOpacity
-              onPress={handleSubscribe}
+              onPress={promptConfirmSubscribe}
               disabled={processingPayment || (paymentMethod === 'E_WALLET' && walletBalance < selectedPlan.price)}
               activeOpacity={0.8}
               className={`w-full py-4 rounded-2xl items-center justify-center flex-row shadow-sm mb-3 ${
@@ -816,5 +834,27 @@ export default function SubscriptionModal({
         </View>
       </View>
     </Modal>
+
+    <ConfirmModal
+      visible={showPaymentConfirmModal}
+      title="Confirm Subscription"
+      message={`Are you sure you want to purchase ${selectedPlan.name} for ${symbol}${selectedPlan.price.toLocaleString(undefined, {
+        minimumFractionDigits: currency === 'PHP' ? 0 : 2,
+        maximumFractionDigits: 2,
+      })}${selectedPlan.interval ? ` / ${selectedPlan.interval}` : ''} via ${
+        paymentMethod === 'GCASH'
+          ? 'GCash'
+          : paymentMethod === 'MAYA'
+          ? 'Maya'
+          : paymentMethod === 'CARD'
+          ? 'Credit/Debit Card'
+          : 'FitTrack e-Wallet'
+      }?`}
+      confirmText="Confirm & Pay"
+      cancelText="Cancel"
+      onConfirm={handleSubscribe}
+      onCancel={() => setShowPaymentConfirmModal(false)}
+    />
+    </>
   );
 }

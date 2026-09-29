@@ -198,25 +198,37 @@ export default function Profile() {
               <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
                 HEIGHT
               </Text>
-              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
-                {height ? `${height} cm` : '—'}
-              </Text>
+              {loading && !savedUser ? (
+                <ActivityIndicator size="small" color={colors.accent} className="py-1" />
+              ) : (
+                <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
+                  {height ? `${height} cm` : '—'}
+                </Text>
+              )}
             </View>
             <View className="items-center">
               <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
                 WEIGHT
               </Text>
-              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
-                {weight ? `${weight} kg` : '—'}
-              </Text>
+              {loading && !savedUser ? (
+                <ActivityIndicator size="small" color={colors.accent} className="py-1" />
+              ) : (
+                <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
+                  {weight ? `${weight} kg` : '—'}
+                </Text>
+              )}
             </View>
             <View className="items-center">
               <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
                 BMI
               </Text>
-              <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
-                {bmi ? bmi.split(' ')[0] : '—'}
-              </Text>
+              {loading && !savedUser ? (
+                <ActivityIndicator size="small" color={colors.accent} className="py-1" />
+              ) : (
+                <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black">
+                  {bmi ? bmi.split(' ')[0] : '—'}
+                </Text>
+              )}
             </View>
           </View>
         </SurfaceCard>

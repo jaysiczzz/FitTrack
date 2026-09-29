@@ -135,7 +135,7 @@ export default function CommunityStoriesCard({
     <SurfaceCard className="mb-3 overflow-hidden">
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-row items-center space-x-2 flex-1 mr-2">
+        <View className="flex-row items-center gap-2 flex-1 mr-2">
           <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
             <Ionicons name="sparkles" size={16} color={colors.accent} />
           </View>
@@ -152,7 +152,7 @@ export default function CommunityStoriesCard({
         <TouchableOpacity
           onPress={onOpenFeed}
           activeOpacity={0.7}
-          className="px-2.5 py-1.5 rounded-xl bg-accent/10 border border-accent/25 flex-row items-center space-x-1"
+          className="px-2.5 py-1.5 rounded-xl bg-accent/10 border border-accent/25 flex-row items-center gap-1"
         >
           <Text className="text-accent dark:text-accent-mint text-xs font-bold">
             All Stories
@@ -202,14 +202,14 @@ export default function CommunityStoriesCard({
                 {/* Top Row: User Avatar, Name, Rating */}
                 <View>
                   <View className="flex-row items-center justify-between mb-2">
-                    <View className="flex-row items-center space-x-2">
+                    <View className="flex-row items-center gap-2">
                       <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center border border-accent/40">
                         <Text className="text-xs font-extrabold text-accent dark:text-accent-mint">
                           {item.authorName.charAt(0).toUpperCase()}
                         </Text>
                       </View>
                       <View>
-                        <View className="flex-row items-center space-x-1">
+                        <View className="flex-row items-center gap-1">
                           <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                             {item.authorName}
                           </Text>
@@ -228,7 +228,7 @@ export default function CommunityStoriesCard({
                     </View>
 
                     {/* Star Rating */}
-                    <View className="flex-row items-center space-x-0.5">
+                    <View className="flex-row items-center gap-0.5">
                       {[1, 2, 3, 4, 5].map((s) => (
                         <Ionicons
                           key={s}
@@ -287,7 +287,7 @@ export default function CommunityStoriesCard({
                   <TouchableOpacity
                     onPress={() => handleUpvote(item)}
                     activeOpacity={0.7}
-                    className={`flex-row items-center space-x-1 px-2.5 py-1 rounded-full border ${
+                    className={`flex-row items-center gap-1 px-2.5 py-1 rounded-full border ${
                       hasUpvoted
                         ? 'bg-rose-500/15 border-rose-500/35'
                         : 'bg-input dark:bg-input-dark border-input-border/70 dark:border-input-border-dark/70'
@@ -321,7 +321,7 @@ export default function CommunityStoriesCard({
         <TouchableOpacity
           onPress={onOpenWrite}
           activeOpacity={0.7}
-          className="flex-row items-center space-x-1 px-3 py-1.5 rounded-xl bg-accent"
+          className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-xl bg-accent"
         >
           <Ionicons name="add" size={14} color="#FFFFFF" />
           <Text className="text-xs font-bold text-white">Share Your Story</Text>

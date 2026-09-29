@@ -51,11 +51,21 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async (notification) => {
+      let playSound = true;
+      try {
+        const saved = await AsyncStorage.getItem('fittrack_notification_settings');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          if (parsed && typeof parsed.soundEnabled === 'boolean') {
+            playSound = parsed.soundEnabled;
+          }
+        }
+      } catch {}
       return {
         shouldShowAlert: true,
         shouldShowBanner: true,
         shouldShowList: true,
-        shouldPlaySound: true,
+        shouldPlaySound: playSound,
         shouldSetBadge: false,
       };
     },

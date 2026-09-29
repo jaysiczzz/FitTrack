@@ -15,6 +15,10 @@ export default function Layout() {
     }
   }, [isLoading, isAuthenticated, router]);
 
+  if (!isLoading && !isAuthenticated) {
+    return <View className="flex-1 bg-background dark:bg-background-dark" />;
+  }
+
   return (
     <View className="flex-1 bg-background dark:bg-background-dark">
       <Stack

@@ -68,14 +68,17 @@ export default function AuthIndex() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView className="flex-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'center',
-            paddingVertical: 16,
-            paddingBottom: isKeyboardOpen ? 120 : 20,
+            justifyContent: isKeyboardOpen ? 'flex-start' : 'center',
+            paddingTop: isKeyboardOpen ? 12 : 20,
+            paddingBottom: isKeyboardOpen ? 36 : 24,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -28,6 +28,7 @@ interface ExerciseCardProps {
   recommendedSets?: number;
   recommendedReps?: number;
   recommendedRest?: number;
+  imageUrl?: string | null;
   sets: SetRow[];
   personalRecord?: string | null;
   onToggleSet: (setId: string) => void;
@@ -49,6 +50,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   recommendedSets = 3,
   recommendedReps = 10,
   recommendedRest = 90,
+  imageUrl,
   sets,
   personalRecord,
   onToggleSet,
@@ -73,16 +75,29 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
   return (
     <SurfaceCard className="mb-3.5">
-      {/* Top Header: Exercise Name & Badges */}
+      {/* Top Header: Exercise Name, Badges & Thumbnail */}
       <View className="mb-2.5 flex-row items-start justify-between">
         <TouchableOpacity
           activeOpacity={onViewDetails ? 0.7 : 1}
           onPress={onViewDetails}
-          className="flex-1 pr-2"
+          className="flex-1 pr-2 flex-row items-center gap-3"
         >
-          <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
-            {name}
-          </Text>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark"
+              resizeMode="cover"
+            />
+          ) : (
+            <View className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark">
+              <Ionicons name="barbell" size={20} color={colors.textMuted} />
+            </View>
+          )}
+
+          <View className="flex-1">
+            <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
+              {name}
+            </Text>
 
           {/* Muscle Group & Equipment Info */}
           <Text className="text-xs text-text-muted dark:text-text-muted-dark">
@@ -103,6 +118,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               </View>
             </View>
           ) : null}
+          </View>
         </TouchableOpacity>
 
         {/* Action Controls & Remove Button */}
