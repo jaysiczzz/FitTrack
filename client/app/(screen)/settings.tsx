@@ -342,11 +342,14 @@ export default function Settings() {
 
         {/* Admin Management Section (Visible for ADMIN role) */}
         {user?.role === 'ADMIN' && (
-          <SurfaceCard className="mb-3 border-amber-500/30 dark:border-amber-500/30">
+          <SurfaceCard className="mb-3 border-amber-500/40 dark:border-amber-500/40">
             <View className="flex-row items-center justify-between mb-2">
-              <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                Admin Management
-              </Text>
+              <View className="flex-row items-center gap-1.5">
+                <Ionicons name="shield-checkmark" size={16} color="#F59E0B" />
+                <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
+                  Admin Control Center
+                </Text>
+              </View>
               <View className="bg-amber-500/20 px-2 py-0.5 rounded-full">
                 <Text className="text-[10px] font-bold text-amber-500 uppercase">
                   Executive Access
@@ -354,19 +357,45 @@ export default function Settings() {
               </View>
             </View>
 
+            {/* Primary Entry to Full Mobile Admin Screen */}
             <Pressable
               className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-              onPress={() => setShowAdminRevenueModal(true)}
+              onPress={() => {
+                hapticFeedback.light();
+                router.push('/(screen)/admin');
+              }}
             >
-              <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
-                <Ionicons name="trending-up" size={14} color="#F59E0B" />
+              <View className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 items-center justify-center mr-3">
+                <Ionicons name="apps-outline" size={18} color="#F59E0B" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+                  Open Admin Hub
+                </Text>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                  Live KPIs, user directory, exercise catalog & support desk
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
+            </Pressable>
+
+            {/* Quick Payouts & Ledger Modal Shortcut */}
+            <Pressable
+              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+              onPress={() => {
+                hapticFeedback.light();
+                setShowAdminRevenueModal(true);
+              }}
+            >
+              <View className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
+                <Ionicons name="trending-up" size={16} color="#F59E0B" />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                  Revenue & e-Wallet Dashboard
+                  Quick Revenue Modal
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                  MRR metrics, Stripe fees, platform payouts & subscribers
+                  Fast MRR check, Stripe fees & instant payout modal
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
