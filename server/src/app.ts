@@ -16,6 +16,7 @@ import weightRoutes from './routes/weight.routes'
 import subscriptionRoutes from './routes/subscription.routes'
 import walletRoutes from './routes/wallet.routes'
 import adminRevenueRoutes from './routes/adminRevenue.routes'
+import adminRoutes from './routes/admin.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 
@@ -78,6 +79,7 @@ app.use('/api/weight', weightRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
 app.use('/api/wallet', walletRoutes)
 app.use('/api/admin/revenue', adminRevenueRoutes)
+app.use('/api/admin', adminRoutes)
 
 app.use(errorHandler)
 
