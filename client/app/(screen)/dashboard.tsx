@@ -23,6 +23,7 @@ import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
+import { screenCache } from '@/utils/screenCache';
 
 function calculateWorkoutStreak(
   sessions: ApiWorkoutSession[],
@@ -89,7 +90,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('Athlete');
   const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [refreshing, setRefreshing] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [initialLoading, setInitialLoading] = useState(!screenCache.dashboardLoaded);
   const [loadingAi, setLoadingAi] = useState(false);
 
   // Check-In state
@@ -387,6 +388,7 @@ export default function Dashboard() {
         loadWorkoutProgress(),
       ]);
     } finally {
+      screenCache.setDashboardLoaded(true);
       setInitialLoading(false);
     }
   };

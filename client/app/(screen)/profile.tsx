@@ -17,6 +17,7 @@ import { useAuth } from '@/context/AuthContext';
 import { COLORS, useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import WeightProgressCard from '@/components/profile/WeightProgressCard';
+import { screenCache } from '@/utils/screenCache';
 
 interface UserData {
   id?: string;
@@ -37,7 +38,7 @@ export default function Profile() {
   const placeholderColor = colors.textMuted;
 
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!screenCache.profileLoaded);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
@@ -70,7 +71,9 @@ export default function Profile() {
     }
     const fetchProfile = async () => {
       try {
-        setLoading(true);
+        if (!screenCache.profileLoaded) {
+          setLoading(true);
+        }
         const res = await getUserProfile();
         if (res.user && isMounted) {
           applyUserData(res.user);
@@ -79,6 +82,7 @@ export default function Profile() {
       } catch (err) {
         console.log('Error fetching user profile:', err);
       } finally {
+        screenCache.setProfileLoaded(true);
         if (isMounted) setLoading(false);
       }
     };
