@@ -33,6 +33,7 @@ import {
   ApiWorkoutExercise,
 } from '@/api/workout';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
+import { hapticFeedback } from '@/utils/haptics';
 
 const EXERCISE_CATALOG_MAP = new Map<string, LibraryExercise>();
 COMMON_EXERCISES_CATALOG.forEach((ex) => {
@@ -210,6 +211,7 @@ export default function Workouts() {
   }, [user?.id]);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {
+    hapticFeedback.light();
     // Optimistic UI update & immediate cache persist
     setTodayExercises((prev) => {
       const next = prev.map((ex) => {
@@ -615,6 +617,7 @@ export default function Workouts() {
   };
 
   const handleConfirmCompleteSession = async () => {
+    hapticFeedback.success();
     setShowCompleteModal(false);
     const exerciseCount = todayExercises.length;
     const totalSets = todayExercises.reduce((acc, ex) => acc + ex.sets.length, 0);

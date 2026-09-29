@@ -14,10 +14,15 @@ import {
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
+import { getCurrentSubscriptionApi } from '@/api/subscription';
 import {
   MealType,
   FoodLogItem,
   getSmartMealType,
+  getTodayDateString,
   MEAL_LABELS,
   MEAL_GLYPHS,
   getSmartFoodBadge,
@@ -77,12 +82,31 @@ export default function AiScanModal({
     servingSize: string;
   } | null>(null);
 
+  const { user } = useAuth();
+  const [isPro, setIsPro] = useState(false);
+  const [dailyScanCount, setDailyScanCount] = useState(0);
+  const FREE_DAILY_SCAN_LIMIT = 3;
+
   React.useEffect(() => {
     if (visible) {
       setSelectedMeal(initialMealType || getSmartMealType());
       setActiveTab(initialMode);
+
+      getCurrentSubscriptionApi()
+        .then((res) => {
+          if (res.success && res.isPro) {
+            setIsPro(true);
+          }
+        })
+        .catch(() => {});
+
+      const todayStr = getTodayDateString();
+      const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
+      AsyncStorage.getItem(countKey).then((val) => {
+        if (val) setDailyScanCount(parseInt(val, 10) || 0);
+      });
     }
-  }, [visible, initialMealType, initialMode]);
+  }, [visible, initialMealType, initialMode, user?.id]);
 
   const resetState = () => {
     setDescription('');
@@ -181,6 +205,14 @@ export default function AiScanModal({
   };
 
   const handleAnalyze = async () => {
+    if (!isPro && dailyScanCount >= FREE_DAILY_SCAN_LIMIT) {
+      showWarning(
+        'Daily Free AI Limit Reached',
+        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro in Settings for unlimited AI Vision scans!`
+      );
+      return;
+    }
+
     if (activeTab === 'text' && !description.trim()) {
       showWarning('Description Needed', 'Please describe what you ate so we can analyze its nutrition.');
       return;
@@ -204,6 +236,14 @@ export default function AiScanModal({
       });
 
       if (res.success && res.data) {
+        if (!isPro) {
+          const nextCount = dailyScanCount + 1;
+          setDailyScanCount(nextCount);
+          const todayStr = getTodayDateString();
+          const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
+          AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
+        }
+
         setAnalysisResult(res.data);
         setBaseMacros({
           calories: Number(res.data.calories) || 0,
@@ -451,6 +491,25 @@ export default function AiScanModal({
               </Text>
             </View>
             <ModalCloseButton onClose={handleClose} />
+          </View>
+
+          {/* Subscription Quota / Pro Perk Banner */}
+          <View className="mb-3 px-3.5 py-2 rounded-xl flex-row items-center justify-between border bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark">
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons
+                name={isPro ? 'sparkles' : 'flash'}
+                size={14}
+                color={isPro ? '#F59E0B' : '#10B981'}
+              />
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                {isPro ? 'FitTrack Pro Active' : 'Free Tier'}
+              </Text>
+            </View>
+            <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+              {isPro
+                ? '⚡ Unlimited AI Vision Scans'
+                : `${Math.max(0, FREE_DAILY_SCAN_LIMIT - dailyScanCount)} of ${FREE_DAILY_SCAN_LIMIT} scans left today`}
+            </Text>
           </View>
 
           {/* 3-Mode Switcher Tabs */}

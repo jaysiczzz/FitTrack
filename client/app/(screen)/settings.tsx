@@ -43,6 +43,8 @@ import {
   formatTimeDisplay,
 } from '@/utils/notificationService';
 
+import { hapticFeedback } from '@/utils/haptics';
+
 export default function Settings() {
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
@@ -58,6 +60,7 @@ export default function Settings() {
   }, [colorScheme]);
 
   const handleToggleTheme = (isDark: boolean) => {
+    hapticFeedback.light();
     setIsDarkLocal(isDark);
     const newTheme = isDark ? 'dark' : 'light';
     AsyncStorage.setItem('fittrack_app_theme', newTheme).catch(() => {});

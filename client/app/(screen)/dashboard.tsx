@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
-import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity } from 'react-native';
+import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
+import { hapticFeedback } from '@/utils/haptics';
 
 import DailyCheckInCard from '@/components/dashboard/DailyCheckInCard';
 import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
@@ -88,6 +89,7 @@ export default function Dashboard() {
   const [userName, setUserName] = useState('Athlete');
   const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [refreshing, setRefreshing] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
   const [loadingAi, setLoadingAi] = useState(false);
 
   // Check-In state
@@ -377,12 +379,16 @@ export default function Dashboard() {
   };
 
   const loadAll = async () => {
-    await Promise.all([
-      loadUserData(),
-      loadDailyCheckIn(),
-      loadFoodProgress(),
-      loadWorkoutProgress(),
-    ]);
+    try {
+      await Promise.all([
+        loadUserData(),
+        loadDailyCheckIn(),
+        loadFoodProgress(),
+        loadWorkoutProgress(),
+      ]);
+    } finally {
+      setInitialLoading(false);
+    }
   };
 
   useFocusEffect(
@@ -420,6 +426,7 @@ export default function Dashboard() {
   };
 
   const handleQuickAddWater = async (amount: number = 250) => {
+    hapticFeedback.light();
     const current = waterMlRef.current;
     if (current >= targetWater) {
       showToast({
@@ -541,99 +548,141 @@ export default function Dashboard() {
           </TouchableOpacity>
         </View>
 
-        {/* Motivation-Based Daily Check-In */}
-        <DailyCheckInCard
-          onCheckInCompleted={() => {
-            setIsCheckedIn(true);
-          }}
-        />
+        {initialLoading ? (
+          <View className="my-2">
+            <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
+              <ActivityIndicator size="small" color={colors.accent} />
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
+                Syncing Fitness Dashboard...
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+                Updating your calories, hydration & workouts
+              </Text>
+            </View>
 
-        {/* Key Metrics Grid */}
-        <View className="flex-row gap-2.5 mb-2.5">
-          <StatCard
-            iconName="flame"
-            title="Calories"
-            value={`${caloriesLogged.toLocaleString()} kcal`}
-            subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
-            onPress={() => router.push('/(screen)/foodlog' as any)}
-          />
-          <StatCard
-            iconName="water"
-            title="Hydration"
-            value={`${waterMl.toLocaleString()} ml`}
-            subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
-          />
-        </View>
+            {/* Skeleton placeholder stats */}
+            <View className="flex-row gap-2.5 mb-2.5">
+              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+              </View>
+              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+              </View>
+            </View>
+            <View className="flex-row gap-2.5 mb-3">
+              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+              </View>
+              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+              </View>
+            </View>
+          </View>
+        ) : (
+          <>
+            {/* Motivation-Based Daily Check-In */}
+            <DailyCheckInCard
+              onCheckInCompleted={() => {
+                setIsCheckedIn(true);
+              }}
+            />
 
-        <View className="flex-row gap-2.5 mb-3">
-          <StatCard
-            iconName="barbell"
-            title="Workouts"
-            value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-            subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
-            onPress={() => router.push('/(screen)/workouts' as any)}
-          />
-          <StatCard
-            iconName="sparkles"
-            title="Streak"
-            value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-            subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
-          />
-        </View>
+            {/* Key Metrics Grid */}
+            <View className="flex-row gap-2.5 mb-2.5">
+              <StatCard
+                iconName="flame"
+                title="Calories"
+                value={`${caloriesLogged.toLocaleString()} kcal`}
+                subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
+                onPress={() => router.push('/(screen)/foodlog' as any)}
+              />
+              <StatCard
+                iconName="water"
+                title="Hydration"
+                value={`${waterMl.toLocaleString()} ml`}
+                subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
+              />
+            </View>
 
-        {/* Today's Workout Session Card */}
-        <TodayWorkoutCard
-          exercises={todayExercises}
-          isSessionCompleted={workoutSessionDone}
-          completedStats={todayCompletedWorkoutStats}
-        />
+            <View className="flex-row gap-2.5 mb-3">
+              <StatCard
+                iconName="barbell"
+                title="Workouts"
+                value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
+                subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
+                onPress={() => router.push('/(screen)/workouts' as any)}
+              />
+              <StatCard
+                iconName="sparkles"
+                title="Streak"
+                value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
+                subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
+              />
+            </View>
 
-        {/* Daily Nutrition Macro Breakdown */}
-        <MacroProgressCard
-          caloriesLogged={caloriesLogged}
-          targetCalories={targetCalories}
-          proteinLogged={proteinLogged}
-          targetProtein={targetProtein}
-          carbsLogged={carbsLogged}
-          targetCarbs={targetCarbs}
-          fatLogged={fatLogged}
-          targetFat={targetFat}
-        />
+            {/* Today's Workout Session Card */}
+            <TodayWorkoutCard
+              exercises={todayExercises}
+              isSessionCompleted={workoutSessionDone}
+              completedStats={todayCompletedWorkoutStats}
+            />
 
-        {/* Interactive Daily Goals Checklist */}
-        <DailyGoalsCard
-          isCheckedIn={isCheckedIn}
-          caloriesLogged={caloriesLogged}
-          targetCalories={targetCalories}
-          activeMinutes={activeMinutesToday}
-          completedExercisesCount={completedExercisesCount}
-          totalExercisesCount={todayExercises.length}
-          workoutSessionDone={workoutSessionDone}
-          isNutritionDone={isNutritionDone}
-          waterMl={waterMl}
-          targetWaterMl={targetWater}
-          onQuickAddWater={handleQuickAddWater}
-          onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-        />
+            {/* Daily Nutrition Macro Breakdown */}
+            <MacroProgressCard
+              caloriesLogged={caloriesLogged}
+              targetCalories={targetCalories}
+              proteinLogged={proteinLogged}
+              targetProtein={targetProtein}
+              carbsLogged={carbsLogged}
+              targetCarbs={targetCarbs}
+              fatLogged={fatLogged}
+              targetFat={targetFat}
+            />
 
-        {/* AI Insights & Predictions */}
-        <AiInsightsCard
-          insights={insights}
-          loading={loadingAi}
-          onRefresh={refreshAIInsights}
-        />
+            {/* Interactive Daily Goals Checklist */}
+            <DailyGoalsCard
+              isCheckedIn={isCheckedIn}
+              caloriesLogged={caloriesLogged}
+              targetCalories={targetCalories}
+              activeMinutes={activeMinutesToday}
+              completedExercisesCount={completedExercisesCount}
+              totalExercisesCount={todayExercises.length}
+              workoutSessionDone={workoutSessionDone}
+              isNutritionDone={isNutritionDone}
+              waterMl={waterMl}
+              targetWaterMl={targetWater}
+              onQuickAddWater={handleQuickAddWater}
+              onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+            />
 
-        {/* Community Athlete Stories & Testimonials */}
-        <CommunityStoriesCard
-          onOpenFeed={() => {
-            setTestimonialInitialTab('feed');
-            setShowTestimonialsModal(true);
-          }}
-          onOpenWrite={() => {
-            setTestimonialInitialTab('write');
-            setShowTestimonialsModal(true);
-          }}
-        />
+            {/* AI Insights & Predictions */}
+            <AiInsightsCard
+              insights={insights}
+              loading={loadingAi}
+              onRefresh={refreshAIInsights}
+            />
+
+            {/* Community Athlete Stories & Testimonials */}
+            <CommunityStoriesCard
+              onOpenFeed={() => {
+                setTestimonialInitialTab('feed');
+                setShowTestimonialsModal(true);
+              }}
+              onOpenWrite={() => {
+                setTestimonialInitialTab('write');
+                setShowTestimonialsModal(true);
+              }}
+            />
+          </>
+        )}
       </ScrollView>
 
       {/* Athlete Testimonials Full Feed & Submission Modal */}
