@@ -12,17 +12,32 @@ import {
 } from "@expo-google-fonts/baloo-2";
 import { ToastProvider } from "../context/ToastContext";
 import { AuthProvider } from "../context/AuthContext";
+import { useColorScheme } from "nativewind";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import "../global.css";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
+  const { colorScheme, setColorScheme } = useColorScheme();
   const [fontsLoaded] = useFonts({
     Baloo2_400Regular,
     Baloo2_500Medium,
     Baloo2_600SemiBold,
     Baloo2_700Bold,
   });
+
+  useEffect(() => {
+    AsyncStorage.getItem('fittrack_app_theme')
+      .then((savedTheme) => {
+        if (savedTheme === 'dark' || savedTheme === 'light') {
+          if (savedTheme !== colorScheme) {
+            setColorScheme(savedTheme);
+          }
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (fontsLoaded) {

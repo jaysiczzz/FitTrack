@@ -11,6 +11,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useColorScheme } from 'nativewind';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
@@ -48,6 +49,22 @@ export default function Settings() {
   const { colors } = useThemeColors();
   const { user, logout } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
+
+  // Optimistic Theme State
+  const [isDarkLocal, setIsDarkLocal] = useState(colorScheme === 'dark');
+
+  useEffect(() => {
+    setIsDarkLocal(colorScheme === 'dark');
+  }, [colorScheme]);
+
+  const handleToggleTheme = (isDark: boolean) => {
+    setIsDarkLocal(isDark);
+    const newTheme = isDark ? 'dark' : 'light';
+    AsyncStorage.setItem('fittrack_app_theme', newTheme).catch(() => {});
+    setTimeout(() => {
+      setColorScheme(newTheme);
+    }, 40);
+  };
 
   // Modals
   const [showLogoutModal, setShowLogoutModal] = useState(false);
@@ -209,12 +226,14 @@ export default function Settings() {
 
   const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
-    try {
-      await logout();
-    } catch (err) {
-      console.error('Logout error:', err);
-      router.replace('/(auth)');
-    }
+    setTimeout(async () => {
+      try {
+        await logout();
+      } catch (err) {
+        console.error('Logout error:', err);
+        router.replace('/(auth)');
+      }
+    }, 120);
   };
 
   return (
@@ -781,13 +800,13 @@ export default function Settings() {
                 Dark Mode
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                {colorScheme === 'dark' ? 'Dark theme enabled' : 'Light theme enabled'}
+                {isDarkLocal ? 'Dark theme enabled' : 'Light theme enabled'}
               </Text>
             </View>
 
             <Switch
-              value={colorScheme === 'dark'}
-              onValueChange={(isDark) => setColorScheme(isDark ? 'dark' : 'light')}
+              value={isDarkLocal}
+              onValueChange={handleToggleTheme}
               thumbColor={colors.surface}
               trackColor={{
                 false: colors.inputBorder,
@@ -856,13 +875,13 @@ export default function Settings() {
               <Ionicons name="sparkles" size={14} color={colors.accent} />
             </View>
             <View className="flex-1">
-              <View className="flex-row items-center space-x-1.5">
+              <View className="flex-row items-center gap-1.5">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
                   Athlete Stories & Reviews
                 </Text>
-                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full">
+                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full gap-1">
                   <Ionicons name="star" size={10} color="#F59E0B" />
-                  <Text className="text-[10px] font-bold text-amber-500 ml-0.5">Community</Text>
+                  <Text className="text-[10px] font-bold text-amber-500">Community</Text>
                 </View>
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
