@@ -137,7 +137,9 @@ export const getAdminRevenueOverview = asyncHandler(async (req: AuthRequest, res
       lifetime: activeLifetimeCount,
     },
     transactions: recentTransactions,
+    recentTransactions,
     subscribers: recentSubscribers,
+    recentSubscribers,
   })
 })
 

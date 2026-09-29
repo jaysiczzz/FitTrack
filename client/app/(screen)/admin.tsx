@@ -259,12 +259,11 @@ export default function AdminScreen() {
     try {
       setProcessingPayout(true);
       triggerHapticFeedback();
-      const res = await processAdminPayoutApi({
-        amount: num,
-        currency: revenueData?.platformWallet.currency || 'USD',
-        destination: payoutDestination.trim(),
-        notes: payoutNotes.trim() || undefined,
-      });
+      const res = await processAdminPayoutApi(
+        num,
+        payoutDestination.trim(),
+        payoutNotes.trim() || undefined
+      );
 
       if (res.success) {
         showSuccess('Payout Completed', `Recorded payout of $${num.toFixed(2)}.`);
@@ -399,6 +398,8 @@ export default function AdminScreen() {
       ]
     );
   };
+
+  const recentTxList = (revenueData as any)?.transactions || (revenueData as any)?.recentTransactions || [];
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
@@ -831,7 +832,7 @@ export default function AdminScreen() {
                   </View>
 
                   <Text className="text-2xl font-extrabold text-amber-500">
-                    ${revenueData.platformWallet.balance.toFixed(2)} {revenueData.platformWallet.currency}
+                    ${(revenueData.platformWallet?.balance || 0).toFixed(2)} {revenueData.platformWallet?.currency || 'USD'}
                   </Text>
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                     Available balance for admin payouts & operating funds
@@ -840,17 +841,17 @@ export default function AdminScreen() {
 
                 {/* Recent Ledger Transactions */}
                 <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-                  Live Transactions Ledger ({revenueData.recentTransactions.length})
+                  Live Transactions Ledger ({recentTxList.length})
                 </Text>
 
-                {revenueData.recentTransactions.length === 0 ? (
+                {recentTxList.length === 0 ? (
                   <SurfaceCard className="p-6 items-center justify-center">
                     <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                       No transactions recorded in database yet.
                     </Text>
                   </SurfaceCard>
                 ) : (
-                  revenueData.recentTransactions.map((tx) => (
+                  recentTxList.map((tx: any) => (
                     <SurfaceCard key={tx.id} className="p-3">
                       <View className="flex-row items-center justify-between">
                         <View className="flex-1">
