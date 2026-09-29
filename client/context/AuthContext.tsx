@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { authStorage } from '@/utils/authStorage';
 import { getUserProfile } from '@/api/user';
 import { logoutUserApi } from '@/api/auth';
+import { screenCache } from '@/utils/screenCache';
 
 export interface AuthUser {
   id?: string;
@@ -123,6 +124,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     } catch {}
     await authStorage.clearAuth();
+    screenCache.clearAll();
     setToken(null);
     setUser(null);
     DeviceEventEmitter.emit('FOOD_LOG_UPDATED');

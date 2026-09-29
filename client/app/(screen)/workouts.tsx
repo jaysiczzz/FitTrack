@@ -19,6 +19,7 @@ import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorMod
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
+import { screenCache } from '@/utils/screenCache';
 import { AIWorkoutPlan } from '@/api/ai';
 import {
   getTodayWorkoutSession,
@@ -62,7 +63,7 @@ export default function Workouts() {
   const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
   const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
   const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!screenCache.workoutsLoaded);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [exerciseToRemove, setExerciseToRemove] = useState<TodayExerciseItem | null>(null);
@@ -179,6 +180,7 @@ export default function Workouts() {
     } catch (err) {
       console.log('Using clean active session state');
     } finally {
+      screenCache.setWorkoutsLoaded(true);
       setLoading(false);
     }
   };

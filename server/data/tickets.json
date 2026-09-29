@@ -1,0 +1,25 @@
+[
+  {
+    "id": "TICK-INIT-1",
+    "userEmail": "athlete.support@fittrack.app",
+    "userName": "Marcus T.",
+    "category": "FEATURE",
+    "subject": "Garmin / Apple Watch Smartwatch Sync",
+    "message": "Loving the app! Would be fantastic to automatically sync heart rate and calories directly from Apple Watch during workouts.",
+    "status": "OPEN",
+    "createdAt": "2026-09-27T16:52:22.468Z",
+    "updatedAt": "2026-09-27T16:52:22.468Z"
+  },
+  {
+    "id": "TICK-INIT-2",
+    "userEmail": "sarah.fit@gmail.com",
+    "userName": "Sarah L.",
+    "category": "GENERAL",
+    "subject": "Offline Workout Logging Inquiry",
+    "message": "Can I log my sets in the gym basement where there is no cell signal? Will it sync when I get back online?",
+    "status": "RESOLVED",
+    "adminNotes": "Confirmed offline SQLite caching keeps sets stored locally and syncs upon reconnection.",
+    "createdAt": "2026-09-25T16:52:22.468Z",
+    "updatedAt": "2026-09-28T16:52:22.468Z"
+  }
+]
