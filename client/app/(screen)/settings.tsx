@@ -49,8 +49,15 @@ export default function Settings() {
   const router = useRouter();
   const { colorScheme, setColorScheme } = useColorScheme();
   const { colors } = useThemeColors();
-  const { user, logout } = useAuth();
+  const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
+
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
+
+  // Automatically sync fresh user profile (role, subscription) on settings view
+  useEffect(() => {
+    refreshProfile().catch(() => {});
+  }, [refreshProfile]);
 
   // Optimistic Theme State
   const [isDarkLocal, setIsDarkLocal] = useState(colorScheme === 'dark');
@@ -341,7 +348,7 @@ export default function Settings() {
         </SurfaceCard>
 
         {/* Admin Management Section (Visible for ADMIN role) */}
-        {user?.role === 'ADMIN' && (
+        {isAdmin && (
           <SurfaceCard className="mb-3 border-amber-500/40 dark:border-amber-500/40">
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-1.5">

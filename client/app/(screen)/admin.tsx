@@ -111,7 +111,7 @@ export default function AdminScreen() {
 
   // Guard: strictly redirect non-admins
   useEffect(() => {
-    if (!authLoading && (!isAuthenticated || user?.role !== 'ADMIN')) {
+    if (!authLoading && (!isAuthenticated || user?.role?.toUpperCase() !== 'ADMIN')) {
       showError('Access Denied', 'Administrator privileges are required to view this screen.');
       router.replace('/(screen)/dashboard');
     }
@@ -119,7 +119,7 @@ export default function AdminScreen() {
 
   // Load Data for Active Tab
   const loadTabContent = useCallback(async () => {
-    if (user?.role !== 'ADMIN') return;
+    if (user?.role?.toUpperCase() !== 'ADMIN') return;
 
     try {
       if (activeTab === 'overview') {
