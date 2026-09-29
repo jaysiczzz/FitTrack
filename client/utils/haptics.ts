@@ -50,3 +50,14 @@ export const hapticFeedback = {
     }
   },
 };
+
+/**
+ * Convenience function to trigger haptic feedback with optional intensity
+ */
+export const triggerHapticFeedback = (type: 'light' | 'medium' | 'success' | 'warning' = 'light') => {
+  if (hapticFeedback[type]) {
+    hapticFeedback[type]();
+  } else {
+    hapticFeedback.light();
+  }
+};

@@ -23,6 +23,7 @@ import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
 import { saveDailyFoodLogApi, getDailyFoodLogApi, completeDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
+import { screenCache } from '@/utils/screenCache';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
@@ -38,7 +39,7 @@ export default function FoodLog() {
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
   const [isDayCompleted, setIsDayCompleted] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!screenCache.foodLogLoaded);
 
   const isLoadingRef = useRef(false);
   const waterMlRef = useRef(0);
@@ -185,6 +186,7 @@ export default function FoodLog() {
       console.log('Error loading initial food log:', err);
     } finally {
       isLoadingRef.current = false;
+      screenCache.setFoodLogLoaded(true);
       setLoading(false);
     }
   };
