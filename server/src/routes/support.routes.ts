@@ -1,9 +1,10 @@
 import { Router, Response } from 'express'
 import { asyncHandler } from '../utils/asyncHandler.utils'
-import { authMiddleware, AuthRequest } from '../middleware/auth.middleware'
+import { optionalAuthMiddleware, AuthRequest } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
 import { supportFeedbackSchema } from '../schemas/support.schema'
 import { prisma } from '../config/db'
+import { createTicket } from '../services/ticket.service'
 
 const router = Router()
 
@@ -13,6 +14,7 @@ const router = Router()
  */
 router.post(
   '/feedback',
+  optionalAuthMiddleware,
   validate(supportFeedbackSchema),
   asyncHandler(async (req: AuthRequest, res: Response) => {
     const { category, subject, message, email } = req.body
@@ -20,24 +22,39 @@ router.post(
 
     // Optional user email resolution if logged in
     let contactEmail = email
-    if (!contactEmail && userId) {
+    let userName: string | undefined = undefined
+    if (userId) {
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        select: { email: true },
+        select: { email: true, firstName: true, lastName: true },
       })
-      if (user) contactEmail = user.email
+      if (user) {
+        if (!contactEmail) contactEmail = user.email
+        userName = `${user.firstName} ${user.lastName}`.trim()
+      }
     }
 
+    const savedTicket = createTicket({
+      userId,
+      userEmail: contactEmail || 'guest@fittrack.app',
+      userName,
+      category,
+      subject,
+      message,
+    })
+
     console.log(
-      `[Support Feedback Received -> fittrack.app.help@gmail.com] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${contactEmail || 'N/A'})`
+      `[Support Feedback Logged: ${savedTicket.id}] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${contactEmail || 'N/A'})`
     )
 
     res.status(201).json({
       success: true,
       message: 'Thank you! Your feedback has been received and our team will review it.',
-      ticketId: `TICK-${Date.now().toString(36).toUpperCase()}`,
+      ticketId: savedTicket.id,
+      ticket: savedTicket,
     })
   })
 )
 
 export default router
+
