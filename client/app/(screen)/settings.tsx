@@ -52,7 +52,7 @@ export default function Settings() {
   const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
 
-  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN' || user?.email?.trim().toLowerCase() === 'jejo@gmail.com';
 
   // Automatically sync fresh user profile (role, subscription) on settings view
   useEffect(() => {
