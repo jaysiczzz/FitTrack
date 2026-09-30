@@ -1,14 +1,43 @@
 import { DeviceEventEmitter } from 'react-native';
 import { authStorage } from '../utils/authStorage';
+import { offlineQueue } from '../utils/offlineQueue';
 import { API_URL } from '../config';
 
 export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
   body?: any;
   _isRetry?: boolean;
+  _skipOfflineQueue?: boolean;
   timeout?: number;
 }
 
 let refreshPromise: Promise<string | null> | null = null;
+
+// Listen for reconnection / app-active flush triggers
+DeviceEventEmitter.addListener('OFFLINE_QUEUE_TRIGGER_FLUSH', () => {
+  offlineQueue.flush((ep, opts) => apiRequest(ep, opts)).catch(() => {});
+});
+
+function isOfflineQueuableEndpoint(endpoint: string, method?: string): boolean {
+  if (!method || method.toUpperCase() === 'GET') return false;
+  // Exclude financial, billing, and auth operations
+  if (
+    endpoint.includes('/api/subscription') ||
+    endpoint.includes('/api/wallet') ||
+    endpoint.includes('/api/paymongo') ||
+    endpoint.includes('/api/stripe') ||
+    endpoint.includes('/api/auth')
+  ) {
+    return false;
+  }
+  // Allow workout sessions/sets, food logs, weights, check-ins, and user profile updates
+  return (
+    endpoint.includes('/api/foodlog') ||
+    endpoint.includes('/api/workout') ||
+    endpoint.includes('/api/weight') ||
+    endpoint.includes('/api/checkin') ||
+    endpoint.includes('/api/user')
+  );
+}
 
 /**
  * Performs silent token refresh. Queues concurrent requests so only one refresh API call is fired.
@@ -85,6 +114,30 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
       body: body as BodyInit,
     });
   } catch (err: any) {
+    const isNetworkError =
+      err?.name === 'AbortError' ||
+      controller.signal.aborted ||
+      err?.message?.includes('Network request failed') ||
+      err?.message?.includes('timed out') ||
+      err?.message?.includes('Could not reach') ||
+      err?.message?.includes('failed to fetch');
+
+    // If an offline-queuable mutation fails due to network outage, buffer in the outbox
+    if (isNetworkError && !options._skipOfflineQueue && isOfflineQueuableEndpoint(endpoint, options.method)) {
+      offlineQueue.enqueue({
+        endpoint,
+        method: options.method,
+        body: options.body,
+        headers: options.headers as Record<string, string>,
+      }).catch(() => {});
+
+      return {
+        success: true,
+        isQueuedOffline: true,
+        message: 'Action saved offline and queued for automatic sync.',
+      };
+    }
+
     if (err?.name === 'AbortError' || controller.signal.aborted) {
       console.warn(`[API Connection] Request timed out for ${url}`);
       throw new Error(`Request to ${API_URL} timed out. Please check your connection.`);
@@ -130,7 +183,13 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
     throw new Error(errorMessage);
   }
 
+  // Trigger background flush of any previously queued mutations on successful request
+  if (!options._skipOfflineQueue) {
+    offlineQueue.flush((ep, opts) => apiRequest(ep, opts)).catch(() => {});
+  }
+
   return data;
 }
+
 
 

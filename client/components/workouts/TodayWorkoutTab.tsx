@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
+import RestTimerDock from './RestTimerDock';
+
 import { LibraryExercise, WorkoutRoutineTemplate } from './workoutTypes';
 import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
@@ -102,6 +104,33 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  // Active Rest Timer State
+  const [restTimer, setRestTimer] = useState<{
+    visible: boolean;
+    seconds: number;
+    exerciseName?: string;
+  }>({
+    visible: false,
+    seconds: 90,
+  });
+
+  const handleToggleSetWithRest = (exercise: TodayExerciseItem, setId: string) => {
+    const targetSet = exercise.sets.find((s) => s.id === setId);
+    const willBeDone = targetSet ? !targetSet.done : true;
+
+    onToggleSet(exercise.key, setId);
+
+    if (willBeDone) {
+      const restSecs = exercise.recommendedRest || 90;
+      setRestTimer({
+        visible: true,
+        seconds: restSecs,
+        exerciseName: exercise.name,
+      });
+    }
+  };
+
 
   useEffect(() => {
     const fetchPRs = async () => {
@@ -254,6 +283,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           )}
 
           <TouchableOpacity
+            onPress={() => {
+              setRestTimer({
+                visible: true,
+                seconds: 90,
+                exerciseName: 'Manual Rest Timer',
+              });
+            }}
+            activeOpacity={0.8}
+            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
+          >
+            <Ionicons name="timer-outline" size={13} color={colors.accent} />
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+              Rest
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={onNavigateToLibrary}
             activeOpacity={0.8}
             className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
@@ -264,6 +310,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Exercises List / Loading Skeleton / Empty State */}
       {loading && exercises.length === 0 ? (
@@ -392,8 +439,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 imageUrl={item.thumbnailUrl || item.imageUrl}
                 sets={item.sets}
                 personalRecord={getPRForExercise(item.name)}
-                onToggleSet={(setId) => onToggleSet(item.key, setId)}
+                onToggleSet={(setId) => handleToggleSetWithRest(item, setId)}
                 onUpdateSet={(setId, field, val, bw) => onUpdateSet && onUpdateSet(item.key, setId, field, val, bw)}
+
                 onAddSet={() => onAddSet && onAddSet(item.key)}
                 onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
                 onRemoveExercise={() => onRemoveExercise(item.key)}
@@ -605,7 +653,16 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           setShowDetailsModal(false);
         }}
       />
+
+      {/* Active Workout Rest Timer Dock */}
+      <RestTimerDock
+        visible={restTimer.visible}
+        initialSeconds={restTimer.seconds}
+        exerciseName={restTimer.exerciseName}
+        onClose={() => setRestTimer((prev) => ({ ...prev, visible: false }))}
+      />
     </View>
+
   );
 };
 

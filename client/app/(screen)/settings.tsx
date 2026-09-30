@@ -27,6 +27,7 @@ import {
   getUserWalletApi,
   UserSubscription,
 } from '@/api/subscription';
+import { deleteUserAccount } from '@/api/user';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
@@ -44,6 +45,7 @@ import {
 } from '@/utils/notificationService';
 
 import { hapticFeedback } from '@/utils/haptics';
+import { useWeightUnit } from '@/constants/units';
 
 export default function Settings() {
   const router = useRouter();
@@ -51,8 +53,9 @@ export default function Settings() {
   const { colors } = useThemeColors();
   const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
+  const [weightUnit, setWeightUnit] = useWeightUnit();
 
-  const isAdmin = user?.role?.toUpperCase() === 'ADMIN' || user?.email?.trim().toLowerCase() === 'jejo@gmail.com';
+  const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
   // Automatically sync fresh user profile (role, subscription) on settings view
   useEffect(() => {
@@ -86,6 +89,8 @@ export default function Settings() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEWalletModal, setShowEWalletModal] = useState(false);
   const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
   // Subscription & Wallet State
   const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
@@ -245,6 +250,26 @@ export default function Settings() {
       }
     }, 120);
   };
+
+  const handleConfirmDeleteAccount = async () => {
+    setIsDeletingAccount(true);
+    try {
+      await deleteUserAccount();
+      setShowDeleteModal(false);
+      showSuccess('Account Deleted', 'Your account and fitness data have been permanently erased.');
+      setTimeout(async () => {
+        try {
+          await logout();
+        } catch {
+          router.replace('/(auth)');
+        }
+      }, 150);
+    } catch (err: any) {
+      showError('Action Failed', err?.message || 'Could not delete your account. Please try again.');
+      setIsDeletingAccount(false);
+    }
+  };
+
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
@@ -433,7 +458,29 @@ export default function Settings() {
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
+
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={() => {
+              hapticFeedback.light();
+              setShowDeleteModal(true);
+            }}
+          >
+            <View className="w-8 h-8 rounded-full bg-danger/15 border border-danger/30 items-center justify-center mr-3">
+              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-danger dark:text-danger-dark">
+                Delete Account
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Permanently delete your account and all fitness records
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
         </SurfaceCard>
+
 
         {/* 2. Notifications Section */}
         <SurfaceCard className="mb-3">
@@ -853,6 +900,66 @@ export default function Settings() {
               }}
             />
           </View>
+
+          {/* Weight Units Preference */}
+          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
+              <Ionicons name="barbell-outline" size={14} color="#10B981" />
+            </View>
+            <View className="flex-1 pr-3">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                Weight Unit
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Display weights in {weightUnit === 'KG' ? 'Kilograms (kg)' : 'Pounds (lbs)'}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center bg-input dark:bg-input-dark p-1 rounded-xl border border-input-border dark:border-input-border-dark">
+              <Pressable
+                onPress={() => {
+                  hapticFeedback.light();
+                  setWeightUnit('KG');
+                }}
+                className={`px-3 py-1.5 rounded-lg ${
+                  weightUnit === 'KG'
+                    ? 'bg-accent dark:bg-accent-dark'
+                    : 'bg-transparent'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    weightUnit === 'KG'
+                      ? 'text-white'
+                      : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  KG
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  hapticFeedback.light();
+                  setWeightUnit('LBS');
+                }}
+                className={`px-3 py-1.5 rounded-lg ${
+                  weightUnit === 'LBS'
+                    ? 'bg-accent dark:bg-accent-dark'
+                    : 'bg-transparent'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    weightUnit === 'LBS'
+                      ? 'text-white'
+                      : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  LBS
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </SurfaceCard>
 
         {/* 4. Support & Help Center Section */}
@@ -975,6 +1082,22 @@ export default function Settings() {
         onConfirm={handleConfirmLogout}
         onCancel={() => setShowLogoutModal(false)}
       />
+
+      {/* Delete Account Confirmation Modal */}
+      <ConfirmModal
+        visible={showDeleteModal}
+        title="Delete Account"
+        message="Are you sure you want to permanently delete your account? All your workout history, food logs, subscriptions, and profile data will be permanently wiped. This action cannot be undone."
+        iconName="trash-outline"
+        confirmText={isDeletingAccount ? "Deleting..." : "Permanently Delete"}
+        cancelText="Cancel"
+        isDanger
+        onConfirm={handleConfirmDeleteAccount}
+        onCancel={() => {
+          if (!isDeletingAccount) setShowDeleteModal(false);
+        }}
+      />
+
 
       {/* Reset Password Modal */}
       <ResetPasswordModal

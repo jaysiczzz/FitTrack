@@ -1,6 +1,7 @@
 import { prisma } from '../config/db'
 
 export interface FoodMealInput {
+  id?: string
   mealType: string
   title: string
   subtitle?: string
@@ -16,6 +17,7 @@ export interface FoodMealInput {
   loggedAt?: string
   macros?: string[]
 }
+
 
 export interface SaveDailyFoodLogInput {
   date: string
@@ -127,37 +129,63 @@ export async function saveDailyFoodLogInDb(userId: string, input: SaveDailyFoodL
       },
     })
 
-    // 2. Clear old meals for this day
-    await tx.foodLogMeal.deleteMany({
+    // 2. Query existing meals for this day to preserve IDs and avoid churn
+    const existingMeals = await tx.foodLogMeal.findMany({
       where: {
         dailyFoodLogId: dailyLog.id,
       },
     })
 
-    // 3. Insert the new meal items
-    if (items.length > 0) {
-      await tx.foodLogMeal.createMany({
-        data: items.map((m) => {
-          const badgeInfo = inferMealBadge(m)
-          return {
-            dailyFoodLogId: dailyLog.id,
-            mealType: m.mealType,
-            title: m.title,
-            subtitle: m.subtitle || null,
-            calories: Math.round(Number(m.calories) || 0),
-            protein: Number(m.protein) || 0,
-            carbs: Number(m.carbs) || 0,
-            fat: Number(m.fat) || 0,
-            goalBadge: m.goalBadge || badgeInfo.goalBadge,
-            goalBadgeColor: m.goalBadgeColor || badgeInfo.goalBadgeColor,
-            icon: m.icon || null,
-            healthNotes: m.healthNotes || null,
-            imageUri: m.imageUri || null,
-            loggedAt: m.loggedAt || null,
-          }
-        }),
+    const existingMealMap = new Map(existingMeals.map((m) => [m.id, m]))
+    const incomingValidIds = new Set(
+      items.map((m) => m.id).filter((id): id is string => typeof id === 'string' && existingMealMap.has(id))
+    )
+
+    // Remove meals that were explicitly deleted by the user
+    const toDeleteIds = existingMeals
+      .map((m) => m.id)
+      .filter((id) => !incomingValidIds.has(id))
+
+    if (toDeleteIds.length > 0) {
+      await tx.foodLogMeal.deleteMany({
+        where: {
+          id: { in: toDeleteIds },
+        },
       })
     }
+
+    // 3. Upsert or create meals
+    for (const m of items) {
+      const badgeInfo = inferMealBadge(m)
+      const mealData = {
+        dailyFoodLogId: dailyLog.id,
+        mealType: m.mealType,
+        title: m.title,
+        subtitle: m.subtitle || null,
+        calories: Math.round(Number(m.calories) || 0),
+        protein: Number(m.protein) || 0,
+        carbs: Number(m.carbs) || 0,
+        fat: Number(m.fat) || 0,
+        goalBadge: m.goalBadge || badgeInfo.goalBadge,
+        goalBadgeColor: m.goalBadgeColor || badgeInfo.goalBadgeColor,
+        icon: m.icon || null,
+        healthNotes: m.healthNotes || null,
+        imageUri: m.imageUri || null,
+        loggedAt: m.loggedAt || null,
+      }
+
+      if (m.id && existingMealMap.has(m.id)) {
+        await tx.foodLogMeal.update({
+          where: { id: m.id },
+          data: mealData,
+        })
+      } else {
+        await tx.foodLogMeal.create({
+          data: mealData,
+        })
+      }
+    }
+
 
     // 4. Return the full daily log with fresh formatted meals
     const saved = await tx.dailyFoodLog.findUnique({
@@ -306,7 +334,6 @@ export async function searchFoodCatalogInDb(query: string, userId?: string) {
 export async function cacheOpenFoodFactsProduct(product: {
   name: string
   brand?: string
-  barcode?: string
   category?: string
   servingSize?: string
   servingWeightG?: number
@@ -324,10 +351,7 @@ export async function cacheOpenFoodFactsProduct(product: {
   try {
     const existing = await prisma.food.findFirst({
       where: {
-        OR: [
-          ...(product.barcode ? [{ barcode: product.barcode }] : []),
-          { name: product.name },
-        ],
+        name: product.name,
       },
     })
 
@@ -336,7 +360,6 @@ export async function cacheOpenFoodFactsProduct(product: {
         data: {
           name: product.name,
           brand: product.brand,
-          barcode: product.barcode,
           category: product.category || 'Staples',
           servingSize: product.servingSize || '100g',
           servingWeightG: product.servingWeightG || 100,
@@ -355,6 +378,7 @@ export async function cacheOpenFoodFactsProduct(product: {
         },
       })
     }
+
     return existing
   } catch (err) {
     console.log('Failed to cache Open Food Facts product:', err)

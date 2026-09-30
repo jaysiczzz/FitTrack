@@ -209,8 +209,8 @@ export async function searchFoodsOnlineController(
       id: f.id,
       name: f.name,
       brand: f.brand || undefined,
-      barcode: f.barcode || undefined,
       category: f.category || 'Protein',
+
       servingSize: f.servingSize,
       servingWeightG: f.servingWeightG,
       servingUnit: f.servingUnit,
@@ -314,7 +314,6 @@ export async function searchFoodsOnlineController(
           id: `off-${p.code || Math.random().toString(36).substring(2, 9)}`,
           name: fullName,
           brand,
-          barcode: p.code ? String(p.code) : undefined,
           category,
           servingSize: p.serving_size || '100g',
           servingWeightG,
@@ -338,7 +337,6 @@ export async function searchFoodsOnlineController(
         cacheOpenFoodFactsProduct({
           name: fullName,
           brand,
-          barcode: p.code ? String(p.code) : undefined,
           category,
           servingSize: p.serving_size || '100g',
           servingWeightG,
@@ -353,6 +351,7 @@ export async function searchFoodsOnlineController(
           icon,
           imageUrl: onlineItem.imageUri,
         }).catch(() => {})
+
       }
     }
 

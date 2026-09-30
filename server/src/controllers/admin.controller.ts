@@ -275,16 +275,15 @@ export const deleteUser = asyncHandler(async (req: AuthRequest, res: Response) =
  * Live ticket feed from user feedback, bug reports, and inquiries
  */
 export const getAdminTickets = asyncHandler(async (req: AuthRequest, res: Response) => {
-  const statusFilter = typeof req.query.status === 'string' ? req.query.status.toUpperCase() : undefined
-  let tickets = getAllTickets()
-
-  if (statusFilter && (statusFilter === 'OPEN' || statusFilter === 'IN_PROGRESS' || statusFilter === 'RESOLVED')) {
-    tickets = tickets.filter((t) => t.status === statusFilter)
-  }
+  const statusFilter = typeof req.query.status === 'string' ? (req.query.status.toUpperCase() as any) : undefined
+  const [tickets, stats] = await Promise.all([
+    getAllTickets(statusFilter),
+    getTicketStats(),
+  ])
 
   res.json({
     success: true,
-    stats: getTicketStats(),
+    stats,
     tickets,
   })
 })
@@ -299,7 +298,7 @@ export const updateAdminTicket = asyncHandler(async (req: AuthRequest, res: Resp
 
   if (!id) return res.status(400).json({ error: 'Ticket ID is required' })
 
-  const updated = updateTicket(id, { status, adminNotes })
+  const updated = await updateTicket(id, { status, adminNotes })
   if (!updated) {
     return res.status(404).json({ error: 'Ticket not found' })
   }
@@ -319,7 +318,7 @@ export const deleteAdminTicket = asyncHandler(async (req: AuthRequest, res: Resp
   const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
   if (!id) return res.status(400).json({ error: 'Ticket ID is required' })
 
-  const success = deleteTicket(id)
+  const success = await deleteTicket(id)
   if (!success) {
     return res.status(404).json({ error: 'Ticket not found' })
   }

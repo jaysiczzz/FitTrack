@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import { useWeightUnit } from '@/constants/units';
 import SurfaceCard from '../ui/SurfaceCard';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -61,6 +62,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onViewDetails,
 }) => {
   const { colors } = useThemeColors();
+  const [weightUnit] = useWeightUnit();
+  const stepDelta = weightUnit === 'LBS' ? 5 : 2.5;
   const [setToDelete, setSetToDelete] = useState<{ id: string; setNumber: number } | null>(null);
   const isCardio = type.toLowerCase() === 'cardio';
   const isBodyweight =
@@ -204,7 +207,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           {!isCardio && !isStretch && (
             <Text className="flex-1 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-              {isBodyweight ? 'Weight' : 'Weight (kg)'}
+              {isBodyweight ? 'Weight' : `Weight (${weightUnit.toLowerCase()})`}
             </Text>
           )}
 
@@ -255,7 +258,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </View>
                     <TouchableOpacity
                       onPress={() => {
-                        if (onUpdateSet) onUpdateSet(s.id, 'weight', 2.5, false);
+                        if (onUpdateSet) onUpdateSet(s.id, 'weight', stepDelta, false);
                       }}
                       hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
                       className="w-5 h-5 rounded bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70"
@@ -269,7 +272,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     <TouchableOpacity
                       onPress={() => {
                         if (!onUpdateSet) return;
-                        const nextW = Math.max(0, Math.round((currWeight - 2.5) * 10) / 10);
+                        const nextW = Math.max(0, Math.round((currWeight - stepDelta) * 10) / 10);
                         onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
                       }}
                       className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
@@ -303,14 +306,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         className="text-xs font-black text-text-primary dark:text-text-primary-dark text-center"
                       />
                       <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark ml-0.5">
-                        kg
+                        {weightUnit.toLowerCase()}
                       </Text>
                     </View>
 
                     <TouchableOpacity
                       onPress={() => {
                         if (!onUpdateSet) return;
-                        const nextW = Math.round((currWeight + 2.5) * 10) / 10;
+                        const nextW = Math.round((currWeight + stepDelta) * 10) / 10;
                         onUpdateSet(s.id, 'weight', nextW, false);
                       }}
                       className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"

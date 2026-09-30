@@ -46,10 +46,7 @@ export const adminMiddleware = async (req: AuthRequest, res: Response, next: Nex
     select: { role: true, email: true },
   })
 
-  const isUserAdmin =
-    dbUser?.role === 'ADMIN' ||
-    dbUser?.email?.toLowerCase() === 'jejo@gmail.com' ||
-    req.user.role === 'ADMIN'
+  const isUserAdmin = dbUser?.role === 'ADMIN' || req.user.role === 'ADMIN'
 
   if (!isUserAdmin) {
     return res.status(403).json({

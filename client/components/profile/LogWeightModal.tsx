@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
+import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
 
@@ -47,6 +48,9 @@ export default function LogWeightModal({
 }: LogWeightModalProps) {
   const { colors } = useThemeColors();
   const { showWarning } = useToast();
+  const [unit] = useWeightUnit();
+  const isLbs = unit === 'LBS';
+  const unitLabel = unit.toLowerCase();
 
   const [weightInput, setWeightInput] = useState<string>(String(currentWeight));
   const [selectedDate, setSelectedDate] = useState<string>(getLocalDateString());
@@ -57,18 +61,24 @@ export default function LogWeightModal({
 
   useEffect(() => {
     if (visible) {
-      setWeightInput(currentWeight ? currentWeight.toFixed(1) : '70.0');
+      const initVal = currentWeight
+        ? convertFromKg(currentWeight, unit).toFixed(1)
+        : isLbs ? '154.0' : '70.0';
+      setWeightInput(initVal);
       setSelectedDate(getLocalDateString());
       setDateMode('today');
       setNotes('');
       setLogWeightError(null);
     }
-  }, [visible, currentWeight]);
+  }, [visible, currentWeight, unit, isLbs]);
 
   const handleAdjust = (delta: number) => {
     setLogWeightError(null);
-    const val = parseFloat(weightInput) || currentWeight || 70;
-    const nextVal = Math.max(20, Math.min(350, val + delta));
+    const minW = isLbs ? 45 : 20;
+    const maxW = isLbs ? 880 : 350;
+    const fallback = isLbs ? 154 : 70;
+    const val = parseFloat(weightInput) || fallback;
+    const nextVal = Math.max(minW, Math.min(maxW, val + delta));
     setWeightInput(nextVal.toFixed(1));
   };
 
@@ -85,8 +95,10 @@ export default function LogWeightModal({
   const handleSubmit = async () => {
     setLogWeightError(null);
     const wNum = parseFloat(weightInput);
-    if (isNaN(wNum) || wNum <= 20 || wNum > 400) {
-      setLogWeightError('Please enter a valid body weight between 20 and 400 kg.');
+    const minW = isLbs ? 45 : 20;
+    const maxW = isLbs ? 880 : 400;
+    if (isNaN(wNum) || wNum < minW || wNum > maxW) {
+      setLogWeightError(`Please enter a valid body weight between ${minW} and ${maxW} ${unitLabel}.`);
       return;
     }
 
@@ -97,7 +109,8 @@ export default function LogWeightModal({
 
     setSaving(true);
     try {
-      await onSaveWeight(Number(wNum.toFixed(1)), selectedDate, notes.trim() || undefined);
+      const weightInKg = isLbs ? convertToKg(wNum, 'LBS') : wNum;
+      await onSaveWeight(Number(weightInKg.toFixed(1)), selectedDate, notes.trim() || undefined);
       setLogWeightError(null);
       onClose();
     } catch (err: any) {
@@ -235,49 +248,49 @@ export default function LogWeightModal({
                   selectTextOnFocus
                 />
                 <Text className="text-xl font-bold text-accent dark:text-accent-dark ml-1">
-                  kg
+                  {unitLabel}
                 </Text>
               </View>
 
               {/* Stepper Buttons Row */}
               <View className="flex-row items-center justify-center gap-2">
                 <TouchableOpacity
-                  onPress={() => handleAdjust(-1.0)}
+                  onPress={() => handleAdjust(isLbs ? -2.0 : -1.0)}
                   activeOpacity={0.7}
                   className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                    -1.0
+                    {isLbs ? '-2.0' : '-1.0'}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAdjust(-0.1)}
+                  onPress={() => handleAdjust(isLbs ? -0.5 : -0.1)}
                   activeOpacity={0.7}
                   className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                    -0.1
+                    {isLbs ? '-0.5' : '-0.1'}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAdjust(+0.1)}
+                  onPress={() => handleAdjust(isLbs ? +0.5 : +0.1)}
                   activeOpacity={0.7}
                   className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                    +0.1
+                    {isLbs ? '+0.5' : '+0.1'}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  onPress={() => handleAdjust(+1.0)}
+                  onPress={() => handleAdjust(isLbs ? +2.0 : +1.0)}
                   activeOpacity={0.7}
                   className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                    +1.0
+                    {isLbs ? '+2.0' : '+1.0'}
                   </Text>
                 </TouchableOpacity>
               </View>
