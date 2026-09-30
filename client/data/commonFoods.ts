@@ -37,6 +37,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'High Protein Staple Meal',
     ingredients: '150g breast · 1 cup steamed rice · 1/2 cup broccoli',
     icon: '🍗',
+    imageUri: 'https://images.unsplash.com/photo-1598515214211-89d3c73ae83b?w=300&auto=format&fit=crop&q=80',
     brand: 'High Protein Staple',
     keywords: ['chicken', 'rice', 'broccoli', 'staple', 'muscle gain', 'meal'],
   },
@@ -54,6 +55,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Post-Workout Fuel',
     ingredients: '1 scoop whey protein (25g) · 1 medium banana · water',
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1577805947697-89e18249d767?w=300&auto=format&fit=crop&q=80',
     brand: 'Post-Workout Fuel',
     keywords: ['whey', 'protein', 'shake', 'banana', 'post-workout', 'meal'],
   },
@@ -71,6 +73,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Classic Breakfast',
     ingredients: '2 large whole eggs · 2 slices whole wheat toast',
     icon: '🍳',
+    imageUri: 'https://images.unsplash.com/photo-1525351484163-7529414344d8?w=300&auto=format&fit=crop&q=80',
     brand: 'Classic Breakfast',
     keywords: ['eggs', 'toast', 'bread', 'breakfast', 'staple', 'meal'],
   },
@@ -88,6 +91,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Low Calorie & High Protein',
     ingredients: '170g non-fat Greek yogurt · 1/2 cup berries · 1 tsp honey',
     icon: '🫐',
+    imageUri: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300&auto=format&fit=crop&q=80',
     brand: 'Low Calorie & High Protein',
     keywords: ['yogurt', 'berries', 'honey', 'snack', 'weight loss', 'meal'],
   },
@@ -105,6 +109,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Lean Fat Loss',
     ingredients: '1 can chunk light tuna · 1/2 avocado · mixed greens & lemon',
     icon: '🥗',
+    imageUri: 'https://images.unsplash.com/photo-1540420773420-3366772f4999?w=300&auto=format&fit=crop&q=80',
     brand: 'Lean Fat Loss',
     keywords: ['tuna', 'avocado', 'salad', 'keto', 'weight loss', 'meal'],
   },
@@ -122,6 +127,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Slow-Digesting Energy',
     ingredients: '1 cup cooked oats · 1 tbsp natural peanut butter · cinnamon',
     icon: '🥣',
+    imageUri: 'https://images.unsplash.com/photo-1517673132405-a56a62b18caf?w=300&auto=format&fit=crop&q=80',
     brand: 'Slow-Digesting Energy',
     keywords: ['oats', 'oatmeal', 'peanut butter', 'breakfast', 'carbs', 'meal'],
   },
@@ -139,6 +145,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Omega-3 Rich Recovery',
     ingredients: '150g baked salmon · 150g baked sweet potato',
     icon: '🐟',
+    imageUri: 'https://images.unsplash.com/photo-1467003909585-2f8a72700288?w=300&auto=format&fit=crop&q=80',
     brand: 'Omega-3 Rich Recovery',
     keywords: ['salmon', 'sweet potato', 'fish', 'dinner', 'clean eating', 'meal'],
   },
@@ -156,6 +163,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     description: 'Casein Night Snack',
     ingredients: '1 cup low-fat cottage cheese · 1 sliced red apple',
     icon: '🍏',
+    imageUri: 'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=300&auto=format&fit=crop&q=80',
     brand: 'Casein Night Snack',
     keywords: ['cottage cheese', 'apple', 'casein', 'snack', 'night', 'meal'],
   },
@@ -173,6 +181,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 3.6,
     icon: '🍗',
+    imageUri: 'https://images.unsplash.com/photo-1604503468506-a8da13d82791?w=300&auto=format&fit=crop&q=80',
     keywords: ['chicken', 'breast', 'poultry', 'meat', 'lean protein'],
   },
   {
@@ -187,6 +196,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 10.9,
     icon: '🍗',
+    imageUri: 'https://images.unsplash.com/photo-1587593810167-a84920ea0781?w=300&auto=format&fit=crop&q=80',
     keywords: ['chicken', 'thigh', 'dark meat', 'poultry'],
   },
   {
@@ -201,6 +211,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0.4,
     fat: 4.8,
     icon: '🥚',
+    imageUri: 'https://images.unsplash.com/photo-1582722872445-44dc5f7e3c8f?w=300&auto=format&fit=crop&q=80',
     keywords: ['egg', 'eggs', 'scrambled', 'boiled', 'breakfast'],
   },
   {
@@ -215,6 +226,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0.7,
     fat: 0.2,
     icon: '🍳',
+    imageUri: 'https://images.unsplash.com/photo-1598965675045-45c5e72c7d05?w=300&auto=format&fit=crop&q=80',
     keywords: ['egg white', 'egg whites', 'lean', 'breakfast'],
   },
   {
@@ -229,6 +241,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 11.8,
     icon: '🥩',
+    imageUri: 'https://images.unsplash.com/photo-1607623814075-e51df1bdc82f?w=300&auto=format&fit=crop&q=80',
     keywords: ['ground beef', 'beef', 'steak', 'mince', 'burger'],
   },
   {
@@ -243,6 +256,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 17.3,
     icon: '🥩',
+    imageUri: 'https://images.unsplash.com/photo-1588168333986-5078d3ae3976?w=300&auto=format&fit=crop&q=80',
     keywords: ['beef', 'ground beef', 'burger', 'mince'],
   },
   {
@@ -257,6 +271,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 6.8,
     icon: '🦃',
+    imageUri: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=300&auto=format&fit=crop&q=80',
     keywords: ['turkey', 'ground turkey', 'lean'],
   },
   {
@@ -271,6 +286,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 6.1,
     icon: '🥩',
+    imageUri: 'https://images.unsplash.com/photo-1600891964092-4316c288032e?w=300&auto=format&fit=crop&q=80',
     keywords: ['sirloin', 'steak', 'beef', 'red meat'],
   },
   {
@@ -285,6 +301,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 12.3,
     icon: '🐟',
+    imageUri: 'https://images.unsplash.com/photo-1519708227418-c8fd9a32b7a2?w=300&auto=format&fit=crop&q=80',
     keywords: ['salmon', 'fish', 'seafood', 'omega 3'],
   },
   {
@@ -299,6 +316,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 1,
     icon: '🐟',
+    imageUri: 'https://images.unsplash.com/photo-1501595091296-3aa970afb3ff?w=300&auto=format&fit=crop&q=80',
     keywords: ['tuna', 'canned tuna', 'fish', 'lean'],
   },
   {
@@ -313,6 +331,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 2.7,
     icon: '🐟',
+    imageUri: 'https://images.unsplash.com/photo-1534422298391-e4f8c172dddb?w=300&auto=format&fit=crop&q=80',
     keywords: ['tilapia', 'white fish', 'lean'],
   },
   {
@@ -327,6 +346,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0.2,
     fat: 0.3,
     icon: '🦐',
+    imageUri: 'https://images.unsplash.com/photo-1565680018434-b513d5e5fd47?w=300&auto=format&fit=crop&q=80',
     keywords: ['shrimp', 'prawn', 'seafood', 'low calorie'],
   },
   {
@@ -341,6 +361,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 2,
     fat: 1.5,
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=300&auto=format&fit=crop&q=80',
     keywords: ['whey', 'protein shake', 'powder', 'supplement'],
   },
   {
@@ -355,6 +376,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 3,
     fat: 1,
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1579722821273-0f6c7d44362f?w=300&auto=format&fit=crop&q=80',
     keywords: ['casein', 'protein powder', 'night snack', 'shake'],
   },
   {
@@ -369,6 +391,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 6.1,
     fat: 0.7,
     icon: '🥣',
+    imageUri: 'https://images.unsplash.com/photo-1488477181946-6428a0291777?w=300&auto=format&fit=crop&q=80',
     keywords: ['greek yogurt', 'yogurt', 'dairy', 'probiotic'],
   },
   {
@@ -383,6 +406,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 9,
     fat: 5,
     icon: '🧀',
+    imageUri: 'https://images.unsplash.com/photo-1559181567-c3190ca9959b?w=300&auto=format&fit=crop&q=80',
     keywords: ['cottage cheese', 'cheese', 'casein', 'dairy'],
   },
   {
@@ -397,6 +421,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 1.9,
     fat: 5.3,
     icon: '🧈',
+    imageUri: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&auto=format&fit=crop&q=80',
     keywords: ['tofu', 'soy', 'vegan', 'plant protein'],
   },
   {
@@ -411,6 +436,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 7.6,
     fat: 11,
     icon: '🧈',
+    imageUri: 'https://images.unsplash.com/photo-1601050690597-df0568f70950?w=300&auto=format&fit=crop&q=80',
     keywords: ['tempeh', 'plant protein', 'vegan', 'soy'],
   },
 
@@ -427,6 +453,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 44.5,
     fat: 0.4,
     icon: '🍚',
+    imageUri: 'https://images.unsplash.com/photo-1516684732162-798a0062be99?w=300&auto=format&fit=crop&q=80',
     keywords: ['rice', 'white rice', 'jasmine', 'basmati', 'carbs'],
   },
   {
@@ -442,6 +469,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 1.6,
     fiber: 3.5,
     icon: '🍚',
+    imageUri: 'https://images.unsplash.com/photo-1536304993881-ff6e9eefa2a6?w=300&auto=format&fit=crop&q=80',
     keywords: ['brown rice', 'whole grain', 'carbs'],
   },
   {
@@ -457,6 +485,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 3,
     fiber: 4,
     icon: '🥣',
+    imageUri: 'https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=300&auto=format&fit=crop&q=80',
     keywords: ['oats', 'oatmeal', 'porridge', 'breakfast'],
   },
   {
@@ -472,6 +501,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.2,
     fiber: 3.8,
     icon: '🍠',
+    imageUri: 'https://images.unsplash.com/photo-1596097635121-14b63b7a0c19?w=300&auto=format&fit=crop&q=80',
     keywords: ['sweet potato', 'yam', 'potato', 'complex carbs'],
   },
   {
@@ -487,6 +517,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.2,
     fiber: 3.8,
     icon: '🥔',
+    imageUri: 'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=300&auto=format&fit=crop&q=80',
     keywords: ['potato', 'russet', 'mashed potato', 'baked potato'],
   },
   {
@@ -502,6 +533,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 3.6,
     fiber: 5.2,
     icon: '🌾',
+    imageUri: 'https://images.unsplash.com/photo-1586201375761-83865001e31c?w=300&auto=format&fit=crop&q=80',
     keywords: ['quinoa', 'grain', 'superfood', 'salad'],
   },
   {
@@ -517,6 +549,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 1.1,
     fiber: 2,
     icon: '🍞',
+    imageUri: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?w=300&auto=format&fit=crop&q=80',
     keywords: ['bread', 'toast', 'whole wheat', 'sandwich'],
   },
   {
@@ -531,6 +564,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 23,
     fat: 0.8,
     icon: '🥖',
+    imageUri: 'https://images.unsplash.com/photo-1589367920969-ab8e050bbb04?w=300&auto=format&fit=crop&q=80',
     keywords: ['sourdough', 'bread', 'bakery', 'toast'],
   },
   {
@@ -545,6 +579,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 43,
     fat: 1.3,
     icon: '🍝',
+    imageUri: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141?w=300&auto=format&fit=crop&q=80',
     keywords: ['pasta', 'spaghetti', 'noodles', 'penne', 'italian'],
   },
   {
@@ -559,6 +594,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 55,
     fat: 1.5,
     icon: '🥯',
+    imageUri: 'https://images.unsplash.com/photo-1585478259715-876acc5be8eb?w=300&auto=format&fit=crop&q=80',
     keywords: ['bagel', 'bread', 'breakfast', 'carbs'],
   },
   {
@@ -573,6 +609,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 15,
     fat: 0.5,
     icon: '🍘',
+    imageUri: 'https://images.unsplash.com/photo-1590080875515-8a3a8dc5735e?w=300&auto=format&fit=crop&q=80',
     keywords: ['rice cake', 'snack', 'low calorie'],
   },
   {
@@ -587,6 +624,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 24,
     fat: 3.5,
     icon: '🫓',
+    imageUri: 'https://images.unsplash.com/photo-1565299585323-38d6b0865b47?w=300&auto=format&fit=crop&q=80',
     keywords: ['tortilla', 'wrap', 'burrito', 'taco'],
   },
 
@@ -603,6 +641,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 13.5,
     icon: '🫒',
+    imageUri: 'https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?w=300&auto=format&fit=crop&q=80',
     keywords: ['olive oil', 'oil', 'evoo', 'cooking oil', 'healthy fat'],
   },
   {
@@ -618,6 +657,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 14.7,
     fiber: 6.7,
     icon: '🥑',
+    imageUri: 'https://images.unsplash.com/photo-1523049673857-eb18f1d7b578?w=300&auto=format&fit=crop&q=80',
     keywords: ['avocado', 'guacamole', 'healthy fat'],
   },
   {
@@ -632,6 +672,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 7,
     fat: 16,
     icon: '🥜',
+    imageUri: 'https://images.unsplash.com/photo-1569718212165-3a8278d5f624?w=300&auto=format&fit=crop&q=80',
     keywords: ['peanut butter', 'pb', 'nuts', 'spread'],
   },
   {
@@ -647,6 +688,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 14.2,
     fiber: 3.5,
     icon: '🌰',
+    imageUri: 'https://images.unsplash.com/photo-1508061252227-0c337e15224a?w=300&auto=format&fit=crop&q=80',
     keywords: ['almonds', 'nuts', 'snack', 'healthy fat'],
   },
   {
@@ -661,6 +703,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 3.9,
     fat: 18.5,
     icon: '🌰',
+    imageUri: 'https://images.unsplash.com/photo-1563245372-f21724e3856d?w=300&auto=format&fit=crop&q=80',
     keywords: ['walnuts', 'nuts', 'omega 3', 'snack'],
   },
   {
@@ -676,6 +719,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 3.7,
     fiber: 4.1,
     icon: '🌱',
+    imageUri: 'https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=300&auto=format&fit=crop&q=80',
     keywords: ['chia seeds', 'superfood', 'fiber', 'pudding'],
   },
   {
@@ -690,6 +734,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 0,
     fat: 11.5,
     icon: '🧈',
+    imageUri: 'https://images.unsplash.com/photo-1589985270826-4b7bb135bc9d?w=300&auto=format&fit=crop&q=80',
     keywords: ['butter', 'dairy', 'fat'],
   },
   {
@@ -704,6 +749,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 11,
     fat: 14,
     icon: '🍫',
+    imageUri: 'https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=300&auto=format&fit=crop&q=80',
     keywords: ['dark chocolate', 'chocolate', 'cocoa', 'snack'],
   },
 
@@ -721,6 +767,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.3,
     fiber: 3.1,
     icon: '🍌',
+    imageUri: 'https://images.unsplash.com/photo-1571771894821-ce9b6c11b08e?w=300&auto=format&fit=crop&q=80',
     keywords: ['banana', 'fruit', 'potassium', 'pre workout'],
   },
   {
@@ -736,6 +783,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.3,
     fiber: 4.4,
     icon: '🍎',
+    imageUri: 'https://images.unsplash.com/photo-1560806887-1e4cd0b6cbd6?w=300&auto=format&fit=crop&q=80',
     keywords: ['apple', 'fruit', 'snack', 'fiber'],
   },
   {
@@ -751,6 +799,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.5,
     fiber: 3.6,
     icon: '🫐',
+    imageUri: 'https://images.unsplash.com/photo-1498557850523-fd3d118b962e?w=300&auto=format&fit=crop&q=80',
     keywords: ['blueberries', 'berries', 'antioxidants', 'fruit'],
   },
   {
@@ -766,6 +815,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.5,
     fiber: 3,
     icon: '🍓',
+    imageUri: 'https://images.unsplash.com/photo-1464965911861-746a04b4bca6?w=300&auto=format&fit=crop&q=80',
     keywords: ['strawberries', 'berries', 'low calorie fruit'],
   },
   {
@@ -781,6 +831,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.2,
     fiber: 3.1,
     icon: '🍊',
+    imageUri: 'https://images.unsplash.com/photo-1611080626919-7cf5a9dbab5b?w=300&auto=format&fit=crop&q=80',
     keywords: ['orange', 'citrus', 'vitamin c', 'fruit'],
   },
   {
@@ -795,6 +846,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 11.5,
     fat: 0.2,
     icon: '🍉',
+    imageUri: 'https://images.unsplash.com/photo-1587049352846-4a222e784d38?w=300&auto=format&fit=crop&q=80',
     keywords: ['watermelon', 'melon', 'hydrating', 'fruit'],
   },
 
@@ -812,6 +864,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.6,
     fiber: 5.1,
     icon: '🥦',
+    imageUri: 'https://images.unsplash.com/photo-1459411621453-7b03977f4bfc?w=300&auto=format&fit=crop&q=80',
     keywords: ['broccoli', 'vegetable', 'greens', 'cruciferous'],
   },
   {
@@ -827,6 +880,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.2,
     fiber: 1.3,
     icon: '🥬',
+    imageUri: 'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=300&auto=format&fit=crop&q=80',
     keywords: ['spinach', 'greens', 'salad', 'iron'],
   },
   {
@@ -841,6 +895,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 4.1,
     fat: 0.2,
     icon: '🥬',
+    imageUri: 'https://images.unsplash.com/photo-1515471204630-d32c56434446?w=300&auto=format&fit=crop&q=80',
     keywords: ['asparagus', 'greens', 'vegetables'],
   },
   {
@@ -856,6 +911,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     fat: 0.4,
     fiber: 4,
     icon: '🫘',
+    imageUri: 'https://images.unsplash.com/photo-1550989460-0adf9ea622e2?w=300&auto=format&fit=crop&q=80',
     keywords: ['green beans', 'string beans', 'vegetable'],
   },
   {
@@ -870,6 +926,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 7.2,
     fat: 0.4,
     icon: '🫑',
+    imageUri: 'https://images.unsplash.com/photo-1563565375-f3fdfdbefa83?w=300&auto=format&fit=crop&q=80',
     keywords: ['bell pepper', 'pepper', 'vegetable', 'vitamin c'],
   },
   {
@@ -884,6 +941,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 7.3,
     fat: 0.2,
     icon: '🥒',
+    imageUri: 'https://images.unsplash.com/photo-1449339854873-750e6913301b?w=300&auto=format&fit=crop&q=80',
     keywords: ['cucumber', 'salad', 'hydrating', 'low calorie'],
   },
 
@@ -900,6 +958,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 11.7,
     fat: 7.9,
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1550583724-b2692b85b150?w=300&auto=format&fit=crop&q=80',
     keywords: ['milk', 'whole milk', 'dairy'],
   },
   {
@@ -914,6 +973,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 1,
     fat: 2.5,
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1556881286-fc6915169721?w=300&auto=format&fit=crop&q=80',
     keywords: ['almond milk', 'plant milk', 'low calorie'],
   },
   {
@@ -928,6 +988,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
     carbs: 16,
     fat: 5,
     icon: '🥛',
+    imageUri: 'https://images.unsplash.com/photo-1585238342024-78d387f4a707?w=300&auto=format&fit=crop&q=80',
     keywords: ['oat milk', 'plant milk', 'latte'],
   },
 ];

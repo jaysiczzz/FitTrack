@@ -493,8 +493,18 @@ export default function FoodLibraryTab({
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                   <View className="flex-row justify-between items-start mb-2">
                     <View className="flex-1 pr-2">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        {selectedItem.icon ? <Text className="text-xl">{selectedItem.icon}</Text> : null}
+                      <View className="flex-row items-center gap-2.5 mb-1">
+                        {selectedItem.imageUri ? (
+                          <Image
+                            source={{ uri: selectedItem.imageUri }}
+                            className="w-10 h-10 rounded-xl bg-black/10"
+                            resizeMode="cover"
+                          />
+                        ) : selectedItem.icon ? (
+                          <View className="w-10 h-10 rounded-xl bg-surface dark:bg-surface-dark items-center justify-center border border-input-border dark:border-input-border-dark">
+                            <Text className="text-xl">{selectedItem.icon}</Text>
+                          </View>
+                        ) : null}
                         <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-base flex-1" numberOfLines={1}>
                           {selectedItem.name}
                         </Text>
