@@ -1,5 +1,17 @@
 [
   {
+    "id": "TICK-MUNWGOXI-5YWP",
+    "userId": "8247e39b-75d2-49d0-a090-31e18e19ed34",
+    "userEmail": "jejo@gmail.com",
+    "userName": "je jo",
+    "category": "GENERAL",
+    "subject": "Calorie Calculation",
+    "message": "Seems like the calculation is not really accurate",
+    "status": "RESOLVED",
+    "createdAt": "2026-09-30T09:25:28.758Z",
+    "updatedAt": "2026-09-30T09:26:20.874Z"
+  },
+  {
     "id": "TICK-INIT-1",
     "userEmail": "athlete.support@fittrack.app",
     "userName": "Marcus T.",

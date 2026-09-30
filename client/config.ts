@@ -1,7 +1,7 @@
 import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 
-export const FALLBACK_API_URL = 'https://fittrack-au2r.onrender.com';
+export const FALLBACK_API_URL = 'https://fittrack-9vh0.onrender.com';
 
 const getApiUrl = () => {
   // 1. If explicitly configured via environment variable, use it!

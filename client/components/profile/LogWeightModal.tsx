@@ -15,6 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface LogWeightModalProps {
   visible: boolean;
@@ -52,6 +53,7 @@ export default function LogWeightModal({
   const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [notes, setNotes] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [logWeightError, setLogWeightError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -59,16 +61,19 @@ export default function LogWeightModal({
       setSelectedDate(getLocalDateString());
       setDateMode('today');
       setNotes('');
+      setLogWeightError(null);
     }
   }, [visible, currentWeight]);
 
   const handleAdjust = (delta: number) => {
+    setLogWeightError(null);
     const val = parseFloat(weightInput) || currentWeight || 70;
     const nextVal = Math.max(20, Math.min(350, val + delta));
     setWeightInput(nextVal.toFixed(1));
   };
 
   const handleSelectDateMode = (mode: 'today' | 'yesterday' | 'custom') => {
+    setLogWeightError(null);
     setDateMode(mode);
     if (mode === 'today') {
       setSelectedDate(getLocalDateString());
@@ -78,23 +83,25 @@ export default function LogWeightModal({
   };
 
   const handleSubmit = async () => {
+    setLogWeightError(null);
     const wNum = parseFloat(weightInput);
     if (isNaN(wNum) || wNum <= 20 || wNum > 400) {
-      showWarning('Invalid Weight', 'Please enter a valid body weight between 20 and 400 kg.');
+      setLogWeightError('Please enter a valid body weight between 20 and 400 kg.');
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
-      showWarning('Invalid Date', 'Date must be in YYYY-MM-DD format.');
+      setLogWeightError('Date must be in YYYY-MM-DD format.');
       return;
     }
 
     setSaving(true);
     try {
       await onSaveWeight(Number(wNum.toFixed(1)), selectedDate, notes.trim() || undefined);
+      setLogWeightError(null);
       onClose();
-    } catch (err) {
-      // Error handled by caller toast
+    } catch (err: any) {
+      setLogWeightError(err?.message || 'Could not save weigh-in. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -121,6 +128,13 @@ export default function LogWeightModal({
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
+
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={logWeightError}
+            onDismiss={() => setLogWeightError(null)}
+            className="mt-3 mb-0"
+          />
 
           <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
             {/* Date Selection Mode */}

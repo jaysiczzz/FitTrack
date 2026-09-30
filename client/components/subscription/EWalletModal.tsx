@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 import ConfirmModal from '../ui/ConfirmModal';
 import {
   getUserWalletApi,
@@ -72,6 +73,7 @@ export default function EWalletModal({
 
   const [depositing, setDepositing] = useState(false);
   const [showDepositConfirmModal, setShowDepositConfirmModal] = useState(false);
+  const [walletError, setWalletError] = useState<string | null>(null);
 
   const loadWallet = async () => {
     try {
@@ -114,33 +116,30 @@ export default function EWalletModal({
   const validateDepositInputs = (): boolean => {
     const amountValidation = validateTopUpAmount(topUpAmount, currency);
     if (!amountValidation.valid) {
-      showWarning('Invalid Amount', amountValidation.error || 'Please enter a valid deposit amount.');
+      setWalletError(amountValidation.error || 'Please enter a valid deposit amount.');
       return false;
     }
 
     if (depositMethod === 'GCASH' || depositMethod === 'MAYA') {
       const phoneValidation = validatePhilippinePhone(phoneNumber);
       if (!phoneValidation.valid) {
-        showWarning(
-          'Invalid Mobile Number',
-          phoneValidation.error || `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
-        );
+        setWalletError(phoneValidation.error || `Please enter your valid ${depositMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`);
         return false;
       }
     } else if (depositMethod === 'CARD') {
       const cardValidation = validateCardNumber(cardNumber);
       if (!cardValidation.valid) {
-        showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
+        setWalletError(cardValidation.error || 'Please enter a valid 16-digit card number.');
         return false;
       }
       const expiryValidation = validateCardExpiry(cardExpiry);
       if (!expiryValidation.valid) {
-        showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+        setWalletError(expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
         return false;
       }
       const cvcValidation = validateCardCvc(cardCvc);
       if (!cvcValidation.valid) {
-        showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
+        setWalletError(cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
         return false;
       }
     }
@@ -148,6 +147,7 @@ export default function EWalletModal({
   };
 
   const promptConfirmDeposit = () => {
+    setWalletError(null);
     if (validateDepositInputs()) {
       setShowDepositConfirmModal(true);
     }
@@ -155,6 +155,7 @@ export default function EWalletModal({
 
   const handleDeposit = async () => {
     setShowDepositConfirmModal(false);
+    setWalletError(null);
     if (!validateDepositInputs()) return;
 
     setDepositing(true);
@@ -191,12 +192,13 @@ export default function EWalletModal({
           setCardNumber('');
           setCardExpiry('');
           setCardCvc('');
+          setWalletError(null);
           if (onBalanceUpdated) onBalanceUpdated(confirmRes.balance);
           showSuccess('Funds Deposited!', confirmRes.message);
         }
       }
     } catch (err: any) {
-      showError('Deposit Failed', err?.message || 'Failed to deposit funds.');
+      setWalletError(err?.message || 'Failed to deposit funds. Please check your payment details.');
     } finally {
       setDepositing(false);
     }
@@ -228,6 +230,9 @@ export default function EWalletModal({
           </View>
 
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+            {/* Inline Error Banner */}
+            <ModalErrorBanner error={walletError} onDismiss={() => setWalletError(null)} />
+
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">
               <View className="flex-row items-center justify-between w-full mb-1">

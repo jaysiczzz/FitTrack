@@ -15,6 +15,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 import ConfirmModal from '../ui/ConfirmModal';
 import {
   getSubscriptionPlansApi,
@@ -160,6 +161,7 @@ export default function SubscriptionModal({
   const [canceling, setCanceling] = useState(false);
   const [showSuccessBanner, setShowSuccessBanner] = useState(false);
   const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
+  const [subError, setSubError] = useState<string | null>(null);
 
   // Fetch plans & current status
   const loadData = async (targetCurrency: CurrencyType = currency) => {
@@ -209,26 +211,23 @@ export default function SubscriptionModal({
     if (paymentMethod === 'GCASH' || paymentMethod === 'MAYA') {
       const phoneValidation = validatePhilippinePhone(phoneNumber);
       if (!phoneValidation.valid) {
-        showWarning(
-          'Invalid Mobile Number',
-          phoneValidation.error || `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`
-        );
+        setSubError(phoneValidation.error || `Please enter your valid ${paymentMethod === 'GCASH' ? 'GCash' : 'Maya'} mobile number.`);
         return false;
       }
     } else if (paymentMethod === 'CARD') {
       const cardValidation = validateCardNumber(cardNumber);
       if (!cardValidation.valid) {
-        showWarning('Invalid Card Number', cardValidation.error || 'Please enter a valid 16-digit card number.');
+        setSubError(cardValidation.error || 'Please enter a valid 16-digit card number.');
         return false;
       }
       const expiryValidation = validateCardExpiry(cardExpiry);
       if (!expiryValidation.valid) {
-        showWarning('Invalid Expiry Date', expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
+        setSubError(expiryValidation.error || 'Please enter card expiry in MM/YY format (e.g. 12/28).');
         return false;
       }
       const cvcValidation = validateCardCvc(cardCvc);
       if (!cvcValidation.valid) {
-        showWarning('Invalid CVC', cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
+        setSubError(cvcValidation.error || 'Please enter the 3 or 4-digit card security code (CVC).');
         return false;
       }
     }
@@ -236,6 +235,7 @@ export default function SubscriptionModal({
   };
 
   const promptConfirmSubscribe = () => {
+    setSubError(null);
     if (validatePaymentInputs()) {
       setShowPaymentConfirmModal(true);
     }
@@ -243,6 +243,7 @@ export default function SubscriptionModal({
 
   const handleSubscribe = async () => {
     setShowPaymentConfirmModal(false);
+    setSubError(null);
     const selectedPlan = plans.find((p) => p.tier === selectedTier);
     if (!selectedPlan || selectedPlan.price <= 0) return;
 
@@ -257,6 +258,7 @@ export default function SubscriptionModal({
           setIsPro(true);
           setWalletBalance(res.remainingBalance);
           setShowSuccessBanner(true);
+          setSubError(null);
           showSuccess('Subscribed!', `Welcome to ${res.planInfo.name}!`);
           if (onSubscriptionUpdated) onSubscriptionUpdated(selectedTier);
         }
@@ -290,6 +292,7 @@ export default function SubscriptionModal({
               setCurrentSub(confirmRes.subscription);
               setIsPro(true);
               setShowSuccessBanner(true);
+              setSubError(null);
               const methodLabel =
                 paymentMethod === 'GCASH'
                   ? 'GCash'
@@ -304,7 +307,7 @@ export default function SubscriptionModal({
         }
       }
     } catch (err: any) {
-      showError('Payment Failed', err?.message || 'Could not process subscription. Please try again.');
+      setSubError(err?.message || 'Could not process subscription. Please check your payment details.');
     } finally {
       setProcessingPayment(false);
     }
@@ -312,14 +315,16 @@ export default function SubscriptionModal({
 
   const handleCancelAutoRenew = async () => {
     setCanceling(true);
+    setSubError(null);
     try {
       const res = await cancelSubscriptionApi();
       if (res.success) {
         setCurrentSub(res.subscription);
+        setSubError(null);
         showSuccess('Renewal Canceled', 'Your subscription will not renew after the current billing cycle.');
       }
     } catch (err: any) {
-      showError('Error', err?.message || 'Could not cancel auto-renewal.');
+      setSubError(err?.message || 'Could not cancel auto-renewal.');
     } finally {
       setCanceling(false);
     }
@@ -327,14 +332,16 @@ export default function SubscriptionModal({
 
   const handleReactivate = async () => {
     setCanceling(true);
+    setSubError(null);
     try {
       const res = await reactivateSubscriptionApi();
       if (res.success) {
         setCurrentSub(res.subscription);
+        setSubError(null);
         showSuccess('Reactivated', 'Auto-renewal has been resumed!');
       }
     } catch (err: any) {
-      showError('Error', err?.message || 'Could not reactivate subscription.');
+      setSubError(err?.message || 'Could not reactivate subscription.');
     } finally {
       setCanceling(false);
     }
@@ -369,6 +376,9 @@ export default function SubscriptionModal({
           </View>
 
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+            {/* Inline Error Banner */}
+            <ModalErrorBanner error={subError} onDismiss={() => setSubError(null)} />
+
             {/* Currency Selector */}
             <View className="flex-row items-center justify-between p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
               <View>
