@@ -47,7 +47,7 @@ export default function FoodLog() {
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
-  const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'barcode' | 'text'>('photo');
+  const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
@@ -517,16 +517,11 @@ export default function FoodLog() {
               goal={goal}
             />
 
-            {/* 2. Quick Action Toolbar (Photo Scan, Barcode Scan, Describe Meal & AI Suggest) */}
+            {/* 2. Quick Action Toolbar (Photo Scan, Describe Meal & AI Suggest) */}
             <QuickActionToolbar
               onPhotoScan={() => {
                 setScanTargetMeal(undefined);
                 setScanInitialMode('photo');
-                setShowScanModal(true);
-              }}
-              onBarcodeScan={() => {
-                setScanTargetMeal(undefined);
-                setScanInitialMode('barcode');
                 setShowScanModal(true);
               }}
               onTextLog={() => {
