@@ -5,6 +5,7 @@ import { API_URL } from '../config';
 export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
   body?: any;
   _isRetry?: boolean;
+  timeout?: number;
 }
 
 let refreshPromise: Promise<string | null> | null = null;
@@ -68,16 +69,30 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
 
   const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
+  // AI generation and photo analysis need a larger timeout window (60s), while normal requests timeout in 12s
+  const isAiOrExternal = endpoint.includes('/api/ai/') || endpoint.includes('openfoodfacts');
+  const defaultTimeout = isAiOrExternal ? 60000 : 12000;
+  const timeoutMs = options.timeout ?? defaultTimeout;
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...options,
+      signal: options.signal || controller.signal,
       headers,
       body: body as BodyInit,
     });
   } catch (err: any) {
+    if (err?.name === 'AbortError' || controller.signal.aborted) {
+      console.warn(`[API Connection] Request timed out for ${url}`);
+      throw new Error(`Request to ${API_URL} timed out. Please check your connection.`);
+    }
     console.warn(`[API Connection] Could not reach ${url}:`, err?.message || err);
     throw new Error(`Unable to connect to server at ${API_URL}. Please check your connection or server status.`);
+  } finally {
+    clearTimeout(timeoutId);
   }
 
   // Handle Token Expiry & Silent Refresh

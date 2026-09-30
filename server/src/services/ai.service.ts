@@ -302,6 +302,21 @@ Recommend 3 distinct, delicious, practical meals or snacks for a beginner user w
 - Remaining Calories Today: ${params.remainingCalories} kcal
 - Remaining Protein Target: ${params.remainingProtein}g
 
+CRITICAL REQUIREMENTS FOR INGREDIENTS & PORTIONS:
+1. Every item in the "ingredients" array MUST specify its EXACT measurable portion/quantity and unit (e.g., grams, cups, tablespoons, pieces, slices).
+   - EXCELLENT examples:
+     * "150g skinless chicken breast"
+     * "1 cup (150g) cooked brown rice"
+     * "100g steamed broccoli florets"
+     * "1 tbsp (14g) extra virgin olive oil"
+     * "2 large whole eggs"
+     * "1 medium banana (approx. 118g)"
+     * "1 scoop (30g) whey protein powder with 250ml water"
+     * "1 slice (40g) whole grain bread"
+     * "2 tbsp (32g) natural peanut butter"
+   - FORBIDDEN: Bare ingredient names without amounts (e.g., DO NOT write "Chicken breast", "Rice", "Olive oil", "Eggs"). The user needs to know exactly how much of each ingredient to prepare/add to achieve the meal.
+2. The sum of the ingredients and their specified quantities MUST realistically and mathematically match the meal's stated calories, protein, carbs, and fat.
+
 Return a JSON array of 3 meal objects:
 - title: Name of the meal
 - category: one of "breakfast", "lunch", "dinner", "snack"
@@ -310,7 +325,7 @@ Return a JSON array of 3 meal objects:
 - carbs: Carbs in grams (integer)
 - fat: Fat in grams (integer)
 - prepTime: Preparation time string (e.g., "10 mins")
-- ingredients: Array of 3-5 simple key ingredient strings
+- ingredients: Array of 3-5 ingredients with exact measurements/portions (e.g. ["150g chicken breast", "1 cup (150g) cooked jasmine rice", "100g steamed broccoli", "1 tbsp olive oil"])
 - reason: 1-sentence explanation of why this fits their current goal and remaining macros
 - icon: 1 relevant food emoji (e.g., "🥗", "🍗", "🥪", "🍳", "🥣")`
 
@@ -330,7 +345,11 @@ Return a JSON array of 3 meal objects:
           prepTime: { type: Type.STRING },
           ingredients: {
             type: Type.ARRAY,
-            items: { type: Type.STRING },
+            items: {
+              type: Type.STRING,
+              description: 'Ingredient name WITH exact portion measurement (e.g., "150g raw chicken breast", "1 cup (150g) cooked brown rice", "1 tbsp (14g) olive oil")',
+            },
+            description: 'List of ingredients with exact portions and measurements needed to prepare the meal',
           },
           reason: { type: Type.STRING },
           icon: { type: Type.STRING },
