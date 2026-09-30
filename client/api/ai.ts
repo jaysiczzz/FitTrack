@@ -1,4 +1,7 @@
 import { apiRequest } from './client';
+import { authStorage } from '../utils/authStorage';
+import { API_URL } from '../config';
+
 
 export interface AnalyzeMealPayload {
   description?: string;
@@ -144,6 +147,73 @@ export const chatWithCoachApi = async (
     timeout: 60000,
   });
 };
+
+export const streamChatWithCoachApi = async (
+  messages: { role: 'user' | 'model'; content: string }[],
+  onChunk: (chunk: string) => void
+): Promise<{ success: boolean; message: string }> => {
+  const token = await authStorage.getToken();
+  const url = `${API_URL}/api/ai/chat?stream=true`;
+
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'text/event-stream');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
+      let seenIndex = 0;
+      let accumulatedText = '';
+
+      xhr.onprogress = () => {
+        const raw = xhr.responseText.substring(seenIndex);
+        seenIndex = xhr.responseText.length;
+
+        const lines = raw.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data:')) {
+            try {
+              const jsonStr = trimmed.replace(/^data:\s*/, '');
+              const parsed = JSON.parse(jsonStr);
+              if (parsed.chunk) {
+                accumulatedText += parsed.chunk;
+                onChunk(parsed.chunk);
+              } else if (parsed.done && parsed.message) {
+                accumulatedText = parsed.message;
+              }
+            } catch {}
+          }
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({ success: true, message: accumulatedText.trim() });
+        } else {
+          reject(new Error(`Chat error status: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during streaming chat.'));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new Error('AI stream timed out.'));
+      };
+
+      xhr.timeout = 60000;
+      xhr.send(JSON.stringify({ messages, stream: true }));
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
+
 
 export const getChatHistoryApi = async (): Promise<{ success: boolean; messages: ChatMessage[] }> => {
   return apiRequest('/api/ai/chat/history', {
