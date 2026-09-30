@@ -243,16 +243,24 @@ export default function AiSuggestionModal({
                     💡 {rec.reason}
                   </Text>
 
-                  {/* Ingredients */}
-                  <View className="mb-3">
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase mb-1">
-                      Ingredients:
-                    </Text>
-                    {rec.ingredients.map((ing, i) => (
-                      <Text key={i} className="text-text-primary dark:text-text-primary-dark text-xs mb-0.5">
-                        • {ing}
+                  {/* Ingredients & Portions */}
+                  <View className="mb-3 bg-surface/60 dark:bg-surface-dark/60 rounded-xl p-2.5 border border-input-border/60 dark:border-input-border-dark/60">
+                    <View className="flex-row items-center gap-1.5 mb-1.5">
+                      <Ionicons name="scale-outline" size={12} color={colors.accent} />
+                      <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider">
+                        Ingredients & Portions:
                       </Text>
-                    ))}
+                    </View>
+                    <View className="gap-1">
+                      {rec.ingredients.map((ing, i) => (
+                        <View key={i} className="flex-row items-start gap-1.5">
+                          <Text className="text-accent dark:text-accent-dark text-xs font-bold leading-4">•</Text>
+                          <Text className="text-text-primary dark:text-text-primary-dark text-xs flex-1 leading-4">
+                            {ing}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
 
                   {/* Macros and Action */}

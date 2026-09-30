@@ -171,7 +171,6 @@ export const OPEN_FOOD_FACTS_CATEGORY_TERMS: Record<string, string> = {
   Fruits: 'apple',
   Vegetables: 'salad',
   Dairy: 'yogurt',
-  Staples: 'chicken',
 };
 
 export const searchFoodsOnlineApi = async (
@@ -252,8 +251,8 @@ export const fetchOpenFoodFactsProducts = async (
       p.image_url ||
       undefined;
 
-    const catName: 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' | 'Staples' =
-      activeCategory === 'ALL' ? 'Staples' : (activeCategory as any);
+    const catName: 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' =
+      activeCategory === 'ALL' ? 'Protein' : (activeCategory as any);
 
     const categoryIcons: Record<string, string> = {
       Protein: '🍗',
@@ -262,7 +261,6 @@ export const fetchOpenFoodFactsProducts = async (
       Fruits: '🍎',
       Vegetables: '🥦',
       Dairy: '🥛',
-      Staples: '🥗',
     };
 
     return {

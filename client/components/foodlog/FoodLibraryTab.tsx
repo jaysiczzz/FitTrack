@@ -34,7 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import FilterChip from '../ui/FilterChip';
 import NutritionFactsModal from './NutritionFactsModal';
 
-export type FilterCategory = 'ALL' | 'RECENT' | 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' | 'Staples';
+export type FilterCategory = 'ALL' | 'RECENT' | 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy';
 
 interface FoodLibraryTabProps {
   onAddFood: (item: FoodLogItem) => void;
@@ -129,7 +129,7 @@ export default function FoodLibraryTab({
   // Select item to adjust portions
   const handleSelectItem = (item: FoodCatalogItem) => {
     setSelectedItem(item);
-    if (item.category === 'Staples' || !item.servingWeightG || item.servingWeightG <= 0) {
+    if (!item.servingWeightG || item.servingWeightG <= 0) {
       setPortionMode('servings');
       setPortionAmount('1');
     } else {
@@ -151,11 +151,7 @@ export default function FoodLibraryTab({
 
     const numAmount = parseFloat(portionAmount) || 1;
     const portionDesc =
-      selectedItem.category === 'Staples'
-        ? numAmount === 1
-          ? selectedItem.servingSize
-          : `${numAmount}x · ${selectedItem.servingSize}`
-        : portionMode === 'grams'
+      portionMode === 'grams'
         ? `${numAmount}g`
         : `${numAmount} ${selectedItem.servingUnit || 'serving'}`;
 
@@ -308,7 +304,6 @@ export default function FoodLibraryTab({
             { key: 'Fruits', label: 'Fruits' },
             { key: 'Vegetables', label: 'Veggies' },
             { key: 'Dairy', label: 'Dairy' },
-            { key: 'Staples', label: 'Quick Staples' },
           ].map((cat) => (
             <FilterChip
               key={cat.key}

@@ -51,31 +51,32 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         if (isMounted) {
           setToken(storedToken);
           setUser(storedUser);
+          setIsLoading(false); // Unblock app startup immediately!
         }
 
-        // If we have a token, optionally refresh the profile in the background
+        // If we have a token, refresh profile in background without blocking startup
         if (storedToken) {
-          try {
-            const profileRes = await getUserProfile();
-            if (profileRes?.user && isMounted) {
-              setUser(profileRes.user);
-              await authStorage.setUser(profileRes.user);
-            }
-          } catch (err: any) {
-            // If token expired / 401 Unauthorized, clear auth session
-            if (err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized')) {
-              console.warn('[AuthContext] Stored token is invalid or expired. Logging out.');
-              await authStorage.clearAuth();
-              if (isMounted) {
-                setToken(null);
-                setUser(null);
+          getUserProfile()
+            .then(async (profileRes) => {
+              if (profileRes?.user && isMounted) {
+                setUser(profileRes.user);
+                await authStorage.setUser(profileRes.user);
               }
-            }
-          }
+            })
+            .catch(async (err: any) => {
+              // If token expired / 401 Unauthorized, clear auth session
+              if (err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized')) {
+                console.warn('[AuthContext] Stored token is invalid or expired. Logging out.');
+                await authStorage.clearAuth();
+                if (isMounted) {
+                  setToken(null);
+                  setUser(null);
+                }
+              }
+            });
         }
       } catch (err) {
         console.error('[AuthContext] Failed to initialize auth session:', err);
-      } finally {
         if (isMounted) {
           setIsLoading(false);
         }

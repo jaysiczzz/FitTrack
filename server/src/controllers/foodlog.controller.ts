@@ -173,7 +173,7 @@ function inferCategoryAndIcon(p: any, fullName: string): { category: string; ico
   if (text.match(/peanut|almond|nut|oil|olive|butter|seed|walnut|cashew/)) {
     return { category: 'Fats', icon: text.includes('oil') || text.includes('olive') ? '🫒' : '🥜' }
   }
-  return { category: 'Staples', icon: '🛒' }
+  return { category: 'Protein', icon: '🛒' }
 }
 
 export async function searchFoodsOnlineController(
@@ -193,7 +193,6 @@ export async function searchFoodsOnlineController(
       Fruits: 'apple',
       Vegetables: 'salad',
       Dairy: 'yogurt',
-      Staples: 'chicken',
     }
 
     const q = qParam || (catParam ? CATEGORY_SEARCH_TERMS[catParam] || catParam : '')
@@ -211,7 +210,7 @@ export async function searchFoodsOnlineController(
       name: f.name,
       brand: f.brand || undefined,
       barcode: f.barcode || undefined,
-      category: f.category || 'Staples',
+      category: f.category || 'Protein',
       servingSize: f.servingSize,
       servingWeightG: f.servingWeightG,
       servingUnit: f.servingUnit,

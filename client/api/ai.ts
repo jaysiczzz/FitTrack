@@ -63,6 +63,7 @@ export const analyzeMeal = async (
     return await apiRequest('/api/ai/analyze-meal', {
       method: 'POST',
       body: payload,
+      timeout: 60000,
     });
   } catch (err: any) {
     const msg = err?.message || '';
@@ -90,6 +91,7 @@ export const analyzeMeal = async (
 export const getAIInsights = async (): Promise<{ success: boolean; insights: AIInsight[] }> => {
   return apiRequest('/api/ai/insights', {
     method: 'GET',
+    timeout: 30000,
   });
 };
 
@@ -97,6 +99,7 @@ export const generateAIWorkout = async (payload?: { targetArea?: string }): Prom
   return apiRequest('/api/ai/generate-workout', {
     method: 'POST',
     body: payload || {},
+    timeout: 45000,
   });
 };
 
@@ -121,6 +124,7 @@ export const getAIMealSuggestions = async (payload: {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
     body: payload,
+    timeout: 45000,
   });
 };
 
@@ -137,6 +141,7 @@ export const chatWithCoachApi = async (
   return apiRequest('/api/ai/chat', {
     method: 'POST',
     body: { messages },
+    timeout: 60000,
   });
 };
 
