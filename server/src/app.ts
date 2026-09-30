@@ -84,6 +84,16 @@ app.use('/api/admin', adminRoutes)
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
+})
+
+server.on('error', (err: any) => {
+  if (err.code === 'EADDRINUSE') {
+    console.error(`❌ Port ${PORT} is already in use by another running instance of FitTrack server (or another process).`)
+    console.error(`👉 Solution: Stop the existing terminal/process running on port ${PORT}, or run: taskkill /F /IM node.exe`)
+  } else {
+    console.error('❌ Server error:', err)
+  }
+  process.exit(1)
 })

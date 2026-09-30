@@ -72,6 +72,8 @@ export interface DetectedFoodItem {
 }
 
 export interface MealAnalysisResult {
+  isFood?: boolean
+  rejectionReason?: string
   foodName: string
   servingSize: string
   calories: number
@@ -84,7 +86,6 @@ export interface MealAnalysisResult {
   saturatedFat?: number
   confidenceScore?: number // 0.0 to 1.0 (e.g. 0.94 for 94%)
   dietaryFlags?: string[] // e.g. ["High Protein", "Low Carb", "Dairy-Free"]
-  items?: DetectedFoodItem[] // Breakdown of individual items on composite plates
   healthNotes?: string
 }
 
@@ -93,20 +94,28 @@ export async function analyzeMealWithAI(params: {
   imageBase64?: string
   mimeType?: string
 }): Promise<MealAnalysisResult> {
-  const promptText = `Analyze this food image and/or text description and provide comprehensive nutritional estimation.
+  const promptText = `Analyze this image and/or text description and provide accurate nutritional estimation.
   User Description / Context: ${params.description || 'Not provided'}
   
-  Guidelines:
-  1. NUTRITION FACTS LABEL OR PACKAGED PRODUCT:
-     - If the image contains a Nutrition Facts panel or food packaging, extract the exact stated serving size, calories, protein, total carbohydrates, total fat, dietary fiber, total sugar, sodium (in mg), and saturated fat.
-     - Set confidenceScore to 0.98. Use the exact product/brand name for foodName.
-  2. COMPOSITE OR PLATED MEALS:
-     - If multiple distinct food items are on the plate (e.g. grilled chicken breast, brown rice, steamed broccoli), identify each item in the "items" array with individual portion and macros.
-     - Sum the items into the overall meal totals (calories, protein, carbs, fat, fiber, sugar, sodiumMg, saturatedFat).
-     - Estimate confidenceScore (0.65 - 0.95) based on visual clarity and portion visibility.
-  3. GENERAL METADATA:
-     - Include relevant dietaryFlags (e.g. "High Protein", "Low Carb", "Keto-Friendly", "High Fiber", "Whole Foods", "Gluten-Free").
-     - In healthNotes, provide a concise 1-sentence health insight or coach tip about this food's nutritional profile.
+  MANDATORY FOOD VERIFICATION STEP (CRITICAL):
+  1. Determine whether the subject is genuine EDIBLE FOOD, a MEAL, BEVERAGE, CULINARY INGREDIENT, or a NUTRITION FACTS LABEL / FOOD PACKAGING.
+  2. If the image/text is NOT food or beverage (for example: animals/pets, people/selfies, vehicles/cars, electronics, furniture, clothing, room interiors, random objects, paperwork/documents without nutrition facts, outdoor scenery, etc.):
+     - Set "isFood" to false.
+     - Set "rejectionReason" to a clear, direct, and polite error message explaining what the image depicts and stating that it is not food (e.g. "The image appears to show [object/scene] rather than food. Please snap or upload a photo of your meal, beverage, or nutrition facts label.").
+     - Set foodName to "Not Food", servingSize to "N/A", calories to 0, protein to 0, carbs to 0, fat to 0.
+  3. If the input IS food, a drink, or a nutrition facts label:
+     - Set "isFood" to true.
+     - Set "rejectionReason" to "".
+  
+  SINGLE UNIFIED DISH / MEAL MERGING RULE (MANDATORY):
+  - Always analyze and return the food as ONE SINGLE UNIFIED DISH / MEAL with ALL nutrients merged together into one set of combined totals.
+  - NEVER divide or dissect a single dish, stew, curry, soup, pasta, salad, casserole, sandwich, or composite meal into individual ingredient parts (e.g., NEVER divide "Chicken Adobo" into chicken pieces, potatoes, and adobo sauce; NEVER divide a burger into patty, bun, and cheese; NEVER divide a salad into lettuce, dressing, and toppings).
+  - The "foodName" must be the full name of the complete dish or meal (e.g., "Chicken Adobo", "Beef Stew with Rice", "Spaghetti Bolognese", "Caesar Salad with Grilled Chicken").
+  - The "calories", "protein", "carbs", "fat", "fiber", "sugar", "sodiumMg", and "saturatedFat" must represent the complete, combined total nutrition of the entire dish/meal as photographed.
+  - The "servingSize" must represent the overall portion (e.g., "1 plate (approx. 350g)", "1 bowl", "1 medium fillet with 1 cup sides").
+  - If the image contains a Nutrition Facts label or packaged food, extract the exact stated serving size and nutrients. Set confidenceScore to 0.98.
+  - In "healthNotes", provide a concise 1-sentence health insight or coach tip about the dish's nutritional profile and its key culinary ingredients.
+  - Include relevant "dietaryFlags" (e.g., "High Protein", "Low Carb", "Keto-Friendly", "High Fiber", "Whole Foods", "Gluten-Free").
   
   Return a structured JSON.`
 
@@ -132,6 +141,14 @@ export async function analyzeMealWithAI(params: {
     responseSchema: {
       type: Type.OBJECT,
       properties: {
+        isFood: {
+          type: Type.BOOLEAN,
+          description: 'True if the image/text contains edible food, meal, beverage, or nutrition facts label. False if not food.',
+        },
+        rejectionReason: {
+          type: Type.STRING,
+          description: 'Explanation if the image is not food, or empty string if it is food.',
+        },
         foodName: { type: Type.STRING },
         servingSize: { type: Type.STRING },
         calories: { type: Type.NUMBER },
@@ -147,28 +164,9 @@ export async function analyzeMealWithAI(params: {
           type: Type.ARRAY,
           items: { type: Type.STRING },
         },
-        items: {
-          type: Type.ARRAY,
-          items: {
-            type: Type.OBJECT,
-            properties: {
-              name: { type: Type.STRING },
-              servingSize: { type: Type.STRING },
-              calories: { type: Type.NUMBER },
-              protein: { type: Type.NUMBER },
-              carbs: { type: Type.NUMBER },
-              fat: { type: Type.NUMBER },
-              fiber: { type: Type.NUMBER },
-              sugar: { type: Type.NUMBER },
-              sodiumMg: { type: Type.NUMBER },
-              saturatedFat: { type: Type.NUMBER },
-            },
-            required: ['name', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
-          },
-        },
         healthNotes: { type: Type.STRING },
       },
-      required: ['foodName', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
+      required: ['isFood', 'foodName', 'servingSize', 'calories', 'protein', 'carbs', 'fat'],
     },
   })
 
@@ -304,6 +302,21 @@ Recommend 3 distinct, delicious, practical meals or snacks for a beginner user w
 - Remaining Calories Today: ${params.remainingCalories} kcal
 - Remaining Protein Target: ${params.remainingProtein}g
 
+CRITICAL REQUIREMENTS FOR INGREDIENTS & PORTIONS:
+1. Every item in the "ingredients" array MUST specify its EXACT measurable portion/quantity and unit (e.g., grams, cups, tablespoons, pieces, slices).
+   - EXCELLENT examples:
+     * "150g skinless chicken breast"
+     * "1 cup (150g) cooked brown rice"
+     * "100g steamed broccoli florets"
+     * "1 tbsp (14g) extra virgin olive oil"
+     * "2 large whole eggs"
+     * "1 medium banana (approx. 118g)"
+     * "1 scoop (30g) whey protein powder with 250ml water"
+     * "1 slice (40g) whole grain bread"
+     * "2 tbsp (32g) natural peanut butter"
+   - FORBIDDEN: Bare ingredient names without amounts (e.g., DO NOT write "Chicken breast", "Rice", "Olive oil", "Eggs"). The user needs to know exactly how much of each ingredient to prepare/add to achieve the meal.
+2. The sum of the ingredients and their specified quantities MUST realistically and mathematically match the meal's stated calories, protein, carbs, and fat.
+
 Return a JSON array of 3 meal objects:
 - title: Name of the meal
 - category: one of "breakfast", "lunch", "dinner", "snack"
@@ -312,7 +325,7 @@ Return a JSON array of 3 meal objects:
 - carbs: Carbs in grams (integer)
 - fat: Fat in grams (integer)
 - prepTime: Preparation time string (e.g., "10 mins")
-- ingredients: Array of 3-5 simple key ingredient strings
+- ingredients: Array of 3-5 ingredients with exact measurements/portions (e.g. ["150g chicken breast", "1 cup (150g) cooked jasmine rice", "100g steamed broccoli", "1 tbsp olive oil"])
 - reason: 1-sentence explanation of why this fits their current goal and remaining macros
 - icon: 1 relevant food emoji (e.g., "🥗", "🍗", "🥪", "🍳", "🥣")`
 
@@ -332,7 +345,11 @@ Return a JSON array of 3 meal objects:
           prepTime: { type: Type.STRING },
           ingredients: {
             type: Type.ARRAY,
-            items: { type: Type.STRING },
+            items: {
+              type: Type.STRING,
+              description: 'Ingredient name WITH exact portion measurement (e.g., "150g raw chicken breast", "1 cup (150g) cooked brown rice", "1 tbsp (14g) olive oil")',
+            },
+            description: 'List of ingredients with exact portions and measurements needed to prepare the meal',
           },
           reason: { type: Type.STRING },
           icon: { type: Type.STRING },

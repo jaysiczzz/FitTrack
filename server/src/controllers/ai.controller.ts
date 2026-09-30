@@ -25,7 +25,31 @@ export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) 
     mimeType: mimeType || 'image/jpeg',
   })
 
-  res.json({ success: true, data: analysis })
+  if (analysis.isFood === false) {
+    const errorMsg =
+      analysis.rejectionReason?.trim() ||
+      'The provided image does not appear to contain food. Please take a clear photo of your meal, drink, or nutrition facts label.'
+    return res.status(200).json({
+      success: false,
+      isFood: false,
+      error: errorMsg,
+      message: errorMsg,
+    })
+  }
+
+  if (Array.isArray(analysis.dietaryFlags)) {
+    const seen = new Set<string>()
+    analysis.dietaryFlags = analysis.dietaryFlags.filter((flag) => {
+      const trimmed = flag?.trim()
+      if (!trimmed) return false
+      const lower = trimmed.toLowerCase()
+      if (seen.has(lower)) return false
+      seen.add(lower)
+      return true
+    })
+  }
+
+  res.json({ success: true, isFood: true, data: analysis })
 })
 
 export const getInsights = asyncHandler(async (req: AuthRequest, res: Response) => {

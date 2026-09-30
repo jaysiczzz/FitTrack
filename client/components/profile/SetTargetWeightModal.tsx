@@ -14,6 +14,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface SetTargetWeightModalProps {
   visible: boolean;
@@ -37,9 +38,11 @@ export default function SetTargetWeightModal({
 
   const [inputVal, setInputVal] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [targetError, setTargetError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
+      setTargetError(null);
       if (currentTargetWeight) {
         setInputVal(currentTargetWeight.toFixed(1));
       } else {
@@ -50,36 +53,41 @@ export default function SetTargetWeightModal({
   }, [visible, currentTargetWeight, currentWeight, goal]);
 
   const handleAdjust = (delta: number) => {
+    setTargetError(null);
     const val = parseFloat(inputVal) || currentWeight;
     const nextVal = Math.max(30, Math.min(300, val + delta));
     setInputVal(nextVal.toFixed(1));
   };
 
   const handleSave = async () => {
+    setTargetError(null);
     const num = parseFloat(inputVal);
     if (isNaN(num) || num <= 20 || num > 400) {
-      showWarning('Invalid Target', 'Please enter a target weight between 20 and 400 kg.');
+      setTargetError('Please enter a target weight between 20 and 400 kg.');
       return;
     }
 
     setSaving(true);
     try {
       await onSaveTarget(Number(num.toFixed(1)));
+      setTargetError(null);
       onClose();
-    } catch {
-      // Handled by parent
+    } catch (err: any) {
+      setTargetError(err?.message || 'Could not update target weight. Please check your connection.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleClear = async () => {
+    setTargetError(null);
     setSaving(true);
     try {
       await onSaveTarget(null);
+      setTargetError(null);
       onClose();
-    } catch {
-      // Handled by parent
+    } catch (err: any) {
+      setTargetError(err?.message || 'Could not clear target weight.');
     } finally {
       setSaving(false);
     }
@@ -110,6 +118,13 @@ export default function SetTargetWeightModal({
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
+
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={targetError}
+            onDismiss={() => setTargetError(null)}
+            className="mt-3 mb-0"
+          />
 
           <View className="my-5 items-center bg-input/40 dark:bg-input-dark/40 p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
             <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-1">

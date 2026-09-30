@@ -5,6 +5,7 @@ import { generateAIWorkout, AIWorkoutPlan } from '@/api/ai';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface AiWorkoutGeneratorModalProps {
   visible: boolean;
@@ -34,21 +35,23 @@ export default function AiWorkoutGeneratorModal({
   const [loading, setLoading] = useState(false);
   const [workoutPlan, setWorkoutPlan] = useState<AIWorkoutPlan | null>(null);
   const [addingToWorkout, setAddingToWorkout] = useState(false);
+  const [generatorError, setGeneratorError] = useState<string | null>(null);
 
   const handleGenerate = async (areaToUse?: string) => {
     const area = areaToUse || selectedArea;
     setLoading(true);
     setWorkoutPlan(null);
+    setGeneratorError(null);
     try {
       const res = await generateAIWorkout({ targetArea: area });
       if (res.success && res.workoutPlan && res.workoutPlan.exercises?.length > 0) {
         setWorkoutPlan(res.workoutPlan);
       } else {
-        showError('Generation Notice', 'No workout plan generated. Please try again.');
+        setGeneratorError('No workout plan generated. Please try a different focus or try again.');
       }
     } catch (err: any) {
       console.log('AI Workout Generation Error:', err?.message);
-      showError('AI Service Notice', err?.message || 'Unable to generate workout right now. Please try again.');
+      setGeneratorError(err?.message || 'Unable to generate workout right now. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -111,6 +114,12 @@ export default function AiWorkoutGeneratorModal({
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
+
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={generatorError}
+            onDismiss={() => setGeneratorError(null)}
+          />
 
           {/* Target Focus Chip Selector */}
           <View className="mb-3">

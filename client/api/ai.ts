@@ -20,6 +20,8 @@ export interface DetectedFoodItem {
 }
 
 export interface MealAnalysisResult {
+  isFood?: boolean;
+  rejectionReason?: string;
   foodName: string;
   servingSize: string;
   calories: number;
@@ -54,16 +56,42 @@ export interface AIWorkoutPlan {
   }[];
 }
 
-export const analyzeMeal = async (payload: AnalyzeMealPayload): Promise<{ success: boolean; data: MealAnalysisResult }> => {
-  return apiRequest('/api/ai/analyze-meal', {
-    method: 'POST',
-    body: payload,
-  });
+export const analyzeMeal = async (
+  payload: AnalyzeMealPayload
+): Promise<{ success: boolean; data?: MealAnalysisResult; isFood?: boolean; error?: string; message?: string }> => {
+  try {
+    return await apiRequest('/api/ai/analyze-meal', {
+      method: 'POST',
+      body: payload,
+      timeout: 60000,
+    });
+  } catch (err: any) {
+    const msg = err?.message || '';
+    const isNotFood =
+      msg.toLowerCase().includes('not food') ||
+      msg.toLowerCase().includes('not a food') ||
+      msg.toLowerCase().includes('not appear to be food') ||
+      msg.toLowerCase().includes('does not appear to be food') ||
+      msg.toLowerCase().includes('does not contain any food') ||
+      msg.toLowerCase().includes('not edible') ||
+      msg.toLowerCase().includes('not an edible');
+
+    if (isNotFood) {
+      return {
+        success: false,
+        isFood: false,
+        error: msg,
+        message: msg,
+      };
+    }
+    throw err;
+  }
 };
 
 export const getAIInsights = async (): Promise<{ success: boolean; insights: AIInsight[] }> => {
   return apiRequest('/api/ai/insights', {
     method: 'GET',
+    timeout: 30000,
   });
 };
 
@@ -71,6 +99,7 @@ export const generateAIWorkout = async (payload?: { targetArea?: string }): Prom
   return apiRequest('/api/ai/generate-workout', {
     method: 'POST',
     body: payload || {},
+    timeout: 45000,
   });
 };
 
@@ -95,6 +124,7 @@ export const getAIMealSuggestions = async (payload: {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
     body: payload,
+    timeout: 45000,
   });
 };
 
@@ -111,6 +141,7 @@ export const chatWithCoachApi = async (
   return apiRequest('/api/ai/chat', {
     method: 'POST',
     body: { messages },
+    timeout: 60000,
   });
 };
 

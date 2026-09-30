@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import {
   FoodCatalogItem,
-  COMMON_FOODS_CATALOG,
   scaleFoodMacros,
 } from '../../data/commonFoods';
 import {
@@ -26,6 +25,7 @@ import {
 } from './foodLogTypes';
 import {
   searchFoodsOnlineApi,
+  fetchOpenFoodFactsProducts,
   getRecentLoggedFoods,
   saveFoodToRecentHistory,
 } from '../../api/foodlog';
@@ -34,7 +34,7 @@ import { Ionicons } from '@expo/vector-icons';
 import FilterChip from '../ui/FilterChip';
 import NutritionFactsModal from './NutritionFactsModal';
 
-export type FilterCategory = 'ALL' | 'RECENT' | 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' | 'Staples';
+export type FilterCategory = 'ALL' | 'RECENT' | 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy';
 
 interface FoodLibraryTabProps {
   onAddFood: (item: FoodLogItem) => void;
@@ -52,9 +52,9 @@ export default function FoodLibraryTab({
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState<FilterCategory>('ALL');
 
-  // Online search state
-  const [onlineResults, setOnlineResults] = useState<FoodCatalogItem[]>([]);
-  const [isSearchingOnline, setIsSearchingOnline] = useState(false);
+  // Open Food Facts state
+  const [offFoods, setOffFoods] = useState<FoodCatalogItem[]>([]);
+  const [isLoadingOff, setIsLoadingOff] = useState(false);
 
   // Recent foods state
   const [recentFoods, setRecentFoods] = useState<FoodCatalogItem[]>([]);
@@ -80,11 +80,10 @@ export default function FoodLibraryTab({
     });
   }, []);
 
-  // Handle live search with debounced online query
+  // Fetch foods exclusively from Open Food Facts API for both browsing and searching
   useEffect(() => {
-    if (!searchQuery || searchQuery.trim().length < 2) {
-      setOnlineResults([]);
-      setIsSearchingOnline(false);
+    if (activeCategory === 'RECENT') {
+      setIsLoadingOff(false);
       return;
     }
 
@@ -92,24 +91,25 @@ export default function FoodLibraryTab({
       clearTimeout(debounceTimerRef.current);
     }
 
+    const q = searchQuery.trim();
+    const delay = q.length >= 2 ? 400 : 0;
+
     debounceTimerRef.current = setTimeout(async () => {
-      setIsSearchingOnline(true);
+      setIsLoadingOff(true);
       try {
-        const res = await searchFoodsOnlineApi(searchQuery.trim());
-        if (res.success && Array.isArray(res.foods)) {
-          setOnlineResults(res.foods);
-        }
-      } catch {
-        // Offline fallback is silent
+        const results = await fetchOpenFoodFactsProducts(q, activeCategory);
+        setOffFoods(results);
+      } catch (err) {
+        console.log('[FoodLibrary] Failed to fetch Open Food Facts:', err);
       } finally {
-        setIsSearchingOnline(false);
+        setIsLoadingOff(false);
       }
-    }, 450);
+    }, delay);
 
     return () => {
       if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
     };
-  }, [searchQuery]);
+  }, [searchQuery, activeCategory]);
 
   // Combine and filter items based on category and search
   const displayedItems = useMemo(() => {
@@ -123,33 +123,13 @@ export default function FoodLibraryTab({
       );
     }
 
-    const allCatalog = COMMON_FOODS_CATALOG;
-
-    let localMatches = allCatalog.filter((item) => {
-      if (activeCategory !== 'ALL' && item.category !== activeCategory) {
-        return false;
-      }
-      if (!q) return true;
-      const nameMatch = item.name.toLowerCase().includes(q);
-      const categoryMatch = item.category.toLowerCase().includes(q);
-      const brandMatch = item.brand ? item.brand.toLowerCase().includes(q) : false;
-      const keywordMatch = item.keywords && item.keywords.some((k) => k.toLowerCase().includes(q));
-      return nameMatch || categoryMatch || brandMatch || keywordMatch;
-    });
-
-    if (q) {
-      const existingNames = new Set(localMatches.map((m) => m.name.toLowerCase()));
-      const uniqueOnline = onlineResults.filter((o) => !existingNames.has(o.name.toLowerCase()));
-      return [...localMatches, ...uniqueOnline];
-    }
-
-    return localMatches;
-  }, [searchQuery, activeCategory, recentFoods, onlineResults]);
+    return offFoods;
+  }, [searchQuery, activeCategory, recentFoods, offFoods]);
 
   // Select item to adjust portions
   const handleSelectItem = (item: FoodCatalogItem) => {
     setSelectedItem(item);
-    if (item.category === 'Staples' || !item.servingWeightG || item.servingWeightG <= 0) {
+    if (!item.servingWeightG || item.servingWeightG <= 0) {
       setPortionMode('servings');
       setPortionAmount('1');
     } else {
@@ -171,11 +151,7 @@ export default function FoodLibraryTab({
 
     const numAmount = parseFloat(portionAmount) || 1;
     const portionDesc =
-      selectedItem.category === 'Staples'
-        ? numAmount === 1
-          ? selectedItem.servingSize
-          : `${numAmount}x · ${selectedItem.servingSize}`
-        : portionMode === 'grams'
+      portionMode === 'grams'
         ? `${numAmount}g`
         : `${numAmount} ${selectedItem.servingUnit || 'serving'}`;
 
@@ -300,14 +276,14 @@ export default function FoodLibraryTab({
         <TextInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="Search 100+ foods, brands, groceries..."
+          placeholder="Search 3M+ Open Food Facts products, brands..."
           placeholderTextColor={colors.textMuted}
           className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
           returnKeyType="search"
           clearButtonMode="while-editing"
           autoCorrect={false}
         />
-        {isSearchingOnline ? (
+        {isLoadingOff ? (
           <ActivityIndicator size="small" color={colors.accent} className="ml-1" />
         ) : searchQuery.length > 0 ? (
           <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
@@ -317,7 +293,7 @@ export default function FoodLibraryTab({
       </View>
 
       {/* 3. Category Filter Chips */}
-      <View className="mb-3">
+      <View className="mb-2">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
           {[
             { key: 'ALL', label: 'All Foods' },
@@ -328,7 +304,6 @@ export default function FoodLibraryTab({
             { key: 'Fruits', label: 'Fruits' },
             { key: 'Vegetables', label: 'Veggies' },
             { key: 'Dairy', label: 'Dairy' },
-            { key: 'Staples', label: 'Quick Staples' },
           ].map((cat) => (
             <FilterChip
               key={cat.key}
@@ -341,17 +316,42 @@ export default function FoodLibraryTab({
         </ScrollView>
       </View>
 
+      {/* Open Food Facts Database Indicator */}
+      <View className="flex-row items-center justify-between px-1 mb-2.5">
+        <View className="flex-row items-center gap-1.5">
+          <Ionicons name="globe-outline" size={13} color={colors.accent} />
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            {activeCategory === 'RECENT' ? 'Recent Logged History' : 'Open Food Facts Database · Verified Real Products'}
+          </Text>
+        </View>
+        {isLoadingOff && displayedItems.length > 0 ? (
+          <ActivityIndicator size="small" color={colors.accent} />
+        ) : displayedItems.length > 0 ? (
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
+            {displayedItems.length} products
+          </Text>
+        ) : null}
+      </View>
+
       {/* 4. Food Items Catalog */}
       <View className="gap-2">
-        {displayedItems.length === 0 ? (
-          <View className="py-12 items-center justify-center">
+        {isLoadingOff && displayedItems.length === 0 ? (
+          <View className="py-14 items-center justify-center">
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mt-3 font-medium">
+              Loading authentic foods from Open Food Facts...
+            </Text>
+          </View>
+        ) : displayedItems.length === 0 ? (
+          <View className="py-14 items-center justify-center">
+            <Ionicons name="basket-outline" size={32} color={colors.textMuted} style={{ marginBottom: 8, opacity: 0.5 }} />
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center">
               No Foods Found
             </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mt-1">
+            <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mt-1 px-8">
               {searchQuery
-                ? `No matches for "${searchQuery}". Check spelling or try a broader term.`
-                : 'No items in this category.'}
+                ? `No Open Food Facts matches for "${searchQuery}". Check spelling or try a brand name.`
+                : 'No Open Food Facts items found for this category.'}
             </Text>
           </View>
         ) : (
@@ -406,7 +406,7 @@ export default function FoodLibraryTab({
                       {item.isOnlineResult ? (
                         <View className="bg-info/15 dark:bg-info-dark/25 border border-info/30 dark:border-info-dark/30 px-1.5 py-0.5 rounded-md">
                           <Text className="text-info dark:text-info-dark font-bold text-[8px]">
-                            Grocery
+                            Open Food Facts
                           </Text>
                         </View>
                       ) : null}
@@ -493,8 +493,18 @@ export default function FoodLibraryTab({
                 <ScrollView showsVerticalScrollIndicator={false} bounces={false}>
                   <View className="flex-row justify-between items-start mb-2">
                     <View className="flex-1 pr-2">
-                      <View className="flex-row items-center gap-2 mb-1">
-                        {selectedItem.icon ? <Text className="text-xl">{selectedItem.icon}</Text> : null}
+                      <View className="flex-row items-center gap-2.5 mb-1">
+                        {selectedItem.imageUri ? (
+                          <Image
+                            source={{ uri: selectedItem.imageUri }}
+                            className="w-10 h-10 rounded-xl bg-black/10"
+                            resizeMode="cover"
+                          />
+                        ) : selectedItem.icon ? (
+                          <View className="w-10 h-10 rounded-xl bg-surface dark:bg-surface-dark items-center justify-center border border-input-border dark:border-input-border-dark">
+                            <Text className="text-xl">{selectedItem.icon}</Text>
+                          </View>
+                        ) : null}
                         <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-base flex-1" numberOfLines={1}>
                           {selectedItem.name}
                         </Text>
@@ -516,7 +526,7 @@ export default function FoodLibraryTab({
                         {selectedItem.isOnlineResult ? (
                           <View className="bg-info/15 dark:bg-info-dark/25 border border-info/30 dark:border-info-dark/30 px-1.5 py-0.5 rounded-md">
                             <Text className="text-info dark:text-info-dark font-bold text-[8px]">
-                              Grocery
+                              Open Food Facts
                             </Text>
                           </View>
                         ) : null}
