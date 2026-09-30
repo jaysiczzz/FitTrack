@@ -7,12 +7,14 @@ interface QuickActionToolbarProps {
   onPhotoScan: () => void;
   onTextLog: () => void;
   onAiSuggest: () => void;
+  onCopyYesterday?: () => void;
 }
 
 export default function QuickActionToolbar({
   onPhotoScan,
   onTextLog,
   onAiSuggest,
+  onCopyYesterday,
 }: QuickActionToolbarProps) {
   const { colors, isDark } = useThemeColors();
 
@@ -41,11 +43,11 @@ export default function QuickActionToolbar({
           <TouchableOpacity
             onPress={onTextLog}
             activeOpacity={0.8}
-            className="flex-1 bg-input/70 dark:bg-input-dark/70 border border-input-border dark:border-input-border-dark py-2 px-3 rounded-xl flex-row items-center justify-center gap-1.5"
+            className="flex-1 bg-input/70 dark:bg-input-dark/70 border border-input-border dark:border-input-border-dark py-2 px-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
           >
-            <Ionicons name="create-outline" size={14} color={colors.textMuted} />
-            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center">
-              Describe Meal
+            <Ionicons name="create-outline" size={13} color={colors.textMuted} />
+            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center" numberOfLines={1}>
+              Describe
             </Text>
           </TouchableOpacity>
 
@@ -53,15 +55,30 @@ export default function QuickActionToolbar({
           <TouchableOpacity
             onPress={onAiSuggest}
             activeOpacity={0.8}
-            className="flex-1 bg-input/70 dark:bg-input-dark/70 border border-input-border dark:border-input-border-dark py-2 px-3 rounded-xl flex-row items-center justify-center gap-1.5"
+            className="flex-1 bg-input/70 dark:bg-input-dark/70 border border-input-border dark:border-input-border-dark py-2 px-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
           >
-            <Ionicons name="sparkles" size={14} color="#10B981" />
-            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center">
-              AI Suggest
+            <Ionicons name="sparkles" size={13} color="#10B981" />
+            <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center" numberOfLines={1}>
+              Suggest
             </Text>
           </TouchableOpacity>
+
+          {/* Copy from Yesterday */}
+          {onCopyYesterday && (
+            <TouchableOpacity
+              onPress={onCopyYesterday}
+              activeOpacity={0.8}
+              className="flex-1 bg-input/70 dark:bg-input-dark/70 border border-input-border dark:border-input-border-dark py-2 px-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+            >
+              <Ionicons name="copy-outline" size={13} color={colors.accent} />
+              <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs text-center" numberOfLines={1}>
+                Yesterday
+              </Text>
+            </TouchableOpacity>
+          )}
         </View>
       </View>
     </View>
   );
 }
+

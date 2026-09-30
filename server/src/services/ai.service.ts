@@ -453,3 +453,77 @@ You are conversing directly with ${context.firstName || 'the user'}.
   return responseText.trim()
 }
 
+export async function streamAICoach(
+  messages: ChatMessage[],
+  context: UserChatContext = {},
+  onChunk: (chunkText: string) => void
+): Promise<string> {
+  const goalDisplay =
+    context.goal === 'MUSCLE_GAIN'
+      ? 'Muscle Gain / Hypertrophy'
+      : context.goal === 'WEIGHT_LOSS'
+      ? 'Fat Loss / Cutting'
+      : context.goal || 'General Health & Fitness'
+
+  const systemPrompt = `You are FitTrack Coach, an elite, motivating, evidence-based fitness and sports nutrition coach inside the FitTrack mobile app.
+You are conversing directly with ${context.firstName || 'the user'}.
+
+=== User Real-Time Profile & Daily Context ===
+- Fitness Goal: ${goalDisplay}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
+- Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
+- Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
+  * Protein: ${context.proteinLoggedToday ?? 0}g / ${context.targetProtein || 140}g
+  * Carbs: ${context.carbsLoggedToday ?? 0}g
+  * Fat: ${context.fatLoggedToday ?? 0}g
+- Water Hydration: ${context.waterMl ?? 0} / 2000 ml
+- Workout Today: ${context.workoutDoneToday ? `Completed (${context.todayWorkoutTitle || 'Session'}) 💪` : 'Not completed yet today'}
+- Workouts This Week: ${context.workoutsCompletedThisWeek ?? 0} sessions
+
+=== Coaching Principles & Response Guidelines ===
+1. Personalize advice deeply using the user's real-time stats, readiness mood, and goal.
+   - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
+   - If feeling strong or energized, urge progressive overload and intensity.
+   - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+2. Structure answers specifically for clean mobile reading:
+   - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
+   - When suggesting meals or snacks, include estimated calories and protein.
+   - When giving workout tips, specify sets, reps, and form safety cues.
+3. If the user mentions acute injury, chest pain, or medical symptoms, compassionately advise seeing a doctor or physical therapist.
+4. Keep an inspiring, positive, and disciplined coaching tone.`
+
+  const conversationHistory = messages
+    .map((m) => `${m.role === 'user' ? 'User' : 'FitTrack Coach'}: ${m.content}`)
+    .join('\n\n')
+
+  const prompt = `${systemPrompt}\n\n=== Conversation History ===\n${conversationHistory}\n\nFitTrack Coach:`
+
+  let fullResponse = ''
+  try {
+    const ai = getAI()
+    const primaryModel = process.env.GEMINI_MODEL || CANDIDATE_MODELS[0]
+
+    const responseStream = await ai.models.generateContentStream({
+      model: primaryModel,
+      contents: prompt,
+      config: { temperature: 0.7 },
+    })
+
+    for await (const chunk of responseStream) {
+      const text = chunk.text
+      if (text) {
+        fullResponse += text
+        onChunk(text)
+      }
+    }
+  } catch (err: any) {
+    console.warn('[AI Service] Stream failed with primary model, fallback to generateWithFallback:', err?.message || err)
+    fullResponse = await generateWithFallback(prompt, { temperature: 0.7 })
+    onChunk(fullResponse)
+  }
+
+  return fullResponse.trim()
+}
+
+

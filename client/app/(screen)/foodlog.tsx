@@ -308,11 +308,83 @@ export default function FoodLog() {
     });
   };
 
+  // Duplicate single meal item
+  const handleDuplicateMeal = (item: FoodLogItem) => {
+    hapticFeedback.light();
+    const cloned: FoodLogItem = {
+      ...item,
+      id: `meal-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+      loggedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    handleAddMealItem(cloned);
+  };
+
+  // Copy yesterday's logged meals into today's log
+  const [copyingYesterday, setCopyingYesterday] = useState(false);
+
+  const handleCopyYesterday = async () => {
+    if (copyingYesterday) return;
+    hapticFeedback.light();
+    setCopyingYesterday(true);
+
+    try {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yYear = yesterday.getFullYear();
+      const yMonth = String(yesterday.getMonth() + 1).padStart(2, '0');
+      const yDay = String(yesterday.getDate()).padStart(2, '0');
+      const yesterdayStr = `${yYear}-${yMonth}-${yDay}`;
+
+      const res = await getDailyFoodLogApi(yesterdayStr);
+      const yesterdayMeals = res?.data?.meals;
+
+      if (!yesterdayMeals || yesterdayMeals.length === 0) {
+        showToast({
+          message: 'No Meals Found',
+          description: 'No meals were logged yesterday to copy.',
+          type: 'info',
+          iconName: 'information-circle',
+        });
+        return;
+      }
+
+      const clonedMeals: FoodLogItem[] = yesterdayMeals.map((m: any) => ({
+        id: `meal-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+        mealType: m.mealType as MealType,
+        title: m.title,
+        subtitle: m.subtitle || undefined,
+        calories: Math.round(Number(m.calories) || 0),
+        protein: Number(m.protein) || 0,
+        carbs: Number(m.carbs) || 0,
+        fat: Number(m.fat) || 0,
+        goalBadge: m.goalBadge || undefined,
+        goalBadgeColor: m.goalBadgeColor || undefined,
+        icon: m.icon || undefined,
+        healthNotes: m.healthNotes || undefined,
+        imageUri: m.imageUri || undefined,
+        loggedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        macros: m.macros || undefined,
+      }));
+
+      handleAddMealItem(clonedMeals);
+    } catch (err: any) {
+      showToast({
+        message: 'Could Not Copy Meals',
+        description: err?.message || 'Failed to fetch yesterday food log.',
+        type: 'error',
+        iconName: 'alert-circle',
+      });
+    } finally {
+      setCopyingYesterday(false);
+    }
+  };
+
   const promptDeleteItem = (id: string) => {
     const found = items.find((i) => i.id === id);
     if (found) {
       setItemToDelete(found);
     }
+
   };
 
   // Delete Item
@@ -517,7 +589,7 @@ export default function FoodLog() {
               goal={goal}
             />
 
-            {/* 2. Quick Action Toolbar (Photo Scan, Describe Meal & AI Suggest) */}
+            {/* 2. Quick Action Toolbar (Photo Scan, Describe Meal, AI Suggest & Copy Yesterday) */}
             <QuickActionToolbar
               onPhotoScan={() => {
                 setScanTargetMeal(undefined);
@@ -530,6 +602,7 @@ export default function FoodLog() {
                 setShowScanModal(true);
               }}
               onAiSuggest={() => setShowAiSuggestModal(true)}
+              onCopyYesterday={handleCopyYesterday}
             />
 
             {/* 3. Meal Category Cards */}
@@ -559,6 +632,7 @@ export default function FoodLog() {
                     onScanPress={openScanForMeal}
                     onDeleteItem={promptDeleteItem}
                     onEditItem={(item) => setItemToEdit(item)}
+                    onDuplicateItem={handleDuplicateMeal}
                   />
 
                   {/* Lunch */}
@@ -570,6 +644,7 @@ export default function FoodLog() {
                     onScanPress={openScanForMeal}
                     onDeleteItem={promptDeleteItem}
                     onEditItem={(item) => setItemToEdit(item)}
+                    onDuplicateItem={handleDuplicateMeal}
                   />
 
                   {/* Dinner */}
@@ -581,6 +656,7 @@ export default function FoodLog() {
                     onScanPress={openScanForMeal}
                     onDeleteItem={promptDeleteItem}
                     onEditItem={(item) => setItemToEdit(item)}
+                    onDuplicateItem={handleDuplicateMeal}
                   />
 
                   {/* Snacks & Drinks */}
@@ -592,10 +668,12 @@ export default function FoodLog() {
                     onScanPress={openScanForMeal}
                     onDeleteItem={promptDeleteItem}
                     onEditItem={(item) => setItemToEdit(item)}
+                    onDuplicateItem={handleDuplicateMeal}
                   />
                 </>
               )}
             </View>
+
 
             {/* 4. Hydration Water Tracker */}
             <WaterTrackerCard

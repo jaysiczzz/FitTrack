@@ -34,6 +34,7 @@ model User {
   subscription    Subscription?
   wallet          Wallet?
   walletTransactions WalletTransaction[]
+  supportTickets  SupportTicket[]
 }
 
 enum Goal {
@@ -174,7 +175,6 @@ model Food {
   id             String     @id @default(uuid())
   name           String
   brand          String?
-  barcode        String?    @unique
   category       String?    @default("Staples")
   servingSize    String     @default("100g")
   servingWeightG Float      @default(100)
@@ -196,10 +196,10 @@ model Food {
   updatedAt      DateTime   @updatedAt
 
   @@index([name])
-  @@index([barcode])
   @@index([userId])
   @@index([category])
 }
+
 
 enum FoodSource {
   SYSTEM
@@ -438,6 +438,39 @@ enum TransactionStatus {
   PENDING
   FAILED
   REFUNDED
+}
+
+model SupportTicket {
+  id          String         @id @default(uuid())
+  userId      String?
+  user        User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userEmail   String
+  userName    String?
+  category    TicketCategory @default(GENERAL)
+  subject     String
+  message     String         @db.Text
+  status      TicketStatus   @default(OPEN)
+  adminNotes  String?        @db.Text
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([category])
+  @@index([createdAt])
+}
+
+enum TicketCategory {
+  BUG
+  FEATURE
+  QUESTION
+  GENERAL
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
 }
 
 

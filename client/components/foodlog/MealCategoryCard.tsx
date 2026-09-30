@@ -15,6 +15,7 @@ interface MealCategoryCardProps {
   onScanPress?: (type: MealType) => void;
   onDeleteItem: (id: string) => void;
   onEditItem?: (item: FoodLogItem) => void;
+  onDuplicateItem?: (item: FoodLogItem) => void;
 }
 
 const MEAL_CATEGORY_ICONS: Record<MealType, keyof typeof Ionicons.glyphMap> = {
@@ -42,7 +43,9 @@ export default function MealCategoryCard({
   onScanPress,
   onDeleteItem,
   onEditItem,
+  onDuplicateItem,
 }: MealCategoryCardProps) {
+
   const { colors } = useThemeColors();
   const totalCalories = items.reduce((acc, item) => acc + (item.calories || 0), 0);
   const totalProtein = items.reduce((acc, item) => acc + (item.protein || 0), 0);
@@ -162,21 +165,36 @@ export default function MealCategoryCard({
                   </View>
                 </TouchableOpacity>
 
-                {/* Right: Calories & Delete */}
+                {/* Right: Calories, Duplicate & Delete */}
                 <View className="items-end justify-between pl-2">
-                  <TouchableOpacity
-                    onPress={() => onDeleteItem(item.id)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    activeOpacity={0.7}
-                    className="w-5 h-5 rounded-full items-center justify-center mb-1"
-                  >
-                    <Ionicons name="trash" size={14} color={colors.danger} />
-                  </TouchableOpacity>
+                  <View className="flex-row items-center gap-2 mb-1">
+                    {onDuplicateItem && (
+                      <TouchableOpacity
+                        onPress={() => onDuplicateItem(item)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        activeOpacity={0.7}
+                        className="w-5 h-5 rounded-full items-center justify-center"
+                        accessibilityLabel={`Duplicate ${item.title}`}
+                      >
+                        <Ionicons name="copy-outline" size={13} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    )}
+                    <TouchableOpacity
+                      onPress={() => onDeleteItem(item.id)}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      activeOpacity={0.7}
+                      className="w-5 h-5 rounded-full items-center justify-center"
+                      accessibilityLabel={`Delete ${item.title}`}
+                    >
+                      <Ionicons name="trash" size={13} color={colors.danger} />
+                    </TouchableOpacity>
+                  </View>
 
                   <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
                     {item.calories} <Text className="text-[10px] font-normal text-text-muted dark:text-text-muted-dark">kcal</Text>
                   </Text>
                 </View>
+
               </View>
             );
           })}

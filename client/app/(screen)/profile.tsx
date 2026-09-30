@@ -40,6 +40,7 @@ export default function Profile() {
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(!screenCache.profileLoaded);
   const [saving, setSaving] = useState(false);
+  const [weightRefreshKey, setWeightRefreshKey] = useState(0);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
   // Form states
@@ -150,8 +151,10 @@ export default function Profile() {
       if (res.user) {
         applyUserData(res.user);
         await updateUser(res.user);
+        setWeightRefreshKey((k) => k + 1);
         setMessage({ type: 'success', text: 'Profile updated successfully' });
       }
+
     } catch (err: any) {
       setMessage({ type: 'error', text: err.message || 'Failed to update profile' });
     } finally {
@@ -239,8 +242,10 @@ export default function Profile() {
 
         {/* Weight & Body Progress Card */}
         <WeightProgressCard
+          key={`weight-card-${weightRefreshKey}-${savedUser?.weight}`}
           onWeightUpdated={(newW) => setWeight(String(newW))}
         />
+
 
         {/* Feedback Alert Message */}
         {message ? (

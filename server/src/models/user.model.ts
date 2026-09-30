@@ -24,6 +24,12 @@ export const findById = (id: string) => {
     })
 }
 
+export const deleteUser = (id: string) => {
+    return prisma.user.delete({
+        where: { id },
+    })
+}
+
 export const createUser = (data: {
     firstName: string;
     lastName: string;

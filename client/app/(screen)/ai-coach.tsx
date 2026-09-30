@@ -19,10 +19,12 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import {
   chatWithCoachApi,
+  streamChatWithCoachApi,
   getChatHistoryApi,
   clearChatHistoryApi,
   ChatMessage,
 } from '@/api/ai';
+
 import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 
@@ -192,29 +194,78 @@ export default function AiCoachScreen() {
     setIsSending(true);
     scrollToBottom(true);
 
+    const apiPayload = updatedMessages.map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+
+    const tempModelId = `stream_${Date.now()}`;
+    let streamedText = '';
+
     try {
-      const apiPayload = updatedMessages.map((m) => ({
-        role: m.role,
-        content: m.content,
-      }));
+      let streamSuccess = false;
 
-      const res = await chatWithCoachApi(apiPayload);
+      try {
+        // Optimistically insert streaming placeholder
+        setMessages([
+          ...updatedMessages,
+          {
+            id: tempModelId,
+            role: 'model',
+            content: '',
+            createdAt: new Date().toISOString(),
+          },
+        ]);
 
-      if (res.success && res.message) {
-        const coachMsg: ChatMessage = {
-          role: 'model',
-          content: res.message,
-          createdAt: new Date().toISOString(),
-        };
-        const finalMessages = [...updatedMessages, coachMsg];
-        setMessages(finalMessages);
-        await persistMessagesLocally(finalMessages);
-      } else {
-        setFailedMessage(textToSend);
-        showError('Coach Offline', 'Could not get a response from your AI Coach. Tap retry below.');
+        const streamRes = await streamChatWithCoachApi(apiPayload, (chunk) => {
+          streamedText += chunk;
+          setMessages((prev) =>
+            prev.map((m) =>
+              m.id === tempModelId ? { ...m, content: streamedText } : m
+            )
+          );
+          scrollToBottom(false);
+        });
+
+        if (streamRes.success && (streamRes.message || streamedText)) {
+          const finalText = streamRes.message || streamedText;
+          const finalMessages = [
+            ...updatedMessages,
+            {
+              role: 'model' as const,
+              content: finalText,
+              createdAt: new Date().toISOString(),
+            },
+          ];
+          setMessages(finalMessages);
+          await persistMessagesLocally(finalMessages);
+          streamSuccess = true;
+        }
+      } catch {
+        // Stream failed, will fall back to standard JSON call below
+      }
+
+      if (!streamSuccess) {
+        // Fallback to standard request
+        const res = await chatWithCoachApi(apiPayload);
+        if (res.success && res.message) {
+          const coachMsg: ChatMessage = {
+            role: 'model',
+            content: res.message,
+            createdAt: new Date().toISOString(),
+          };
+          const finalMessages = [...updatedMessages, coachMsg];
+          setMessages(finalMessages);
+          await persistMessagesLocally(finalMessages);
+        } else {
+          setMessages(updatedMessages);
+          setFailedMessage(textToSend);
+          showError('Coach Offline', 'Could not get a response from your AI Coach. Tap retry below.');
+        }
       }
     } catch (err: any) {
       console.error('Coach Chat Error:', err);
+      setMessages(updatedMessages);
       setFailedMessage(textToSend);
       showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
     } finally {
@@ -222,6 +273,7 @@ export default function AiCoachScreen() {
       scrollToBottom(true);
     }
   };
+
 
   const handleRetryFailed = () => {
     if (failedMessage) {

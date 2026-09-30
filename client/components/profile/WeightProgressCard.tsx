@@ -10,6 +10,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
+import { useWeightUnit, convertFromKg } from '@/constants/units';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -58,6 +59,8 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
   const [logToDelete, setLogToDelete] = useState<WeightLogItem | null>(null);
+  const [unit] = useWeightUnit();
+  const unitLabel = unit.toLowerCase();
 
   // Load from local storage first, then fetch from API
   const loadWeightData = useCallback(async () => {
@@ -203,6 +206,14 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
   const userGoal = user?.goal || 'WEIGHT_LOSS';
   const isLoss = userGoal === 'WEIGHT_LOSS';
 
+  const displayStartingWeight = stats.startingWeight ? convertFromKg(stats.startingWeight, unit).toFixed(1) : '—';
+  const displayCurrentWeight = stats.currentWeight ? convertFromKg(stats.currentWeight, unit).toFixed(1) : '—';
+  const displayTargetWeight = stats.targetWeight ? convertFromKg(stats.targetWeight, unit).toFixed(1) : null;
+  const displayTotalChange = unit === 'LBS' ? Math.round(stats.totalChange * 2.20462 * 10) / 10 : stats.totalChange;
+  const displayRemaining = stats.remainingToGoal !== null ? (unit === 'LBS' ? Math.round(stats.remainingToGoal * 2.20462 * 10) / 10 : stats.remainingToGoal) : null;
+  const displayWeeklyAvg = convertFromKg(stats.weeklyAverage, unit).toFixed(1);
+  const displayMonthlyAvg = convertFromKg(stats.monthlyAverage, unit).toFixed(1);
+
   return (
     <SurfaceCard className="mb-3">
       {/* Header: Title, Trend & Action */}
@@ -230,7 +241,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                       : 'text-amber-500 dark:text-amber-400'
                   }`}
                 >
-                  {stats.totalChange > 0 ? `+${stats.totalChange}` : stats.totalChange} kg
+                  {displayTotalChange > 0 ? `+${displayTotalChange}` : displayTotalChange} {unitLabel}
                 </Text>
               </View>
             ) : null}
@@ -263,8 +274,8 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
             STARTING
           </Text>
           <Text className="text-text-primary dark:text-text-primary-dark text-base font-black">
-            {stats.startingWeight ? `${stats.startingWeight.toFixed(1)}` : '—'}
-            <Text className="text-[10px] font-normal text-text-muted ml-0.5"> kg</Text>
+            {displayStartingWeight}
+            <Text className="text-[10px] font-normal text-text-muted ml-0.5"> {unitLabel}</Text>
           </Text>
         </View>
 
@@ -276,8 +287,8 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
             CURRENT
           </Text>
           <Text className="text-accent dark:text-accent-dark text-xl font-black">
-            {stats.currentWeight ? `${stats.currentWeight.toFixed(1)}` : '—'}
-            <Text className="text-xs font-normal ml-0.5"> kg</Text>
+            {displayCurrentWeight}
+            <Text className="text-xs font-normal ml-0.5"> {unitLabel}</Text>
           </Text>
         </View>
 
@@ -295,10 +306,10 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
             </Text>
             <Ionicons name="pencil" size={10} color={colors.textMuted} />
           </View>
-          {stats.targetWeight ? (
+          {displayTargetWeight ? (
             <Text className="text-text-primary dark:text-text-primary-dark text-base font-black">
-              {stats.targetWeight.toFixed(1)}
-              <Text className="text-[10px] font-normal text-text-muted ml-0.5"> kg</Text>
+              {displayTargetWeight}
+              <Text className="text-[10px] font-normal text-text-muted ml-0.5"> {unitLabel}</Text>
             </Text>
           ) : (
             <Text className="text-accent dark:text-accent-dark text-xs font-bold underline">
@@ -317,9 +328,9 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
             </Text>
             <Text className="text-xs font-extrabold text-accent dark:text-accent-dark">
               {stats.progressPercentage}%
-              {stats.remainingToGoal !== null ? (
+              {displayRemaining !== null ? (
                 <Text className="text-text-muted dark:text-text-muted-dark font-normal">
-                  {' '}· {stats.remainingToGoal} kg left
+                  {' '}· {displayRemaining} {unitLabel} left
                 </Text>
               ) : null}
             </Text>
@@ -341,10 +352,10 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
             </Text>
             <View className="flex-row items-center gap-2">
               <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
-                7D Avg: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.weeklyAverage.toFixed(1)}</Text>
+                7D Avg: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{displayWeeklyAvg}</Text>
               </Text>
               <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
-                30D Avg: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.monthlyAverage.toFixed(1)}</Text>
+                30D Avg: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{displayMonthlyAvg}</Text>
               </Text>
             </View>
           </View>
@@ -455,7 +466,10 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                                     : 'text-text-muted'
                                 }`}
                               >
-                                {delta > 0 ? `+${delta}` : delta} kg
+                                {(() => {
+                                  const displayDelta = unit === 'LBS' ? Math.round(delta * 2.20462 * 10) / 10 : delta;
+                                  return `${displayDelta > 0 ? `+${displayDelta}` : displayDelta} ${unitLabel}`;
+                                })()}
                               </Text>
                             </View>
                           ) : null}
@@ -472,7 +486,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
 
                       <View className="flex-row items-center gap-3">
                         <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                          {item.weight.toFixed(1)} kg
+                          {convertFromKg(item.weight, unit).toFixed(1)} {unitLabel}
                         </Text>
 
                         <TouchableOpacity
@@ -514,7 +528,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
       <ConfirmModal
         visible={Boolean(logToDelete)}
         title="Delete Weigh-In"
-        message={`Are you sure you want to delete the weigh-in of ${logToDelete?.weight.toFixed(1)} kg on ${logToDelete?.date}?`}
+        message={`Are you sure you want to delete the weigh-in of ${convertFromKg(logToDelete?.weight || 0, unit).toFixed(1)} ${unitLabel} on ${logToDelete?.date}?`}
         confirmText="Delete"
         cancelText="Cancel"
         isDanger

@@ -9,8 +9,10 @@ import {
   generateAIWorkout,
   generateAIMealSuggestions,
   chatWithAICoach,
+  streamAICoach,
   ChatMessage,
 } from '../services/ai.service'
+
 
 export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { description, imageBase64, mimeType } = req.body
@@ -190,7 +192,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     }
   }
 
-  const responseText = await chatWithAICoach(messages as ChatMessage[], {
+  const chatContext = {
     firstName: user?.firstName || 'Friend',
     weight: user?.weight,
     height: user?.height,
@@ -209,7 +211,44 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     todayCheckInMood: todayCheckIn?.moodLabel,
     todayCheckInNotes: todayCheckIn?.notes || undefined,
     checkInStreak: checkInCount,
-  })
+  }
+
+  const isStreaming =
+    req.query.stream === 'true' ||
+    req.body.stream === true ||
+    req.headers.accept?.includes('text/event-stream')
+
+  if (isStreaming) {
+    res.setHeader('Content-Type', 'text/event-stream')
+    res.setHeader('Cache-Control', 'no-cache')
+    res.setHeader('Connection', 'keep-alive')
+    if (typeof (res as any).flushHeaders === 'function') {
+      ;(res as any).flushHeaders()
+    }
+
+    const responseText = await streamAICoach(messages as ChatMessage[], chatContext, (chunk) => {
+      res.write(`data: ${JSON.stringify({ chunk })}\n\n`)
+    })
+
+    if (userId && responseText) {
+      try {
+        await prisma.aiChatMessage.create({
+          data: {
+            userId,
+            role: 'model',
+            content: responseText,
+          },
+        })
+      } catch (saveErr) {
+        console.warn('[AI Controller] Could not persist AI coach message:', saveErr)
+      }
+    }
+
+    res.write(`data: ${JSON.stringify({ done: true, message: responseText })}\n\n`)
+    return res.end()
+  }
+
+  const responseText = await chatWithAICoach(messages as ChatMessage[], chatContext)
 
   // Persist AI coach reply to cloud database
   if (userId && responseText) {
@@ -228,6 +267,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
 
   res.json({ success: true, message: responseText })
 })
+
 
 export const getChatHistory = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id

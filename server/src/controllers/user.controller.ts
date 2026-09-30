@@ -3,6 +3,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import * as userModel from '../models/user.model'
 import { Goal } from '@prisma/client'
 import { asyncHandler } from '../utils/asyncHandler.utils'
+import { prisma } from '../config/db'
 
 export const getProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id
@@ -88,5 +89,53 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
 
     const user = await userModel.updateUser(userId, updateData)
 
+    // Q4: Automatically sync/upsert WeightLog when weight is updated from profile
+    if (updateData.weight !== undefined) {
+        const now = new Date()
+        const year = now.getFullYear()
+        const month = String(now.getMonth() + 1).padStart(2, '0')
+        const day = String(now.getDate()).padStart(2, '0')
+        const todayStr = `${year}-${month}-${day}`
+
+        try {
+            await prisma.weightLog.upsert({
+                where: {
+                    userId_date: {
+                        userId,
+                        date: todayStr,
+                    },
+                },
+                update: {
+                    weight: updateData.weight,
+                },
+                create: {
+                    userId,
+                    date: todayStr,
+                    weight: updateData.weight,
+                    notes: 'Updated from profile',
+                },
+            })
+        } catch (weightSyncErr) {
+            console.warn('[User] Could not sync WeightLog on profile update:', weightSyncErr)
+        }
+    }
+
     res.json({ user })
 })
+
+export const deleteAccount = asyncHandler(async (req: AuthRequest, res: Response) => {
+    const userId = req.user?.id
+    if (!userId) {
+        return res.status(401).json({ error: 'Unauthorized' })
+    }
+
+    const user = await userModel.findById(userId)
+    if (!user) {
+        return res.status(404).json({ error: 'User not found' })
+    }
+
+    await userModel.deleteUser(userId)
+
+    res.json({ success: true, message: 'Account deleted successfully' })
+})
+
