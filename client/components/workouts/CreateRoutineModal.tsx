@@ -119,13 +119,12 @@ export default function CreateRoutineModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 bg-black/60 justify-end"
+        className="flex-1 bg-black/60 justify-end md:justify-center items-center p-0 md:p-4"
       >
         <TouchableWithoutFeedback onPress={onClose}>
-          <View className="flex-1 justify-end">
+          <View className="flex-1 w-full justify-end md:justify-center items-center">
             <TouchableWithoutFeedback>
-              <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 max-h-[90%] border-t border-input-border dark:border-input-border-dark">
+              <View className="w-full md:max-w-lg bg-background dark:bg-background-dark rounded-t-3xl md:rounded-3xl p-5 max-h-[90%] border-t md:border border-input-border dark:border-input-border-dark">
                 {/* Modal Header */}
                 <View className="flex-row justify-between items-center mb-4">
                   <View>
@@ -301,9 +300,11 @@ export default function CreateRoutineModal({
                         </View>
                         <TouchableOpacity
                           onPress={() => handleRemoveExercise(idx)}
-                          className="p-1.5"
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          className="min-h-[44px] min-w-[44px] items-center justify-center"
+                          accessibilityLabel="Remove exercise"
                         >
-                          <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                          <Ionicons name="trash-outline" size={16} color={colors.danger} />
                         </TouchableOpacity>
                       </View>
                     ))
@@ -316,7 +317,7 @@ export default function CreateRoutineModal({
                   onPress={handleSave}
                   className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
                 >
-                  <Text className="text-white text-sm font-black tracking-wide">
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-sm font-black tracking-wide">
                     Save Routine Template
                   </Text>
                 </TouchableOpacity>

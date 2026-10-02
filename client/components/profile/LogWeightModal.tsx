@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
-  Platform,
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
@@ -103,12 +102,11 @@ export default function LogWeightModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] w-full md:max-w-lg shadow-2xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -132,7 +130,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleSelectDateMode('today')}
                   activeOpacity={0.7}
-                  className={`flex-1 py-2 rounded-xl items-center border ${
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center border ${
                     dateMode === 'today'
                       ? 'bg-accent/15 border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -152,7 +151,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleSelectDateMode('yesterday')}
                   activeOpacity={0.7}
-                  className={`flex-1 py-2 rounded-xl items-center border ${
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center border ${
                     dateMode === 'yesterday'
                       ? 'bg-accent/15 border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -172,7 +172,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleSelectDateMode('custom')}
                   activeOpacity={0.7}
-                  className={`flex-1 py-2 rounded-xl items-center border ${
+                  hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                  className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center border ${
                     dateMode === 'custom'
                       ? 'bg-accent/15 border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -230,7 +231,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleAdjust(-1.0)}
                   activeOpacity={0.7}
-                  className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                     -1.0
@@ -240,7 +242,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleAdjust(-0.1)}
                   activeOpacity={0.7}
-                  className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                     -0.1
@@ -250,7 +253,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleAdjust(+0.1)}
                   activeOpacity={0.7}
-                  className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                     +0.1
@@ -260,7 +264,8 @@ export default function LogWeightModal({
                 <TouchableOpacity
                   onPress={() => handleAdjust(+1.0)}
                   activeOpacity={0.7}
-                  className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
                 >
                   <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                     +1.0
@@ -280,7 +285,8 @@ export default function LogWeightModal({
                     key={chip}
                     onPress={() => setNotes(chip)}
                     activeOpacity={0.7}
-                    className={`px-2.5 py-1 rounded-full border ${
+                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    className={`px-3 py-1.5 rounded-full border ${
                       notes === chip
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -314,7 +320,7 @@ export default function LogWeightModal({
               onPress={handleSubmit}
               disabled={saving}
               activeOpacity={0.8}
-              className="w-full bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-4"
+              className="w-full bg-accent dark:bg-accent-dark min-h-[48px] py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm mb-4"
             >
               {saving ? (
                 <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />

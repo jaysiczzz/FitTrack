@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
 } from 'react-native';
@@ -182,12 +181,11 @@ export default function HelpSupportModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark h-[88%] shadow-xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[88%] md:h-[80%] w-full md:max-w-xl shadow-xl">
           {/* Modal Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -206,7 +204,8 @@ export default function HelpSupportModal({
             <TouchableOpacity
               onPress={() => setActiveTab('faq')}
               activeOpacity={0.8}
-              className={`flex-1 py-2 rounded-lg items-center justify-center ${
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              className={`flex-1 min-h-[44px] py-2 rounded-lg items-center justify-center ${
                 activeTab === 'faq' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
               }`}
             >
@@ -224,7 +223,8 @@ export default function HelpSupportModal({
             <TouchableOpacity
               onPress={() => setActiveTab('contact')}
               activeOpacity={0.8}
-              className={`flex-1 py-2 rounded-lg items-center justify-center ${
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              className={`flex-1 min-h-[44px] py-2 rounded-lg items-center justify-center ${
                 activeTab === 'contact' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
               }`}
             >
@@ -423,7 +423,7 @@ export default function HelpSupportModal({
                 <TouchableOpacity
                   onPress={handleSendFeedback}
                   disabled={submitting}
-                  className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
+                  className="min-h-[48px] py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
                 >
                   {submitting ? (
                     <ActivityIndicator size="small" color="#FFFFFF" />
@@ -436,7 +436,7 @@ export default function HelpSupportModal({
 
                 <TouchableOpacity
                   onPress={handleDirectEmail}
-                  className="py-3 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center flex-row bg-input dark:bg-input-dark"
+                  className="min-h-[48px] py-3 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center flex-row bg-input dark:bg-input-dark"
                 >
                   <Ionicons name="mail-outline" size={16} color={colors.textPrimary} className="mr-2" />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">

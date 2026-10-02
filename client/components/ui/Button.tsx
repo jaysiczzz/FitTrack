@@ -58,8 +58,8 @@ const Button: React.FC<Props> = ({
       default:
         return {
           container: 'bg-accent dark:bg-accent-dark active:opacity-90',
-          text: 'text-white font-bold',
-          spinner: '#FFFFFF',
+          text: 'text-accent-contrast dark:text-accent-contrast-dark font-bold',
+          spinner: colors.accentContrast,
         };
     }
   };

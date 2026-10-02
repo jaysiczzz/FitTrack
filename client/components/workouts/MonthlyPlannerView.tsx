@@ -346,7 +346,8 @@ export default function MonthlyPlannerView({
             <TouchableOpacity
               onPress={handlePrevMonth}
               activeOpacity={0.7}
-              className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              accessibilityLabel="Previous month"
             >
               <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -365,7 +366,7 @@ export default function MonthlyPlannerView({
             {!isCurrentViewingMonth && (
               <TouchableOpacity
                 onPress={handleJumpToCurrentMonth}
-                className="px-2.5 py-1.5 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40"
+                className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40"
               >
                 <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
                   This Month
@@ -376,7 +377,8 @@ export default function MonthlyPlannerView({
             <TouchableOpacity
               onPress={handleNextMonth}
               activeOpacity={0.7}
-              className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              accessibilityLabel="Next month"
             >
               <Ionicons name="chevron-forward" size={18} color={colors.textPrimary} />
             </TouchableOpacity>
@@ -396,18 +398,22 @@ export default function MonthlyPlannerView({
             <View className="flex-row items-center gap-1.5">
               <TouchableOpacity
                 onPress={() => onUpdateTargetDays(Math.max(8, monthStats.targetDays - 2))}
-                className="w-6 h-6 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                accessibilityLabel="Decrease target days"
               >
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">-</Text>
+                <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">-</Text>
               </TouchableOpacity>
-              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark px-1">
                 {monthStats.targetDays} Days
               </Text>
               <TouchableOpacity
                 onPress={() => onUpdateTargetDays(Math.min(30, monthStats.targetDays + 2))}
-                className="w-6 h-6 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                accessibilityLabel="Increase target days"
               >
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">+</Text>
+                <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">+</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -462,8 +468,8 @@ export default function MonthlyPlannerView({
             onPress={handleAutoFillMonth}
             className="px-3 py-2 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1.5"
           >
-            <Ionicons name="flash" size={13} color="#FFFFFF" />
-            <Text className="text-xs font-black text-white">
+            <Ionicons name="flash" size={13} color={colors.accentContrast} />
+            <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">
               {isAutoFilling ? 'Filling...' : 'Auto-Fill'}
             </Text>
           </TouchableOpacity>
@@ -701,8 +707,8 @@ export default function MonthlyPlannerView({
         {selectedDayInfo.completedSessions.length > 0 && (
           <View className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-2xl mb-3">
             <View className="flex-row items-center gap-2 mb-1">
-              <Ionicons name="checkmark-circle" size={16} color="#10B981" />
-              <Text className="text-xs font-black text-emerald-600 dark:text-emerald-400">
+              <Ionicons name="checkmark-circle" size={16} color={colors.accent} />
+              <Text className="text-xs font-black text-accent dark:text-accent-dark">
                 Workout Session Completed!
               </Text>
             </View>
@@ -765,8 +771,8 @@ export default function MonthlyPlannerView({
                 onPress={() => onStartRoutine(selectedDayInfo.assignedRoutine!)}
                 className="flex-1 py-2.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center justify-center gap-1.5"
               >
-                <Ionicons name="play" size={14} color="#FFFFFF" />
-                <Text className="text-xs font-black text-white uppercase tracking-wider">
+                <Ionicons name="play" size={14} color={colors.accentContrast} />
+                <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark uppercase tracking-wider">
                   Start Routine Today
                 </Text>
               </TouchableOpacity>
@@ -776,7 +782,7 @@ export default function MonthlyPlannerView({
                 onPress={handleClearDaySchedule}
                 className="px-3 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border"
               >
-                <Ionicons name="trash-outline" size={15} color="#EF4444" />
+                <Ionicons name="trash-outline" size={15} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </View>
@@ -784,7 +790,7 @@ export default function MonthlyPlannerView({
           <View className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
               <View className="w-10 h-10 rounded-2xl bg-emerald-500/20 items-center justify-center">
-                <Ionicons name="leaf-outline" size={20} color="#10B981" />
+                <Ionicons name="leaf-outline" size={20} color={colors.accent} />
               </View>
               <View>
                 <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
@@ -814,15 +820,15 @@ export default function MonthlyPlannerView({
                 onPress={() => setIsAssignModalOpen(true)}
                 className="px-3 py-1.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1"
               >
-                <Ionicons name="add" size={14} color="#FFFFFF" />
-                <Text className="text-xs font-black text-white">Assign Routine</Text>
+                <Ionicons name="add" size={14} color={colors.accentContrast} />
+                <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">Assign Routine</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleSelectRoutineForDate(null)}
                 className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border flex-row items-center gap-1"
               >
-                <Ionicons name="leaf-outline" size={14} color="#10B981" />
+                <Ionicons name="leaf-outline" size={14} color={colors.accent} />
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                   Mark Rest
                 </Text>

@@ -24,11 +24,13 @@ import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, M
 import Button from '@/components/ui/Button';
 import { saveDailyFoodLogApi, getDailyFoodLogApi, completeDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
 import { screenCache } from '@/utils/screenCache';
+import { useThemeColors } from '@/constants/colors';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
   const router = useRouter();
+  const { colors, isDark } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
   const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
@@ -47,7 +49,7 @@ export default function FoodLog() {
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
-  const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'barcode' | 'text'>('photo');
+  const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
@@ -308,11 +310,23 @@ export default function FoodLog() {
     });
   };
 
+  // Duplicate single meal item
+  const handleDuplicateMeal = (item: FoodLogItem) => {
+    hapticFeedback.light();
+    const cloned: FoodLogItem = {
+      ...item,
+      id: `meal-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
+      loggedAt: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    };
+    handleAddMealItem(cloned);
+  };
+
   const promptDeleteItem = (id: string) => {
     const found = items.find((i) => i.id === id);
     if (found) {
       setItemToDelete(found);
     }
+
   };
 
   // Delete Item
@@ -456,33 +470,34 @@ export default function FoodLog() {
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
-        {/* Screen Header */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View>
-            <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Nutrition
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
-              Real-time daily fuel & macro tracking
-            </Text>
-          </View>
+        <View className="w-full max-w-5xl self-center mx-auto">
+          {/* Screen Header */}
+          <View className="flex-row items-center justify-between mb-4">
+            <View>
+              <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+                Nutrition
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
+                Real-time daily fuel & macro tracking
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            onPress={() => router.push('/(screen)/calendar' as any)}
-            activeOpacity={0.8}
-            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-amber-500/10 border-amber-500/30"
-            accessibilityLabel="Activity Calendar"
-          >
-            <Ionicons
-              name="calendar"
-              size={15}
-              color="#F59E0B"
-            />
-            <Text className="text-xs font-black text-amber-500">
-              Calendar
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/calendar' as any)}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-2xl border bg-amber-500/10 border-amber-500/30"
+              accessibilityLabel="Activity Calendar"
+            >
+              <Ionicons
+                name="calendar"
+                size={15}
+                color={colors.warning}
+              />
+              <Text className="text-xs font-black text-warning dark:text-warning-dark">
+                Calendar
+              </Text>
+            </TouchableOpacity>
+          </View>
 
         {/* Top Navigation Tabs (Today's Log | Library | History) */}
         <FoodLogTabs
@@ -517,16 +532,11 @@ export default function FoodLog() {
               goal={goal}
             />
 
-            {/* 2. Quick Action Toolbar (Photo Scan, Barcode Scan, Describe Meal & AI Suggest) */}
+            {/* 2. Quick Action Toolbar (Photo Scan, Describe Meal, AI Suggest) */}
             <QuickActionToolbar
               onPhotoScan={() => {
                 setScanTargetMeal(undefined);
                 setScanInitialMode('photo');
-                setShowScanModal(true);
-              }}
-              onBarcodeScan={() => {
-                setScanTargetMeal(undefined);
-                setScanInitialMode('barcode');
                 setShowScanModal(true);
               }}
               onTextLog={() => {
@@ -545,7 +555,7 @@ export default function FoodLog() {
 
               {loading && items.length === 0 ? (
                 <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
-                  <ActivityIndicator size="small" color="#10B981" />
+                  <ActivityIndicator size="small" color={colors.accent} />
                   <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
                     Loading Today's Meals...
                   </Text>
@@ -554,53 +564,66 @@ export default function FoodLog() {
                   </Text>
                 </View>
               ) : (
-                <>
+                <View className="flex-col md:flex-row md:flex-wrap md:justify-between">
                   {/* Breakfast */}
-                  <MealCategoryCard
-                    type="breakfast"
-                    title="Breakfast"
-                    items={breakfastItems}
-                    onAddPress={openSearchForMeal}
-                    onScanPress={openScanForMeal}
-                    onDeleteItem={promptDeleteItem}
-                    onEditItem={(item) => setItemToEdit(item)}
-                  />
+                  <View className="w-full md:w-[49%]">
+                    <MealCategoryCard
+                      type="breakfast"
+                      title="Breakfast"
+                      items={breakfastItems}
+                      onAddPress={openSearchForMeal}
+                      onScanPress={openScanForMeal}
+                      onDeleteItem={promptDeleteItem}
+                      onEditItem={(item) => setItemToEdit(item)}
+                      onDuplicateItem={handleDuplicateMeal}
+                    />
+                  </View>
 
                   {/* Lunch */}
-                  <MealCategoryCard
-                    type="lunch"
-                    title="Lunch"
-                    items={lunchItems}
-                    onAddPress={openSearchForMeal}
-                    onScanPress={openScanForMeal}
-                    onDeleteItem={promptDeleteItem}
-                    onEditItem={(item) => setItemToEdit(item)}
-                  />
+                  <View className="w-full md:w-[49%]">
+                    <MealCategoryCard
+                      type="lunch"
+                      title="Lunch"
+                      items={lunchItems}
+                      onAddPress={openSearchForMeal}
+                      onScanPress={openScanForMeal}
+                      onDeleteItem={promptDeleteItem}
+                      onEditItem={(item) => setItemToEdit(item)}
+                      onDuplicateItem={handleDuplicateMeal}
+                    />
+                  </View>
 
                   {/* Dinner */}
-                  <MealCategoryCard
-                    type="dinner"
-                    title="Dinner"
-                    items={dinnerItems}
-                    onAddPress={openSearchForMeal}
-                    onScanPress={openScanForMeal}
-                    onDeleteItem={promptDeleteItem}
-                    onEditItem={(item) => setItemToEdit(item)}
-                  />
+                  <View className="w-full md:w-[49%]">
+                    <MealCategoryCard
+                      type="dinner"
+                      title="Dinner"
+                      items={dinnerItems}
+                      onAddPress={openSearchForMeal}
+                      onScanPress={openScanForMeal}
+                      onDeleteItem={promptDeleteItem}
+                      onEditItem={(item) => setItemToEdit(item)}
+                      onDuplicateItem={handleDuplicateMeal}
+                    />
+                  </View>
 
                   {/* Snacks & Drinks */}
-                  <MealCategoryCard
-                    type="snack"
-                    title="Snacks & Drinks"
-                    items={snackItems}
-                    onAddPress={openSearchForMeal}
-                    onScanPress={openScanForMeal}
-                    onDeleteItem={promptDeleteItem}
-                    onEditItem={(item) => setItemToEdit(item)}
-                  />
-                </>
+                  <View className="w-full md:w-[49%]">
+                    <MealCategoryCard
+                      type="snack"
+                      title="Snacks & Drinks"
+                      items={snackItems}
+                      onAddPress={openSearchForMeal}
+                      onScanPress={openScanForMeal}
+                      onDeleteItem={promptDeleteItem}
+                      onEditItem={(item) => setItemToEdit(item)}
+                      onDuplicateItem={handleDuplicateMeal}
+                    />
+                  </View>
+                </View>
               )}
             </View>
+
 
             {/* 4. Hydration Water Tracker */}
             <WaterTrackerCard
@@ -615,7 +638,7 @@ export default function FoodLog() {
                 <View className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                     <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center">
-                      <Ionicons name="checkmark-circle" size={20} color="#10B981" />
+                      <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
                     </View>
                     <View className="flex-1">
                       <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
@@ -645,6 +668,7 @@ export default function FoodLog() {
             </View>
           </>
         )}
+        </View>
       </ScrollView>
 
       {/* AI Scan & Photo Modal */}

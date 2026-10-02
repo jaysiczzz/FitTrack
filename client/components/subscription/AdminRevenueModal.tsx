@@ -129,16 +129,16 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-purple-500/20 items-center justify-center border border-purple-500/30">
-                <Ionicons name="shield-checkmark" size={16} color="#A855F7" />
+              <View className="w-8 h-8 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/30 dark:border-accent-dark/30">
+                <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
               </View>
               <View>
                 <View className="flex-row items-center gap-1.5">
                   <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                     Admin Revenue & e-Wallet
                   </Text>
-                  <View className="bg-purple-500/15 border border-purple-500/30 px-1.5 py-0.2 rounded-full">
-                    <Text className="text-[9px] font-black text-purple-500 uppercase">
+                  <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-1.5 py-0.5 rounded-full">
+                    <Text className="text-[9px] font-black text-accent dark:text-accent-dark uppercase">
                       Admin
                     </Text>
                   </View>
@@ -279,7 +279,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
                         <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted mb-0.5">
                           Paying Subscribers
                         </Text>
-                        <Text className="text-xl font-black text-purple-500">
+                        <Text className="text-xl font-black text-accent dark:text-accent-dark">
                           {metrics.totalActivePayingSubscribers}
                         </Text>
                         <Text className="text-[10px] text-text-muted mt-1">
@@ -540,8 +540,8 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
                     disabled={savingOverride}
                     className="px-4 py-2 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center"
                   >
-                    {savingOverride && <ActivityIndicator size="small" color="#FFFFFF" className="mr-1.5" />}
-                    <Text className="text-xs font-bold text-white">Apply Override</Text>
+                    {savingOverride && <ActivityIndicator size="small" color={colors.accentContrast} className="mr-1.5" />}
+                    <Text className="text-xs font-bold text-accent-contrast dark:text-accent-contrast-dark">Apply Override</Text>
                   </TouchableOpacity>
                 </View>
               </View>

@@ -227,7 +227,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                   className={`text-[10px] font-extrabold ${
                     (isLoss && stats.totalChange < 0) || (!isLoss && stats.totalChange > 0)
                       ? 'text-accent dark:text-accent-dark'
-                      : 'text-amber-500 dark:text-amber-400'
+                      : 'text-amber-700 dark:text-amber-400'
                   }`}
                 >
                   {stats.totalChange > 0 ? `+${stats.totalChange}` : stats.totalChange} kg
@@ -451,7 +451,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                                   delta < 0
                                     ? 'text-accent dark:text-accent-dark'
                                     : delta > 0
-                                    ? 'text-amber-500 dark:text-amber-400'
+                                    ? 'text-amber-700 dark:text-amber-400'
                                     : 'text-text-muted'
                                 }`}
                               >

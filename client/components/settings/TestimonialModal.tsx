@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  Platform,
   KeyboardAvoidingView,
   ActivityIndicator,
   RefreshControl,
@@ -299,12 +298,11 @@ export default function TestimonialModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/60"
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark h-[90%] shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[90%] md:h-[82%] w-full md:max-w-xl shadow-2xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -325,7 +323,8 @@ export default function TestimonialModal({
           <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl my-3">
             <TouchableOpacity
               onPress={() => setActiveTab('feed')}
-              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
                 activeTab === 'feed'
                   ? 'bg-surface dark:bg-surface-dark shadow-sm'
                   : 'bg-transparent'
@@ -349,7 +348,8 @@ export default function TestimonialModal({
 
             <TouchableOpacity
               onPress={() => setActiveTab('write')}
-              className={`flex-1 py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
                 activeTab === 'write'
                   ? 'bg-surface dark:bg-surface-dark shadow-sm'
                   : 'bg-transparent'
@@ -774,7 +774,7 @@ export default function TestimonialModal({
                 <TouchableOpacity
                   onPress={handleSubmit}
                   disabled={isSubmitting}
-                  className="w-full py-3.5 rounded-2xl bg-accent items-center justify-center shadow-lg shadow-accent/20 mb-3"
+                  className="w-full min-h-[48px] py-3.5 rounded-2xl bg-accent items-center justify-center shadow-lg shadow-accent/20 mb-3"
                   activeOpacity={0.8}
                 >
                   {isSubmitting ? (
@@ -791,7 +791,8 @@ export default function TestimonialModal({
                   <TouchableOpacity
                     onPress={handleDelete}
                     disabled={isSubmitting}
-                    className="w-full py-2.5 rounded-2xl items-center justify-center"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="w-full min-h-[44px] py-2.5 rounded-2xl items-center justify-center"
                     activeOpacity={0.7}
                   >
                     <Text className="text-xs font-semibold text-danger dark:text-danger-dark">

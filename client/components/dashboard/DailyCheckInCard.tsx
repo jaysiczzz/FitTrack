@@ -381,7 +381,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             {streakStats.currentStreak > 0 ? (
               <View className="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full flex-row items-center">
                 <Text className="text-[11px] mr-1">🔥</Text>
-                <Text className="text-amber-500 dark:text-amber-400 font-extrabold text-[10px]">
+                <Text className="text-amber-700 dark:text-amber-400 font-extrabold text-[10px]">
                   {streakStats.currentStreak} {streakStats.currentStreak === 1 ? 'Day Streak' : 'Days Streak'}
                 </Text>
               </View>

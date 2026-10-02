@@ -1,4 +1,7 @@
 import { apiRequest } from './client';
+import { authStorage } from '../utils/authStorage';
+import { API_URL } from '../config';
+
 
 export interface AnalyzeMealPayload {
   description?: string;
@@ -20,6 +23,8 @@ export interface DetectedFoodItem {
 }
 
 export interface MealAnalysisResult {
+  isFood?: boolean;
+  rejectionReason?: string;
   foodName: string;
   servingSize: string;
   calories: number;
@@ -54,16 +59,42 @@ export interface AIWorkoutPlan {
   }[];
 }
 
-export const analyzeMeal = async (payload: AnalyzeMealPayload): Promise<{ success: boolean; data: MealAnalysisResult }> => {
-  return apiRequest('/api/ai/analyze-meal', {
-    method: 'POST',
-    body: payload,
-  });
+export const analyzeMeal = async (
+  payload: AnalyzeMealPayload
+): Promise<{ success: boolean; data?: MealAnalysisResult; isFood?: boolean; error?: string; message?: string }> => {
+  try {
+    return await apiRequest('/api/ai/analyze-meal', {
+      method: 'POST',
+      body: payload,
+      timeout: 60000,
+    });
+  } catch (err: any) {
+    const msg = err?.message || '';
+    const isNotFood =
+      msg.toLowerCase().includes('not food') ||
+      msg.toLowerCase().includes('not a food') ||
+      msg.toLowerCase().includes('not appear to be food') ||
+      msg.toLowerCase().includes('does not appear to be food') ||
+      msg.toLowerCase().includes('does not contain any food') ||
+      msg.toLowerCase().includes('not edible') ||
+      msg.toLowerCase().includes('not an edible');
+
+    if (isNotFood) {
+      return {
+        success: false,
+        isFood: false,
+        error: msg,
+        message: msg,
+      };
+    }
+    throw err;
+  }
 };
 
 export const getAIInsights = async (): Promise<{ success: boolean; insights: AIInsight[] }> => {
   return apiRequest('/api/ai/insights', {
     method: 'GET',
+    timeout: 30000,
   });
 };
 
@@ -71,6 +102,7 @@ export const generateAIWorkout = async (payload?: { targetArea?: string }): Prom
   return apiRequest('/api/ai/generate-workout', {
     method: 'POST',
     body: payload || {},
+    timeout: 45000,
   });
 };
 
@@ -95,6 +127,7 @@ export const getAIMealSuggestions = async (payload: {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
     body: payload,
+    timeout: 45000,
   });
 };
 
@@ -111,8 +144,76 @@ export const chatWithCoachApi = async (
   return apiRequest('/api/ai/chat', {
     method: 'POST',
     body: { messages },
+    timeout: 60000,
   });
 };
+
+export const streamChatWithCoachApi = async (
+  messages: { role: 'user' | 'model'; content: string }[],
+  onChunk: (chunk: string) => void
+): Promise<{ success: boolean; message: string }> => {
+  const token = await authStorage.getToken();
+  const url = `${API_URL}/api/ai/chat?stream=true`;
+
+  return new Promise((resolve, reject) => {
+    try {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', url, true);
+      xhr.setRequestHeader('Content-Type', 'application/json');
+      xhr.setRequestHeader('Accept', 'text/event-stream');
+      if (token) {
+        xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+      }
+
+      let seenIndex = 0;
+      let accumulatedText = '';
+
+      xhr.onprogress = () => {
+        const raw = xhr.responseText.substring(seenIndex);
+        seenIndex = xhr.responseText.length;
+
+        const lines = raw.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('data:')) {
+            try {
+              const jsonStr = trimmed.replace(/^data:\s*/, '');
+              const parsed = JSON.parse(jsonStr);
+              if (parsed.chunk) {
+                accumulatedText += parsed.chunk;
+                onChunk(parsed.chunk);
+              } else if (parsed.done && parsed.message) {
+                accumulatedText = parsed.message;
+              }
+            } catch {}
+          }
+        }
+      };
+
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve({ success: true, message: accumulatedText.trim() });
+        } else {
+          reject(new Error(`Chat error status: ${xhr.status}`));
+        }
+      };
+
+      xhr.onerror = () => {
+        reject(new Error('Network error during streaming chat.'));
+      };
+
+      xhr.ontimeout = () => {
+        reject(new Error('AI stream timed out.'));
+      };
+
+      xhr.timeout = 60000;
+      xhr.send(JSON.stringify({ messages, stream: true }));
+    } catch (e) {
+      reject(e);
+    }
+  });
+};
+
 
 export const getChatHistoryApi = async (): Promise<{ success: boolean; messages: ChatMessage[] }> => {
   return apiRequest('/api/ai/chat/history', {

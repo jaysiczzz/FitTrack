@@ -6,6 +6,7 @@ import { LibraryExercise } from './workoutTypes';
 import { COMMON_EXERCISES_CATALOG } from '../../data/commonExercises';
 import { getWorkoutLibrary } from '../../api/workout';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
+import ExerciseVisual from './ExerciseVisual';
 import { useThemeColors } from '@/constants/colors';
 import FilterChip from '../ui/FilterChip';
 
@@ -245,37 +246,55 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                     ) : null}
                   </View>
 
+                  <View className="flex-row items-center gap-1.5 mb-1.5 flex-wrap">
+                    <View className="px-2 py-0.5 rounded-md bg-accent/15 border border-accent/30 flex-row items-center gap-1">
+                      <Ionicons name="body-outline" size={11} color={colors.accent} />
+                      <Text className="text-[10px] font-black text-accent dark:text-accent-dark uppercase">
+                        HITS: {ex.primaryMuscle || ex.muscleGroup}
+                      </Text>
+                    </View>
+                    {ex.secondaryMuscles && (Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.length > 0 : !!ex.secondaryMuscles) ? (
+                      <View className="px-2 py-0.5 rounded-md bg-sky-500/10 border border-sky-500/25 flex-row items-center gap-1">
+                        <Text className="text-[10px] font-medium text-sky-500 dark:text-sky-400" numberOfLines={1}>
+                          + {Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(', ') : ex.secondaryMuscles}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
+
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
-                    {ex.category} • {ex.primaryMuscle || ex.muscleGroup}
+                    {ex.category} • {ex.bodyPart || 'Upper Body'} • {eqStr}
                   </Text>
 
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    Equipment: {eqStr}
-                  </Text>
+                  {ex.startingPosition ? (
+                    <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark mb-1 italic">
+                      <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Setup: </Text>
+                      {ex.startingPosition}
+                    </Text>
+                  ) : null}
                 </View>
 
-                {/* Optional Thumbnail */}
-                {ex.thumbnailUrl || ex.imageUrl ? (
-                  <Image
-                    source={{ uri: ex.thumbnailUrl || ex.imageUrl || '' }}
-                    className="w-14 h-14 rounded-xl bg-input dark:bg-input-dark"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center">
-                    <Ionicons name="barbell" size={22} color={colors.textMuted} />
-                  </View>
-                )}
+                {/* Muscle Group & Movement Avatar */}
+                <ExerciseVisual
+                  name={ex.name}
+                  muscle={ex.primaryMuscle || ex.muscleGroup}
+                  category={ex.category}
+                  equipment={ex.equipment}
+                  imageUrl={ex.imageUrl}
+                  thumbnailUrl={ex.thumbnailUrl}
+                  size="lg"
+                />
               </View>
 
               {/* Action Buttons Row */}
               <View className="flex-row items-center justify-between pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60">
                 <TouchableOpacity
                   onPress={() => handleOpenDetails(ex)}
-                  className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  className="px-3 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
                 >
+                  <Ionicons name="body-outline" size={13} color={colors.accent} />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    View Details
+                    Anatomy & Form Guide
                   </Text>
                 </TouchableOpacity>
 

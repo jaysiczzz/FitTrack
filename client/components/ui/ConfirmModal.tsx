@@ -45,15 +45,15 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       onRequestClose={!loading ? onCancel : undefined}
     >
       <Pressable
-        className="flex-1 bg-black/70 justify-end"
+        className="flex-1 bg-black/70 justify-end md:justify-center p-0 md:p-6"
         onPress={!loading ? onCancel : undefined}
       >
         <Pressable
-          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] px-6 pt-3 pb-8 items-center shadow-2xl"
+          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl"
           onPress={(e) => e.stopPropagation()}
         >
-          {/* Action Sheet Drag Indicator / Pull Bar */}
-          <View className="w-10 h-1.5 rounded-full bg-input-border dark:bg-input-border-dark mb-4" />
+          {/* Action Sheet Drag Indicator / Pull Bar (Phone only) */}
+          <View className="w-10 h-1.5 rounded-full bg-input-border dark:bg-input-border-dark mb-4 md:hidden" />
 
           {/* Squircle Icon Badge (if provided) */}
           {iconName ? (
@@ -114,9 +114,9 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               } ${loading ? 'opacity-70' : ''}`}
             >
               {loading ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color={destructive ? '#FFFFFF' : colors.accentContrast} />
               ) : (
-                <Text className="font-bold text-sm text-white">
+                <Text className={`font-bold text-sm ${destructive ? 'text-white' : 'text-accent-contrast dark:text-accent-contrast-dark'}`}>
                   {confirmText}
                 </Text>
               )}

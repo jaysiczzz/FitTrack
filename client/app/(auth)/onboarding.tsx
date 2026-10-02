@@ -10,11 +10,13 @@ import OnboardingPlanStep from '@/components/auth/OnboardingPlanStep';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'expo-router';
 import { registerUser } from '@/api/auth';
-import { useRegistration } from '../../context/RegistrationContext';
-import { useAuth } from '../../context/AuthContext';
+import { useRegistration } from '@/context/RegistrationContext';
+import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
+  const { isLandscape } = useResponsive();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
@@ -184,7 +186,7 @@ export default function OnboardingScreen() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'center',
+            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
             paddingVertical: 16,
             paddingBottom: isKeyboardOpen ? 120 : 24,
           }}
@@ -197,7 +199,7 @@ export default function OnboardingScreen() {
             <OnboardingHeader
               step={step}
               totalSteps={3}
-              compact={isKeyboardOpen}
+              compact={isKeyboardOpen || isLandscape}
               showBack={step !== 3}
               onBack={handleHeaderBack}
             />

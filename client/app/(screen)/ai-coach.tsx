@@ -338,7 +338,8 @@ export default function AiCoachScreen() {
           <TouchableOpacity
             onPress={() => router.back()}
             activeOpacity={0.7}
-            className="w-10 h-10 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
             accessibilityLabel="Go back"
           >
             <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
@@ -372,10 +373,11 @@ export default function AiCoachScreen() {
         <TouchableOpacity
           onPress={handleClearHistory}
           activeOpacity={0.7}
-          className="w-9 h-9 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
           accessibilityLabel="Clear chat history"
         >
-          <Ionicons name="trash-outline" size={17} color={colors.textMuted} />
+          <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
         </TouchableOpacity>
       </View>
 
@@ -400,9 +402,10 @@ export default function AiCoachScreen() {
               key={topic.id}
               activeOpacity={0.7}
               onPress={() => handleSend(topic.prompt)}
-              className="mr-2 px-3 py-1.5 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
+              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+              className="mr-2 px-3.5 py-2 min-h-[44px] rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
             >
-              <Ionicons name={topic.icon} size={12} color={colors.accent} style={{ marginRight: 5 }} />
+              <Ionicons name={topic.icon} size={14} color={colors.accent} style={{ marginRight: 6 }} />
               <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
                 {topic.label}
               </Text>
@@ -412,145 +415,144 @@ export default function AiCoachScreen() {
       </View>
 
       {/* Main Chat Stream */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 10 : 0}
-        className="flex-1"
-      >
-        <ScrollView
-          ref={scrollViewRef}
-          className="flex-1 px-4 pt-3"
-          contentContainerStyle={{ paddingBottom: 24 }}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scrollToBottom(false)}
-        >
-          {isLoadingHistory ? (
-            <View className="py-12 items-center justify-center">
-              <ActivityIndicator size="small" color={colors.accent} />
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
-                Loading coach conversation...
-              </Text>
-            </View>
-          ) : (
-            <>
-              {/* Message List */}
-              {messages.map((msg, index) => {
-                const isUser = msg.role === 'user';
-                const showAvatar = !isUser;
+      <KeyboardAvoidingView className="flex-1">
+        <View className="flex-1 w-full max-w-3xl self-center">
+          <ScrollView
+            ref={scrollViewRef}
+            className="flex-1 px-4 pt-3"
+            contentContainerStyle={{ paddingBottom: 24 }}
+            keyboardShouldPersistTaps="handled"
+            onContentSizeChange={() => scrollToBottom(false)}
+          >
+            {isLoadingHistory ? (
+              <View className="py-12 items-center justify-center">
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
+                  Loading coach conversation...
+                </Text>
+              </View>
+            ) : (
+              <>
+                {/* Message List */}
+                {messages.map((msg, index) => {
+                  const isUser = msg.role === 'user';
+                  const showAvatar = !isUser;
 
-                return (
-                  <View
-                    key={index}
-                    className={`flex-row mb-3.5 ${isUser ? 'justify-end' : 'justify-start items-end'}`}
-                  >
-                    {showAvatar && (
-                      <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
-                        <Ionicons name="sparkles" size={13} color={colors.accent} />
-                      </View>
-                    )}
-
+                  return (
                     <View
-                      className={`max-w-[84%] px-4 py-3 rounded-2xl ${
-                        isUser
-                          ? 'bg-accent dark:bg-accent-dark rounded-tr-xs shadow-xs'
-                          : 'bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-tl-xs shadow-xs'
-                      }`}
+                      key={index}
+                      className={`flex-row mb-3.5 ${isUser ? 'justify-end' : 'justify-start items-end'}`}
                     >
-                      {renderMessageContent(msg.content, isUser)}
-
-                      {msg.createdAt && (
-                        <Text
-                          className={`text-[9px] mt-1.5 self-end ${
-                            isUser
-                              ? 'text-white/80 font-medium'
-                              : 'text-text-muted dark:text-text-muted-dark font-medium'
-                          }`}
-                        >
-                          {new Date(msg.createdAt).toLocaleTimeString([], {
-                            hour: '2-digit',
-                            minute: '2-digit',
-                          })}
-                        </Text>
+                      {showAvatar && (
+                        <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
+                          <Ionicons name="sparkles" size={13} color={colors.accent} />
+                        </View>
                       )}
+
+                      <View
+                        className={`max-w-[84%] px-4 py-3 rounded-2xl ${
+                          isUser
+                            ? 'bg-accent dark:bg-accent-dark rounded-tr-xs shadow-xs'
+                            : 'bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-tl-xs shadow-xs'
+                        }`}
+                      >
+                        {renderMessageContent(msg.content, isUser)}
+
+                        {msg.createdAt && (
+                          <Text
+                            className={`text-[9px] mt-1.5 self-end ${
+                              isUser
+                                ? 'text-white/80 font-medium'
+                                : 'text-text-muted dark:text-text-muted-dark font-medium'
+                            }`}
+                          >
+                            {new Date(msg.createdAt).toLocaleTimeString([], {
+                              hour: '2-digit',
+                              minute: '2-digit',
+                            })}
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                  );
+                })}
+
+                {/* Typing / Thinking Indicator */}
+                {isSending && (
+                  <View className="flex-row items-end mb-3.5 justify-start">
+                    <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
+                      <Ionicons name="sparkles" size={13} color={colors.accent} />
+                    </View>
+                    <View className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-3 rounded-2xl rounded-tl-xs flex-row items-center gap-2">
+                      <ActivityIndicator size="small" color={colors.accent} />
+                      <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
+                        Coach is analyzing your stats & crafting guidance...
+                      </Text>
                     </View>
                   </View>
-                );
-              })}
+                )}
+              </>
+            )}
+          </ScrollView>
 
-              {/* Typing / Thinking Indicator */}
-              {isSending && (
-                <View className="flex-row items-end mb-3.5 justify-start">
-                  <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
-                    <Ionicons name="sparkles" size={13} color={colors.accent} />
-                  </View>
-                  <View className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-3 rounded-2xl rounded-tl-xs flex-row items-center gap-2">
-                    <ActivityIndicator size="small" color={colors.accent} />
-                    <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
-                      Coach is analyzing your stats & crafting guidance...
-                    </Text>
-                  </View>
-                </View>
-              )}
-            </>
+          {/* Failed Message Retry Banner */}
+          {failedMessage && (
+            <View className="mx-4 mb-2 p-2.5 bg-danger/10 border border-danger/30 rounded-xl flex-row items-center justify-between">
+              <View className="flex-row items-center flex-1 mr-2">
+                <Ionicons name="alert-circle" size={16} color={colors.danger} style={{ marginRight: 6 }} />
+                <Text className="text-xs text-danger dark:text-danger-dark font-medium" numberOfLines={1}>
+                  Message failed to send
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={handleRetryFailed}
+                className="bg-danger/20 px-2.5 py-1 rounded-lg"
+              >
+                <Text className="text-xs font-bold text-danger dark:text-danger-dark">Retry</Text>
+              </TouchableOpacity>
+            </View>
           )}
-        </ScrollView>
 
-        {/* Failed Message Retry Banner */}
-        {failedMessage && (
-          <View className="mx-4 mb-2 p-2.5 bg-danger/10 border border-danger/30 rounded-xl flex-row items-center justify-between">
-            <View className="flex-row items-center flex-1 mr-2">
-              <Ionicons name="alert-circle" size={16} color="#EF4444" style={{ marginRight: 6 }} />
-              <Text className="text-xs text-danger dark:text-danger-dark font-medium" numberOfLines={1}>
-                Message failed to send
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={handleRetryFailed}
-              className="bg-danger/20 px-2.5 py-1 rounded-lg"
-            >
-              <Text className="text-xs font-bold text-danger dark:text-danger-dark">Retry</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* Bottom Chat Input Bar */}
-        <View className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark">
-          <View className="flex-row items-end gap-2">
-            <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2 border border-input-border dark:border-input-border-dark max-h-28">
-              <TextInput
-                value={inputText}
-                onChangeText={setInputText}
-                placeholder="Ask your coach anything about food, workouts, or goals..."
-                placeholderTextColor={colors.textMuted}
-                multiline
-                maxLength={600}
-                className="text-text-primary dark:text-text-primary-dark text-sm p-0 leading-5"
-                style={Platform.select({
-                  web: { outlineStyle: 'none' } as any,
-                })}
-              />
-            </View>
-
-            <TouchableOpacity
-              onPress={() => handleSend()}
-              disabled={!inputText.trim() || isSending}
-              activeOpacity={0.8}
-              className={`w-11 h-11 rounded-2xl items-center justify-center shadow-xs transition-opacity ${
-                !inputText.trim() || isSending
-                  ? 'bg-accent/30 dark:bg-accent-dark/30'
-                  : 'bg-accent dark:bg-accent-dark'
-              }`}
-            >
-              {isSending ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Ionicons
-                  name="arrow-up"
-                  size={20}
-                  color={!inputText.trim() ? colors.textMuted : '#FFFFFF'}
+          {/* Bottom Chat Input Bar */}
+          <View className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark">
+            <View className="flex-row items-end gap-2">
+              <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2 border border-input-border dark:border-input-border-dark max-h-28">
+                <TextInput
+                  value={inputText}
+                  onChangeText={setInputText}
+                  placeholder="Ask your coach anything about food, workouts, or goals..."
+                  placeholderTextColor={colors.textMuted}
+                  multiline
+                  maxLength={600}
+                  className="text-text-primary dark:text-text-primary-dark text-sm p-0 leading-5"
+                  style={Platform.select({
+                    web: { outlineStyle: 'none' } as any,
+                  })}
                 />
-              )}
-            </TouchableOpacity>
+              </View>
+
+              <TouchableOpacity
+                onPress={() => handleSend()}
+                disabled={!inputText.trim() || isSending}
+                activeOpacity={0.8}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                className={`w-11 h-11 rounded-2xl items-center justify-center shadow-xs transition-opacity ${
+                  !inputText.trim() || isSending
+                    ? 'bg-accent/30 dark:bg-accent-dark/30'
+                    : 'bg-accent dark:bg-accent-dark'
+                }`}
+              >
+                {isSending ? (
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
+                ) : (
+                  <Ionicons
+                    name="arrow-up"
+                    size={20}
+                    color={!inputText.trim() ? colors.textMuted : colors.accentContrast}
+                  />
+                )}
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </KeyboardAvoidingView>

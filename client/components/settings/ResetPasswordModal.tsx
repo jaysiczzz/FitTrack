@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Pressable,
-  Platform,
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
@@ -95,12 +94,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
         <Pressable className="flex-1" onPress={handleClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -224,7 +222,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
               <TouchableOpacity
                 onPress={handleClose}
                 disabled={loading}
-                className="flex-1 py-3.5 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center bg-input dark:bg-input-dark"
+                className="flex-1 min-h-[48px] py-3.5 rounded-2xl border border-input-border dark:border-input-border-dark items-center justify-center bg-input dark:bg-input-dark"
               >
                 <Text className="text-sm font-semibold text-text-muted dark:text-text-muted-dark">
                   Cancel
@@ -234,7 +232,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
               <TouchableOpacity
                 onPress={handleSubmit}
                 disabled={loading}
-                className="flex-1 py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
+                className="flex-1 min-h-[48px] py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
               >
                 {loading ? (
                   <ActivityIndicator size="small" color="#FFFFFF" />

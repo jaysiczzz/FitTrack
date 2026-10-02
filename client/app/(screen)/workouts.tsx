@@ -10,6 +10,7 @@ import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayW
 import WorkoutPlannerTab from '@/components/workouts/WorkoutPlannerTab';
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
+import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
 import { LibraryExercise, CompletedSession, WorkoutRoutineTemplate, getTodayDateString } from '@/components/workouts/workoutTypes';
 import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
 import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
@@ -35,6 +36,7 @@ import {
 } from '@/api/workout';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import { hapticFeedback } from '@/utils/haptics';
+import { useThemeColors } from '@/constants/colors';
 
 const EXERCISE_CATALOG_MAP = new Map<string, LibraryExercise>();
 COMMON_EXERCISES_CATALOG.forEach((ex) => {
@@ -56,6 +58,7 @@ function getExerciseMetadata(nameOrId?: string, fallbackName?: string): Partial<
 
 export default function Workouts() {
   const router = useRouter();
+  const { colors, isDark } = useThemeColors();
   const { user } = useAuth();
   const { showToast } = useToast();
   const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
@@ -67,6 +70,7 @@ export default function Workouts() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [exerciseToRemove, setExerciseToRemove] = useState<TodayExerciseItem | null>(null);
+  const { startRestTimer } = useWorkoutTimer();
   const updateTimersRef = useRef<Record<string, any>>({});
 
   const getTodayCacheKey = () => {
@@ -629,10 +633,10 @@ export default function Workouts() {
     AsyncStorage.removeItem(getTodayCacheKey());
 
     showToast({
-      message: 'Workout Session Completed',
-      description: `Logged ${exerciseCount} exercises (${totalSets} sets) into your History.`,
+      message: '🎉 Workout Session Crushed!',
+      description: `Great effort! Logged ${exerciseCount} exercises (${totalSets} sets) into your personal training history.`,
       type: 'success',
-      iconName: 'checkmark-circle',
+      iconName: 'trophy',
       actionLabel: 'View History',
       onAction: () => setActiveTab('history'),
     });
@@ -930,33 +934,34 @@ export default function Workouts() {
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
-        {/* Header */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View>
-            <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Workouts
-            </Text>
-            <Text className="mt-1 text-xs text-text-muted dark:text-text-muted-dark font-normal">
-              Track your exercise completion and performance
-            </Text>
-          </View>
+        <View className="w-full max-w-5xl self-center mx-auto">
+          {/* Header */}
+          <View className="flex-row items-center justify-between mb-4">
+            <View>
+              <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+                Workouts
+              </Text>
+              <Text className="mt-1 text-xs text-text-muted dark:text-text-muted-dark font-normal">
+                Track your exercise completion and performance
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            onPress={() => router.push('/(screen)/calendar' as any)}
-            activeOpacity={0.8}
-            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
-            accessibilityLabel="Activity Calendar"
-          >
-            <Ionicons
-              name="calendar"
-              size={15}
-              color="#10B981"
-            />
-            <Text className="text-xs font-black text-accent dark:text-accent-dark">
-              Calendar
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/calendar' as any)}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
+              accessibilityLabel="Activity Calendar"
+            >
+              <Ionicons
+                name="calendar"
+                size={15}
+                color={colors.accent}
+              />
+              <Text className="text-xs font-black text-accent dark:text-accent-dark">
+                Calendar
+              </Text>
+            </TouchableOpacity>
+          </View>
 
         {/* Top Segmented Tabs */}
         <WorkoutTabs
@@ -987,6 +992,9 @@ export default function Workouts() {
             onNavigateToLibrary={() => setActiveTab('library')}
             onOpenAiGenerator={() => setShowAiModal(true)}
             onCompleteSession={() => setShowCompleteModal(true)}
+            onStartRestTimer={(seconds, exerciseName) =>
+              startRestTimer(seconds, exerciseName)
+            }
           />
         )}
 
@@ -1007,6 +1015,7 @@ export default function Workouts() {
             onSwitchToToday={() => setActiveTab('today')}
           />
         )}
+        </View>
       </ScrollView>
 
       {/* AI Workout Generator Modal */}

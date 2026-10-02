@@ -2,13 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
+
 import { LibraryExercise, WorkoutRoutineTemplate } from './workoutTypes';
+import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
 import ProgressBar from '@/components/ui/ProgressBar';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
 
 export interface TodayExerciseItem {
   key: string;
@@ -74,6 +77,7 @@ interface TodayWorkoutTabProps {
   onNavigateToLibrary: () => void;
   onOpenAiGenerator?: () => void;
   onCompleteSession: () => void;
+  onStartRestTimer?: (seconds: number, exerciseName?: string) => void;
 }
 
 const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
@@ -93,15 +97,34 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onNavigateToLibrary,
   onOpenAiGenerator,
   onCompleteSession,
+  onStartRestTimer,
 }) => {
   const { colors, isDark } = useThemeColors();
   const { showWarning } = useToast();
+  const { startRestTimer } = useWorkoutTimer();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
   const [loadingPrs, setLoadingPrs] = useState(false);
 
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+
+  const handleToggleSetWithRest = (exercise: TodayExerciseItem, setId: string) => {
+    const targetSet = exercise.sets.find((s) => s.id === setId);
+    const willBeDone = targetSet ? !targetSet.done : true;
+
+    onToggleSet(exercise.key, setId);
+
+    if (willBeDone) {
+      const restSecs = exercise.recommendedRest || 90;
+      if (onStartRestTimer) {
+        onStartRestTimer(restSecs, exercise.name);
+      } else {
+        startRestTimer(restSecs, exercise.name);
+      }
+    }
+  };
+
 
   useEffect(() => {
     const fetchPRs = async () => {
@@ -148,43 +171,66 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   const handleOpenDetailsByName = async (exercise: TodayExerciseItem) => {
     setActiveWorkoutKey(exercise.key);
 
+    const catalogMatch = COMMON_EXERCISES_CATALOG.find(
+      (c) =>
+        c.name.toLowerCase() === exercise.name.toLowerCase() ||
+        (exercise.exerciseId && c.id === exercise.exerciseId)
+    );
+
     const details: LibraryExercise = {
+      ...(catalogMatch || {}),
       id: exercise.exerciseId || exercise.key,
       name: exercise.name,
-      description: exercise.description || null,
-      category: exercise.category || 'Strength',
-      type: 'Compound',
-      difficulty: exercise.difficulty || 'Intermediate',
-      primaryMuscle: exercise.primaryMuscle || exercise.muscleGroup || 'Chest',
-      muscleGroup: exercise.muscleGroup || exercise.primaryMuscle || 'Chest',
-      secondaryMuscles: exercise.secondaryMuscles || [],
-      bodyPart: exercise.bodyPart || 'Upper Body',
-      equipment: exercise.equipment ? (Array.isArray(exercise.equipment) ? exercise.equipment : [exercise.equipment]) : ['Barbell'],
-      equipmentAlternatives: exercise.equipmentAlternatives || [],
-      startingPosition: exercise.startingPosition || null,
-      instructions: exercise.instructions && exercise.instructions.length > 0 ? exercise.instructions : [
-        'Perform the exercise maintaining strict control and posture.',
-        'Follow recommended set and repetition protocols.',
-        'Keep core engaged throughout movement.',
-      ],
-      formTips: exercise.formTips || [],
-      commonMistakes: exercise.commonMistakes || [],
-      breathingTechnique: exercise.breathingTechnique || null,
-      recommendedSets: exercise.recommendedSets || 3,
-      recommendedReps: exercise.recommendedReps || 10,
-      recommendedDuration: exercise.recommendedDuration,
-      recommendedRest: exercise.recommendedRest || 90,
-      recommendedTempo: exercise.recommendedTempo || '2-0-1-0',
-      safetyInstructions: exercise.safetyInstructions || null,
-      injuryPreventionTips: exercise.injuryPreventionTips || null,
-      beginnerModification: exercise.beginnerModification || null,
-      advancedVariation: exercise.advancedVariation || null,
-      easierAlternative: exercise.easierAlternative || null,
-      harderAlternative: exercise.harderAlternative || null,
-      equipmentFreeAlternative: exercise.equipmentFreeAlternative || null,
-      similarExercises: exercise.similarExercises || [],
-      tags: exercise.tags || [],
-      difficultyPresets: exercise.difficultyPresets || null,
+      description: exercise.description || catalogMatch?.description || null,
+      category: exercise.category || catalogMatch?.category || 'Strength',
+      type: exercise.type || catalogMatch?.type || 'Compound',
+      difficulty: exercise.difficulty || catalogMatch?.difficulty || 'Intermediate',
+      primaryMuscle: exercise.primaryMuscle || exercise.muscleGroup || catalogMatch?.primaryMuscle || 'Chest',
+      muscleGroup: exercise.muscleGroup || exercise.primaryMuscle || catalogMatch?.muscleGroup || 'Chest',
+      secondaryMuscles:
+        exercise.secondaryMuscles && exercise.secondaryMuscles.length > 0
+          ? exercise.secondaryMuscles
+          : catalogMatch?.secondaryMuscles || [],
+      bodyPart: exercise.bodyPart || catalogMatch?.bodyPart || 'Upper Body',
+      equipment: exercise.equipment
+        ? Array.isArray(exercise.equipment)
+          ? exercise.equipment
+          : [exercise.equipment]
+        : catalogMatch?.equipment || ['Barbell'],
+      equipmentAlternatives: exercise.equipmentAlternatives || catalogMatch?.equipmentAlternatives || [],
+      startingPosition: exercise.startingPosition || catalogMatch?.startingPosition || null,
+      instructions:
+        exercise.instructions && exercise.instructions.length > 0
+          ? exercise.instructions
+          : catalogMatch?.instructions || [
+              'Perform the exercise maintaining strict control and posture.',
+              'Follow recommended set and repetition protocols.',
+              'Keep core engaged throughout movement.',
+            ],
+      formTips:
+        exercise.formTips && exercise.formTips.length > 0
+          ? exercise.formTips
+          : catalogMatch?.formTips || [],
+      commonMistakes:
+        exercise.commonMistakes && exercise.commonMistakes.length > 0
+          ? exercise.commonMistakes
+          : catalogMatch?.commonMistakes || [],
+      breathingTechnique: exercise.breathingTechnique || catalogMatch?.breathingTechnique || null,
+      recommendedSets: exercise.recommendedSets || catalogMatch?.recommendedSets || 3,
+      recommendedReps: exercise.recommendedReps || catalogMatch?.recommendedReps || 10,
+      recommendedDuration: exercise.recommendedDuration || catalogMatch?.recommendedDuration,
+      recommendedRest: exercise.recommendedRest || catalogMatch?.recommendedRest || 90,
+      recommendedTempo: exercise.recommendedTempo || catalogMatch?.recommendedTempo || '2-0-1-0',
+      safetyInstructions: exercise.safetyInstructions || catalogMatch?.safetyInstructions || null,
+      injuryPreventionTips: exercise.injuryPreventionTips || catalogMatch?.injuryPreventionTips || null,
+      beginnerModification: exercise.beginnerModification || catalogMatch?.beginnerModification || null,
+      advancedVariation: exercise.advancedVariation || catalogMatch?.advancedVariation || null,
+      easierAlternative: exercise.easierAlternative || catalogMatch?.easierAlternative || null,
+      harderAlternative: exercise.harderAlternative || catalogMatch?.harderAlternative || null,
+      equipmentFreeAlternative: exercise.equipmentFreeAlternative || catalogMatch?.equipmentFreeAlternative || null,
+      similarExercises: exercise.similarExercises || catalogMatch?.similarExercises || [],
+      tags: exercise.tags || catalogMatch?.tags || [],
+      difficultyPresets: exercise.difficultyPresets || catalogMatch?.difficultyPresets || null,
       imageUrl: exercise.imageUrl || null,
       thumbnailUrl: exercise.thumbnailUrl || null,
       defaultSets: exercise.sets.map((s) => ({
@@ -254,6 +300,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           )}
 
           <TouchableOpacity
+            onPress={() => {
+              if (onStartRestTimer) {
+                onStartRestTimer(90, 'Manual Rest Timer');
+              } else {
+                startRestTimer(90, 'Manual Rest Timer');
+              }
+            }}
+            activeOpacity={0.8}
+            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
+          >
+            <Ionicons name="timer-outline" size={13} color={colors.accent} />
+            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+              Rest
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             onPress={onNavigateToLibrary}
             activeOpacity={0.8}
             className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
@@ -264,6 +327,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           </TouchableOpacity>
         </View>
       </View>
+
 
       {/* Exercises List / Loading Skeleton / Empty State */}
       {loading && exercises.length === 0 ? (
@@ -320,8 +384,8 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                   onPress={onLoadScheduledRoutine}
                   className="bg-accent dark:bg-accent-dark py-2.5 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
                 >
-                  <Ionicons name="flash" size={15} color="#FFFFFF" />
-                  <Text className="text-white text-xs font-black uppercase tracking-wider">
+                  <Ionicons name="flash" size={15} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase tracking-wider">
                     Load Planned Workout ({scheduledRoutine.exercises.length} Exercises)
                   </Text>
                 </TouchableOpacity>
@@ -347,8 +411,8 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                     onPress={onOpenAiGenerator}
                     className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
                   >
-                    <Ionicons name="sparkles" size={14} color="#FFFFFF" />
-                    <Text className="text-white font-bold text-xs">
+                    <Ionicons name="sparkles" size={14} color={colors.accentContrast} />
+                    <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
                       AI Routine
                     </Text>
                   </TouchableOpacity>
@@ -392,8 +456,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 imageUrl={item.thumbnailUrl || item.imageUrl}
                 sets={item.sets}
                 personalRecord={getPRForExercise(item.name)}
-                onToggleSet={(setId) => onToggleSet(item.key, setId)}
+                onToggleSet={(setId) => handleToggleSetWithRest(item, setId)}
                 onUpdateSet={(setId, field, val, bw) => onUpdateSet && onUpdateSet(item.key, setId, field, val, bw)}
+
                 onAddSet={() => onAddSet && onAddSet(item.key)}
                 onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
                 onRemoveExercise={() => onRemoveExercise(item.key)}
@@ -417,7 +482,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           ) : (
             <View className="mb-2.5 p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex-row items-center">
               <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2.5">
-                <Ionicons name="checkmark" size={13} color="#10B981" />
+                <Ionicons name="checkmark" size={13} color={colors.accent} />
               </View>
               <Text className="flex-1 text-xs text-accent dark:text-accent-dark font-bold">
                 All sets completed! Ready to finish today's workout.
@@ -437,7 +502,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             <Text
               className={`text-sm font-bold ${
                 allSetsDone
-                  ? 'text-white'
+                  ? 'text-accent-contrast dark:text-accent-contrast-dark'
                   : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
@@ -498,7 +563,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
         <SurfaceCard className="mb-3">
           <View className="flex-row items-center justify-between mb-3">
             <View className="flex-row items-center gap-1.5">
-              <Ionicons name="trophy" size={16} color="#F59E0B" />
+              <Ionicons name="trophy" size={16} color={colors.warning} />
               <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
                 Personal Records ({personalRecords.length})
               </Text>
@@ -534,7 +599,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                       {recordText}
                     </Text>
                   </View>
-                  <Ionicons name="ribbon-outline" size={16} color="#F59E0B" />
+                  <Ionicons name="ribbon-outline" size={16} color={colors.warning} />
                 </View>
               );
             })}
@@ -605,7 +670,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           setShowDetailsModal(false);
         }}
       />
+
     </View>
+
   );
 };
 

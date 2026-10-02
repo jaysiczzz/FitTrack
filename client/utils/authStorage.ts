@@ -25,8 +25,12 @@ export const authStorage = {
         await AsyncStorage.setItem(TOKEN_KEY, token);
       }
     } catch (err) {
-      console.warn('[authStorage] Failed to setToken with SecureStore, falling back to AsyncStorage:', err);
-      await AsyncStorage.setItem(TOKEN_KEY, token);
+      if (Platform.OS === 'web') {
+        await AsyncStorage.setItem(TOKEN_KEY, token);
+      } else {
+        console.error('[authStorage] SecureStore failed to encrypt token:', err);
+        throw err;
+      }
     }
   },
 
@@ -82,8 +86,12 @@ export const authStorage = {
         await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
       }
     } catch (err) {
-      console.warn('[authStorage] Failed to setRefreshToken with SecureStore, falling back to AsyncStorage:', err);
-      await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      if (Platform.OS === 'web') {
+        await AsyncStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+      } else {
+        console.error('[authStorage] SecureStore failed to encrypt refresh token:', err);
+        throw err;
+      }
     }
   },
 
