@@ -27,8 +27,12 @@ module.exports = {
           dark: '#1F2937',
         },
         accent: {
-          DEFAULT: '#10B981',
+          DEFAULT: '#047857',
           dark: '#10B981',
+        },
+        'accent-contrast': {
+          DEFAULT: '#FFFFFF',
+          dark: '#0B1120',
         },
         'text-primary': {
           DEFAULT: '#0F172A',
@@ -54,6 +58,17 @@ module.exports = {
           DEFAULT: '#64748B',
           dark: '#94A3B8',
         },
+        success: {
+          DEFAULT: '#047857',
+          dark: '#10B981',
+        },
+      },
+      fontFamily: {
+        baloo: ['Baloo2_400Regular'],
+        'baloo-medium': ['Baloo2_500Medium'],
+        'baloo-semibold': ['Baloo2_600SemiBold'],
+        'baloo-bold': ['Baloo2_700Bold'],
+        sans: ['System', '-apple-system', 'Roboto', 'sans-serif'],
       },
     },
   },

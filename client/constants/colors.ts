@@ -27,10 +27,15 @@ export const COLORS = {
     dark: '#1F2937',
   },
   accent: {
-    DEFAULT: '#10B981',
-    light: '#10B981',
+    DEFAULT: '#047857',
+    light: '#047857',
     dark: '#10B981',
     mint: '#34D399',
+  },
+  accentContrast: {
+    DEFAULT: '#FFFFFF',
+    light: '#FFFFFF',
+    dark: '#0B1120',
   },
   textPrimary: {
     DEFAULT: '#0F172A',
@@ -57,6 +62,11 @@ export const COLORS = {
     light: '#D97706',
     dark: '#FBBF24',
   },
+  success: {
+    DEFAULT: '#047857',
+    light: '#047857',
+    dark: '#10B981',
+  },
   tertiary: {
     DEFAULT: '#64748B',
     light: '#64748B',
@@ -79,11 +89,13 @@ export function getThemeColors(isDark: boolean) {
     input: isDark ? COLORS.input.dark : COLORS.input.light,
     inputBorder: isDark ? COLORS.inputBorder.dark : COLORS.inputBorder.light,
     accent: isDark ? COLORS.accent.dark : COLORS.accent.light,
+    accentContrast: isDark ? COLORS.accentContrast.dark : COLORS.accentContrast.light,
     textPrimary: isDark ? COLORS.textPrimary.dark : COLORS.textPrimary.light,
     textMuted: isDark ? COLORS.textMuted.dark : COLORS.textMuted.light,
     danger: isDark ? COLORS.danger.dark : COLORS.danger.light,
     info: isDark ? COLORS.info.dark : COLORS.info.light,
     warning: isDark ? COLORS.warning.dark : COLORS.warning.light,
+    success: isDark ? COLORS.success.dark : COLORS.success.light,
     tertiary: isDark ? COLORS.tertiary.dark : COLORS.tertiary.light,
   };
 }

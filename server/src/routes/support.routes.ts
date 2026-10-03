@@ -43,8 +43,9 @@ router.post(
       message,
     })
 
+    const maskedEmail = contactEmail ? contactEmail.replace(/(.{2})(.*)(@.*)/, '$1***$3') : 'N/A'
     console.log(
-      `[Support Feedback Logged: ${savedTicket.id}] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${contactEmail || 'N/A'})`
+      `[Support Feedback Logged: ${savedTicket.id}] Category: ${category}, Subject: ${subject}, User: ${userId || 'Guest'} (${maskedEmail})`
     )
 
     res.status(201).json({

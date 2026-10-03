@@ -5,16 +5,14 @@ import {
   Text,
   TouchableOpacity,
   TextInput,
-  useColorScheme,
   ActivityIndicator,
-  Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { getUserProfile, updateUserProfile } from '@/api/user';
 import { useAuth } from '@/context/AuthContext';
-import { COLORS, useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import WeightProgressCard from '@/components/profile/WeightProgressCard';
 import { screenCache } from '@/utils/screenCache';
@@ -164,40 +162,46 @@ export default function Profile() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
-        {/* User Card Header */}
-        <SurfaceCard className="mb-3">
-          <View className="flex-row justify-between items-start mb-3">
-            <View className="w-8" />
-            <View className="flex-1 items-center">
-              <View className="w-16 h-16 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-2 border border-accent/30">
-                <Text className="text-accent dark:text-accent-dark font-black text-xl">
-                  {((firstName?.[0] || 'U') + (lastName?.[0] || '')).toUpperCase()}
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+      >
+        <View className="w-full max-w-2xl self-center">
+          {/* User Card Header */}
+          <SurfaceCard className="mb-3">
+            <View className="flex-row justify-between items-start mb-3">
+              <View className="w-11" />
+              <View className="flex-1 items-center">
+                <View className="w-16 h-16 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-2 border border-accent/30">
+                  <Text className="text-accent dark:text-accent-dark font-black text-xl">
+                    {((firstName?.[0] || 'U') + (lastName?.[0] || '')).toUpperCase()}
+                  </Text>
+                </View>
+                <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight text-center">
+                  {firstName || 'User'} {lastName || ''}
                 </Text>
+                {email ? (
+                  <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5 font-normal">
+                    {email}
+                  </Text>
+                ) : null}
+                <View className="mt-2.5 bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 rounded-full">
+                  <Text className="text-accent dark:text-accent-dark text-[10px] font-bold uppercase tracking-wider">
+                    {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
+                  </Text>
+                </View>
               </View>
-              <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight text-center">
-                {firstName || 'User'} {lastName || ''}
-              </Text>
-              {email ? (
-                <Text className="text-text-muted dark:text-text-muted-dark text-center text-xs mt-0.5 font-normal">
-                  {email}
-                </Text>
-              ) : null}
-              <View className="mt-2.5 bg-emerald-500/15 border border-emerald-500/30 px-3 py-0.5 rounded-full">
-                <Text className="text-accent dark:text-accent-dark text-[10px] font-bold uppercase tracking-wider">
-                  {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
-                </Text>
-              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(screen)/settings' as any)}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
+                accessibilityLabel="Open settings"
+              >
+                <Ionicons name="settings" size={20} color={colors.textPrimary} />
+              </TouchableOpacity>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(screen)/settings' as any)}
-              activeOpacity={0.7}
-              className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
-              accessibilityLabel="Open settings"
-            >
-              <Ionicons name="settings" size={18} color={colors.textPrimary} />
-            </TouchableOpacity>
-          </View>
 
           {/* Stats Row: Uppercase labels & heavy numbers */}
           <View className="flex-row justify-around pt-3.5 border-t border-input-border dark:border-input-border-dark">
@@ -274,8 +278,8 @@ export default function Profile() {
             Personal Information
           </Text>
 
-          <View className="flex-row justify-between">
-            <View className="w-[48%] mb-3">
+          <View className="flex-row gap-3 mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 FIRST NAME
               </Text>
@@ -287,7 +291,7 @@ export default function Profile() {
                 placeholderTextColor={placeholderColor}
               />
             </View>
-            <View className="w-[48%] mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 LAST NAME
               </Text>
@@ -301,8 +305,8 @@ export default function Profile() {
             </View>
           </View>
 
-          <View className="flex-row justify-between">
-            <View className="w-[48%] mb-3">
+          <View className="flex-row gap-3 mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 HEIGHT (CM)
               </Text>
@@ -315,7 +319,7 @@ export default function Profile() {
                 placeholderTextColor={placeholderColor}
               />
             </View>
-            <View className="w-[48%] mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 WEIGHT (KG)
               </Text>
@@ -330,8 +334,8 @@ export default function Profile() {
             </View>
           </View>
 
-          <View className="flex-row justify-between">
-            <View className="flex-1 mb-3 mr-2">
+          <View className="flex-row gap-3 mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 AGE
               </Text>
@@ -344,7 +348,7 @@ export default function Profile() {
                 placeholderTextColor={placeholderColor}
               />
             </View>
-            <View className="flex-1 mb-3">
+            <View className="flex-1">
               <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mb-1.5 font-bold uppercase tracking-wider">
                 BMI
               </Text>
@@ -362,7 +366,7 @@ export default function Profile() {
           <View className="flex-row justify-between mb-4">
             <TouchableOpacity
               activeOpacity={0.8}
-              className={`flex-1 p-3.5 rounded-2xl mr-2.5 border items-center ${
+              className={`flex-1 p-3.5 rounded-2xl mr-2.5 border items-center min-h-[44px] ${
                 goal === 'muscle'
                   ? 'border-accent dark:border-accent-dark bg-accent/15 dark:bg-accent-dark/20'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
@@ -385,7 +389,7 @@ export default function Profile() {
 
             <TouchableOpacity
               activeOpacity={0.8}
-              className={`flex-1 p-3.5 rounded-2xl border items-center ${
+              className={`flex-1 p-3.5 rounded-2xl border items-center min-h-[44px] ${
                 goal === 'loss'
                   ? 'border-accent dark:border-accent-dark bg-accent/15 dark:bg-accent-dark/20'
                   : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
@@ -411,7 +415,7 @@ export default function Profile() {
           <View className="flex-row justify-between items-center gap-x-2.5 pt-3 border-t border-input-border dark:border-input-border-dark">
             <TouchableOpacity
               activeOpacity={0.8}
-              className="bg-transparent border border-input-border dark:border-input-border-dark py-3 px-4 rounded-xl flex-1 items-center"
+              className="bg-transparent border border-input-border dark:border-input-border-dark py-3 px-4 rounded-xl flex-1 items-center min-h-[44px] justify-center"
               onPress={handleDiscard}
             >
               <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">Discard</Text>
@@ -419,7 +423,7 @@ export default function Profile() {
             <TouchableOpacity
               activeOpacity={0.9}
               disabled={saving}
-              className="bg-accent dark:bg-accent-dark py-3 px-4 rounded-xl flex-1 items-center justify-center"
+              className="bg-accent dark:bg-accent-dark py-3 px-4 rounded-xl flex-1 items-center justify-center min-h-[44px]"
               onPress={handleSave}
             >
               {saving ? (
@@ -448,6 +452,7 @@ export default function Profile() {
             <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
           </SurfaceCard>
         </TouchableOpacity>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

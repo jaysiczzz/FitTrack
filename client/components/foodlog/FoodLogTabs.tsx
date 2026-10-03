@@ -26,8 +26,9 @@ const FoodLogTabs: React.FC<FoodLogTabsProps> = ({ activeTab, onChange, historyC
             activeOpacity={0.8}
             accessibilityRole="tab"
             accessibilityState={{ selected: isActive }}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 py-2 px-1 items-center justify-center rounded-xl border flex-row ${
+            className={`flex-1 min-h-[44px] py-2.5 px-2 items-center justify-center rounded-xl border flex-row ${
               isActive
                 ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                 : 'bg-transparent border-transparent'

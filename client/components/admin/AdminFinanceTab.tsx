@@ -82,7 +82,7 @@ export default function AdminFinanceTab({
   if (loading && !refreshing) {
     return (
       <View className="py-20 items-center justify-center">
-        <ActivityIndicator size="small" color="#F59E0B" />
+        <ActivityIndicator size="small" color={colors.accent} />
         <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
           Fetching ledger transactions...
         </Text>
@@ -95,7 +95,7 @@ export default function AdminFinanceTab({
   return (
     <View className="gap-4">
       {/* Treasury Card */}
-      <SurfaceCard className="p-4 border-amber-500/30 dark:border-amber-500/30">
+      <SurfaceCard className="p-4 border-accent/30 dark:border-accent-dark/30">
         <View className="flex-row items-center justify-between mb-3">
           <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase">
             Settlement & Treasury
@@ -105,13 +105,14 @@ export default function AdminFinanceTab({
               triggerHapticFeedback();
               setShowPayoutModal(true);
             }}
-            className="bg-amber-500 px-3 py-1.5 rounded-lg"
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            className="bg-accent min-h-[44px] px-3.5 py-2 rounded-lg items-center justify-center"
           >
-            <Text className="text-xs font-bold text-black">+ Payout</Text>
+            <Text className="text-xs font-bold text-accent-contrast">+ Payout</Text>
           </TouchableOpacity>
         </View>
 
-        <Text className="text-2xl font-extrabold text-amber-500">
+        <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
           ${(revenueData.platformWallet?.balance || 0).toFixed(2)}{' '}
           {revenueData.platformWallet?.currency || 'USD'}
         </Text>
@@ -140,8 +141,8 @@ export default function AdminFinanceTab({
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {tx.type}
                   </Text>
-                  <View className="bg-emerald-500/10 px-1.5 py-0.5 rounded">
-                    <Text className="text-[9px] font-bold text-emerald-500">{tx.status}</Text>
+                  <View className="bg-success/15 border border-success/30 px-1.5 py-0.5 rounded">
+                    <Text className="text-[9px] font-bold text-success dark:text-success-dark">{tx.status}</Text>
                   </View>
                 </View>
                 <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
@@ -157,7 +158,7 @@ export default function AdminFinanceTab({
               </View>
               <Text
                 className={`text-sm font-extrabold ${
-                  tx.type === 'PAYOUT' ? 'text-rose-500' : 'text-emerald-500'
+                  tx.type === 'PAYOUT' ? 'text-danger dark:text-danger-dark' : 'text-success dark:text-success-dark'
                 }`}
               >
                 {tx.type === 'PAYOUT' ? '-' : '+'}${tx.amount.toFixed(2)}
@@ -176,7 +177,7 @@ export default function AdminFinanceTab({
           onRequestClose={() => setShowPayoutModal(false)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                   Process Admin Payout
@@ -229,12 +230,12 @@ export default function AdminFinanceTab({
               <TouchableOpacity
                 onPress={handleProcessPayout}
                 disabled={processingPayout}
-                className="bg-amber-500 py-3 rounded-xl items-center justify-center"
+                className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center"
               >
                 {processingPayout ? (
-                  <ActivityIndicator size="small" color="#000" />
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
                 ) : (
-                  <Text className="text-xs font-bold text-black">Confirm & Settle Payout</Text>
+                  <Text className="text-xs font-bold text-accent-contrast">Confirm & Settle Payout</Text>
                 )}
               </TouchableOpacity>
             </View>

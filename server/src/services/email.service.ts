@@ -56,12 +56,15 @@ export async function sendPasswordResetEmail(
   `
 
   if (!process.env.SMTP_PASS) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[EMAIL SERVICE] SMTP credentials are not configured on the production server.')
+      return { success: false, delivered: false }
+    }
     console.log('\n======================================================')
-    console.log('[EMAIL SERVICE - SIMULATED DELIVERY]')
+    console.log('[EMAIL SERVICE - DEV SIMULATED DELIVERY]')
     console.log(`To:       ${toEmail}`)
     console.log(`Code:     ${code}`)
-    console.log(`Subject:  ${subject}`)
-    console.log('NOTE: To deliver real emails, set SMTP_PASS in server/.env with a Gmail App Password.')
+    console.log('NOTE: In production, SMTP_PASS must be configured.')
     console.log('======================================================\n')
     return { success: true, delivered: false }
   }
@@ -74,12 +77,9 @@ export async function sendPasswordResetEmail(
       html: htmlContent,
       text: `Your FitTrack password reset code is: ${code}. It expires in 15 minutes.`,
     })
-    console.log(`[EMAIL SERVICE] Successfully delivered password reset email to ${toEmail}`)
     return { success: true, delivered: true }
   } catch (error: any) {
-    console.error(`[EMAIL ERROR] Failed sending to ${toEmail}:`, error.message || error)
-    // Fallback log so testing can still proceed
-    console.log(`[FALLBACK CODE FOR ${toEmail}]: ${code}`)
-    return { success: true, delivered: false }
+    console.error(`[EMAIL ERROR] Failed sending to ${toEmail}:`, error.message || 'Unknown SMTP error')
+    return { success: false, delivered: false }
   }
 }

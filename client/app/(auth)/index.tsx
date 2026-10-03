@@ -9,11 +9,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { loginUser } from '@/api/auth';
-import { useRegistration } from '../../context/RegistrationContext';
-import { useAuth } from '../../context/AuthContext';
+import { useRegistration } from '@/context/RegistrationContext';
+import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function AuthIndex() {
   const { colors } = useThemeColors();
+  const { isLandscape } = useResponsive();
   const [active, setActive] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,16 +70,13 @@ export default function AuthIndex() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView className="flex-1">
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: isKeyboardOpen ? 'flex-start' : 'center',
-            paddingTop: isKeyboardOpen ? 12 : 20,
+            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
+            paddingTop: isKeyboardOpen || isLandscape ? 12 : 20,
             paddingBottom: isKeyboardOpen ? 36 : 24,
           }}
           keyboardShouldPersistTaps="handled"
@@ -86,7 +85,7 @@ export default function AuthIndex() {
           bounces={false}
         >
           <View className="w-full max-w-[420px] mx-auto px-5">
-            <AuthHeader compact={isKeyboardOpen} />
+            <AuthHeader compact={isKeyboardOpen || isLandscape} />
             <AuthTabs active={active} onChange={handleTabChange} />
 
             {error ? (

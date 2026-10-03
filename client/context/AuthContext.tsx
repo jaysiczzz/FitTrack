@@ -64,8 +64,9 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
               }
             })
             .catch(async (err: any) => {
+              const msg = err?.message?.toLowerCase() || '';
               // If token expired / 401 Unauthorized, clear auth session
-              if (err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized')) {
+              if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('session expired') || msg.includes('not authenticated')) {
                 console.warn('[AuthContext] Stored token is invalid or expired. Logging out.');
                 await authStorage.clearAuth();
                 if (isMounted) {

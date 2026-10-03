@@ -588,7 +588,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   {nutritionDaysInMonth}/{monthDaysCount} Days Logged ({Math.round((nutritionDaysInMonth / monthDaysCount) * 100)}%)
                 </Text>
               </View>
-              <Text className="text-[11px] font-bold text-amber-500">
+              <Text className="text-[11px] font-bold text-warning dark:text-warning-dark">
                 Avg: {avgDailyCalories.toLocaleString()} kcal/day
               </Text>
             </View>
@@ -809,7 +809,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               </Text>
               <View className="flex-row items-center justify-between">
                 <View className="items-center flex-1">
-                  <Text className="text-[10px] text-amber-500 font-bold">Consumed</Text>
+                  <Text className="text-[10px] text-warning dark:text-warning-dark font-bold">Consumed</Text>
                   <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark mt-0.5">
                     +{selectedDayData.foodCalories} <Text className="text-[10px] text-text-muted">kcal</Text>
                   </Text>
@@ -959,7 +959,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                     </View>
                     <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl items-center border border-input-border dark:border-input-border-dark">
                       <Text className="text-[9px] text-text-muted font-bold uppercase">Carbs</Text>
-                      <Text className="text-xs font-black text-amber-500 mt-0.5">
+                      <Text className="text-xs font-black text-warning dark:text-warning-dark mt-0.5">
                         {selectedDayData.foodCarbs}g
                       </Text>
                     </View>

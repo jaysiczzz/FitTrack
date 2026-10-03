@@ -5,6 +5,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useWeightUnit } from '@/constants/units';
 import SurfaceCard from '../ui/SurfaceCard';
 import ConfirmModal from '../ui/ConfirmModal';
+import ExerciseVisual from './ExerciseVisual';
 
 export type SetRow = {
   id: string;
@@ -85,17 +86,14 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           onPress={onViewDetails}
           className="flex-1 pr-2 flex-row items-center gap-3"
         >
-          {imageUrl ? (
-            <Image
-              source={{ uri: imageUrl }}
-              className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark"
-              resizeMode="cover"
-            />
-          ) : (
-            <View className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark">
-              <Ionicons name="barbell" size={20} color={colors.textMuted} />
-            </View>
-          )}
+          <ExerciseVisual
+            name={name}
+            muscle={primaryMuscle}
+            category={category}
+            equipment={equipment}
+            imageUrl={imageUrl}
+            size="md"
+          />
 
           <View className="flex-1">
             <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
@@ -111,10 +109,21 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             {equipment ? ` · ${equipment}` : ''}
           </Text>
 
+          {onViewDetails && (
+            <View className="flex-row items-center gap-1.5 mt-1">
+              <View className="px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 flex-row items-center gap-1">
+                <Ionicons name="body-outline" size={9} color={colors.accent} />
+                <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
+                  Anatomy & Form
+                </Text>
+              </View>
+            </View>
+          )}
+
           {personalRecord ? (
             <View className="flex-row items-center mt-1.5">
               <View className="flex-row items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30">
-                <Ionicons name="trophy" size={10} color="#F59E0B" style={{ marginRight: 3.5 }} />
+                <Ionicons name="trophy" size={10} color={colors.warning} style={{ marginRight: 3.5 }} />
                 <Text className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
                   {personalRecord}
                 </Text>
@@ -151,11 +160,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {onRemoveExercise ? (
             <TouchableOpacity
               onPress={onRemoveExercise}
-              className="w-7 h-7 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ml-0.5"
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="w-9 h-9 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ml-0.5"
               activeOpacity={0.7}
               accessibilityLabel={`Remove ${name}`}
             >
-              <Ionicons name="close" size={15} color={colors.danger} />
+              <Ionicons name="close" size={16} color={colors.danger} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -239,12 +249,35 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           return (
             <View key={s.id || idx} className="mb-2 flex-row items-center justify-between gap-1.5">
-              {/* SET Number */}
-              <View className="w-8 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark">
+              {/* SET Number with 1-Tap Copy Previous Set Shortcut */}
+              <TouchableOpacity
+                disabled={idx === 0 || !onUpdateSet}
+                activeOpacity={idx > 0 ? 0.7 : 1}
+                onPress={() => {
+                  if (idx > 0 && onUpdateSet) {
+                    const prev = sets[idx - 1];
+                    if (prev) {
+                      if (prev.weight !== undefined && prev.weight !== null) {
+                        onUpdateSet(s.id, 'weight', Number(prev.weight) || 0, Boolean(prev.bodyweight));
+                      }
+                      if (prev.reps !== undefined && prev.reps !== null) {
+                        onUpdateSet(s.id, 'reps', Number(prev.reps) || 10);
+                      }
+                    }
+                  }
+                }}
+                accessibilityLabel={idx > 0 ? `Set ${displaySetNumber}. Tap to copy values from set ${idx}` : `Set ${displaySetNumber}`}
+                className="w-8 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark relative"
+              >
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                   {displaySetNumber}
                 </Text>
-              </View>
+                {idx > 0 && (
+                  <View className="absolute -top-1 -right-1 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-full w-3.5 h-3.5 items-center justify-center">
+                    <Ionicons name="copy-outline" size={8} color={colors.textMuted} />
+                  </View>
+                )}
+              </TouchableOpacity>
 
               {/* Weight / Load Column */}
               {!isCardio && !isStretch && (
@@ -260,11 +293,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       onPress={() => {
                         if (onUpdateSet) onUpdateSet(s.id, 'weight', stepDelta, false);
                       }}
-                      hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
-                      className="w-5 h-5 rounded bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70"
+                      hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+                      className="w-7 h-7 rounded bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70"
                       accessibilityLabel="Add weight"
                     >
-                      <Ionicons name="add" size={11} color={colors.accent} />
+                      <Ionicons name="add" size={13} color={colors.accent} />
                     </TouchableOpacity>
                   </View>
                 ) : (
@@ -275,11 +308,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         const nextW = Math.max(0, Math.round((currWeight - stepDelta) * 10) / 10);
                         onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
                       }}
-                      className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
-                      hitSlop={{ top: 12, bottom: 12, left: 10, right: 6 }}
+                      className="w-7 h-7 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                      hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                       accessibilityLabel="Decrease weight"
                     >
-                      <Ionicons name="remove" size={12} color={colors.textPrimary} />
+                      <Ionicons name="remove" size={13} color={colors.textPrimary} />
                     </TouchableOpacity>
 
                     <View className="flex-row items-center justify-center px-1">
@@ -316,11 +349,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         const nextW = Math.round((currWeight + stepDelta) * 10) / 10;
                         onUpdateSet(s.id, 'weight', nextW, false);
                       }}
-                      className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
-                      hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
+                      className="w-7 h-7 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                      hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                       accessibilityLabel="Increase weight"
                     >
-                      <Ionicons name="add" size={12} color={colors.textPrimary} />
+                      <Ionicons name="add" size={13} color={colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
                 )
@@ -331,11 +364,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <View className="flex-1 h-9 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1.5">
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', Math.max(1, currReps - 1))}
-                    className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
-                    hitSlop={{ top: 12, bottom: 12, left: 10, right: 6 }}
+                    className="w-7 h-7 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                    hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                     accessibilityLabel="Decrease reps"
                   >
-                    <Ionicons name="remove" size={12} color={colors.textPrimary} />
+                    <Ionicons name="remove" size={13} color={colors.textPrimary} />
                   </TouchableOpacity>
 
                   <View className="flex-row items-center justify-center px-1">
@@ -362,11 +395,11 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
-                    className="w-5 h-6 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
-                    hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
+                    className="w-7 h-7 rounded-md bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+                    hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
                     accessibilityLabel="Increase reps"
                   >
-                    <Ionicons name="add" size={12} color={colors.textPrimary} />
+                    <Ionicons name="add" size={13} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
               )}
@@ -385,9 +418,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.7}
                   onPress={() => onToggleSet(s.id)}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                   className={`h-9 flex-1 items-center justify-center rounded-xl border ${
                     s.done
-                      ? 'bg-emerald-500 border-emerald-500'
+                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
                   accessibilityLabel="Mark set done"
@@ -395,16 +429,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                   <Ionicons
                     name="checkmark"
                     size={16}
-                    color={s.done ? '#FFFFFF' : colors.textMuted}
+                    color={s.done ? colors.accentContrast : colors.textMuted}
                   />
                 </TouchableOpacity>
 
                 {onDeleteSet && sets.length > 1 && (
                   <TouchableOpacity
                     onPress={() => setSetToDelete({ id: s.id, setNumber: displaySetNumber })}
-                    className="w-5 h-9 items-center justify-center rounded-lg"
+                    className="w-6 h-9 items-center justify-center rounded-lg"
                     activeOpacity={0.7}
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                     accessibilityLabel="Delete set"
                   >
                     <Ionicons name="close" size={13} color={colors.textMuted} />

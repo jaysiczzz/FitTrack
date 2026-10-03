@@ -234,6 +234,31 @@ export const fetchOpenFoodFactsProducts = async (
     const fiberRaw = nutriments.fiber_100g || nutriments.fiber;
     const fiber = fiberRaw != null && Number(fiberRaw) > 0 ? Math.round(Number(fiberRaw) * 10) / 10 : undefined;
 
+    const sugarRaw = nutriments.sugars_100g || nutriments.sugars;
+    const sugar = sugarRaw != null && Number(sugarRaw) >= 0 ? Math.round(Number(sugarRaw) * 10) / 10 : undefined;
+
+    const satFatRaw = nutriments['saturated-fat_100g'] || nutriments['saturated-fat'];
+    const saturatedFat = satFatRaw != null && Number(satFatRaw) >= 0 ? Math.round(Number(satFatRaw) * 10) / 10 : undefined;
+
+    const sodiumRaw = nutriments.sodium_100g != null
+      ? Number(nutriments.sodium_100g) * 1000
+      : nutriments.salt_100g != null
+      ? Number(nutriments.salt_100g) * 400
+      : undefined;
+    const sodiumMg = sodiumRaw != null && !isNaN(sodiumRaw) ? Math.round(sodiumRaw) : undefined;
+
+    const potassiumRaw = nutriments.potassium_100g != null ? Number(nutriments.potassium_100g) * 1000 : undefined;
+    const potassiumMg = potassiumRaw != null && !isNaN(potassiumRaw) ? Math.round(potassiumRaw) : undefined;
+
+    const cholesterolRaw = nutriments.cholesterol_100g != null ? Number(nutriments.cholesterol_100g) * 1000 : undefined;
+    const cholesterolMg = cholesterolRaw != null && !isNaN(cholesterolRaw) ? Math.round(cholesterolRaw) : undefined;
+
+    const nutriscore = (p.nutriscore_grade ? String(p.nutriscore_grade).toUpperCase() : undefined) as any;
+    const novaGroup = p.nova_group ? (Number(p.nova_group) as any) : undefined;
+    const allergens = Array.isArray(p.allergens_tags) && p.allergens_tags.length > 0
+      ? p.allergens_tags.map((a: string) => String(a).replace(/^en:/i, '').replace(/-/g, ' ').trim())
+      : undefined;
+
     let servingWeightG = 100;
     if (p.serving_size) {
       const match = String(p.serving_size).match(/(\d+(?:\.\d+)?)\s*g/i);
@@ -276,6 +301,14 @@ export const fetchOpenFoodFactsProducts = async (
       carbs,
       fat,
       fiber,
+      sugar,
+      saturatedFat,
+      sodiumMg,
+      potassiumMg,
+      cholesterolMg,
+      nutriscore,
+      novaGroup,
+      allergens,
       description: p.generic_name || p.generic_name_en || undefined,
       ingredients: (p.ingredients_text || p.ingredients_text_en || '')
         .replace(/\[.*?\]|\(.*?\)/g, ' ')

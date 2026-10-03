@@ -254,6 +254,10 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
 
     const emailResult = await sendPasswordResetEmail(normalizedEmail, code, user.firstName)
 
+    if (!emailResult.success && process.env.NODE_ENV === 'production') {
+        return res.status(503).json({ error: 'Unable to send verification code. Please check that email service is configured or try again later.' })
+    }
+
     res.json({
         success: true,
         message: 'A 6-digit verification code has been sent to your email.',

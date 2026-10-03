@@ -16,6 +16,7 @@ import { useToast } from '@/context/ToastContext';
 import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
+import FilterChip from '@/components/ui/FilterChip';
 import {
   createLibraryExercise,
   deleteLibraryExercise,
@@ -135,10 +136,11 @@ export default function AdminExercisesTab({
             triggerHapticFeedback();
             setShowAddExerciseModal(true);
           }}
-          className="bg-amber-500 px-3 py-1.5 rounded-lg flex-row items-center gap-1"
+          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+          className="bg-accent min-h-[44px] px-3.5 py-2 rounded-lg flex-row items-center gap-1.5"
         >
-          <Ionicons name="add" size={16} color="#000" />
-          <Text className="text-xs font-bold text-black">Add Exercise</Text>
+          <Ionicons name="add" size={18} color={colors.accentContrast} />
+          <Text className="text-xs font-bold text-accent-contrast">Add Exercise</Text>
         </TouchableOpacity>
       </View>
 
@@ -149,35 +151,22 @@ export default function AdminExercisesTab({
         contentContainerStyle={{ gap: 6 }}
       >
         {MUSCLE_GROUPS.map((m) => (
-          <TouchableOpacity
+          <FilterChip
             key={m}
+            label={m}
+            selected={selectedMuscle === m}
             onPress={() => {
               triggerHapticFeedback();
               onSelectMuscle(m);
             }}
-            className={`px-3 py-1 rounded-full border ${
-              selectedMuscle === m
-                ? 'bg-amber-500 border-amber-500'
-                : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                selectedMuscle === m
-                  ? 'text-black font-bold'
-                  : 'text-text-muted dark:text-text-muted-dark'
-              }`}
-            >
-              {m}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </ScrollView>
 
       {/* Exercise List */}
       {loading && !refreshing ? (
         <View className="py-20 items-center justify-center">
-          <ActivityIndicator size="small" color="#F59E0B" />
+          <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
             Fetching catalog from database...
           </Text>
@@ -200,8 +189,8 @@ export default function AdminExercisesTab({
                   resizeMode="cover"
                 />
               ) : (
-                <View className="w-14 h-14 rounded-xl bg-amber-500/10 border border-amber-500/20 items-center justify-center">
-                  <Ionicons name="fitness" size={24} color="#F59E0B" />
+                <View className="w-14 h-14 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/20 items-center justify-center">
+                  <Ionicons name="fitness" size={24} color={colors.accent} />
                 </View>
               )}
 
@@ -224,9 +213,10 @@ export default function AdminExercisesTab({
 
               <TouchableOpacity
                 onPress={() => handleDeleteExercise(ex)}
-                className="w-8 h-8 rounded-lg bg-rose-500/15 border border-rose-500/30 items-center justify-center"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="w-11 h-11 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center"
               >
-                <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                <Ionicons name="trash-outline" size={16} color={colors.danger} />
               </TouchableOpacity>
             </View>
           </SurfaceCard>
@@ -242,7 +232,7 @@ export default function AdminExercisesTab({
           onRequestClose={() => setShowAddExerciseModal(false)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                   Add Exercise to Catalog
@@ -277,25 +267,15 @@ export default function AdminExercisesTab({
                     contentContainerStyle={{ gap: 6 }}
                   >
                     {MUSCLE_GROUPS.filter((m) => m !== 'All').map((m) => (
-                      <TouchableOpacity
+                      <FilterChip
                         key={m}
-                        onPress={() => setNewExMuscle(m)}
-                        className={`px-3 py-1 rounded-full border ${
-                          newExMuscle === m
-                            ? 'bg-amber-500 border-amber-500'
-                            : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-semibold ${
-                            newExMuscle === m
-                              ? 'text-black font-bold'
-                              : 'text-text-muted dark:text-text-muted-dark'
-                          }`}
-                        >
-                          {m}
-                        </Text>
-                      </TouchableOpacity>
+                        label={m}
+                        selected={newExMuscle === m}
+                        onPress={() => {
+                          triggerHapticFeedback();
+                          setNewExMuscle(m);
+                        }}
+                      />
                     ))}
                   </ScrollView>
                 </View>
@@ -332,12 +312,12 @@ export default function AdminExercisesTab({
                 <TouchableOpacity
                   onPress={handleCreateExercise}
                   disabled={savingExercise}
-                  className="bg-amber-500 py-3 rounded-xl items-center justify-center mt-2"
+                  className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center mt-2"
                 >
                   {savingExercise ? (
-                    <ActivityIndicator size="small" color="#000" />
+                    <ActivityIndicator size="small" color={colors.accentContrast} />
                   ) : (
-                    <Text className="text-xs font-bold text-black">Save to Database</Text>
+                    <Text className="text-xs font-bold text-accent-contrast">Save to Database</Text>
                   )}
                 </TouchableOpacity>
               </ScrollView>

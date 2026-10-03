@@ -14,10 +14,10 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/50">
+      <View className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark h-[80%] shadow-xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[80%] md:h-[70%] w-full md:max-w-xl shadow-xl">
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
               <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">

@@ -24,7 +24,7 @@ export default function AdminOverviewTab({
   if (loading && !refreshing) {
     return (
       <View className="py-20 items-center justify-center">
-        <ActivityIndicator size="large" color="#F59E0B" />
+        <ActivityIndicator size="large" color={colors.accent} />
         <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-3">
           Aggregating live platform metrics...
         </Text>
@@ -37,25 +37,25 @@ export default function AdminOverviewTab({
   return (
     <View className="gap-4">
       {/* Hero Platform Financial Card */}
-      <SurfaceCard className="border-amber-500/40 dark:border-amber-500/40 p-4">
+      <SurfaceCard className="border-accent/30 dark:border-accent-dark/30 p-4">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-2">
-            <View className="w-8 h-8 rounded-lg bg-amber-500/20 items-center justify-center">
-              <Ionicons name="wallet-outline" size={16} color="#F59E0B" />
+            <View className="w-8 h-8 rounded-lg bg-accent/15 dark:bg-accent-dark/20 items-center justify-center">
+              <Ionicons name="wallet-outline" size={16} color={colors.accent} />
             </View>
             <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
               Platform Master Wallet
             </Text>
           </View>
-          <View className="bg-amber-500/10 px-2 py-0.5 rounded-full">
-            <Text className="text-[10px] font-bold text-amber-500 uppercase">
+          <View className="bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/25 px-2 py-0.5 rounded-full">
+            <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
               Real Treasury
             </Text>
           </View>
         </View>
 
         <View className="flex-row items-baseline gap-1 mb-1">
-          <Text className="text-3xl font-extrabold text-amber-500">
+          <Text className="text-3xl font-extrabold text-accent dark:text-accent-dark">
             ₱{(stats.financials.platformBalance * 58).toLocaleString(undefined, {
               minimumFractionDigits: 2,
               maximumFractionDigits: 2,
@@ -84,7 +84,7 @@ export default function AdminOverviewTab({
           </View>
           <View className="flex-1 bg-surface-card dark:bg-surface-card-dark p-2.5 rounded-xl">
             <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Gross Volume</Text>
-            <Text className="text-sm font-extrabold text-emerald-500">
+            <Text className="text-sm font-extrabold text-success dark:text-success-dark">
               ${stats.financials.grossRevenue.toFixed(2)}
             </Text>
           </View>
@@ -104,7 +104,7 @@ export default function AdminOverviewTab({
           <Text className="text-2xl font-extrabold text-text-primary dark:text-text-primary-dark">
             {stats.users.athletes}
           </Text>
-          <Text className="text-[10px] text-emerald-500 mt-1 font-semibold">
+          <Text className="text-[10px] text-success dark:text-success-dark mt-1 font-semibold">
             +{stats.users.newThisWeek} new this week
           </Text>
         </SurfaceCard>
@@ -115,7 +115,7 @@ export default function AdminOverviewTab({
             <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase">
               Workouts Today
             </Text>
-            <Ionicons name="fitness" size={16} color="#3B82F6" />
+            <Ionicons name="fitness" size={16} color={colors.accent} />
           </View>
           <Text className="text-2xl font-extrabold text-text-primary dark:text-text-primary-dark">
             {stats.activity.workoutsCompletedToday}
@@ -127,11 +127,11 @@ export default function AdminOverviewTab({
       </View>
 
       {/* AI Engine Usage Gauge */}
-      <SurfaceCard className="p-4 border-indigo-500/30 dark:border-indigo-500/30">
+      <SurfaceCard className="p-4 border-info/20 dark:border-info-dark/20">
         <View className="flex-row items-center justify-between mb-3">
           <View className="flex-row items-center gap-2">
-            <View className="w-8 h-8 rounded-lg bg-indigo-500/20 items-center justify-center">
-              <Ionicons name="sparkles" size={16} color="#818CF8" />
+            <View className="w-8 h-8 rounded-lg bg-info/15 dark:bg-info-dark/20 items-center justify-center">
+              <Ionicons name="sparkles" size={16} color={colors.info} />
             </View>
             <View>
               <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
@@ -142,8 +142,8 @@ export default function AdminOverviewTab({
               </Text>
             </View>
           </View>
-          <View className="bg-emerald-500/15 border border-emerald-500/30 px-2 py-0.5 rounded-full">
-            <Text className="text-[10px] font-bold text-emerald-500">Active</Text>
+          <View className="bg-success/15 border border-success/30 px-2 py-0.5 rounded-full">
+            <Text className="text-[10px] font-bold text-success dark:text-success-dark">Active</Text>
           </View>
         </View>
 
@@ -176,6 +176,8 @@ export default function AdminOverviewTab({
               triggerHapticFeedback();
               onNavigateTab('support');
             }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="min-h-[44px] justify-center"
           >
             <Text className="text-xs font-bold text-accent dark:text-accent-dark">
               View All ({stats.support.total}) →
@@ -183,21 +185,21 @@ export default function AdminOverviewTab({
           </TouchableOpacity>
         </View>
         <View className="flex-row gap-2 mt-1">
-          <View className="flex-1 bg-amber-500/10 border border-amber-500/30 p-2.5 rounded-xl">
-            <Text className="text-[10px] font-bold text-amber-500 uppercase">Open</Text>
-            <Text className="text-lg font-extrabold text-amber-500 mt-0.5">
+          <View className="flex-1 bg-warning/10 border border-warning/30 p-2.5 rounded-xl">
+            <Text className="text-[10px] font-bold text-warning dark:text-warning-dark uppercase">Open</Text>
+            <Text className="text-lg font-extrabold text-warning dark:text-warning-dark mt-0.5">
               {stats.support.open}
             </Text>
           </View>
-          <View className="flex-1 bg-blue-500/10 border border-blue-500/30 p-2.5 rounded-xl">
-            <Text className="text-[10px] font-bold text-blue-500 uppercase">In Progress</Text>
-            <Text className="text-lg font-extrabold text-blue-500 mt-0.5">
+          <View className="flex-1 bg-info/10 border border-info/30 p-2.5 rounded-xl">
+            <Text className="text-[10px] font-bold text-info dark:text-info-dark uppercase">In Progress</Text>
+            <Text className="text-lg font-extrabold text-info dark:text-info-dark mt-0.5">
               {stats.support.inProgress}
             </Text>
           </View>
-          <View className="flex-1 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl">
-            <Text className="text-[10px] font-bold text-emerald-500 uppercase">Resolved</Text>
-            <Text className="text-lg font-extrabold text-emerald-500 mt-0.5">
+          <View className="flex-1 bg-success/10 border border-success/30 p-2.5 rounded-xl">
+            <Text className="text-[10px] font-bold text-success dark:text-success-dark uppercase">Resolved</Text>
+            <Text className="text-lg font-extrabold text-success dark:text-success-dark mt-0.5">
               {stats.support.resolved}
             </Text>
           </View>

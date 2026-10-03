@@ -526,7 +526,7 @@ export default function SubscriptionModal({
                         </View>
 
                         <View className="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                          <Text className="text-[10px] font-extrabold text-amber-500 dark:text-amber-400">
+                          <Text className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
                             {plan.badge}
                           </Text>
                         </View>
@@ -824,11 +824,11 @@ export default function SubscriptionModal({
               }`}
             >
               {processingPayment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
+                <ActivityIndicator size="small" color={colors.accentContrast} className="mr-2" />
               ) : (
-                <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="lock-closed" size={16} color={colors.accentContrast} style={{ marginRight: 6 }} />
               )}
-              <Text className="text-white font-black text-sm">
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm">
                 Pay {symbol}
                 {selectedPlan.price.toLocaleString(undefined, {
                   minimumFractionDigits: currency === 'PHP' ? 0 : 2,

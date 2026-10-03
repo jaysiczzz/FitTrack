@@ -10,6 +10,14 @@ export interface FoodCatalogItem {
   carbs: number;
   fat: number;
   fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
+  sodiumMg?: number;
+  potassiumMg?: number;
+  cholesterolMg?: number;
+  nutriscore?: 'A' | 'B' | 'C' | 'D' | 'E';
+  novaGroup?: 1 | 2 | 3 | 4;
+  allergens?: string[];
   description?: string;
   ingredients?: string;
   icon: string;
@@ -932,31 +940,45 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   },
 ];
 
+export interface ScaledNutrition {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fat: number;
+  fiber?: number;
+  sugar?: number;
+  saturatedFat?: number;
+  sodiumMg?: number;
+  potassiumMg?: number;
+  cholesterolMg?: number;
+}
+
 /**
- * Dynamically scales food calories and macronutrients based on amount and unit
+ * Dynamically scales food calories, macronutrients, and micronutrients based on amount and unit
  */
 export function scaleFoodMacros(
   food: FoodCatalogItem,
   amount: number,
   mode: 'grams' | 'servings'
-): { calories: number; protein: number; carbs: number; fat: number } {
+): ScaledNutrition {
   const safeAmount = Math.max(0.1, Number(amount) || 1);
+  const ratio = mode === 'servings' ? safeAmount : safeAmount / (food.servingWeightG || 100);
 
-  if (mode === 'servings') {
-    return {
-      calories: Math.round(food.calories * safeAmount),
-      protein: Math.round(food.protein * safeAmount * 10) / 10,
-      carbs: Math.round(food.carbs * safeAmount * 10) / 10,
-      fat: Math.round(food.fat * safeAmount * 10) / 10,
-    };
-  }
+  const scaleVal = (val?: number) =>
+    val !== undefined ? Math.round(val * ratio * 10) / 10 : undefined;
+  const scaleMg = (val?: number) =>
+    val !== undefined ? Math.round(val * ratio) : undefined;
 
-  // Scaling by weight in grams (relative to base servingWeightG)
-  const ratio = safeAmount / (food.servingWeightG || 100);
   return {
     calories: Math.round(food.calories * ratio),
     protein: Math.round(food.protein * ratio * 10) / 10,
     carbs: Math.round(food.carbs * ratio * 10) / 10,
     fat: Math.round(food.fat * ratio * 10) / 10,
+    fiber: scaleVal(food.fiber),
+    sugar: scaleVal(food.sugar),
+    saturatedFat: scaleVal(food.saturatedFat),
+    sodiumMg: scaleMg(food.sodiumMg),
+    potassiumMg: scaleMg(food.potassiumMg),
+    cholesterolMg: scaleMg(food.cholesterolMg),
   };
 }

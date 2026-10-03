@@ -13,7 +13,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         activeOpacity={0.8}
         accessibilityRole="tab"
         accessibilityState={{ selected: active === 'login' }}
-        className={`flex-1 py-2 items-center justify-center rounded-lg ${
+        className={`flex-1 min-h-[44px] py-2.5 items-center justify-center rounded-lg ${
           active === 'login'
             ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
             : ''
@@ -47,7 +47,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
         activeOpacity={0.8}
         accessibilityRole="tab"
         accessibilityState={{ selected: active === 'register' }}
-        className={`flex-1 py-2 items-center justify-center rounded-lg ${
+        className={`flex-1 min-h-[44px] py-2.5 items-center justify-center rounded-lg ${
           active === 'register'
             ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
             : ''

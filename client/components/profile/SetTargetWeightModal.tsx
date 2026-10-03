@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Pressable,
   ActivityIndicator,
-  Platform,
   KeyboardAvoidingView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -115,12 +114,11 @@ export default function SetTargetWeightModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg shadow-2xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -164,7 +162,8 @@ export default function SetTargetWeightModal({
               <TouchableOpacity
                 onPress={() => handleAdjust(isLbs ? -4.0 : -2.0)}
                 activeOpacity={0.7}
-                className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                   {isLbs ? '-4.0' : '-2.0'}
@@ -174,7 +173,8 @@ export default function SetTargetWeightModal({
               <TouchableOpacity
                 onPress={() => handleAdjust(isLbs ? -1.0 : -0.5)}
                 activeOpacity={0.7}
-                className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                   {isLbs ? '-1.0' : '-0.5'}
@@ -184,7 +184,8 @@ export default function SetTargetWeightModal({
               <TouchableOpacity
                 onPress={() => handleAdjust(isLbs ? +1.0 : +0.5)}
                 activeOpacity={0.7}
-                className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                   {isLbs ? '+1.0' : '+0.5'}
@@ -194,7 +195,8 @@ export default function SetTargetWeightModal({
               <TouchableOpacity
                 onPress={() => handleAdjust(isLbs ? +4.0 : +2.0)}
                 activeOpacity={0.7}
-                className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
                   {isLbs ? '+4.0' : '+2.0'}
@@ -224,7 +226,7 @@ export default function SetTargetWeightModal({
               onPress={handleSave}
               disabled={saving}
               activeOpacity={0.8}
-              className="w-full bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm"
+              className="w-full bg-accent dark:bg-accent-dark min-h-[48px] py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm"
             >
               {saving ? (
                 <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
@@ -241,7 +243,8 @@ export default function SetTargetWeightModal({
                 onPress={handleClear}
                 disabled={saving}
                 activeOpacity={0.8}
-                className="w-full py-2.5 rounded-2xl items-center justify-center"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="w-full min-h-[44px] py-2.5 rounded-2xl items-center justify-center"
               >
                 <Text className="text-danger dark:text-danger-dark font-semibold text-xs">
                   Remove Target Goal

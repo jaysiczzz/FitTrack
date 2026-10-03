@@ -512,11 +512,11 @@ export default function EWalletModal({
                   className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
                 >
                   {depositing ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.accentContrast} />
                   ) : (
                     <>
-                      <Ionicons name="arrow-forward-circle" size={16} color="#FFFFFF" />
-                      <Text className="text-white text-xs font-black">
+                      <Ionicons name="arrow-forward-circle" size={16} color={colors.accentContrast} />
+                      <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black">
                         Proceed to Top-Up {symbol}{numericTopUp.toFixed(2)}
                       </Text>
                     </>

@@ -155,17 +155,18 @@ export default function AdminScreen() {
               triggerHapticFeedback();
               router.back();
             }}
-            className="w-9 h-9 rounded-full bg-surface-card dark:bg-surface-card-dark items-center justify-center border border-input-border dark:border-input-border-dark"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="w-11 h-11 rounded-full bg-surface-card dark:bg-surface-card-dark items-center justify-center border border-input-border dark:border-input-border-dark"
           >
-            <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <View>
             <View className="flex-row items-center gap-1.5">
               <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                 Admin Control Center
               </Text>
-              <View className="bg-amber-500/20 px-1.5 py-0.5 rounded-full">
-                <Text className="text-[9px] font-bold text-amber-500 uppercase tracking-wider">
+              <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
                   Admin
                 </Text>
               </View>
@@ -177,9 +178,9 @@ export default function AdminScreen() {
         </View>
 
         {/* Live Status indicator */}
-        <View className="flex-row items-center gap-1 bg-emerald-500/10 border border-emerald-500/30 px-2 py-1 rounded-full">
-          <View className="w-2 h-2 rounded-full bg-emerald-500" />
-          <Text className="text-[10px] font-bold text-emerald-500">Live DB</Text>
+        <View className="flex-row items-center gap-1.5 bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5 py-1 rounded-full">
+          <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
+          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">Live DB</Text>
         </View>
       </View>
 
@@ -199,20 +200,23 @@ export default function AdminScreen() {
                   triggerHapticFeedback();
                   setActiveTab(tab.key);
                 }}
-                className={`flex-row items-center gap-1.5 px-3.5 py-2 rounded-full border ${
+                accessibilityRole="tab"
+                accessibilityState={{ selected: isSelected }}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                className={`flex-row items-center gap-1.5 px-4 min-h-[44px] py-2.5 rounded-full border ${
                   isSelected
-                    ? 'bg-amber-500 border-amber-500'
+                    ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                     : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
                 <Ionicons
                   name={tab.icon}
-                  size={14}
-                  color={isSelected ? '#000000' : colors.textMuted}
+                  size={15}
+                  color={isSelected ? colors.accent : colors.textMuted}
                 />
                 <Text
                   className={`text-xs font-semibold ${
-                    isSelected ? 'text-black font-bold' : 'text-text-primary dark:text-text-primary-dark'
+                    isSelected ? 'text-accent dark:text-accent-dark font-bold' : 'text-text-primary dark:text-text-primary-dark'
                   }`}
                 >
                   {tab.label}
@@ -226,6 +230,7 @@ export default function AdminScreen() {
       {/* ── Main Tab Content ── */}
       <ScrollView
         className="flex-1"
+        keyboardShouldPersistTaps="handled"
         contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
         refreshControl={
           <RefreshControl
@@ -235,6 +240,7 @@ export default function AdminScreen() {
           />
         }
       >
+        <View className="w-full max-w-5xl self-center mx-auto">
         {activeTab === 'overview' && (
           <AdminOverviewTab
             stats={stats}
@@ -292,6 +298,7 @@ export default function AdminScreen() {
             onReloadTickets={loadTabContent}
           />
         )}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );

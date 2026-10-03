@@ -25,28 +25,37 @@ export default function FilterChip({
 }: FilterChipProps) {
   const roundedClass = rounded === 'full' ? 'rounded-full' : 'rounded-xl';
 
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      activeOpacity={0.75}
-      accessibilityRole="button"
-      accessibilityState={{ selected }}
-      className={`px-3 py-1.5 ${roundedClass} border ${
-        selected
-          ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
-          : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-      } ${className}`}
-      {...props}
-    >
-      <Text
-        className={`text-xs ${
+    const isWarning = variant === 'warning';
+    const activeBorderClass = isWarning
+      ? 'bg-warning/15 dark:bg-warning-dark/20 border-warning dark:border-warning-dark'
+      : 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark';
+    const activeTextClass = isWarning
+      ? 'text-warning dark:text-warning-dark font-bold'
+      : 'text-accent dark:text-accent-dark font-bold';
+
+    return (
+      <TouchableOpacity
+        onPress={onPress}
+        activeOpacity={0.75}
+        accessibilityRole="button"
+        accessibilityState={{ selected }}
+        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+        className={`min-h-[44px] px-3.5 py-2 justify-center items-center ${roundedClass} border ${
           selected
-            ? 'text-accent dark:text-accent-dark font-bold'
-            : 'text-text-muted dark:text-text-muted-dark font-medium'
-        }`}
+            ? activeBorderClass
+            : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+        } ${className}`}
+        {...props}
       >
-        {icon ? `${icon} ` : ''}{label}{count !== undefined ? ` (${count})` : ''}
-      </Text>
-    </TouchableOpacity>
-  );
+        <Text
+          className={`text-xs ${
+            selected
+              ? activeTextClass
+              : 'text-text-muted dark:text-text-muted-dark font-medium'
+          }`}
+        >
+          {icon ? `${icon} ` : ''}{label}{count !== undefined ? ` (${count})` : ''}
+        </Text>
+      </TouchableOpacity>
+    );
 }

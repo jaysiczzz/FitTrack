@@ -144,13 +144,10 @@ export default function ForgotPasswordModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
-      >
-        <Pressable className="flex-1" onPress={handleClose} />
+      <KeyboardAvoidingView className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4">
+        <Pressable className="flex-1 w-full" onPress={handleClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
+        <View className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -208,9 +205,9 @@ export default function ForgotPasswordModal({
                   className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row mt-2 mb-4"
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.accentContrast} />
                   ) : (
-                    <Text className="text-sm font-bold text-white">
+                    <Text className="text-sm font-bold text-accent-contrast dark:text-accent-contrast-dark">
                       Send Verification Code
                     </Text>
                   )}
@@ -322,9 +319,9 @@ export default function ForgotPasswordModal({
                     className="flex-1 py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
                   >
                     {loading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.accentContrast} />
                     ) : (
-                      <Text className="text-sm font-bold text-white">
+                      <Text className="text-sm font-bold text-accent-contrast dark:text-accent-contrast-dark">
                         Reset Password
                       </Text>
                     )}

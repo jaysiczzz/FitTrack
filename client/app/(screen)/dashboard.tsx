@@ -24,6 +24,7 @@ import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import { screenCache } from '@/utils/screenCache';
+import { useResponsive } from '@/hooks/useResponsive';
 
 function calculateWorkoutStreak(
   sessions: ApiWorkoutSession[],
@@ -82,6 +83,7 @@ function calculateWorkoutStreak(
 
 export default function Dashboard() {
   const { colors } = useThemeColors();
+  const { isTablet, isLandscape } = useResponsive();
   const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id;
@@ -587,33 +589,34 @@ export default function Dashboard() {
           />
         }
       >
-        {/* Header Greeting */}
-        <View className="flex-row items-center justify-between mb-4">
-          <View className="flex-1 mr-2">
-            <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
-              {getGreeting()}, {userName}
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
-              Your live fitness and accountability overview
-            </Text>
-          </View>
+        <View className="w-full max-w-5xl self-center mx-auto">
+          {/* Header Greeting */}
+          <View className="flex-row items-center justify-between mb-4">
+            <View className="flex-1 mr-2">
+              <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
+                {getGreeting()}, {userName}
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
+                Your live fitness and accountability overview
+              </Text>
+            </View>
 
-          <TouchableOpacity
-            onPress={() => router.push('/(screen)/calendar' as any)}
-            activeOpacity={0.8}
-            className="flex-row items-center gap-1.5 px-3.5 py-2 rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
-            accessibilityLabel="Activity Calendar"
-          >
-            <Ionicons
-              name="calendar"
-              size={15}
-              color={colors.accent}
-            />
-            <Text className="text-xs font-black text-accent dark:text-accent-dark">
-              Calendar
-            </Text>
-          </TouchableOpacity>
-        </View>
+            <TouchableOpacity
+              onPress={() => router.push('/(screen)/calendar' as any)}
+              activeOpacity={0.8}
+              className="flex-row items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
+              accessibilityLabel="Activity Calendar"
+            >
+              <Ionicons
+                name="calendar"
+                size={15}
+                color={colors.accent}
+              />
+              <Text className="text-xs font-black text-accent dark:text-accent-dark">
+                Calendar
+              </Text>
+            </TouchableOpacity>
+          </View>
 
         {initialLoading ? (
           <View className="my-2">
@@ -662,57 +665,64 @@ export default function Dashboard() {
               }}
             />
 
-            {/* Key Metrics Grid */}
-            <View className="flex-row gap-2.5 mb-2.5">
-              <StatCard
-                iconName="flame"
-                title="Calories"
-                value={`${caloriesLogged.toLocaleString()} kcal`}
-                subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
-                onPress={() => router.push('/(screen)/foodlog' as any)}
-              />
-              <StatCard
-                iconName="water"
-                title="Hydration"
-                value={`${waterMl.toLocaleString()} ml`}
-                subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
-              />
+            {/* Key Metrics Grid: 2x2 on phone, 4 across on tablet */}
+            <View className="flex-col md:flex-row gap-2.5 mb-3">
+              <View className="flex-row flex-1 gap-2.5">
+                <StatCard
+                  iconName="flame"
+                  title="Calories"
+                  value={`${caloriesLogged.toLocaleString()} kcal`}
+                  subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
+                  onPress={() => router.push('/(screen)/foodlog' as any)}
+                />
+                <StatCard
+                  iconName="water"
+                  title="Hydration"
+                  value={`${waterMl.toLocaleString()} ml`}
+                  subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
+                />
+              </View>
+
+              <View className="flex-row flex-1 gap-2.5">
+                <StatCard
+                  iconName="barbell"
+                  title="Workouts"
+                  value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
+                  subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
+                  onPress={() => router.push('/(screen)/workouts' as any)}
+                />
+                <StatCard
+                  iconName="sparkles"
+                  title="Streak"
+                  value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
+                  subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
+                />
+              </View>
             </View>
 
-            <View className="flex-row gap-2.5 mb-3">
-              <StatCard
-                iconName="barbell"
-                title="Workouts"
-                value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-                subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
-                onPress={() => router.push('/(screen)/workouts' as any)}
-              />
-              <StatCard
-                iconName="sparkles"
-                title="Streak"
-                value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-                subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
-              />
+            {/* Today's Workout & Daily Nutrition Breakdown (Side-by-side on wide screens) */}
+            <View className="flex-col lg:flex-row lg:gap-4 items-start">
+              <View className="w-full lg:flex-1">
+                <TodayWorkoutCard
+                  exercises={todayExercises}
+                  isSessionCompleted={workoutSessionDone}
+                  completedStats={todayCompletedWorkoutStats}
+                />
+              </View>
+
+              <View className="w-full lg:flex-1">
+                <MacroProgressCard
+                  caloriesLogged={caloriesLogged}
+                  targetCalories={targetCalories}
+                  proteinLogged={proteinLogged}
+                  targetProtein={targetProtein}
+                  carbsLogged={carbsLogged}
+                  targetCarbs={targetCarbs}
+                  fatLogged={fatLogged}
+                  targetFat={targetFat}
+                />
+              </View>
             </View>
-
-            {/* Today's Workout Session Card */}
-            <TodayWorkoutCard
-              exercises={todayExercises}
-              isSessionCompleted={workoutSessionDone}
-              completedStats={todayCompletedWorkoutStats}
-            />
-
-            {/* Daily Nutrition Macro Breakdown */}
-            <MacroProgressCard
-              caloriesLogged={caloriesLogged}
-              targetCalories={targetCalories}
-              proteinLogged={proteinLogged}
-              targetProtein={targetProtein}
-              carbsLogged={carbsLogged}
-              targetCarbs={targetCarbs}
-              fatLogged={fatLogged}
-              targetFat={targetFat}
-            />
 
             {/* Interactive Daily Goals Checklist */}
             <DailyGoalsCard
@@ -750,6 +760,7 @@ export default function Dashboard() {
             />
           </>
         )}
+        </View>
       </ScrollView>
 
       {/* Athlete Testimonials Full Feed & Submission Modal */}

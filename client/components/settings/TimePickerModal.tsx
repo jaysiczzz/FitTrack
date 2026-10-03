@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   Pressable,
   ScrollView,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -66,10 +65,10 @@ export default function TimePickerModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/60">
+      <View className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl max-h-[85%]">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark shadow-2xl max-h-[85%] w-full md:max-w-md">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -102,7 +101,7 @@ export default function TimePickerModal({
               <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl border border-input-border dark:border-input-border-dark">
                 <TouchableOpacity
                   onPress={() => setSelectedPeriod('AM')}
-                  className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
+                  className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center ${
                     selectedPeriod === 'AM'
                       ? 'bg-accent dark:bg-accent-dark shadow-xs'
                       : 'bg-transparent'
@@ -119,7 +118,7 @@ export default function TimePickerModal({
 
                 <TouchableOpacity
                   onPress={() => setSelectedPeriod('PM')}
-                  className={`flex-1 py-2.5 rounded-xl items-center justify-center ${
+                  className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center ${
                     selectedPeriod === 'PM'
                       ? 'bg-accent dark:bg-accent-dark shadow-xs'
                       : 'bg-transparent'
@@ -149,7 +148,8 @@ export default function TimePickerModal({
                       key={h}
                       activeOpacity={0.8}
                       onPress={() => setSelected12Hour(h)}
-                      className={`w-[22%] py-2.5 rounded-xl items-center justify-center border ${
+                      hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                      className={`w-[22%] min-h-[44px] py-2 rounded-xl items-center justify-center border ${
                         isSelected
                           ? 'bg-accent/15 border-accent dark:border-accent-dark shadow-2xs'
                           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -181,7 +181,8 @@ export default function TimePickerModal({
                       key={m}
                       activeOpacity={0.8}
                       onPress={() => setSelectedMinute(m)}
-                      className={`w-[22%] py-2 rounded-xl items-center justify-center border ${
+                      hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                      className={`w-[22%] min-h-[44px] py-2 rounded-xl items-center justify-center border ${
                         isSelected
                           ? 'bg-accent/15 border-accent dark:border-accent-dark shadow-2xs'
                           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -206,7 +207,7 @@ export default function TimePickerModal({
             <TouchableOpacity
               onPress={onClose}
               activeOpacity={0.8}
-              className="flex-1 py-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="flex-1 min-h-[48px] py-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
             >
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
                 Cancel
@@ -216,7 +217,7 @@ export default function TimePickerModal({
             <TouchableOpacity
               onPress={handleSave}
               activeOpacity={0.9}
-              className="flex-1 py-3 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center shadow-md shadow-accent/20"
+              className="flex-1 min-h-[48px] py-3 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center shadow-md shadow-accent/20"
             >
               <Text className="text-xs font-black text-white uppercase tracking-wider">
                 Apply Time
