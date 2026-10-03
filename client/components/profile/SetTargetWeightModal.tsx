@@ -12,7 +12,9 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
+import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface SetTargetWeightModalProps {
   visible: boolean;
@@ -33,60 +35,81 @@ export default function SetTargetWeightModal({
 }: SetTargetWeightModalProps) {
   const { colors } = useThemeColors();
   const { showWarning } = useToast();
+  const [unit] = useWeightUnit();
+  const isLbs = unit === 'LBS';
+  const unitLabel = unit.toLowerCase();
 
   const [inputVal, setInputVal] = useState<string>('');
   const [saving, setSaving] = useState(false);
+  const [targetError, setTargetError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
+      setTargetError(null);
       if (currentTargetWeight) {
-        setInputVal(currentTargetWeight.toFixed(1));
+        setInputVal(convertFromKg(currentTargetWeight, unit).toFixed(1));
       } else {
-        const suggested = goal === 'WEIGHT_LOSS' ? Math.max(30, currentWeight - 5) : currentWeight + 3;
+        const curConverted = convertFromKg(currentWeight, unit);
+        const delta = isLbs ? 10 : 5;
+        const minVal = isLbs ? 66 : 30;
+        const suggested = goal === 'WEIGHT_LOSS' ? Math.max(minVal, curConverted - delta) : curConverted + (isLbs ? 6 : 3);
         setInputVal(suggested.toFixed(1));
       }
     }
-  }, [visible, currentTargetWeight, currentWeight, goal]);
+  }, [visible, currentTargetWeight, currentWeight, goal, unit, isLbs]);
 
   const handleAdjust = (delta: number) => {
-    const val = parseFloat(inputVal) || currentWeight;
-    const nextVal = Math.max(30, Math.min(300, val + delta));
+    setTargetError(null);
+    const minW = isLbs ? 66 : 30;
+    const maxW = isLbs ? 660 : 300;
+    const fallback = isLbs ? 154 : 70;
+    const val = parseFloat(inputVal) || fallback;
+    const nextVal = Math.max(minW, Math.min(maxW, val + delta));
     setInputVal(nextVal.toFixed(1));
   };
 
   const handleSave = async () => {
+    setTargetError(null);
     const num = parseFloat(inputVal);
-    if (isNaN(num) || num <= 20 || num > 400) {
-      showWarning('Invalid Target', 'Please enter a target weight between 20 and 400 kg.');
+    const minW = isLbs ? 45 : 20;
+    const maxW = isLbs ? 880 : 400;
+    if (isNaN(num) || num < minW || num > maxW) {
+      setTargetError(`Please enter a target weight between ${minW} and ${maxW} ${unitLabel}.`);
       return;
     }
 
     setSaving(true);
     try {
-      await onSaveTarget(Number(num.toFixed(1)));
+      const targetKg = isLbs ? convertToKg(num, 'LBS') : num;
+      await onSaveTarget(Number(targetKg.toFixed(1)));
+      setTargetError(null);
       onClose();
-    } catch {
-      // Handled by parent
+    } catch (err: any) {
+      setTargetError(err?.message || 'Could not update target weight. Please check your connection.');
     } finally {
       setSaving(false);
     }
   };
 
   const handleClear = async () => {
+    setTargetError(null);
     setSaving(true);
     try {
       await onSaveTarget(null);
+      setTargetError(null);
       onClose();
-    } catch {
-      // Handled by parent
+    } catch (err: any) {
+      setTargetError(err?.message || 'Could not clear target weight.');
     } finally {
       setSaving(false);
     }
   };
 
   const targetNum = parseFloat(inputVal);
-  const diffKg = !isNaN(targetNum) ? Math.abs(currentWeight - targetNum) : 0;
-  const estimatedWeeks = Math.max(1, Math.round(diffKg / 0.5)); // 0.5 kg/week healthy pace
+  const curConverted = convertFromKg(currentWeight, unit);
+  const diffInUnit = !isNaN(targetNum) ? Math.abs(curConverted - targetNum) : 0;
+  const weeklyPace = isLbs ? 1.0 : 0.5; // ~1 lb/week or ~0.5 kg/week healthy pace
+  const estimatedWeeks = Math.max(1, Math.round(diffInUnit / weeklyPace));
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -109,6 +132,13 @@ export default function SetTargetWeightModal({
             <ModalCloseButton onClose={onClose} />
           </View>
 
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={targetError}
+            onDismiss={() => setTargetError(null)}
+            className="mt-3 mb-0"
+          />
+
           <View className="my-5 items-center bg-input/40 dark:bg-input-dark/40 p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
             <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
               Target Goal
@@ -123,68 +153,68 @@ export default function SetTargetWeightModal({
                 selectTextOnFocus
               />
               <Text className="text-xl font-bold text-accent dark:text-accent-dark ml-1">
-                kg
+                {unitLabel}
               </Text>
             </View>
 
             {/* Steppers */}
             <View className="flex-row items-center justify-center gap-2">
               <TouchableOpacity
-                onPress={() => handleAdjust(-2.0)}
+                onPress={() => handleAdjust(isLbs ? -4.0 : -2.0)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  -2.0
+                  {isLbs ? '-4.0' : '-2.0'}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => handleAdjust(-0.5)}
+                onPress={() => handleAdjust(isLbs ? -1.0 : -0.5)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  -0.5
+                  {isLbs ? '-1.0' : '-0.5'}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => handleAdjust(+0.5)}
+                onPress={() => handleAdjust(isLbs ? +1.0 : +0.5)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  +0.5
+                  {isLbs ? '+1.0' : '+0.5'}
                 </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => handleAdjust(+2.0)}
+                onPress={() => handleAdjust(isLbs ? +4.0 : +2.0)}
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                 className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
               >
                 <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  +2.0
+                  {isLbs ? '+4.0' : '+2.0'}
                 </Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Goal Insight Box */}
-          {!isNaN(targetNum) && diffKg > 0 && (
+          {!isNaN(targetNum) && diffInUnit > 0 && (
             <View className="mb-5 p-3 rounded-2xl bg-accent/10 border border-accent/25 flex-row items-center">
               <Ionicons name="sparkles" size={18} color="#10B981" style={{ marginRight: 10 }} />
               <View className="flex-1">
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  {diffKg.toFixed(1)} kg {goal === 'WEIGHT_LOSS' ? 'to lose' : 'to gain'}
+                  {diffInUnit.toFixed(1)} {unitLabel} {goal === 'WEIGHT_LOSS' ? 'to lose' : 'to gain'}
                 </Text>
                 <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                  At a sustainable ~0.5kg/week rate, this goal is achievable in approximately {estimatedWeeks} {estimatedWeeks === 1 ? 'week' : 'weeks'}.
+                  At a sustainable ~{weeklyPace}{unitLabel}/week rate, this goal is achievable in approximately {estimatedWeeks} {estimatedWeeks === 1 ? 'week' : 'weeks'}.
                 </Text>
               </View>
             </View>

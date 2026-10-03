@@ -1,7 +1,7 @@
 export interface FoodCatalogItem {
   id: string;
   name: string;
-  category: 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy' | 'Staples';
+  category: 'Protein' | 'Carbs' | 'Fats' | 'Fruits' | 'Vegetables' | 'Dairy';
   servingSize: string;
   servingWeightG: number;
   servingUnit: string;
@@ -30,11 +30,11 @@ export interface FoodCatalogItem {
 }
 
 export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
-  // ===================== STAPLE MEALS =====================
+  // ===================== MEAL COMBOS =====================
   {
     id: 'food-staple-chicken-rice',
     name: 'Grilled Chicken & White Rice',
-    category: 'Staples',
+    category: 'Protein',
     servingSize: '1 bowl (350g)',
     servingWeightG: 350,
     servingUnit: 'bowl',
@@ -51,7 +51,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-protein-shake',
     name: 'Whey Protein Shake & Banana',
-    category: 'Staples',
+    category: 'Protein',
     servingSize: '1 shake (400ml)',
     servingWeightG: 400,
     servingUnit: 'shake',
@@ -68,7 +68,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-eggs-toast',
     name: 'Boiled Eggs & Whole Wheat Toast',
-    category: 'Staples',
+    category: 'Protein',
     servingSize: '1 plate (180g)',
     servingWeightG: 180,
     servingUnit: 'plate',
@@ -85,7 +85,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-yogurt-berries',
     name: 'Greek Yogurt with Berries & Honey',
-    category: 'Staples',
+    category: 'Dairy',
     servingSize: '1 bowl (250g)',
     servingWeightG: 250,
     servingUnit: 'bowl',
@@ -102,7 +102,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-tuna-salad',
     name: 'Tuna & Avocado Mixed Salad',
-    category: 'Staples',
+    category: 'Protein',
     servingSize: '1 bowl (300g)',
     servingWeightG: 300,
     servingUnit: 'bowl',
@@ -119,7 +119,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-oatmeal-pb',
     name: 'Oatmeal with Peanut Butter',
-    category: 'Staples',
+    category: 'Carbs',
     servingSize: '1 bowl (280g)',
     servingWeightG: 280,
     servingUnit: 'bowl',
@@ -136,7 +136,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-salmon-sweet-potato',
     name: 'Salmon Fillet & Roasted Sweet Potato',
-    category: 'Staples',
+    category: 'Protein',
     servingSize: '1 plate (300g)',
     servingWeightG: 300,
     servingUnit: 'plate',
@@ -153,7 +153,7 @@ export const COMMON_FOODS_CATALOG: FoodCatalogItem[] = [
   {
     id: 'food-staple-cottage-cheese-apple',
     name: 'Cottage Cheese & Apple Slices',
-    category: 'Staples',
+    category: 'Dairy',
     servingSize: '1 bowl (350g)',
     servingWeightG: 350,
     servingUnit: 'bowl',

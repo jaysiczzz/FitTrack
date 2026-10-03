@@ -545,6 +545,7 @@ export default function FoodLog() {
                 setShowScanModal(true);
               }}
               onAiSuggest={() => setShowAiSuggestModal(true)}
+              onCopyYesterday={handleCopyYesterday}
             />
 
             {/* 3. Meal Category Cards */}

@@ -13,6 +13,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 import {
   getAdminRevenueOverviewApi,
   processAdminPayoutApi,
@@ -50,16 +51,18 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
   } | null>(null);
   const [overrideTier, setOverrideTier] = useState<SubscriptionTierType>('PRO_ANNUAL');
   const [savingOverride, setSavingOverride] = useState(false);
+  const [adminError, setAdminError] = useState<string | null>(null);
 
   const fetchRevenueData = async () => {
     try {
       setLoading(true);
+      setAdminError(null);
       const res = await getAdminRevenueOverviewApi();
       if (res.success) {
         setData(res);
       }
     } catch (err: any) {
-      showError('Admin Access Error', err?.message || 'Could not fetch admin revenue metrics.');
+      setAdminError(err?.message || 'Could not fetch admin revenue metrics.');
     } finally {
       setLoading(false);
     }
@@ -83,6 +86,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
     }
 
     setProcessingPayout(true);
+    setAdminError(null);
     try {
       const res = await processAdminPayoutApi(amountNum, payoutDestination.trim(), payoutNotes);
       if (res.success) {
@@ -91,10 +95,11 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
         setShowPayoutModal(false);
         setPayoutAmount('');
         setPayoutDestination('');
+        setAdminError(null);
         fetchRevenueData();
       }
     } catch (err: any) {
-      showError('Payout Error', err?.message || 'Could not complete payout.');
+      setAdminError(err?.message || 'Could not complete payout.');
     } finally {
       setProcessingPayout(false);
     }
@@ -104,15 +109,17 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
     if (!selectedUserToOverride) return;
 
     setSavingOverride(true);
+    setAdminError(null);
     try {
       const res = await adminOverrideSubscriptionApi(selectedUserToOverride.id, overrideTier, 'ACTIVE', 12);
       if (res.success) {
         showSuccess('Subscription Updated', res.message);
         setSelectedUserToOverride(null);
+        setAdminError(null);
         fetchRevenueData();
       }
     } catch (err: any) {
-      showError('Error', err?.message || 'Could not override subscription.');
+      setAdminError(err?.message || 'Could not override subscription.');
     } finally {
       setSavingOverride(false);
     }
@@ -150,6 +157,12 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
+
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={adminError}
+            onDismiss={() => setAdminError(null)}
+          />
 
           {/* Navigation Sub-Tabs */}
           <View className="flex-row gap-1.5 my-3 p-1 bg-input/40 dark:bg-input-dark/40 rounded-xl border border-input-border dark:border-input-border-dark">

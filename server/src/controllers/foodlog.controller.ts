@@ -10,7 +10,6 @@ import {
   cacheOpenFoodFactsProduct,
   createCustomFoodInDb,
   deleteCustomFoodFromDb,
-  lookupProductByBarcode,
 } from '../services/foodlog.service'
 
 export async function saveDayLogController(
@@ -174,7 +173,7 @@ function inferCategoryAndIcon(p: any, fullName: string): { category: string; ico
   if (text.match(/peanut|almond|nut|oil|olive|butter|seed|walnut|cashew/)) {
     return { category: 'Fats', icon: text.includes('oil') || text.includes('olive') ? '🫒' : '🥜' }
   }
-  return { category: 'Staples', icon: '🛒' }
+  return { category: 'Protein', icon: '🛒' }
 }
 
 export async function searchFoodsOnlineController(
@@ -183,7 +182,21 @@ export async function searchFoodsOnlineController(
   next: NextFunction
 ) {
   try {
-    const q = typeof req.query.q === 'string' ? req.query.q.trim() : ''
+    const qParam = typeof req.query.q === 'string' ? req.query.q.trim() : ''
+    const catParam = typeof req.query.category === 'string' ? req.query.category.trim() : ''
+
+    const CATEGORY_SEARCH_TERMS: Record<string, string> = {
+      ALL: 'healthy',
+      Protein: 'protein',
+      Carbs: 'oats',
+      Fats: 'peanut butter',
+      Fruits: 'apple',
+      Vegetables: 'salad',
+      Dairy: 'yogurt',
+    }
+
+    const q = qParam || (catParam ? CATEGORY_SEARCH_TERMS[catParam] || catParam : '')
+
     if (!q || q.length < 2) {
       return res.status(200).json({ success: true, foods: [] })
     }
@@ -191,13 +204,13 @@ export async function searchFoodsOnlineController(
     const userId = req.user?.id
 
     // 1. Search Database First (System verified foods, user custom foods, previously cached products)
-    const dbFoods = await searchFoodCatalogInDb(q, userId)
+    const dbFoods = await searchFoodCatalogInDb(qParam || (catParam && catParam !== 'ALL' ? catParam : q), userId)
     const formattedDbFoods = dbFoods.map((f) => ({
       id: f.id,
       name: f.name,
       brand: f.brand || undefined,
-      barcode: f.barcode || undefined,
-      category: f.category || 'Staples',
+      category: f.category || 'Protein',
+
       servingSize: f.servingSize,
       servingWeightG: f.servingWeightG,
       servingUnit: f.servingUnit,
@@ -208,26 +221,26 @@ export async function searchFoodsOnlineController(
       fiber: f.fiber || undefined,
       description: f.description || undefined,
       ingredients: f.ingredients || undefined,
-      icon: f.icon || '🥗',
+      icon: f.icon || '🛒',
       isVerified: f.isVerified,
       isCustom: f.source === 'USER_CUSTOM',
-      isOnlineResult: f.source === 'OPEN_FOOD_FACTS',
+      isOnlineResult: true,
       imageUri: f.imageUrl || undefined,
       keywords: [q.toLowerCase()],
     }))
 
-    // If we have 8+ confident database matches, return immediately (zero external latency)
-    if (formattedDbFoods.length >= 8) {
+    // If we have 15+ confident database matches, return immediately (zero external latency)
+    if (formattedDbFoods.length >= 15) {
       return res.status(200).json({ success: true, foods: formattedDbFoods })
     }
 
-    // 2. Query Open Food Facts for missing/branded long-tail items
-    const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(
+    // 2. Query Open Food Facts for missing/branded long-tail items (using openfoodfacts.net)
+    const url = `https://world.openfoodfacts.net/cgi/search.pl?search_terms=${encodeURIComponent(
       q
-    )}&search_simple=1&action=process&json=1&page_size=20`
+    )}&search_simple=1&action=process&json=1&page_size=25`
 
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 4500)
+    const timeout = setTimeout(() => controller.abort(), 5500)
 
     let data: any = null
     try {
@@ -252,20 +265,22 @@ export async function searchFoodsOnlineController(
 
       const rawProducts = data.products
         .filter((p: any) => {
-          const name = p.product_name || p.product_name_en
+          const name = (p.product_name_en || p.product_name || '').trim()
           const nutriments = p.nutriments || {}
           const cals =
             nutriments['energy-kcal_100g'] ||
             nutriments['energy-kcal'] ||
             (nutriments['energy_100g'] ? nutriments['energy_100g'] / 4.184 : 0)
-          return Boolean(name && name.trim().length > 1 && cals && Number(cals) > 0)
+          return Boolean(name && name.length > 1 && cals && Number(cals) > 0)
         })
-        .slice(0, 15)
+        .slice(0, 25)
 
       for (const p of rawProducts) {
-        const name = (p.product_name || p.product_name_en || '').trim()
+        const name = (p.product_name_en || p.product_name || '').trim()
         const brand = (p.brands || '').split(',')[0]?.trim() || undefined
-        const fullName = brand ? `${name} (${brand})` : name
+        const fullName = brand && !name.toLowerCase().includes(brand.toLowerCase())
+          ? `${name} (${brand})`
+          : name
         if (existingNames.has(fullName.toLowerCase()) || existingNames.has(name.toLowerCase())) {
           continue
         }
@@ -299,7 +314,6 @@ export async function searchFoodsOnlineController(
           id: `off-${p.code || Math.random().toString(36).substring(2, 9)}`,
           name: fullName,
           brand,
-          barcode: p.code ? String(p.code) : undefined,
           category,
           servingSize: p.serving_size || '100g',
           servingWeightG,
@@ -323,7 +337,6 @@ export async function searchFoodsOnlineController(
         cacheOpenFoodFactsProduct({
           name: fullName,
           brand,
-          barcode: p.code ? String(p.code) : undefined,
           category,
           servingSize: p.serving_size || '100g',
           servingWeightG,
@@ -338,6 +351,7 @@ export async function searchFoodsOnlineController(
           icon,
           imageUrl: onlineItem.imageUri,
         }).catch(() => {})
+
       }
     }
 
@@ -409,33 +423,6 @@ export async function deleteCustomFoodController(
     }
 
     return res.status(200).json({ success: true, message: 'Custom food removed' })
-  } catch (err) {
-    next(err)
-  }
-}
-
-export async function lookupBarcodeController(
-  req: AuthRequest,
-  res: Response,
-  next: NextFunction
-) {
-  try {
-    const rawBarcode = Array.isArray(req.params.barcode) ? req.params.barcode[0] : req.params.barcode
-    const barcode = (rawBarcode || '').trim()
-
-    if (!barcode) {
-      return res.status(400).json({ success: false, error: 'Barcode parameter is required' })
-    }
-
-    const food = await lookupProductByBarcode(barcode)
-    if (!food) {
-      return res.status(404).json({
-        success: false,
-        message: 'Product not found for this barcode in verified catalog or Open Food Facts.',
-      })
-    }
-
-    return res.status(200).json({ success: true, food })
   } catch (err) {
     next(err)
   }

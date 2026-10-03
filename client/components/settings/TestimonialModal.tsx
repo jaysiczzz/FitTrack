@@ -17,6 +17,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 import {
   getTestimonialsApi,
   getMyTestimonialApi,
@@ -71,6 +72,7 @@ export default function TestimonialModal({
   const [durationWeeks, setDurationWeeks] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasExistingReview, setHasExistingReview] = useState<boolean>(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Load persistent votes from AsyncStorage
   const loadStoredVotes = useCallback(async () => {
@@ -227,12 +229,13 @@ export default function TestimonialModal({
   };
 
   const handleSubmit = async () => {
+    setFormError(null);
     if (!content.trim()) {
-      showError('Required Field', 'Please share a few words about your journey.');
+      setFormError('Please share a few words about your journey.');
       return;
     }
     if (content.trim().length < 8) {
-      showError('Too Short', 'Please enter at least 8 characters in your testimony.');
+      setFormError('Please enter at least 8 characters in your testimony.');
       return;
     }
 
@@ -252,16 +255,18 @@ export default function TestimonialModal({
 
       showSuccess('Success', res.message || 'Thank you for sharing your journey!');
       setHasExistingReview(true);
+      setFormError(null);
       fetchFeed();
       setActiveTab('feed');
     } catch (err: any) {
-      showError('Submission Error', err?.message || 'Failed to submit testimony. Please try again.');
+      setFormError(err?.message || 'Failed to submit testimony. Please check your connection and try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
+    setFormError(null);
     try {
       setIsSubmitting(true);
       await deleteMyTestimonialApi();
@@ -272,9 +277,10 @@ export default function TestimonialModal({
       setWeightChangeKg('');
       setDurationWeeks('');
       setRating(5);
+      setFormError(null);
       fetchFeed();
     } catch (err: any) {
-      showError('Error', err?.message || 'Failed to delete testimony.');
+      setFormError(err?.message || 'Failed to delete testimony.');
     } finally {
       setIsSubmitting(false);
     }
@@ -639,6 +645,9 @@ export default function TestimonialModal({
               contentContainerStyle={{ paddingBottom: 60 }}
             >
               <View className="pb-8">
+                {/* Inline Error Banner */}
+                <ModalErrorBanner error={formError} onDismiss={() => setFormError(null)} />
+
                 {/* Intro Card + Auto-Fill Button */}
                 <View className="p-3.5 rounded-2xl bg-input dark:bg-input-dark mb-4 border border-input-border dark:border-input-border-dark">
                   <View className="flex-row items-center justify-between mb-1">
@@ -733,7 +742,10 @@ export default function TestimonialModal({
                     multiline
                     numberOfLines={4}
                     value={content}
-                    onChangeText={setContent}
+                    onChangeText={(val) => {
+                      setContent(val);
+                      if (formError) setFormError(null);
+                    }}
                     placeholder="Tell us what you accomplished with FitTrack, how the AI coach helped, or your favorite feature..."
                     placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                     textAlignVertical="top"

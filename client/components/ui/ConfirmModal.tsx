@@ -2,11 +2,14 @@ import React from 'react';
 import { View, Text, Modal, TouchableOpacity, Pressable, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import ModalErrorBanner from './ModalErrorBanner';
 
 export interface ConfirmModalProps {
   visible: boolean;
   title: string;
   message?: string;
+  error?: string | null;
+  onErrorDismiss?: () => void;
   icon?: string;
   iconName?: keyof typeof Ionicons.glyphMap;
   confirmText?: string;
@@ -23,6 +26,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   visible,
   title,
   message,
+  error,
+  onErrorDismiss,
   icon,
   iconName,
   confirmText = 'Confirm',
@@ -100,6 +105,13 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               {children}
             </View>
           ) : null}
+
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={error}
+            onDismiss={onErrorDismiss}
+            className="w-full mb-3"
+          />
 
           {/* Action Buttons (Thumb-friendly Stacked Pattern) */}
           <View className="w-full gap-y-2.5">

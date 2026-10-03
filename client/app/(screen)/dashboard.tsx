@@ -228,6 +228,31 @@ export default function Dashboard() {
       let items = localItems;
       let finalWater = localWater;
 
+      // Update state immediately from local cache so the dashboard renders with 0ms delay
+      const computeAndSetMacros = (currentItems: FoodLogItem[], water: number, completed: boolean) => {
+        let totalCals = 0;
+        let totalProt = 0;
+        let totalCarbs = 0;
+        let totalFat = 0;
+
+        currentItems.forEach((item) => {
+          totalCals += item.calories || 0;
+          totalProt += item.protein || 0;
+          totalCarbs += item.carbs || 0;
+          totalFat += item.fat || 0;
+        });
+
+        setCaloriesLogged(totalCals);
+        setProteinLogged(totalProt);
+        setCarbsLogged(totalCarbs);
+        setFatLogged(totalFat);
+        setWaterMl(water);
+        waterMlRef.current = water;
+        setIsNutritionDone(completed);
+      };
+
+      computeAndSetMacros(items, finalWater, isCompleted);
+
       // Sync authenticated user's actual database food log without stale downgrades
       if (userId) {
         try {
@@ -275,31 +300,13 @@ export default function Dashboard() {
                 autoSyncFoodAndWater(userId, todayKey, items, localWater);
               }
             }
+
+            computeAndSetMacros(items, finalWater, isCompleted);
           }
         } catch (e) {
           // Offline fallback
         }
       }
-
-      let totalCals = 0;
-      let totalProt = 0;
-      let totalCarbs = 0;
-      let totalFat = 0;
-
-      items.forEach((item) => {
-        totalCals += item.calories || 0;
-        totalProt += item.protein || 0;
-        totalCarbs += item.carbs || 0;
-        totalFat += item.fat || 0;
-      });
-
-      setCaloriesLogged(totalCals);
-      setProteinLogged(totalProt);
-      setCarbsLogged(totalCarbs);
-      setFatLogged(totalFat);
-      setWaterMl(finalWater);
-      waterMlRef.current = finalWater;
-      setIsNutritionDone(isCompleted);
     } catch (err) {
       console.log('Error calculating food progress:', err);
     }
@@ -308,12 +315,68 @@ export default function Dashboard() {
   const loadWorkoutProgress = async () => {
     try {
       const todayKey = getTodayDateKey();
+      const cachedExercisesKey = authStorage.getScopedKey(userId, `fittrack_today_exercises_${todayKey}`);
+      const cachedHistoryKey = authStorage.getScopedKey(userId, 'fittrack_workout_history');
 
-      // 1. Fetch completed workout history first
-      const historyRes = await getWorkoutHistory();
-      const sessions: ApiWorkoutSession[] = historyRes.sessions || [];
+      // 1. Immediately populate from local cache if available
+      try {
+        const [cachedExercisesRaw, cachedHistoryRaw] = await Promise.all([
+          AsyncStorage.getItem(cachedExercisesKey),
+          AsyncStorage.getItem(cachedHistoryKey),
+        ]);
 
-      // Check if a workout was genuinely completed today
+        if (cachedExercisesRaw) {
+          const parsed = JSON.parse(cachedExercisesRaw);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            const formatted: DashboardWorkoutExercise[] = parsed.map((ex: any) => ({
+              id: ex.key || ex.id,
+              name: ex.name,
+              isCompleted: Boolean(ex.sets && ex.sets.length > 0 && ex.sets.every((s: any) => s.done)),
+            }));
+            setTodayExercises(formatted);
+            const completedSetsCount = parsed.reduce(
+              (acc: number, ex: any) => acc + (ex.sets ? ex.sets.filter((s: any) => s.done).length : 0),
+              0
+            );
+            setActiveMinutesToday(completedSetsCount * 4);
+          }
+        }
+
+        if (cachedHistoryRaw) {
+          const sessions: ApiWorkoutSession[] = JSON.parse(cachedHistoryRaw);
+          if (Array.isArray(sessions) && sessions.length > 0) {
+            const now = new Date();
+            const startOfWeek = new Date(now);
+            startOfWeek.setDate(now.getDate() - now.getDay());
+            startOfWeek.setHours(0, 0, 0, 0);
+
+            const completedThisWeek = sessions.filter((s) => {
+              const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+              if (!timestamp) return false;
+              const compDate = new Date(timestamp);
+              return compDate >= startOfWeek;
+            });
+
+            setWorkoutsThisWeek(completedThisWeek.length);
+            setCurrentStreak(calculateWorkoutStreak(sessions, false));
+          }
+        }
+      } catch (cacheErr) {
+        console.log('Error reading local workout cache:', cacheErr);
+      }
+
+      // 2. Fetch fresh data from server in background
+      let sessions: ApiWorkoutSession[] = [];
+      try {
+        const historyRes = await getWorkoutHistory();
+        sessions = historyRes.sessions || [];
+        if (sessions.length > 0) {
+          AsyncStorage.setItem(cachedHistoryKey, JSON.stringify(sessions)).catch(() => {});
+        }
+      } catch (e) {
+        // Offline
+      }
+
       const todayCompletedSession = sessions.find((s) => {
         const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
         if (!timestamp) return false;
@@ -322,8 +385,13 @@ export default function Dashboard() {
         return dateKey === todayKey;
       });
 
-      // 2. Fetch today's active session exercises
-      const todayRes = await getTodayWorkoutSession();
+      let todayRes: any = null;
+      try {
+        todayRes = await getTodayWorkoutSession();
+      } catch (e) {
+        // Offline
+      }
+
       const isExplicitlyCompleted = Boolean(todayCompletedSession || todayRes?.session?.completed);
 
       if (todayCompletedSession) {
@@ -340,9 +408,6 @@ export default function Dashboard() {
           0
         );
         setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
-      } else {
-        setTodayCompletedWorkoutStats(null);
-        setActiveMinutesToday(0);
       }
 
       if (todayRes?.session?.exercises && !todayCompletedSession) {
@@ -355,27 +420,27 @@ export default function Dashboard() {
           };
         });
         setTodayExercises(formatted);
-      } else {
-        setTodayExercises([]);
       }
 
       setWorkoutSessionDone(isExplicitlyCompleted);
 
-      // 3. Weekly count & Streak ONLY increment on completed sessions!
-      const now = new Date();
-      const startOfWeek = new Date(now);
-      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
-      startOfWeek.setHours(0, 0, 0, 0);
+      // 3. Weekly count & Streak
+      if (sessions.length > 0) {
+        const now = new Date();
+        const startOfWeek = new Date(now);
+        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+        startOfWeek.setHours(0, 0, 0, 0);
 
-      const completedThisWeek = sessions.filter((s) => {
-        const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
-        if (!timestamp) return false;
-        const compDate = new Date(timestamp);
-        return compDate >= startOfWeek;
-      });
+        const completedThisWeek = sessions.filter((s) => {
+          const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+          if (!timestamp) return false;
+          const compDate = new Date(timestamp);
+          return compDate >= startOfWeek;
+        });
 
-      setWorkoutsThisWeek(completedThisWeek.length);
-      setCurrentStreak(calculateWorkoutStreak(sessions, isExplicitlyCompleted));
+        setWorkoutsThisWeek(completedThisWeek.length);
+        setCurrentStreak(calculateWorkoutStreak(sessions, isExplicitlyCompleted));
+      }
     } catch (err) {
       console.log('Error calculating workout progress:', err);
     }

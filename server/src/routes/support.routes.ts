@@ -34,7 +34,7 @@ router.post(
       }
     }
 
-    const savedTicket = createTicket({
+    const savedTicket = await createTicket({
       userId,
       userEmail: contactEmail || 'guest@fittrack.app',
       userName,

@@ -16,6 +16,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { sendFeedbackApi, FeedbackPayload } from '@/api/support';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface FaqItem {
   id: string;
@@ -115,10 +116,12 @@ export default function HelpSupportModal({
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
+      setFormError(null);
     }
   }, [visible, initialTab]);
 
@@ -139,12 +142,13 @@ export default function HelpSupportModal({
   };
 
   const handleSendFeedback = async () => {
+    setFormError(null);
     if (!subject.trim()) {
-      showError('Required Field', 'Please enter a subject line.');
+      setFormError('Please enter a subject line.');
       return;
     }
     if (message.trim().length < 10) {
-      showError('Message Too Short', 'Please enter at least 10 characters in your message.');
+      setFormError('Please enter at least 10 characters in your message.');
       return;
     }
 
@@ -161,9 +165,10 @@ export default function HelpSupportModal({
       setSubject('');
       setMessage('');
       setEmail('');
+      setFormError(null);
       onClose();
     } catch (err: any) {
-      showError('Submission Error', err?.message || 'Failed to submit feedback. Please try again.');
+      setFormError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -339,6 +344,9 @@ export default function HelpSupportModal({
           ) : (
             /* TAB 2: CONTACT & FEEDBACK */
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+              {/* Inline Error Banner */}
+              <ModalErrorBanner error={formError} onDismiss={() => setFormError(null)} />
+
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Category
               </Text>
@@ -378,7 +386,10 @@ export default function HelpSupportModal({
                 </Text>
                 <TextInput
                   value={subject}
-                  onChangeText={setSubject}
+                  onChangeText={(val) => {
+                    setSubject(val);
+                    if (formError) setFormError(null);
+                  }}
                   placeholder="e.g. Question about calorie calculation"
                   placeholderTextColor={colors.textMuted}
                   className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark"
@@ -392,7 +403,10 @@ export default function HelpSupportModal({
                 </Text>
                 <TextInput
                   value={message}
-                  onChangeText={setMessage}
+                  onChangeText={(val) => {
+                    setMessage(val);
+                    if (formError) setFormError(null);
+                  }}
                   placeholder="Describe your issue or feedback in detail..."
                   placeholderTextColor={colors.textMuted}
                   multiline

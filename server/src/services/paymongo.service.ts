@@ -131,6 +131,11 @@ export async function createPayMongoCheckoutSession(params: {
     }
   }
 
+  // If PAYMONGO_SECRET_KEY is missing in production, throw error
+  if (!secretKey && process.env.NODE_ENV === 'production') {
+    throw new Error('PAYMONGO_SECRET_KEY is not configured on the production server.')
+  }
+
   // Development/Test Mode Fallback:
   // Provides a simulated checkout URL so the app workflow functions smoothly even before keys are pasted in
   const simId = `cs_pm_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
@@ -156,6 +161,9 @@ export async function verifyPayMongoPayment(checkoutSessionId: string): Promise<
   const secretKey = getPayMongoKey();
 
   if (!secretKey || checkoutSessionId.startsWith('cs_pm_')) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('Simulated PayMongo checkouts are not accepted in production.');
+    }
     // Simulated sandbox auto-success for development
     return {
       paid: true,

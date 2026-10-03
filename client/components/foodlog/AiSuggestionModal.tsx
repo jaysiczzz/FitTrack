@@ -7,6 +7,7 @@ import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import InModalToast from '../ui/InModalToast';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface AiSuggestionModalProps {
   visible: boolean;
@@ -30,6 +31,7 @@ export default function AiSuggestionModal({
   const [loading, setLoading] = useState(false);
   const [recommendations, setRecommendations] = useState<MealSuggestion[]>([]);
   const [loggedMealTitles, setLoggedMealTitles] = useState<string[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [inModalToast, setInModalToast] = useState<{
     message: string;
     description?: string;
@@ -42,6 +44,7 @@ export default function AiSuggestionModal({
     setLoading(true);
     setLoggedMealTitles([]);
     setInModalToast(null);
+    setSuggestionError(null);
     try {
       const res = await getAIMealSuggestions({
         goal: isMuscleGain ? 'MUSCLE_GAIN' : 'WEIGHT_LOSS',
@@ -52,11 +55,11 @@ export default function AiSuggestionModal({
       if (res.success && res.suggestions && res.suggestions.length > 0) {
         setRecommendations(res.suggestions);
       } else {
-        showWarning('AI Notice', 'No meal recommendations returned. Please try again.');
+        setSuggestionError('No meal recommendations returned. Please try again.');
       }
     } catch (err: any) {
       console.log('AI Suggest Error:', err?.message);
-      showError('Suggestions Unavailable', 'Unable to load meal recommendations right now. Please try again.');
+      setSuggestionError(err?.message || 'Unable to load meal recommendations right now. Please check your connection and try again.');
     } finally {
       setLoading(false);
     }
@@ -147,6 +150,12 @@ export default function AiSuggestionModal({
             </View>
           </View>
 
+          {/* Inline Error Banner */}
+          <ModalErrorBanner
+            error={suggestionError}
+            onDismiss={() => setSuggestionError(null)}
+          />
+
           {/* Budget Snapshot Banner */}
           <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-3 mb-3.5 border border-input-border dark:border-input-border-dark flex-row justify-between items-center">
             <View className="flex-1 mr-2">
@@ -234,16 +243,24 @@ export default function AiSuggestionModal({
                     💡 {rec.reason}
                   </Text>
 
-                  {/* Ingredients */}
-                  <View className="mb-3">
-                    <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase mb-1">
-                      Ingredients:
-                    </Text>
-                    {rec.ingredients.map((ing, i) => (
-                      <Text key={i} className="text-text-primary dark:text-text-primary-dark text-xs mb-0.5">
-                        • {ing}
+                  {/* Ingredients & Portions */}
+                  <View className="mb-3 bg-surface/60 dark:bg-surface-dark/60 rounded-xl p-2.5 border border-input-border/60 dark:border-input-border-dark/60">
+                    <View className="flex-row items-center gap-1.5 mb-1.5">
+                      <Ionicons name="scale-outline" size={12} color={colors.accent} />
+                      <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider">
+                        Ingredients & Portions:
                       </Text>
-                    ))}
+                    </View>
+                    <View className="gap-1">
+                      {rec.ingredients.map((ing, i) => (
+                        <View key={i} className="flex-row items-start gap-1.5">
+                          <Text className="text-accent dark:text-accent-dark text-xs font-bold leading-4">•</Text>
+                          <Text className="text-text-primary dark:text-text-primary-dark text-xs flex-1 leading-4">
+                            {ing}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
                   </View>
 
                   {/* Macros and Action */}
