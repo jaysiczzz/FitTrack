@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
@@ -77,7 +77,9 @@ export default function WaterTrackerCard({
           onPress={() => onAddWater(-250)}
           disabled={waterMl <= 0}
           activeOpacity={0.8}
-          className={`px-3 py-2 rounded-xl border items-center justify-center ${
+          accessibilityLabel="Subtract 250 milliliters of water"
+          hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+          className={`px-3 min-h-[44px] py-2 rounded-xl border items-center justify-center ${
             waterMl <= 0
               ? 'opacity-30 border-input-border dark:border-input-border-dark bg-input/40'
               : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
@@ -89,31 +91,37 @@ export default function WaterTrackerCard({
         <TouchableOpacity
           onPress={() => onAddWater(250)}
           activeOpacity={0.8}
-          className="flex-1 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+          accessibilityLabel="Add 250 milliliters glass of water"
+          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
         >
-          <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
             +250 ml
           </Text>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Glass</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onAddWater(500)}
           activeOpacity={0.8}
-          className="flex-1 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+          accessibilityLabel="Add 500 milliliters bottle of water"
+          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
         >
-          <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
             +500 ml
           </Text>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Bottle</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
           onPress={() => onAddWater(750)}
           activeOpacity={0.8}
-          className="flex-1 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+          accessibilityLabel="Add 750 milliliters shaker of water"
+          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
         >
-          <Text className="text-text-primary dark:text-text-primary-dark font-semibold text-xs">
+          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
             +750 ml
           </Text>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Shaker</Text>
         </TouchableOpacity>
       </View>
     </SurfaceCard>

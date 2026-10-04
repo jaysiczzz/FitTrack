@@ -6,7 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import { FoodLogItem, getTodayDateString } from '@/components/foodlog/foodLogTypes';
-import { autoSyncFoodAndWater } from '@/api/foodlog';
+import { autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -61,7 +61,7 @@ export default function FloatingNavBar() {
   const { user } = useAuth();
   const userId = user?.id;
   const { showSuccess } = useToast();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const [showScanModal, setShowScanModal] = useState(false);
 
   // Determine active route
@@ -88,6 +88,26 @@ export default function FloatingNavBar() {
       const currentWater = savedWater ? parseInt(savedWater, 10) || 0 : 0;
       autoSyncFoodAndWater(userId, getTodayDateString(), arr, currentWater);
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+
+      // Also record to recent history
+      itemsToAdd.forEach((item) => {
+        saveFoodToRecentHistory({
+          id: item.id || `food-${Date.now()}`,
+          name: item.title,
+          category: 'Staples',
+          servingSize: item.subtitle || '1 serving',
+          servingWeightG: 100,
+          servingUnit: 'serving',
+          calories: item.calories,
+          protein: item.protein,
+          carbs: item.carbs,
+          fat: item.fat,
+          icon: item.icon || 'restaurant',
+          imageUri: item.imageUri,
+          keywords: [item.title.toLowerCase()],
+        }).catch(() => {});
+      });
+      DeviceEventEmitter.emit('RECENT_FOODS_UPDATED');
       if (itemsToAdd.length === 1) {
         showSuccess(`Added ${itemsToAdd[0].title}`, `${itemsToAdd[0].calories} kcal logged to ${itemsToAdd[0].mealType}`);
       } else {
@@ -134,17 +154,18 @@ export default function FloatingNavBar() {
                   activeOpacity={0.7}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: isActive }}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
                     if (!isActive) {
                       router.push(item.route as any);
                     }
                   }}
-                  className="flex-1 items-center justify-center py-1"
+                  className="flex-1 items-center justify-center min-h-[48px] py-1.5"
                 >
                   <View
                     className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
                       isActive
-                        ? 'bg-accent/15 dark:bg-accent-dark/20'
+                        ? 'bg-accent/15 dark:bg-accent/20'
                         : 'bg-transparent'
                     }`}
                   >
@@ -158,8 +179,8 @@ export default function FloatingNavBar() {
                   <Text
                     className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent dark:text-accent-dark font-bold'
-                        : 'text-text-muted dark:text-text-muted-dark font-medium'
+                        ? 'text-accent font-bold'
+                        : 'text-text-muted font-medium'
                     }`}
                     numberOfLines={1}
                   >
@@ -183,7 +204,7 @@ export default function FloatingNavBar() {
                   className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
                   style={styles.centerButton}
                 >
-                  <Ionicons name="camera" size={24} color="#FFFFFF" />
+                  <Ionicons name="camera" size={24} color={colors.accentContrast} />
                 </View>
 
                 <Text
@@ -205,17 +226,18 @@ export default function FloatingNavBar() {
                   activeOpacity={0.7}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: isActive }}
+                  hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
                     if (!isActive) {
                       router.push(item.route as any);
                     }
                   }}
-                  className="flex-1 items-center justify-center py-1"
+                  className="flex-1 items-center justify-center min-h-[48px] py-1.5"
                 >
                   <View
                     className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
                       isActive
-                        ? 'bg-accent/15 dark:bg-accent-dark/20'
+                        ? 'bg-accent/15 dark:bg-accent/20'
                         : 'bg-transparent'
                     }`}
                   >
@@ -229,8 +251,8 @@ export default function FloatingNavBar() {
                   <Text
                     className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent dark:text-accent-dark font-bold'
-                        : 'text-text-muted dark:text-text-muted-dark font-medium'
+                        ? 'text-accent font-bold'
+                        : 'text-text-muted font-medium'
                     }`}
                     numberOfLines={1}
                   >

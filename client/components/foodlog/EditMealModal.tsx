@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,13 +12,14 @@ import {
   FoodLogItem,
   MealType,
   MEAL_LABELS,
-  MEAL_GLYPHS,
   getSmartFoodBadge,
   getBadgeStyles,
 } from './foodLogTypes';
 import { COLORS, useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import ResponsiveMacroRow from './ResponsiveMacroRow';
+import CollapsibleSection from './CollapsibleSection';
 
 interface EditMealModalProps {
   visible: boolean;
@@ -35,9 +36,11 @@ export default function EditMealModal({
   onSave,
   onDelete,
 }: EditMealModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const [selectedMeal, setSelectedMeal] = useState<MealType>('lunch');
-  const [subtitle, setSubtitle] = useState('');
+  const basePortionRef = useRef('1 serving');
+  const [portionLabel, setPortionLabel] = useState('1 serving');
+  const [ingredientsText, setIngredientsText] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
   const [carbs, setCarbs] = useState('');
@@ -55,7 +58,26 @@ export default function EditMealModal({
   useEffect(() => {
     if (item && visible) {
       setSelectedMeal(item.mealType);
-      setSubtitle(item.subtitle || '');
+
+      // Cleanly separate portion from ingredients if subtitle previously joined them
+      let resolvedPortion = '1 serving';
+      let resolvedIngredients = item.healthNotes || '';
+
+      if (item.subtitle) {
+        if (item.subtitle.includes(' · ')) {
+          const parts = item.subtitle.split(' · ');
+          resolvedPortion = parts[0].trim();
+          if (!resolvedIngredients) {
+            resolvedIngredients = parts.slice(1).join(' · ').trim();
+          }
+        } else {
+          resolvedPortion = item.subtitle.trim();
+        }
+      }
+
+      basePortionRef.current = resolvedPortion;
+      setPortionLabel(resolvedPortion);
+      setIngredientsText(resolvedIngredients);
       setCalories(String(item.calories || 0));
       setProtein(String(item.protein || 0));
       setCarbs(String(item.carbs || 0));
@@ -84,15 +106,15 @@ export default function EditMealModal({
     setCarbs(String(scaledCarbs));
     setFat(String(scaledFat));
 
-    if (mult !== 1 && item.subtitle) {
-      // If subtitle had grams, scale grams
-      const matchGrams = item.subtitle.match(/^(\d+(?:\.\d+)?)\s*g/i);
+    if (mult === 1.0) {
+      setPortionLabel(basePortionRef.current || '1 serving');
+    } else {
+      const matchGrams = (basePortionRef.current || portionLabel).match(/^(\d+(?:\.\d+)?)\s*g/i);
       if (matchGrams) {
         const newGrams = Math.round(Number(matchGrams[1]) * mult);
-        const rest = item.subtitle.replace(/^(\d+(?:\.\d+)?)\s*g/i, '').trim();
-        setSubtitle(`${newGrams}g${rest ? ` · ${rest.replace(/^·\s*/, '')}` : ''}`);
+        setPortionLabel(`${newGrams}g`);
       } else {
-        setSubtitle(`${mult}x · ${item.subtitle.replace(/^\d+(?:\.\d+)?x\s*·\s*/, '')}`);
+        setPortionLabel(`${mult}x portion`);
       }
     }
   };
@@ -116,7 +138,8 @@ export default function EditMealModal({
     const updated: FoodLogItem = {
       ...item,
       mealType: selectedMeal,
-      subtitle: subtitle.trim() || undefined,
+      subtitle: portionLabel.trim() || undefined,
+      healthNotes: ingredientsText.trim() || undefined,
       calories: Math.round(currentCals),
       protein: Math.round(currentProtein * 10) / 10,
       carbs: Math.round(currentCarbs * 10) / 10,
@@ -147,7 +170,7 @@ export default function EditMealModal({
                 </View>
               )}
               <View className="flex-1">
-                <Text className="text-text-primary dark:text-text-primary-dark font-black text-base" numberOfLines={1}>
+                <Text className="text-text-primary dark:text-text-primary-dark font-black text-base" numberOfLines={2}>
                   {item.title}
                 </Text>
                 <View className="flex-row items-center gap-1.5 mt-0.5">
@@ -157,7 +180,7 @@ export default function EditMealModal({
                     </Text>
                   </View>
                   <Text className="text-text-muted dark:text-text-muted-dark text-[10px]">
-                    Edit Portion & Macros
+                    {item.loggedAt ? `Logged at ${item.loggedAt}` : `Logged in ${MEAL_LABELS[selectedMeal]}`}
                   </Text>
                 </View>
               </View>
@@ -167,55 +190,42 @@ export default function EditMealModal({
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
-            {/* 1. Meal Type Reassigner */}
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase mb-1.5">
-              Meal Category:
-            </Text>
-            <View className="flex-row gap-1.5 mb-3.5">
-              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
-                const isSelected = selectedMeal === m;
-                return (
-                  <TouchableOpacity
-                    key={m}
-                    onPress={() => setSelectedMeal(m)}
-                    activeOpacity={0.8}
-                    className={`flex-1 py-2 px-1 rounded-xl items-center justify-center border ${
-                      isSelected
-                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                    }`}
-                  >
-                    <Ionicons
-                      name={MEAL_GLYPHS[m]}
-                      size={14}
-                      color={isSelected ? '#FFFFFF' : colors.textMuted}
-                      style={{ marginBottom: 2 }}
-                    />
-                    <Text
-                      className={`text-[10px] font-bold capitalize ${
-                        isSelected
-                          ? 'text-white font-black'
-                          : 'text-text-primary dark:text-text-primary-dark'
-                      }`}
-                    >
-                      {MEAL_LABELS[m]}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+            {/* 1. Quick Macro Visual Breakdown */}
+            <View className="mb-3">
+              <ResponsiveMacroRow
+                calories={Math.round(currentCals)}
+                protein={Math.round(currentProtein * 10) / 10}
+                carbs={Math.round(currentCarbs * 10) / 10}
+                fat={Math.round(currentFat * 10) / 10}
+              />
             </View>
 
-            {/* 2. Quick Portion Multiplier */}
+            {/* 2. Ingredients or Notes Card (if present) */}
+            {Boolean(ingredientsText) && (
+              <View className="p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark mb-3">
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Ionicons name="nutrition-outline" size={13} color={colors.accent} />
+                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                    Ingredients & Details
+                  </Text>
+                </View>
+                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4">
+                  {ingredientsText}
+                </Text>
+              </View>
+            )}
+
+            {/* 3. Quick Portion Multiplier */}
             <Text className="text-text-muted dark:text-text-muted-dark text-[10px] tracking-wider font-bold uppercase mb-1.5">
-              Quick Portion Scale:
+              Portion Multiplier:
             </Text>
-            <View className="flex-row gap-1 mb-3.5">
+            <View className="flex-row gap-1 mb-3">
               {[0.5, 0.75, 1.0, 1.25, 1.5, 2.0].map((mult) => (
                 <TouchableOpacity
                   key={mult}
                   onPress={() => handleMultiplierChange(mult)}
                   activeOpacity={0.8}
-                  className={`flex-1 py-1.5 rounded-lg border items-center justify-center ${
+                  className={`flex-1 py-2 rounded-xl border items-center justify-center ${
                     activeMultiplier === mult
                       ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -234,100 +244,135 @@ export default function EditMealModal({
               ))}
             </View>
 
-            {/* 3. Serving Description Input */}
-            <View className="mb-3.5">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase mb-1">
-                Portion / Serving Details:
+            {/* 4. Serving Size Input */}
+            <View className="mb-3">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] tracking-wider font-bold uppercase mb-1">
+                Portion / Serving Size:
               </Text>
               <TextInput
-                value={subtitle}
-                onChangeText={setSubtitle}
-                placeholder="e.g. 150g breast · 1 cup rice"
+                value={portionLabel}
+                onChangeText={setPortionLabel}
+                placeholder="e.g. 1 serving or 150g"
                 placeholderTextColor={COLORS.textMuted.dark}
                 className="bg-input dark:bg-input-dark p-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-xs text-text-primary dark:text-text-primary-dark"
               />
             </View>
 
-            {/* 4. Fine-Tune Macros & Calories */}
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase mb-1.5">
-              Nutritional Values:
+            {/* 5. Meal Category Reassigner (Move To) */}
+            <Text className="text-text-muted dark:text-text-muted-dark text-[10px] tracking-wider font-bold uppercase mb-1.5">
+              Move to Meal Category:
             </Text>
-            <View className="flex-row gap-2 mb-4">
-              {/* Calories */}
-              <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
-                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-bold uppercase">
-                  Calories
-                </Text>
-                <TextInput
-                  value={calories}
-                  onChangeText={(val) => {
-                    setCalories(val);
-                    setActiveMultiplier(0);
-                  }}
-                  keyboardType="numeric"
-                  className="font-black text-sm text-accent dark:text-accent-dark text-center py-0.5 w-full"
-                />
-                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">kcal</Text>
-              </View>
-
-              {/* Protein */}
-              <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
-                <Text className="text-[10px] text-accent dark:text-accent-dark font-bold uppercase">
-                  Protein
-                </Text>
-                <TextInput
-                  value={protein}
-                  onChangeText={(val) => {
-                    setProtein(val);
-                    setActiveMultiplier(0);
-                  }}
-                  keyboardType="numeric"
-                  className="font-black text-sm text-accent dark:text-accent-dark text-center py-0.5 w-full"
-                />
-                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
-              </View>
-
-              {/* Carbs */}
-              <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
-                <Text className="text-[10px] text-info dark:text-info-dark font-bold uppercase">
-                  Carbs
-                </Text>
-                <TextInput
-                  value={carbs}
-                  onChangeText={(val) => {
-                    setCarbs(val);
-                    setActiveMultiplier(0);
-                  }}
-                  keyboardType="numeric"
-                  className="font-black text-sm text-info dark:text-info-dark text-center py-0.5 w-full"
-                />
-                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
-              </View>
-
-              {/* Fat */}
-              <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
-                <Text className="text-[10px] text-tertiary dark:text-tertiary-dark font-bold uppercase">
-                  Fats
-                </Text>
-                <TextInput
-                  value={fat}
-                  onChangeText={(val) => {
-                    setFat(val);
-                    setActiveMultiplier(0);
-                  }}
-                  keyboardType="numeric"
-                  className="font-black text-sm text-tertiary dark:text-tertiary-dark text-center py-0.5 w-full"
-                />
-                <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
-              </View>
+            <View className="flex-row gap-1.5 mb-3.5">
+              {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
+                const isSelected = selectedMeal === m;
+                return (
+                  <TouchableOpacity
+                    key={m}
+                    onPress={() => setSelectedMeal(m)}
+                    activeOpacity={0.8}
+                    className={`flex-1 py-2.5 px-1 rounded-xl items-center justify-center border ${
+                      isSelected
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                    }`}
+                  >
+                    <Text
+                      className={`text-[11px] font-bold capitalize ${
+                        isSelected
+                          ? 'text-white font-black'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {MEAL_LABELS[m]}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
+            {/* 6. Collapsible Fine-Tune Macros & Calories */}
+            <CollapsibleSection
+              title="Fine-Tune Numerical Values"
+              badge="Manual"
+              initialExpanded={false}
+            >
+              <View className="flex-row gap-2 pt-1 pb-1">
+                {/* Calories */}
+                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-bold uppercase">
+                    Calories
+                  </Text>
+                  <TextInput
+                    value={calories}
+                    onChangeText={(val) => {
+                      setCalories(val);
+                      setActiveMultiplier(0);
+                    }}
+                    keyboardType="numeric"
+                    className="font-black text-sm text-accent dark:text-accent-dark text-center py-0.5 w-full"
+                  />
+                  <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">kcal</Text>
+                </View>
+
+                {/* Protein */}
+                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                  <Text className="text-[10px] text-accent dark:text-accent-dark font-bold uppercase">
+                    Protein
+                  </Text>
+                  <TextInput
+                    value={protein}
+                    onChangeText={(val) => {
+                      setProtein(val);
+                      setActiveMultiplier(0);
+                    }}
+                    keyboardType="numeric"
+                    className="font-black text-sm text-accent dark:text-accent-dark text-center py-0.5 w-full"
+                  />
+                  <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
+                </View>
+
+                {/* Carbs */}
+                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                  <Text className="text-[10px] text-info dark:text-info-dark font-bold uppercase">
+                    Carbs
+                  </Text>
+                  <TextInput
+                    value={carbs}
+                    onChangeText={(val) => {
+                      setCarbs(val);
+                      setActiveMultiplier(0);
+                    }}
+                    keyboardType="numeric"
+                    className="font-black text-sm text-info dark:text-info-dark text-center py-0.5 w-full"
+                  />
+                  <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
+                </View>
+
+                {/* Fat */}
+                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                  <Text className="text-[10px] text-tertiary dark:text-tertiary-dark font-bold uppercase">
+                    Fats
+                  </Text>
+                  <TextInput
+                    value={fat}
+                    onChangeText={(val) => {
+                      setFat(val);
+                      setActiveMultiplier(0);
+                    }}
+                    keyboardType="numeric"
+                    className="font-black text-sm text-tertiary dark:text-tertiary-dark text-center py-0.5 w-full"
+                  />
+                  <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">grams</Text>
+                </View>
+              </View>
+            </CollapsibleSection>
+
             {/* Action Buttons */}
-            <View className="gap-2 pt-1">
+            <View className="gap-2 pt-3">
               <TouchableOpacity
                 onPress={handleSave}
                 activeOpacity={0.8}
-                className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center"
+                className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center min-h-[48px]"
               >
                 <Text className="text-white font-bold text-sm tracking-wide">
                   Save Changes ({Math.round(currentCals)} kcal)
@@ -340,7 +385,7 @@ export default function EditMealModal({
                   onClose();
                 }}
                 activeOpacity={0.7}
-                className="py-3 rounded-2xl items-center justify-center border border-danger/30 bg-danger/10 dark:bg-danger-dark/20"
+                className="py-3 rounded-2xl items-center justify-center border border-danger/30 bg-danger/10 dark:bg-danger-dark/20 min-h-[44px]"
               >
                 <Text className="text-danger dark:text-danger-dark font-bold text-xs">
                   Delete Meal Item

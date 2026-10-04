@@ -14,6 +14,7 @@ export const findById = (id: string) => {
             firstName: true,
             lastName: true,
             role: true,
+            avatarUrl: true,
             height: true,
             weight: true,
             targetWeight: true,
@@ -21,12 +22,6 @@ export const findById = (id: string) => {
             goal: true,
             createdAt: true,
         },
-    })
-}
-
-export const deleteUser = (id: string) => {
-    return prisma.user.delete({
-        where: { id },
     })
 }
 
@@ -49,6 +44,7 @@ export const updateUser = (
     data: {
         firstName?: string;
         lastName?: string;
+        avatarUrl?: string | null;
         height?: number;
         weight?: number;
         targetWeight?: number | null;
@@ -65,6 +61,7 @@ export const updateUser = (
             firstName: true,
             lastName: true,
             role: true,
+            avatarUrl: true,
             height: true,
             weight: true,
             targetWeight: true,
@@ -74,3 +71,8 @@ export const updateUser = (
         },
     })
 }
+
+export const deleteUser = (id: string) => {
+    return prisma.user.delete({ where: { id } })
+}
+

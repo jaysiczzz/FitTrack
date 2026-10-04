@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View,
   Text,
@@ -49,7 +49,7 @@ export default function AiScanModal({
   initialMealType,
   initialMode = 'photo',
 }: AiScanModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showWarning, showError, showSuccess } = useToast();
 
   const [activeTab, setActiveTab] = useState<'photo' | 'text'>(initialMode);
@@ -60,6 +60,8 @@ export default function AiScanModal({
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
   const [loading, setLoading] = useState(false);
+  const [analysisPhase, setAnalysisPhase] = useState<'uploading' | 'detecting' | 'calculating'>('uploading');
+  const phaseTimerRef = useRef<{ t1?: ReturnType<typeof setTimeout>; t2?: ReturnType<typeof setTimeout> }>({});
   const [analysisResult, setAnalysisResult] = useState<MealAnalysisResult | null>(null);
   const [showNutritionFactsModal, setShowNutritionFactsModal] = useState(false);
   const [scanError, setScanError] = useState<string | null>(null);
@@ -115,7 +117,11 @@ export default function AiScanModal({
     setPortionMultiplier(1.0);
     setShowNutritionFactsModal(false);
     setScanError(null);
+    if (phaseTimerRef.current.t1) clearTimeout(phaseTimerRef.current.t1);
+    if (phaseTimerRef.current.t2) clearTimeout(phaseTimerRef.current.t2);
+    setAnalysisPhase('uploading');
     setLoading(false);
+    setSelectedMeal(initialMealType || getSmartMealType());
   };
 
   const handleClose = () => {
@@ -223,6 +229,11 @@ export default function AiScanModal({
     }
 
     setLoading(true);
+    setAnalysisPhase('uploading');
+    if (phaseTimerRef.current.t1) clearTimeout(phaseTimerRef.current.t1);
+    if (phaseTimerRef.current.t2) clearTimeout(phaseTimerRef.current.t2);
+    phaseTimerRef.current.t1 = setTimeout(() => setAnalysisPhase('detecting'), 1500);
+    phaseTimerRef.current.t2 = setTimeout(() => setAnalysisPhase('calculating'), 3200);
     setScanError(null);
     setAnalysisResult(null);
     setBaseMacros(null);
@@ -285,6 +296,8 @@ export default function AiScanModal({
       }
       showError(isNotFood ? 'Image is Not Food' : 'Analysis Failed', errMsg);
     } finally {
+      if (phaseTimerRef.current.t1) clearTimeout(phaseTimerRef.current.t1);
+      if (phaseTimerRef.current.t2) clearTimeout(phaseTimerRef.current.t2);
       setLoading(false);
     }
   };
@@ -632,7 +645,11 @@ export default function AiScanModal({
                   <>
                     <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
                     <Text className="text-white font-bold text-sm">
-                      Analyzing Nutrition...
+                      {analysisPhase === 'uploading'
+                        ? 'Processing photo...'
+                        : analysisPhase === 'detecting'
+                        ? 'Detecting ingredients with AI...'
+                        : 'Calculating macros & calories...'}
                     </Text>
                   </>
                 ) : (

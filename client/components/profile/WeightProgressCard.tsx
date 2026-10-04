@@ -33,7 +33,7 @@ interface WeightProgressCardProps {
 }
 
 export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCardProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { user, updateUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const userId = user?.id;
@@ -54,7 +54,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
     logCount: 0,
     trend: 'stable',
   });
-  const [loading, setLoading] = useState(false);
+  
   const [showLogModal, setShowLogModal] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
@@ -238,7 +238,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                   className={`text-[10px] font-extrabold ${
                     (isLoss && stats.totalChange < 0) || (!isLoss && stats.totalChange > 0)
                       ? 'text-accent dark:text-accent-dark'
-                      : 'text-amber-500 dark:text-amber-400'
+                      : 'text-amber-700 dark:text-amber-400'
                   }`}
                 >
                   {displayTotalChange > 0 ? `+${displayTotalChange}` : displayTotalChange} {unitLabel}
@@ -462,7 +462,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
                                   delta < 0
                                     ? 'text-accent dark:text-accent-dark'
                                     : delta > 0
-                                    ? 'text-amber-500 dark:text-amber-400'
+                                    ? 'text-amber-700 dark:text-amber-400'
                                     : 'text-text-muted'
                                 }`}
                               >

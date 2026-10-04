@@ -24,11 +24,16 @@ module.exports = {
         },
         'input-border': {
           DEFAULT: '#E2E8F0',
-          dark: '#1F2937',
+          dark: '#334155',
         },
         accent: {
-          DEFAULT: '#10B981',
+          DEFAULT: '#047857',
           dark: '#10B981',
+          mint: '#34D399',
+        },
+        'accent-contrast': {
+          DEFAULT: '#FFFFFF',
+          dark: '#0B1120',
         },
         'text-primary': {
           DEFAULT: '#0F172A',
@@ -43,17 +48,28 @@ module.exports = {
           dark: '#F87171',
         },
         info: {
-          DEFAULT: '#0284C7',
+          DEFAULT: '#0369A1',
           dark: '#38BDF8',
         },
         warning: {
-          DEFAULT: '#D97706',
+          DEFAULT: '#B45309',
           dark: '#FBBF24',
         },
         tertiary: {
           DEFAULT: '#64748B',
           dark: '#94A3B8',
         },
+        success: {
+          DEFAULT: '#047857',
+          dark: '#10B981',
+        },
+      },
+      fontFamily: {
+        baloo: ['Baloo2_400Regular'],
+        'baloo-medium': ['Baloo2_500Medium'],
+        'baloo-semibold': ['Baloo2_600SemiBold'],
+        'baloo-bold': ['Baloo2_700Bold'],
+        sans: ['System', '-apple-system', 'Roboto', 'sans-serif'],
       },
     },
   },

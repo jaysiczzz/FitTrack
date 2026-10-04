@@ -61,8 +61,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 6
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1571019614242-c5c5dee9f50b?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0025.gif",
     "safetyInstructions": "Always use a spotter or safety pin arms when attempting heavy sets.",
     "injuryPreventionTips": "Warm up shoulders and wrists before pressing heavy loads.",
     "beginnerModification": "Push-ups or Machine Chest Press",
@@ -140,8 +141,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1583454110551-21f2fa2afe61?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0314.gif",
     "safetyInstructions": "Control the weights when dropping them at the end of a set.",
     "injuryPreventionTips": "Do not overstretch shoulder joint at bottom position.",
     "beginnerModification": "Incline Push-ups",
@@ -165,7 +167,7 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     "id": "ex-push-ups",
     "name": "Push-ups",
     "description": "Fundamental bodyweight pushing movement for building functional upper body strength and core stability.",
-    "category": "Warm-up",
+    "category": "Strength",
     "type": "Bodyweight",
     "difficulty": "Beginner",
     "primaryMuscle": "Chest",
@@ -215,8 +217,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 12
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1598971639058-fab3c3109a00?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0662.gif",
     "safetyInstructions": "Stop if you feel sharp wrist or shoulder discomfort.",
     "injuryPreventionTips": "Spread fingers wide on floor for optimal wrist support.",
     "beginnerModification": "Knee Push-ups or Incline Wall Push-ups",
@@ -291,8 +294,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1526506118085-60ce8714f8c5?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0652.gif",
     "safetyInstructions": "Ensure bar is securely mounted.",
     "injuryPreventionTips": "Warm up lat muscles and shoulders before attempting reps.",
     "beginnerModification": "Assisted Pull-ups or Resistance Band Pull-ups",
@@ -368,8 +372,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1605296867304-46d5465a13f1?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0027.gif",
     "safetyInstructions": "Maintain lumbar arch to protect lower spine.",
     "injuryPreventionTips": "Brace core hard before initiating row.",
     "beginnerModification": "Single-arm Dumbbell Row",
@@ -447,8 +452,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 5
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1574680096145-d05b474e2155?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0043.gif",
     "safetyInstructions": "Set safety pins inside squat rack at hip height.",
     "injuryPreventionTips": "Warm up hips, ankles, and quads prior to heavy squats.",
     "beginnerModification": "Goblet Squat or Bodyweight Squat",
@@ -521,8 +527,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1517838277536-f5f99be501cd?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0085.gif",
     "safetyInstructions": "Never allow lower spine to round under load.",
     "injuryPreventionTips": "Focus on hip movement rather than lowering bar to floor.",
     "beginnerModification": "Dumbbell Romanian Deadlift",
@@ -593,8 +600,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1541534741688-6078c6bfb5c5?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1456.gif",
     "safetyInstructions": "Avoid leaning backward excessively.",
     "injuryPreventionTips": "Warm up rotator cuff muscles prior to pressing.",
     "beginnerModification": "Seated Dumbbell Shoulder Press",
@@ -662,8 +670,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 12
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009146145-b5ef050c2e1e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0334.gif",
     "safetyInstructions": "Use controlled light to moderate weights.",
     "injuryPreventionTips": "Keep elbows slightly bent throughout movement.",
     "beginnerModification": "Resistance Band Lateral Raise",
@@ -732,8 +741,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1583454155184-870a1f63aebc?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0031.gif",
     "safetyInstructions": "Do not overload bar beyond strict form capabilities.",
     "injuryPreventionTips": "Keep wrists straight throughout curl.",
     "beginnerModification": "Dumbbell Alternating Curl",
@@ -804,8 +814,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1409.gif",
     "safetyInstructions": "Use a barbell hip pad for comfort.",
     "injuryPreventionTips": "Lock out hips with glutes, not lower back.",
     "beginnerModification": "Bodyweight Glute Bridge on floor",
@@ -873,8 +884,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 15
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1599058917212-d750089bc07e?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0472.gif",
     "safetyInstructions": "Maintain grip strength security on bar.",
     "injuryPreventionTips": "Control descent to prevent hip strain.",
     "beginnerModification": "Hanging Knee Tuck or Lying Leg Raise",
@@ -932,19 +944,27 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     "recommendedSets": 3,
     "recommendedDuration": 60,
     "recommendedRest": 45,
+    "recommendedTempo": "Static Isometric Hold",
     "defaultSets": [
       {
         "bodyweight": true,
+        "duration": 60,
         "reps": 1
       },
       {
         "bodyweight": true,
+        "duration": 60,
+        "reps": 1
+      },
+      {
+        "bodyweight": true,
+        "duration": 60,
         "reps": 1
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1566241142559-40e1dab266c6?w=200&auto=format&fit=crop&q=60",
-    "safetyInstructions": "Stop if lower back arches painfully.",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+        "safetyInstructions": "Stop if lower back arches painfully.",
     "injuryPreventionTips": "Squeeze glutes to support pelvis alignment.",
     "beginnerModification": "Knee Plank",
     "advancedVariation": "Weighted Plank or Side Plank",
@@ -1010,8 +1030,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 1
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1476480862126-209bfaa8edc8?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
     "safetyInstructions": "Attach treadmill safety clip to clothing.",
     "injuryPreventionTips": "Wear proper cushioned running shoes.",
     "beginnerModification": "Power Walking or Jog/Walk Intervals",
@@ -1076,8 +1096,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
     "safetyInstructions": "Move within a comfortable pain-free range of motion.",
     "injuryPreventionTips": "Keep neck extension gentle during Cow pose.",
     "beginnerModification": "Seated Cat-Cow on chair",
@@ -1153,8 +1173,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534367507873-d2d7e24c797f?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1270.gif",
     "safetyInstructions": "Do not overstretch shoulders behind torso plane under heavy load.",
     "injuryPreventionTips": "Warm up rotator cuff with light internal and external rotations.",
     "beginnerModification": "Pec Deck Machine Fly",
@@ -1231,8 +1252,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "bodyweight": true
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0251.gif",
     "safetyInstructions": "Stop descent if feeling acute pressure in the sternum or front shoulder capsule.",
     "injuryPreventionTips": "Ensure shoulder blades stay depressed and engaged throughout.",
     "beginnerModification": "Band-Assisted Dips or Bench Dips",
@@ -1312,8 +1334,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 3
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1603287681836-b174ce5074c2?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1603287681836-b174ce5074c2?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0032.gif",
     "safetyInstructions": "Do not bounce reps off the floor. Reset hip wedge on each rep.",
     "injuryPreventionTips": "Warm up hips and hamstrings thoroughly before loading heavy weight.",
     "beginnerModification": "Trap Bar Deadlift or Romanian Deadlift",
@@ -1392,8 +1415,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1521804906057-1df8fdb718b7?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1521804906057-1df8fdb718b7?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2330.gif",
     "safetyInstructions": "Always pull in front of head to the clavicle, never behind head.",
     "injuryPreventionTips": "Do not let weight stack slam at the top; keep continuous tension on lats.",
     "beginnerModification": "Band-Assisted Lat Pulldown",
@@ -1471,8 +1495,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1584735935682-2f2b69dff9d2?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0180.gif",
     "safetyInstructions": "Keep spine neutral; avoid rounding lumbar under load.",
     "injuryPreventionTips": "Keep knees softly bent throughout to protect hamstrings and lower back.",
     "beginnerModification": "Resistance Band Seated Row",
@@ -1550,8 +1575,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1534438327276-14e5300c3a48?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0292.gif",
     "safetyInstructions": "Keep three points of contact stable on bench and floor.",
     "injuryPreventionTips": "Keep neck aligned with spine; avoid looking straight up at mirror.",
     "beginnerModification": "Chest-Supported Incline DB Row",
@@ -1629,8 +1655,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1574680178050-55c6a6a96e0a?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0405.gif",
     "safetyInstructions": "Use spotter or safely drop dumbbells to knees when fatigued.",
     "injuryPreventionTips": "Warm up delts with light lateral raises and shoulder circles.",
     "beginnerModification": "Machine Shoulder Press",
@@ -1707,8 +1734,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 12
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1597452485669-2c7bb5fef90d?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
     "safetyInstructions": "Prioritize form and rear delt burn over heavy poundages.",
     "injuryPreventionTips": "Crucial exercise for preventing shoulder impingement from heavy benching.",
     "beginnerModification": "Resistance Band Face Pulls",
@@ -1785,8 +1812,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1434682881908-b43d0467b798?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0739.gif",
     "safetyInstructions": "Always keep safety stops in place at a safe depth.",
     "injuryPreventionTips": "Warm up knees with bodyweight squats or light leg extensions.",
     "beginnerModification": "Machine Seated Horizontal Leg Press",
@@ -1865,8 +1893,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1518310383802-640c2de311b2?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0410.gif",
     "safetyInstructions": "Find your balance with bodyweight first before holding dumbbells.",
     "injuryPreventionTips": "Warm up hip flexors to prevent groin or quad tightness.",
     "beginnerModification": "Bodyweight Static Split Squat on floor",
@@ -1941,8 +1970,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1579758629938-03607ccdbaba?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0585.gif",
     "safetyInstructions": "Avoid hyper-extending knees violently at top.",
     "injuryPreventionTips": "Use moderate weight and high time-under-tension for knee joint longevity.",
     "beginnerModification": "Resistance Band Knee Extensions",
@@ -2019,8 +2049,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1518611012118-696072aa579a?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0586.gif",
     "safetyInstructions": "Do not allow weight to pull knees into hyperextension at bottom.",
     "injuryPreventionTips": "Crucial counterpart to quad extensions for ACL injury prevention.",
     "beginnerModification": "Stability Ball Hamstring Curls",
@@ -2096,8 +2127,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1594737625785-a6cbdabd333c?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1372.gif",
     "safetyInstructions": "Ensure foot placement is secure so feet do not slip off step.",
     "injuryPreventionTips": "Stretch calves after heavy running or jumping workouts.",
     "beginnerModification": "Single-Leg Bodyweight Calf Raise on floor",
@@ -2173,8 +2205,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1581009137042-c552e485697a?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0313.gif",
     "safetyInstructions": "Select weight that allows strict control without elbow pain.",
     "injuryPreventionTips": "Do not hyperextend wrists at bottom.",
     "beginnerModification": "Seated Incline Dumbbell Hammer Curl",
@@ -2251,8 +2284,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 10
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1584824486509-112e4181ff6b?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0241.gif",
     "safetyInstructions": "Do not overload to the point of elbow tendinitis.",
     "injuryPreventionTips": "Warm up elbow joints with light sets before working weight.",
     "beginnerModification": "Resistance Band Pushdowns",
@@ -2328,8 +2362,9 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "reps": 8
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0035.gif",
     "safetyInstructions": "Always use collars on the barbell and stop well before muscular failure.",
     "injuryPreventionTips": "Use an EZ-bar rather than straight barbell to relieve wrist strain.",
     "beginnerModification": "Dumbbell Lying Tricep Extension",
@@ -2398,8 +2433,8 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
         "duration": 1200
       }
     ],
-    "imageUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=600&auto=format&fit=crop&q=60",
-    "thumbnailUrl": "https://images.unsplash.com/photo-1517963879433-6ad2b056d712?w=200&auto=format&fit=crop&q=60",
+    "imageUrl": null,
+    "thumbnailUrl": null,
     "safetyInstructions": "Maintain upright posture; avoid slumping spine at the catch position.",
     "injuryPreventionTips": "Adjust damper setting between 3 and 5 for optimal drag factor.",
     "beginnerModification": "500m intervals with 1 minute rest",
@@ -2419,15 +2454,3707 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "full-body",
       "conditioning"
     ]
+  },
+  {
+    "id": "ex-decline-barbell-bench-press",
+    "name": "Decline Barbell Bench Press",
+    "description": "Focuses on the lower sternal head of the pectoralis major with reduced shoulder stress.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Barbell",
+      "Decline Bench"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Chest Press Machine"
+    ],
+    "startingPosition": "Secure legs under decline bench pads and lie back with eyes under the bar.",
+    "instructions": [
+      "Grip the bar slightly wider than shoulder width.",
+      "Unrack the bar and stabilize it directly over your lower chest.",
+      "Lower the bar under control until it gently touches the lower sternum.",
+      "Press explosively back up to arms locked position.",
+      "Re-rack safely."
+    ],
+    "formTips": [
+      "Keep shoulder blades retracted and depressed.",
+      "Avoid bouncing the barbell."
+    ],
+    "commonMistakes": [
+      "Setting bench decline too steep.",
+      "Lifting head off the pad during the press."
+    ],
+    "breathingTechnique": "Inhale lowering bar; exhale pressing upward.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 55,
+        "reps": 10
+      },
+      {
+        "weight": 60,
+        "reps": 8
+      },
+      {
+        "weight": 65,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Always ensure leg rollers are locked before unracking heavy loads.",
+    "injuryPreventionTips": "Keep elbows tucked at a 45-degree angle to protect rotator cuffs.",
+    "beginnerModification": "Decline Push-ups or Machine Decline Press",
+    "advancedVariation": "Pause Decline Bench Press",
+    "easierAlternative": "Flat Barbell Bench Press",
+    "harderAlternative": "Heavy Weighted Dips",
+    "equipmentFreeAlternative": "Decline Push-ups",
+    "similarExercises": [
+      "Bench Press",
+      "Chest Dips",
+      "Machine Chest Press"
+    ],
+    "tags": [
+      "chest",
+      "lower-chest",
+      "barbell",
+      "push",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0033.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-dumbbell-bench-press",
+    "name": "Flat Dumbbell Bench Press",
+    "description": "Builds chest size and unilateral pressing symmetry through a deep range of motion.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Flat Bench"
+    ],
+    "equipmentAlternatives": [
+      "Barbell",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Lie on bench with dumbbells resting at chest height, palms facing forward.",
+    "instructions": [
+      "Plant feet flat and squeeze shoulder blades together.",
+      "Press dumbbells up in a slight arc until arms are extended over mid-chest.",
+      "Lower dumbbells with control until you feel a deep stretch in the pecs.",
+      "Press back up smoothly without clanking dumbbells together."
+    ],
+    "formTips": [
+      "Keep wrists stacked straight over elbows.",
+      "Maintain a natural slight arch in lower back."
+    ],
+    "commonMistakes": [
+      "Flaring elbows out at 90 degrees.",
+      "Bouncing weights at the bottom."
+    ],
+    "breathingTechnique": "Inhale on descent; exhale pushing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 20,
+        "reps": 10
+      },
+      {
+        "weight": 22,
+        "reps": 10
+      },
+      {
+        "weight": 24,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Drop dumbbells safely to the sides or bring knees up to catch them when fatigued.",
+    "injuryPreventionTips": "Do not let elbows drop significantly below bench level if experiencing shoulder discomfort.",
+    "beginnerModification": "Floor Dumbbell Press",
+    "advancedVariation": "Alternating Dumbbell Press",
+    "easierAlternative": "Push-ups",
+    "harderAlternative": "Incline Dumbbell Press",
+    "equipmentFreeAlternative": "Push-ups",
+    "similarExercises": [
+      "Bench Press",
+      "Incline Dumbbell Press"
+    ],
+    "tags": [
+      "chest",
+      "dumbbells",
+      "push",
+      "unilateral",
+      "strength"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0289.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-incline-barbell-bench-press",
+    "name": "Incline Barbell Bench Press",
+    "description": "Premier compound mass builder for the upper clavicular portion of the chest and shoulders.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Front Deltoids",
+      "Triceps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Barbell",
+      "Incline Bench"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Smith Machine"
+    ],
+    "startingPosition": "Lie on incline bench (30-45 degrees) with eyes positioned directly under the bar.",
+    "instructions": [
+      "Grip the bar slightly wider than shoulder width.",
+      "Unrack and hold the barbell over your upper chest.",
+      "Lower the bar under control to touch right below the collarbones.",
+      "Drive feet into floor and press the bar back up to starting position."
+    ],
+    "formTips": [
+      "Do not set bench angle higher than 45 degrees to avoid shifting load entirely to shoulders.",
+      "Keep shoulder blades squeezed."
+    ],
+    "commonMistakes": [
+      "Setting bench too steep (60 degrees).",
+      "Bouncing bar off collarbone."
+    ],
+    "breathingTechnique": "Inhale as bar descends; exhale forcefully pressing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 8,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 50,
+        "reps": 10
+      },
+      {
+        "weight": 55,
+        "reps": 8
+      },
+      {
+        "weight": 60,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Always use safety catches or a spotter.",
+    "injuryPreventionTips": "Warm up rotator cuffs thoroughly before heavy incline pressing.",
+    "beginnerModification": "Incline Push-ups or Machine Incline Press",
+    "advancedVariation": "Incline Barbell Press with Chains or Bands",
+    "easierAlternative": "Incline Dumbbell Press",
+    "harderAlternative": "Pause Incline Barbell Press",
+    "equipmentFreeAlternative": "Pike Push-ups",
+    "similarExercises": [
+      "Bench Press",
+      "Incline Dumbbell Press"
+    ],
+    "tags": [
+      "chest",
+      "upper-chest",
+      "barbell",
+      "incline",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0047.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-dumbbell-chest-flyes",
+    "name": "Dumbbell Flat Chest Flyes",
+    "description": "Isolation movement providing exceptional stretch on pectoral muscle fibers across a wide arc.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Flat Bench"
+    ],
+    "equipmentAlternatives": [
+      "Cable Crossover",
+      "Pec Deck Machine"
+    ],
+    "startingPosition": "Lie flat holding dumbbells extended above chest with palms facing each other and elbows slightly bent.",
+    "instructions": [
+      "Lock a slight bend in your elbows throughout the entire movement.",
+      "Inhale and lower dumbbells outward in a wide semi-circle arc until you feel a chest stretch.",
+      "Exhale and bring dumbbells back together over your chest as if hugging a barrel.",
+      "Squeeze pecs hard at the top."
+    ],
+    "formTips": [
+      "Do not turn the fly into a press; keep elbows rigid.",
+      "Focus on squeezing chest at top."
+    ],
+    "commonMistakes": [
+      "Over-stretching shoulders below bench level with heavy weight.",
+      "Bending elbows too much."
+    ],
+    "breathingTechnique": "Inhale as arms open wide; exhale as arms hug back together.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "3-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 12,
+        "reps": 12
+      },
+      {
+        "weight": 14,
+        "reps": 10
+      },
+      {
+        "weight": 14,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Use moderate weight to avoid putting excessive leverage on shoulder tendons.",
+    "injuryPreventionTips": "Never exceed comfortable shoulder mobility at the bottom stretch position.",
+    "beginnerModification": "Pec Deck Machine",
+    "advancedVariation": "Incline Dumbbell Flyes",
+    "easierAlternative": "Pec Deck Fly",
+    "harderAlternative": "Cable Crossover",
+    "equipmentFreeAlternative": "Wide-grip Push-ups",
+    "similarExercises": [
+      "Cable Chest Flyes",
+      "Pec Deck Machine"
+    ],
+    "tags": [
+      "chest",
+      "flyes",
+      "dumbbells",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0308.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-machine-chest-press",
+    "name": "Machine Chest Press",
+    "description": "Fixed-path pressing machine that allows safe maximal exertion and hypertrophy with zero stabilization fatigue.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Chest Press Machine"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Barbell"
+    ],
+    "startingPosition": "Adjust seat height so handles align with mid-chest. Plant feet flat.",
+    "instructions": [
+      "Grip handles firmly and brace your back against the back pad.",
+      "Press handles forward until arms are fully extended without locking elbows violently.",
+      "Lower weight stack under control back to starting position without letting weights clang."
+    ],
+    "formTips": [
+      "Keep chest proud and shoulders back against pad.",
+      "Control the eccentric phase."
+    ],
+    "commonMistakes": [
+      "Setting seat too high so handles push at neck level.",
+      "Shrugging shoulders forward."
+    ],
+    "breathingTechnique": "Exhale pushing forward; inhale returning.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 45,
+        "reps": 10
+      },
+      {
+        "weight": 50,
+        "reps": 10
+      },
+      {
+        "weight": 55,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Adjust seat before adding weight plates or selecting pin.",
+    "injuryPreventionTips": "Ensure handle position does not overextend anterior shoulder capsule.",
+    "beginnerModification": "Bodyweight Push-ups",
+    "advancedVariation": "Single-Arm Machine Press",
+    "easierAlternative": "Push-ups",
+    "harderAlternative": "Barbell Bench Press",
+    "equipmentFreeAlternative": "Push-ups",
+    "similarExercises": [
+      "Bench Press",
+      "Dumbbell Bench Press"
+    ],
+    "tags": [
+      "chest",
+      "machine",
+      "push",
+      "beginner-friendly",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0577.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-pec-deck-machine",
+    "name": "Pec Deck Fly Machine",
+    "description": "Consistent mechanical tension across the entire chest range of motion, maximizing peak contraction.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Pec Deck Machine"
+    ],
+    "equipmentAlternatives": [
+      "Cable Flyes",
+      "Dumbbell Flyes"
+    ],
+    "startingPosition": "Sit with back flat against pad. Adjust seat so handles/elbow pads sit level with mid-chest.",
+    "instructions": [
+      "Place forearms on pads or hold handles with elbows slightly bent.",
+      "Bring arms together in front of chest in a smooth arc.",
+      "Squeeze pecs intensely for 1 second at full contraction.",
+      "Return slowly to feeling a comfortable stretch in the chest."
+    ],
+    "formTips": [
+      "Keep chest puffed up throughout.",
+      "Focus purely on pectoral contraction rather than moving handles."
+    ],
+    "commonMistakes": [
+      "Letting weight stack smash together at bottom.",
+      "Leaning head and torso forward."
+    ],
+    "breathingTechnique": "Exhale bringing arms together; inhale opening up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 35,
+        "reps": 12
+      },
+      {
+        "weight": 40,
+        "reps": 10
+      },
+      {
+        "weight": 45,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Do not set starting arms so far back that shoulder joint is overstressed.",
+    "injuryPreventionTips": "Maintain slight elbow bend and smooth speed.",
+    "beginnerModification": "Resistance Band Chest Flyes",
+    "advancedVariation": "Single-arm Pec Deck Flyes",
+    "easierAlternative": "Floor Dumbbell Flyes",
+    "harderAlternative": "Cable Chest Crossover",
+    "equipmentFreeAlternative": "Wide Push-ups",
+    "similarExercises": [
+      "Cable Chest Flyes",
+      "Dumbbell Chest Flyes"
+    ],
+    "tags": [
+      "chest",
+      "machine",
+      "isolation",
+      "flyes",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0596.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-low-to-high-cable-flyes",
+    "name": "Low-to-High Cable Flyes",
+    "description": "Pulls cables from low pulleys upward to target the upper clavicular chest and front delts.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Upper Chest",
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Cable Machine"
+    ],
+    "equipmentAlternatives": [
+      "Incline Dumbbell Flyes",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Set pulleys to lowest position. Take handles, take a step forward into a staggered stance.",
+    "instructions": [
+      "Start with arms down and back at 45 degrees, slight bend in elbows.",
+      "Sweep hands upward and inward in a scooping motion until hands meet at chest/chin height.",
+      "Squeeze upper chest hard at the top.",
+      "Lower cables slowly back down along the same path."
+    ],
+    "formTips": [
+      "Keep palms facing upward as hands converge.",
+      "Maintain a rigid core with a slight forward torso lean."
+    ],
+    "commonMistakes": [
+      "Using biceps to curl the cables.",
+      "Swinging torso to generate momentum."
+    ],
+    "breathingTechnique": "Exhale sweeping upward; inhale lowering.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 10,
+        "reps": 12
+      },
+      {
+        "weight": 12.5,
+        "reps": 10
+      },
+      {
+        "weight": 15,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Step back into the cable station with care when setting down weights.",
+    "injuryPreventionTips": "Keep arms locked in consistent arc to isolate pecs over arms.",
+    "beginnerModification": "Incline Push-ups",
+    "advancedVariation": "Low Cable Crossover with 2-second hold",
+    "easierAlternative": "Incline Dumbbell Press",
+    "harderAlternative": "Standing Cable Crossover",
+    "equipmentFreeAlternative": "Pike Push-ups",
+    "similarExercises": [
+      "Incline Dumbbell Press",
+      "Cable Chest Flyes"
+    ],
+    "tags": [
+      "chest",
+      "upper-chest",
+      "cable",
+      "flyes",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0179.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-diamond-push-ups",
+    "name": "Diamond Push-ups",
+    "description": "Close-grip push-up variation placing intense loading on the triceps and inner chest fibers.",
+    "category": "Strength",
+    "type": "Bodyweight",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Deltoids",
+      "Core"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "No Equipment"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Resistance Band"
+    ],
+    "startingPosition": "Assume plank position with index fingers and thumbs touching to form a diamond directly under sternum.",
+    "instructions": [
+      "Keep core tight, glutes squeezed, and body in straight line.",
+      "Lower chest toward your hands while keeping elbows tucked near ribs.",
+      "Push back up until arms are fully extended, squeezing triceps and pecs at top."
+    ],
+    "formTips": [
+      "Keep elbows tucked at 30-45 degrees, do not flare them wide.",
+      "Maintain rigid plank."
+    ],
+    "commonMistakes": [
+      "Sagging hips.",
+      "Flaring elbows to 90 degrees stressing wrists."
+    ],
+    "breathingTechnique": "Inhale lowering; exhale pressing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 10
+      },
+      {
+        "bodyweight": true,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "If wrists ache, widen hands slightly to a 4-inch gap.",
+    "injuryPreventionTips": "Warm up wrists and forearms prior to performing diamond push-ups.",
+    "beginnerModification": "Diamond Push-ups on Knees",
+    "advancedVariation": "Decline Diamond Push-ups (feet on bench)",
+    "easierAlternative": "Standard Push-ups",
+    "harderAlternative": "Close-Grip Barbell Bench Press",
+    "equipmentFreeAlternative": "Diamond Push-ups",
+    "similarExercises": [
+      "Push-ups",
+      "Chest Dips"
+    ],
+    "tags": [
+      "chest",
+      "triceps",
+      "bodyweight",
+      "calisthenics",
+      "push"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0283.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-chin-ups",
+    "name": "Chin-ups (Underhand Grip)",
+    "description": "Supinated grip vertical pull that maximizes lower lat recruitment and heavy bicep overload.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Biceps",
+      "Forearms",
+      "Core"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Pull-up Bar"
+    ],
+    "equipmentAlternatives": [
+      "Lat Pulldown Machine",
+      "Resistance Band"
+    ],
+    "startingPosition": "Hang from bar with supinated grip (palms facing you) at shoulder width with full arm extension.",
+    "instructions": [
+      "Engage lats and drive elbows down toward your hips.",
+      "Pull your body upward until your chin clears the bar comfortably.",
+      "Pause briefly at the top squeezing lats and biceps.",
+      "Lower under control back to a complete dead hang."
+    ],
+    "formTips": [
+      "Do not kip or swing legs.",
+      "Puff chest up toward the bar."
+    ],
+    "commonMistakes": [
+      "Half reps without reaching full arm extension at bottom.",
+      "Kicking legs to cheat."
+    ],
+    "breathingTechnique": "Inhale at dead hang; exhale pulling up.",
+    "recommendedSets": 3,
+    "recommendedReps": 8,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-1",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 8
+      },
+      {
+        "bodyweight": true,
+        "reps": 8
+      },
+      {
+        "bodyweight": true,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Ensure bar is securely mounted before dynamic movement.",
+    "injuryPreventionTips": "Avoid dropping abruptly into bottom stretch to protect bicep tendon.",
+    "beginnerModification": "Band-Assisted Chin-ups or Underhand Lat Pulldowns",
+    "advancedVariation": "Weighted Chin-ups",
+    "easierAlternative": "Underhand Lat Pulldown",
+    "harderAlternative": "Weighted Chin-ups",
+    "equipmentFreeAlternative": "Inverted Row under table",
+    "similarExercises": [
+      "Pull-ups",
+      "Lat Pulldown"
+    ],
+    "tags": [
+      "back",
+      "biceps",
+      "pull",
+      "bodyweight",
+      "calisthenics",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1326.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-neutral-grip-lat-pulldown",
+    "name": "Neutral-Grip Lat Pulldown",
+    "description": "Palms-facing-in grip provides optimal mechanical alignment for lat stretch while protecting wrists and shoulders.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Biceps",
+      "Rear Deltoids",
+      "Rhomboids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Cable Lat Pulldown Machine",
+      "V-Bar or Neutral Grip Attachment"
+    ],
+    "equipmentAlternatives": [
+      "Pull-ups",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Sit tall with thighs secured under knee pads holding neutral grip handles at arms length.",
+    "instructions": [
+      "Retract shoulder blades and lean back slightly (10-15 degrees).",
+      "Pull handles down smoothly toward upper chest, driving elbows downward.",
+      "Squeeze lats hard at bottom.",
+      "Slowly extend arms back up allowing lats to fully stretch."
+    ],
+    "formTips": [
+      "Keep chest lifted to meet the attachment.",
+      "Think of your hands as hooks."
+    ],
+    "commonMistakes": [
+      "Leaning back too far turning pulldown into a row.",
+      "Yanking with momentum."
+    ],
+    "breathingTechnique": "Exhale pulling down; inhale releasing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-0-1-1",
+    "defaultSets": [
+      {
+        "weight": 45,
+        "reps": 10
+      },
+      {
+        "weight": 50,
+        "reps": 10
+      },
+      {
+        "weight": 55,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Adjust knee pad height before starting set so legs are firmly planted.",
+    "injuryPreventionTips": "Control eccentric phase to avoid sudden shoulder jerking.",
+    "beginnerModification": "Lighter weight on cable pulldown",
+    "advancedVariation": "Single-Arm Neutral Lat Pulldown",
+    "easierAlternative": "Band Lat Pulldown",
+    "harderAlternative": "Neutral Grip Pull-ups",
+    "equipmentFreeAlternative": "Doorway Row",
+    "similarExercises": [
+      "Lat Pulldown",
+      "Pull-ups",
+      "Seated Cable Row"
+    ],
+    "tags": [
+      "back",
+      "lats",
+      "cable",
+      "machine",
+      "pull",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0818.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-t-bar-row",
+    "name": "T-Bar Row",
+    "description": "Heavy mid-back compound movement building tremendous upper back thickness, rhomboid mass, and spinal erector strength.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Rhomboids",
+      "Traps",
+      "Lats",
+      "Biceps",
+      "Lower Back"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "T-Bar Row Machine or Landmine Barbell",
+      "V-Grip Handle"
+    ],
+    "equipmentAlternatives": [
+      "Barbell Bent-Over Row",
+      "Chest-Supported Row Machine"
+    ],
+    "startingPosition": "Straddle the bar with knees soft, hips pushed back at 45-degree angle, holding handles with straight spine.",
+    "instructions": [
+      "Brace core and keep lower back arched naturally.",
+      "Pull the handle toward your upper abdomen/chest driving elbows back.",
+      "Squeeze shoulder blades together forcefully at the peak.",
+      "Lower weight with control feeling a deep upper back stretch."
+    ],
+    "formTips": [
+      "Keep torso stationary; do not stand up with each rep.",
+      "Drive elbows high and back."
+    ],
+    "commonMistakes": [
+      "Rounding lower back under heavy load.",
+      "Using excessive momentum."
+    ],
+    "breathingTechnique": "Inhale at bottom; exhale pulling bar to chest.",
+    "recommendedSets": 3,
+    "recommendedReps": 8,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-1",
+    "defaultSets": [
+      {
+        "weight": 40,
+        "reps": 10
+      },
+      {
+        "weight": 45,
+        "reps": 8
+      },
+      {
+        "weight": 50,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Never allow spine to flex under heavy load.",
+    "injuryPreventionTips": "Brace abdomen firmly as if taking a punch to lock lumbar spine.",
+    "beginnerModification": "Chest-Supported Row Machine",
+    "advancedVariation": "Meadows Row (Single-Arm Landmine Row)",
+    "easierAlternative": "Seated Cable Row",
+    "harderAlternative": "Pendlay Barbell Row",
+    "equipmentFreeAlternative": "Towel Inverted Row",
+    "similarExercises": [
+      "Bent-Over Barbell Row",
+      "Seated Cable Row"
+    ],
+    "tags": [
+      "back",
+      "thickness",
+      "t-bar",
+      "landmine",
+      "pull",
+      "strength"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1349.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-chest-supported-dumbbell-row",
+    "name": "Chest-Supported Incline Dumbbell Row",
+    "description": "Eliminates lower-back strain by bracing chest on bench, isolating mid-back, lats, and rhomboids.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Rhomboids",
+      "Rear Deltoids",
+      "Biceps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Incline Bench"
+    ],
+    "equipmentAlternatives": [
+      "Chest Supported Machine",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Lie face down on incline bench set to 30-45 degrees holding dumbbells hanging naturally.",
+    "instructions": [
+      "Squeeze shoulder blades together to initiate pull.",
+      "Row dumbbells up toward your hips keeping elbows tucked comfortably.",
+      "Hold peak contraction for 1 second squeezing back muscles.",
+      "Lower dumbbells slowly until arms are fully stretched."
+    ],
+    "formTips": [
+      "Keep chest pinned to the pad throughout.",
+      "Think of pulling from elbows, not hands."
+    ],
+    "commonMistakes": [
+      "Lifting chest off pad to cheat.",
+      "Shrugging shoulders up toward ears."
+    ],
+    "breathingTechnique": "Exhale pulling dumbbells up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 16,
+        "reps": 10
+      },
+      {
+        "weight": 18,
+        "reps": 10
+      },
+      {
+        "weight": 20,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Carefully place dumbbells on floor before dismounting bench.",
+    "injuryPreventionTips": "Ideal option for lifters suffering from lower back sensitivity.",
+    "beginnerModification": "Lighter dumbbells on bench",
+    "advancedVariation": "Pause Incline Row with 2-second hold",
+    "easierAlternative": "Seated Cable Row",
+    "harderAlternative": "Bent-Over Barbell Row",
+    "equipmentFreeAlternative": "Doorframe Inverted Row",
+    "similarExercises": [
+      "Bent-Over Barbell Row",
+      "One-Arm Dumbbell Row"
+    ],
+    "tags": [
+      "back",
+      "rhomboids",
+      "dumbbells",
+      "pull",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0327.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-straight-arm-cable-pulldown",
+    "name": "Straight-Arm Cable Lat Pulldown",
+    "description": "Pure lat isolation exercise targeting the sweeping outer lats without forearm or bicep fatigue.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Triceps Long Head",
+      "Teres Major",
+      "Core"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Cable Machine",
+      "Straight Bar or Rope"
+    ],
+    "equipmentAlternatives": [
+      "Resistance Bands"
+    ],
+    "startingPosition": "Stand facing cable with pulley set high. Grip bar with arms extended forward at eye level, slight knee bend.",
+    "instructions": [
+      "Keep arms almost completely straight with a slight unlock in elbows.",
+      "Depress shoulders and pull bar down in a smooth arc until it touches your upper thighs.",
+      "Squeeze lats intensely at the bottom for 1 full second.",
+      "Return bar under control up to eye height feeling a deep stretch."
+    ],
+    "formTips": [
+      "Do not bend elbows into a tricep pushdown.",
+      "Hinge hips back slightly for balance."
+    ],
+    "commonMistakes": [
+      "Bending elbows transforming exercise into a pushdown.",
+      "Swinging body to heave weight down."
+    ],
+    "breathingTechnique": "Exhale pulling bar down to thighs; inhale raising up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 20,
+        "reps": 12
+      },
+      {
+        "weight": 25,
+        "reps": 10
+      },
+      {
+        "weight": 25,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Maintain athletic stance with feet hip-width apart.",
+    "injuryPreventionTips": "Do not let bar travel higher than eye level to protect rotator cuff.",
+    "beginnerModification": "Resistance Band Straight-Arm Pulldown",
+    "advancedVariation": "Rope Attachment Pulldown with greater range of motion",
+    "easierAlternative": "Lat Pulldown Machine",
+    "harderAlternative": "Dumbbell Pullover",
+    "equipmentFreeAlternative": "Doorway Lat Stretch & Hold",
+    "similarExercises": [
+      "Lat Pulldown",
+      "Pull-ups"
+    ],
+    "tags": [
+      "back",
+      "lats",
+      "cable",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0238.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-barbell-shrugs",
+    "name": "Barbell Shrugs",
+    "description": "Direct overload exercise for massive upper trapezius development and neck stability.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Traps",
+      "Forearms",
+      "Neck"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Barbell"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Smith Machine",
+      "Trap Bar"
+    ],
+    "startingPosition": "Stand tall holding barbell in front of thighs with shoulder-width overhand grip.",
+    "instructions": [
+      "Keep arms straight and core braced.",
+      "Elevate your shoulders straight up toward your ears as high as possible.",
+      "Squeeze traps hard at top peak for 1 second.",
+      "Lower barbell smoothly under full control."
+    ],
+    "formTips": [
+      "Shrug straight up and down; NEVER roll shoulders backwards.",
+      "Keep chin neutral, do not poke head forward."
+    ],
+    "commonMistakes": [
+      "Rolling shoulders in circles (causes neck and shoulder impingement).",
+      "Using knee drive."
+    ],
+    "breathingTechnique": "Inhale at bottom; exhale shrugging up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "1-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 60,
+        "reps": 12
+      },
+      {
+        "weight": 70,
+        "reps": 10
+      },
+      {
+        "weight": 80,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Use lifting straps if grip fatigues before traps.",
+    "injuryPreventionTips": "Avoid excessive neck flexion under heavy load.",
+    "beginnerModification": "Dumbbell Shrugs",
+    "advancedVariation": "Behind-the-Back Barbell Shrugs",
+    "easierAlternative": "Dumbbell Shrugs",
+    "harderAlternative": "Heavy Trap Bar Shrugs",
+    "equipmentFreeAlternative": "Prone Y-T-W Raises",
+    "similarExercises": [
+      "Dumbbell Shrugs",
+      "Cable Face Pulls"
+    ],
+    "tags": [
+      "back",
+      "traps",
+      "shrugs",
+      "barbell",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0095.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-dumbbell-shrugs",
+    "name": "Dumbbell Shrugs",
+    "description": "Allows hands to hang naturally by your sides for superior comfort and peak upper trap contraction.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Back",
+    "muscleGroup": "Back",
+    "secondaryMuscles": [
+      "Traps",
+      "Forearms"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells"
+    ],
+    "equipmentAlternatives": [
+      "Barbell",
+      "Cables"
+    ],
+    "startingPosition": "Stand tall holding pair of dumbbells at your sides, arms extended straight down.",
+    "instructions": [
+      "Keep posture upright and spine neutral.",
+      "Shrug shoulders straight up toward your ears.",
+      "Hold top peak contraction for 1 second.",
+      "Lower dumbbells smoothly back to full resting hang."
+    ],
+    "formTips": [
+      "Hold dumbbells slightly behind hips to optimize trap fiber angle.",
+      "Squeeze traps at the top."
+    ],
+    "commonMistakes": [
+      "Rolling shoulders.",
+      "Bending elbows to curl the weight."
+    ],
+    "breathingTechnique": "Exhale shrugging up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "1-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 24,
+        "reps": 12
+      },
+      {
+        "weight": 26,
+        "reps": 10
+      },
+      {
+        "weight": 28,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Do not let weights yank shoulders down abruptly.",
+    "injuryPreventionTips": "Maintain tall neck posture.",
+    "beginnerModification": "Seated Dumbbell Shrugs",
+    "advancedVariation": "Incline Prone Shrugs",
+    "easierAlternative": "Band Shrugs",
+    "harderAlternative": "Heavy Barbell Shrugs",
+    "equipmentFreeAlternative": "Wall Angel Shrugs",
+    "similarExercises": [
+      "Barbell Shrugs",
+      "Cable Face Pulls"
+    ],
+    "tags": [
+      "back",
+      "traps",
+      "dumbbells",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0406.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-cable-lateral-raises",
+    "name": "Cable Lateral Raises",
+    "description": "Provides continuous mechanical tension on the side delts from bottom to top, creating wider 3D shoulders.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Shoulders",
+    "muscleGroup": "Shoulders",
+    "secondaryMuscles": [
+      "Traps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Cable Machine",
+      "Single D-Handle"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Set pulley to wrist/hip height. Stand sideways holding handle with arm across body.",
+    "instructions": [
+      "Maintain a slight bend in your elbow.",
+      "Raise arm out to the side until hand reaches shoulder level.",
+      "Lead slightly with your elbow and keep pinky higher than thumb.",
+      "Lower cable slowly back across your body resisting the stack."
+    ],
+    "formTips": [
+      "Do not swing your torso.",
+      "Keep movement strictly in the lateral plane."
+    ],
+    "commonMistakes": [
+      "Shrugging traps to raise arm.",
+      "Using too much weight causing body heave."
+    ],
+    "breathingTechnique": "Exhale raising arm; inhale lowering.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 5,
+        "reps": 15
+      },
+      {
+        "weight": 7.5,
+        "reps": 12
+      },
+      {
+        "weight": 7.5,
+        "reps": 12
+      }
+    ],
+    "safetyInstructions": "Use controlled speed; side delts respond best to tension over momentum.",
+    "injuryPreventionTips": "Raise slightly in front of the body (scapular plane) to prevent impingement.",
+    "beginnerModification": "Light Dumbbell Lateral Raises",
+    "advancedVariation": "Behind-the-Back Cable Lateral Raise",
+    "easierAlternative": "Lateral Dumbbell Raises",
+    "harderAlternative": "Cable Y-Raises",
+    "equipmentFreeAlternative": "Side Plank Lateral Arm Raise",
+    "similarExercises": [
+      "Lateral Dumbbell Raises",
+      "Cable Face Pulls"
+    ],
+    "tags": [
+      "shoulders",
+      "side-delts",
+      "cable",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0178.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-arnold-press",
+    "name": "Arnold Dumbbell Press",
+    "description": "Rotational overhead dumbbell press named after Arnold Schwarzenegger, hitting all three deltoid heads.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Shoulders",
+    "muscleGroup": "Shoulders",
+    "secondaryMuscles": [
+      "Triceps",
+      "Upper Chest",
+      "Traps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Adjustable Bench"
+    ],
+    "equipmentAlternatives": [
+      "Barbell",
+      "Kettlebells"
+    ],
+    "startingPosition": "Sit upright holding dumbbells in front of shoulders with palms facing you (like the top of a bicep curl).",
+    "instructions": [
+      "Press dumbbells upward while simultaneously rotating your palms forward.",
+      "Lock out arms overhead with palms facing forward.",
+      "Reverse the motion smoothly, rotating palms back facing your face as dumbbells return to chin height."
+    ],
+    "formTips": [
+      "Perform rotation smoothly throughout the press, not all at once.",
+      "Keep core braced."
+    ],
+    "commonMistakes": [
+      "Using too much weight and sacrificing rotational control.",
+      "Arching lower back."
+    ],
+    "breathingTechnique": "Exhale pressing up; inhale rotating down.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 14,
+        "reps": 10
+      },
+      {
+        "weight": 16,
+        "reps": 10
+      },
+      {
+        "weight": 18,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Never drop dumbbells from overhead.",
+    "injuryPreventionTips": "Avoid if experiencing active rotator cuff pain.",
+    "beginnerModification": "Standard Dumbbell Shoulder Press",
+    "advancedVariation": "Standing Arnold Press",
+    "easierAlternative": "Seated Dumbbell Shoulder Press",
+    "harderAlternative": "Standing Barbell Overhead Press",
+    "equipmentFreeAlternative": "Pike Push-ups",
+    "similarExercises": [
+      "Seated Dumbbell Shoulder Press",
+      "Overhead Shoulder Press"
+    ],
+    "tags": [
+      "shoulders",
+      "delts",
+      "dumbbells",
+      "arnold",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2137.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-reverse-pec-deck",
+    "name": "Reverse Pec Deck (Rear Delt Fly)",
+    "description": "Dedicated posterior deltoid isolation that improves posture, shoulder health, and back depth.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Shoulders",
+    "muscleGroup": "Shoulders",
+    "secondaryMuscles": [
+      "Rear Delts",
+      "Rhomboids",
+      "Traps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Pec Deck Machine"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Cables"
+    ],
+    "startingPosition": "Sit facing the machine with chest flat against pad, holding handles with arms straight forward.",
+    "instructions": [
+      "Maintain a slight bend in your elbows throughout.",
+      "Pull handles out and backward in a horizontal arc focusing on the rear shoulders.",
+      "Squeeze rear deltoids hard at the finish.",
+      "Return handles slowly forward without letting weight stack crash."
+    ],
+    "formTips": [
+      "Keep chest against pad to prevent using momentum.",
+      "Lead with elbows."
+    ],
+    "commonMistakes": [
+      "Bending elbows into a row.",
+      "Over-shrugging traps."
+    ],
+    "breathingTechnique": "Exhale pushing handles backward; inhale returning.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 25,
+        "reps": 15
+      },
+      {
+        "weight": 30,
+        "reps": 12
+      },
+      {
+        "weight": 35,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Adjust seat so handles are level with mid-chest.",
+    "injuryPreventionTips": "Crucial exercise for counterbalancing heavy bench pressing.",
+    "beginnerModification": "Band Face Pulls",
+    "advancedVariation": "Cable Face Pulls with external rotation",
+    "easierAlternative": "Bent-Over Dumbbell Flyes",
+    "harderAlternative": "Cable Face Pulls",
+    "equipmentFreeAlternative": "Prone T-Raises on floor",
+    "similarExercises": [
+      "Cable Face Pulls",
+      "Bent-Over Dumbbell Flyes"
+    ],
+    "tags": [
+      "shoulders",
+      "rear-delts",
+      "machine",
+      "isolation",
+      "posture"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0602.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-dumbbell-front-raises",
+    "name": "Dumbbell Front Raises",
+    "description": "Direct anterior deltoid isolation to develop rounded shoulder caps.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Shoulders",
+    "muscleGroup": "Shoulders",
+    "secondaryMuscles": [
+      "Front Delts",
+      "Upper Chest"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells"
+    ],
+    "equipmentAlternatives": [
+      "Cable",
+      "Barbell",
+      "Weight Plate"
+    ],
+    "startingPosition": "Stand tall holding dumbbells across front of thighs with palms facing you.",
+    "instructions": [
+      "Keep core tight and slight bend in knees.",
+      "Raise dumbbells forward in front of you until they reach eye level.",
+      "Hold top position for 1 second.",
+      "Lower dumbbells smoothly back down to thighs."
+    ],
+    "formTips": [
+      "Avoid rocking torso back and forth.",
+      "Keep wrists firm."
+    ],
+    "commonMistakes": [
+      "Swinging body to heave weights up.",
+      "Raising arms way above eye level."
+    ],
+    "breathingTechnique": "Exhale raising dumbbells; inhale lowering.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 8,
+        "reps": 12
+      },
+      {
+        "weight": 10,
+        "reps": 10
+      },
+      {
+        "weight": 10,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Use controlled weight to protect anterior shoulder.",
+    "injuryPreventionTips": "Do not hyperextend spine during movement.",
+    "beginnerModification": "Weight Plate Front Raise with two hands",
+    "advancedVariation": "Incline Bench Dumbbell Front Raise",
+    "easierAlternative": "Resistance Band Front Raise",
+    "harderAlternative": "Barbell Front Raise",
+    "equipmentFreeAlternative": "Pike Hold",
+    "similarExercises": [
+      "Overhead Shoulder Press",
+      "Lateral Dumbbell Raises"
+    ],
+    "tags": [
+      "shoulders",
+      "front-delts",
+      "dumbbells",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0310.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-barbell-upright-row",
+    "name": "Barbell Upright Row",
+    "description": "Builds lateral deltoids and upper traps through vertical elbow pulling.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Shoulders",
+    "muscleGroup": "Shoulders",
+    "secondaryMuscles": [
+      "Side Delts",
+      "Traps",
+      "Biceps"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Barbell or EZ-Bar"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Cable Machine"
+    ],
+    "startingPosition": "Stand tall holding barbell with shoulder-width overhand grip at thighs.",
+    "instructions": [
+      "Keep bar close to body.",
+      "Pull bar vertically upward toward chest leading with your elbows.",
+      "Stop when elbows reach shoulder height (do not pull to chin).",
+      "Lower barbell slowly back to arms length."
+    ],
+    "formTips": [
+      "Grip slightly wider than shoulder width to protect rotator cuffs.",
+      "Lead with elbows, keeping them higher than hands."
+    ],
+    "commonMistakes": [
+      "Using too narrow grip (causes shoulder impingement).",
+      "Pulling bar all the way to chin."
+    ],
+    "breathingTechnique": "Exhale pulling up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 30,
+        "reps": 10
+      },
+      {
+        "weight": 35,
+        "reps": 10
+      },
+      {
+        "weight": 40,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Stop pull when elbows reach shoulder level to avoid impingement.",
+    "injuryPreventionTips": "Use an EZ-bar or dumbbells if straight bar causes wrist discomfort.",
+    "beginnerModification": "Dumbbell Upright Row",
+    "advancedVariation": "Cable Upright Row with rope",
+    "easierAlternative": "Lateral Dumbbell Raises",
+    "harderAlternative": "Clean High Pull",
+    "equipmentFreeAlternative": "Prone Y Raises",
+    "similarExercises": [
+      "Lateral Dumbbell Raises",
+      "Barbell Shrugs"
+    ],
+    "tags": [
+      "shoulders",
+      "traps",
+      "barbell",
+      "pull",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0120.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-front-squat",
+    "name": "Barbell Front Squat",
+    "description": "Places barbell across anterior deltoids, shifting massive loading onto the quadriceps and core with an upright torso.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Advanced",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Quads",
+      "Glutes",
+      "Core",
+      "Upper Back"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Barbell",
+      "Squat Rack"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells (Goblet)",
+      "Safety Squat Bar"
+    ],
+    "startingPosition": "Rack barbell on front deltoids with clean grip (fingers under bar) or cross-arm grip, elbows pointed high.",
+    "instructions": [
+      "Unrack and take two steps back into shoulder-width stance.",
+      "Keep elbows pointing high throughout to prevent bar rolling.",
+      "Squat down deeply while keeping chest proud and spine vertical.",
+      "Drive through mid-foot and push back up to standing."
+    ],
+    "formTips": [
+      "Keep elbows pointed straight ahead throughout.",
+      "Prioritize full depth."
+    ],
+    "commonMistakes": [
+      "Dropping elbows causing bar to roll forward.",
+      "Collapsing knees inward."
+    ],
+    "breathingTechnique": "Big inhale bracing core at top; exhale driving upward.",
+    "recommendedSets": 3,
+    "recommendedReps": 8,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 50,
+        "reps": 8
+      },
+      {
+        "weight": 60,
+        "reps": 8
+      },
+      {
+        "weight": 70,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Always squat inside a power cage with safety pins set.",
+    "injuryPreventionTips": "Warm up wrists, thoracic spine, and ankles thoroughly.",
+    "beginnerModification": "Goblet Squat with Dumbbell",
+    "advancedVariation": "Pause Front Squats",
+    "easierAlternative": "Goblet Squat",
+    "harderAlternative": "Overhead Squat",
+    "equipmentFreeAlternative": "Bodyweight Squat",
+    "similarExercises": [
+      "Barbell Squat",
+      "45-Degree Leg Press"
+    ],
+    "tags": [
+      "legs",
+      "quads",
+      "squat",
+      "barbell",
+      "compound",
+      "core"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0042.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-goblet-squat",
+    "name": "Dumbbell Goblet Squat",
+    "description": "Superb foundational squat variation teaching flawless upright squat mechanics while loading quads and core.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Quads",
+      "Glutes",
+      "Core"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Dumbbell or Kettlebell"
+    ],
+    "equipmentAlternatives": [
+      "Kettlebell",
+      "Medicine Ball"
+    ],
+    "startingPosition": "Stand with feet shoulder-width apart holding a dumbbell vertically against chest with both palms cupping the top head.",
+    "instructions": [
+      "Keep dumbbell pressed against sternum and elbows tucked.",
+      "Sit hips back and down between knees until thighs are parallel or below.",
+      "Keep chest lifted and elbows tracking inside knees.",
+      "Drive through heels to return to standing position."
+    ],
+    "formTips": [
+      "Use elbows to track inside knees at the bottom.",
+      "Keep heels firmly planted on floor."
+    ],
+    "commonMistakes": [
+      "Leaning forward away from dumbbell.",
+      "Heels lifting off ground."
+    ],
+    "breathingTechnique": "Inhale descending; exhale driving up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 16,
+        "reps": 12
+      },
+      {
+        "weight": 20,
+        "reps": 10
+      },
+      {
+        "weight": 24,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Keep dumbbell close to center of gravity.",
+    "injuryPreventionTips": "Place small 2.5kg plates under heels if ankle mobility limits squat depth.",
+    "beginnerModification": "Bodyweight Air Squats",
+    "advancedVariation": "1.5 Rep Goblet Squats",
+    "easierAlternative": "Air Squats",
+    "harderAlternative": "Barbell Squats",
+    "equipmentFreeAlternative": "Air Squats",
+    "similarExercises": [
+      "Barbell Squat",
+      "Front Squat"
+    ],
+    "tags": [
+      "legs",
+      "quads",
+      "squat",
+      "dumbbells",
+      "beginner",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1760.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-hack-squat-machine",
+    "name": "Hack Squat Machine",
+    "description": "Supported sled squat isolating the quadriceps under heavy progressive loads with zero spinal shear stress.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Quads",
+      "Glutes"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Hack Squat Machine"
+    ],
+    "equipmentAlternatives": [
+      "45-Degree Leg Press",
+      "Barbell Squat"
+    ],
+    "startingPosition": "Position back and shoulders securely against pads. Place feet shoulder-width on platform.",
+    "instructions": [
+      "Disengage safety levers and grip handles.",
+      "Lower sled smoothly until knees bend to 90 degrees or deeper.",
+      "Drive through heels and midfoot to press back up without locking knees aggressively."
+    ],
+    "formTips": [
+      "Keep lower back firmly pressed against back pad throughout.",
+      "Position feet lower on platform for quad emphasis."
+    ],
+    "commonMistakes": [
+      "Allowing lower back to peel off pad at bottom.",
+      "Hyperextending knees at top."
+    ],
+    "breathingTechnique": "Inhale on descent; exhale pushing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 60,
+        "reps": 10
+      },
+      {
+        "weight": 80,
+        "reps": 10
+      },
+      {
+        "weight": 100,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Always know where the safety catch handles are located before lifting.",
+    "injuryPreventionTips": "Ensure continuous foot contact on platform.",
+    "beginnerModification": "45-Degree Leg Press",
+    "advancedVariation": "Pause Hack Squat at bottom depth",
+    "easierAlternative": "Leg Press",
+    "harderAlternative": "Barbell Front Squat",
+    "equipmentFreeAlternative": "Wall Sit",
+    "similarExercises": [
+      "45-Degree Leg Press",
+      "Barbell Squat"
+    ],
+    "tags": [
+      "legs",
+      "quads",
+      "machine",
+      "hypertrophy",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0743.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-walking-dumbbell-lunges",
+    "name": "Walking Dumbbell Lunges",
+    "description": "Dynamic unilateral exercise building functional lower-body strength, glute shape, and athletic balance.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Glutes",
+      "Quads",
+      "Hamstrings",
+      "Calves",
+      "Core"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Dumbbells"
+    ],
+    "equipmentAlternatives": [
+      "Barbell",
+      "Kettlebells",
+      "Bodyweight"
+    ],
+    "startingPosition": "Stand tall holding dumbbells at sides with clear walking path ahead.",
+    "instructions": [
+      "Step forward with right foot, lowering hips until both knees bend to 90 degrees.",
+      "Back knee should hover just above floor without slamming.",
+      "Drive through front heel to step forward directly into next lunge with left leg.",
+      "Continue alternating steps smoothly."
+    ],
+    "formTips": [
+      "Keep torso upright or tilted slightly forward for greater glute activation.",
+      "Keep front knee tracking over second toe."
+    ],
+    "commonMistakes": [
+      "Taking steps that are too short jamming front knee.",
+      "Torso wobbling side to side."
+    ],
+    "breathingTechnique": "Inhale descending; exhale stepping forward.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 75,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 12,
+        "reps": 10
+      },
+      {
+        "weight": 14,
+        "reps": 10
+      },
+      {
+        "weight": 16,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Do not let back knee hit floor forcefully.",
+    "injuryPreventionTips": "Ensure footwear provides stable heel support.",
+    "beginnerModification": "Bodyweight Stationary Lunges",
+    "advancedVariation": "Barbell Walking Lunges",
+    "easierAlternative": "Reverse Lunges",
+    "harderAlternative": "Bulgarian Split Squat",
+    "equipmentFreeAlternative": "Bodyweight Walking Lunges",
+    "similarExercises": [
+      "Bulgarian Split Squat",
+      "Barbell Squat"
+    ],
+    "tags": [
+      "legs",
+      "glutes",
+      "lunges",
+      "dumbbells",
+      "unilateral",
+      "compound"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0336.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-seated-leg-curl-machine",
+    "name": "Seated Leg Curl Machine",
+    "description": "Isolates the hamstrings in a hip-flexed position, stretching the muscle for superior hypertrophy compared to lying curls.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Hamstrings",
+      "Calves"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Seated Leg Curl Machine"
+    ],
+    "equipmentAlternatives": [
+      "Lying Leg Curl",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Sit with back flat against backrest. Adjust thigh pad firmly over legs and ankle roller right below calves.",
+    "instructions": [
+      "Grip side handles to keep hips anchored to seat.",
+      "Curl legs downward and backward under the seat through full range of motion.",
+      "Squeeze hamstrings hard at full flexion.",
+      "Slowly extend legs back up feeling a deep hamstring stretch."
+    ],
+    "formTips": [
+      "Keep thighs pressed firmly under pad; do not let hips lift.",
+      "Point toes forward."
+    ],
+    "commonMistakes": [
+      "Letting hips rise up off seat.",
+      "Kicking legs rapidly using momentum."
+    ],
+    "breathingTechnique": "Exhale curling legs down; inhale extending up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 40,
+        "reps": 12
+      },
+      {
+        "weight": 45,
+        "reps": 10
+      },
+      {
+        "weight": 50,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Adjust knee pivot point to align with machine axis.",
+    "injuryPreventionTips": "Control eccentric return to protect hamstring tendons.",
+    "beginnerModification": "Lighter weight on machine",
+    "advancedVariation": "Single-Leg Seated Leg Curl",
+    "easierAlternative": "Lying Leg Curl",
+    "harderAlternative": "Nordic Hamstring Curl",
+    "equipmentFreeAlternative": "Glute Bridge Walkouts",
+    "similarExercises": [
+      "Lying Leg Curl",
+      "Romanian Deadlift"
+    ],
+    "tags": [
+      "legs",
+      "hamstrings",
+      "machine",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0599.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-seated-calf-raise-machine",
+    "name": "Seated Calf Raise Machine",
+    "description": "With knees bent at 90 degrees, isolates the deeper soleus muscle of the lower leg.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Soleus",
+      "Calves"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Seated Calf Machine"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells on knees",
+      "Smith Machine"
+    ],
+    "startingPosition": "Sit on bench with balls of feet on platform, lower thigh pad snug across knees.",
+    "instructions": [
+      "Release safety lever.",
+      "Lower heels down as deep as possible feeling full Achilles and calf stretch.",
+      "Drive through balls of feet to raise heels as high as possible.",
+      "Hold top peak contraction for 1 full second."
+    ],
+    "formTips": [
+      "Never bounce at the bottom.",
+      "Emphasize the deep bottom stretch."
+    ],
+    "commonMistakes": [
+      "Rapid bouncy reps without full range of motion.",
+      "Setting pad too high."
+    ],
+    "breathingTechnique": "Exhale pressing up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 15,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-1",
+    "defaultSets": [
+      {
+        "weight": 25,
+        "reps": 15
+      },
+      {
+        "weight": 30,
+        "reps": 15
+      },
+      {
+        "weight": 35,
+        "reps": 12
+      }
+    ],
+    "safetyInstructions": "Engage safety bar before taking feet off platform.",
+    "injuryPreventionTips": "Avoid bouncing to protect Achilles tendon.",
+    "beginnerModification": "Seated Dumbbell Calf Raise",
+    "advancedVariation": "Single-leg Seated Calf Raise",
+    "easierAlternative": "Standing Calf Raises",
+    "harderAlternative": "Donkey Calf Raises",
+    "equipmentFreeAlternative": "Single-leg Bodyweight Calf Raise on Step",
+    "similarExercises": [
+      "Standing Calf Raises"
+    ],
+    "tags": [
+      "legs",
+      "calves",
+      "soleus",
+      "machine",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0594.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-hip-abductor-machine",
+    "name": "Hip Abductor Machine",
+    "description": "Directly targets the gluteus medius and minimus, enhancing hip stability and outer glute shape.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Glutes",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Glute Medius",
+      "Hips"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Hip Abductor Machine"
+    ],
+    "equipmentAlternatives": [
+      "Resistance Bands",
+      "Cable Kickbacks"
+    ],
+    "startingPosition": "Sit with back against backrest, outer knees/thighs resting against pads with feet on footrests.",
+    "instructions": [
+      "Grip handles and brace core.",
+      "Push thighs outward against pads as wide as possible.",
+      "Hold peak contraction for 1 second.",
+      "Return slowly feeling glutes controlling the stack."
+    ],
+    "formTips": [
+      "Lean forward slightly for greater glute medius activation.",
+      "Keep movements smooth."
+    ],
+    "commonMistakes": [
+      "Letting plates crash between reps.",
+      "Excessive momentum."
+    ],
+    "breathingTechnique": "Exhale pushing outward; inhale returning.",
+    "recommendedSets": 3,
+    "recommendedReps": 15,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 40,
+        "reps": 15
+      },
+      {
+        "weight": 45,
+        "reps": 15
+      },
+      {
+        "weight": 50,
+        "reps": 12
+      }
+    ],
+    "safetyInstructions": "Adjust starting range to comfortable hip stretch.",
+    "injuryPreventionTips": "Crucial for knee valgus prevention in squats.",
+    "beginnerModification": "Banded Lateral Clamshells",
+    "advancedVariation": "Forward-leaning Abductor with pause",
+    "easierAlternative": "Clamshells",
+    "harderAlternative": "Cable Hip Abductions",
+    "equipmentFreeAlternative": "Side Lying Leg Raises",
+    "similarExercises": [
+      "Glute Bridge / Hip Thrust"
+    ],
+    "tags": [
+      "glutes",
+      "hips",
+      "abductor",
+      "machine",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-incline-dumbbell-curl",
+    "name": "Incline Dumbbell Bicep Curl",
+    "description": "Sets biceps at a lengthened position behind the body, maximizing long-head bicep stretch and peak development.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Biceps",
+      "Forearms"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Incline Bench"
+    ],
+    "equipmentAlternatives": [
+      "Cables",
+      "Barbell"
+    ],
+    "startingPosition": "Sit on bench set to 45-60 degrees holding dumbbells hanging straight down behind your torso.",
+    "instructions": [
+      "Keep upper arms pinned vertically perpendicular to floor.",
+      "Curl dumbbells upward while supinating wrists (palms up).",
+      "Squeeze biceps hard at top without swinging elbows forward.",
+      "Lower dumbbells slowly feeling a full stretch in bicep bellies."
+    ],
+    "formTips": [
+      "Do not let elbows drift forward; keep them pointing down.",
+      "Feel the deep stretch at bottom."
+    ],
+    "commonMistakes": [
+      "Swinging shoulders forward to help lift.",
+      "Using too much weight."
+    ],
+    "breathingTechnique": "Exhale curling up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 60,
+    "recommendedTempo": "3-0-1-1",
+    "defaultSets": [
+      {
+        "weight": 10,
+        "reps": 10
+      },
+      {
+        "weight": 12,
+        "reps": 10
+      },
+      {
+        "weight": 12,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Do not hyperextend elbows violently at bottom.",
+    "injuryPreventionTips": "Control eccentric phase to avoid bicep tendon strain.",
+    "beginnerModification": "Seated Dumbbell Curl",
+    "advancedVariation": "Alternating Incline Curl with 2s hold",
+    "easierAlternative": "Standing Dumbbell Curl",
+    "harderAlternative": "Preacher Curl",
+    "equipmentFreeAlternative": "Towel Bicep Curl",
+    "similarExercises": [
+      "Barbell Bicep Curl",
+      "Dumbbell Hammer Curls"
+    ],
+    "tags": [
+      "arms",
+      "biceps",
+      "dumbbells",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0315.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-preacher-curl",
+    "name": "Preacher Curl (EZ-Bar)",
+    "description": "Arm resting on angled pad completely prevents shoulder cheating, forcing pure bicep recruitment.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Biceps Short Head",
+      "Brachialis"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Preacher Bench",
+      "EZ-Curl Bar"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Cable Machine"
+    ],
+    "startingPosition": "Sit with chest firmly against preacher bench, upper arms flat on pad, holding inner grips of EZ-bar.",
+    "instructions": [
+      "Start with arms extended down pad, elbows slightly bent (never hyper-extended).",
+      "Curl bar upward toward shoulders until forearms are near vertical.",
+      "Squeeze biceps hard at peak.",
+      "Lower bar slowly down the pad under strict control."
+    ],
+    "formTips": [
+      "Keep armpits snug against top of pad.",
+      "Do not lift body off seat."
+    ],
+    "commonMistakes": [
+      "Letting bar drop quickly to bottom hyperextending elbows.",
+      "Leaning back off pad."
+    ],
+    "breathingTechnique": "Exhale curling up; inhale lowering down.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 20,
+        "reps": 12
+      },
+      {
+        "weight": 25,
+        "reps": 10
+      },
+      {
+        "weight": 27.5,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Never fully hyperextend or jerk out of bottom position.",
+    "injuryPreventionTips": "Stop descent just before complete elbow lockout to protect tendons.",
+    "beginnerModification": "Dumbbell Preacher Curl",
+    "advancedVariation": "Single-Arm Dumbbell Preacher Curl",
+    "easierAlternative": "Machine Bicep Curl",
+    "harderAlternative": "Spider Curl",
+    "equipmentFreeAlternative": "Doorway Bicep Isometric",
+    "similarExercises": [
+      "Barbell Bicep Curl",
+      "Incline Dumbbell Curl"
+    ],
+    "tags": [
+      "arms",
+      "biceps",
+      "preacher",
+      "ez-bar",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1627.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-cable-bicep-curl",
+    "name": "Cable Straight-Bar Bicep Curl",
+    "description": "Delivers smooth continuous tension through entire range of motion, maintaining load even at the top contraction.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Biceps",
+      "Forearms"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Cable Machine",
+      "Straight or EZ Bar Attachment"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Barbell"
+    ],
+    "startingPosition": "Attach bar to lowest pulley. Stand upright holding bar with underhand grip at arm length.",
+    "instructions": [
+      "Pin elbows to sides of torso.",
+      "Curl bar upward toward upper chest.",
+      "Squeeze biceps at the top for 1 second.",
+      "Lower bar under control until arms are nearly straight."
+    ],
+    "formTips": [
+      "Keep upper body completely still.",
+      "Do not swing hips."
+    ],
+    "commonMistakes": [
+      "Elbows moving forward into front raises.",
+      "Jerking torso backward."
+    ],
+    "breathingTechnique": "Exhale curling; inhale lowering.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-1",
+    "defaultSets": [
+      {
+        "weight": 20,
+        "reps": 12
+      },
+      {
+        "weight": 25,
+        "reps": 10
+      },
+      {
+        "weight": 30,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Step back slightly from pulley to maintain tension.",
+    "injuryPreventionTips": "Avoid excessive wrist flexion.",
+    "beginnerModification": "Resistance Band Curl",
+    "advancedVariation": "Cable Curl with 3-second negative",
+    "easierAlternative": "Dumbbell Curl",
+    "harderAlternative": "Preacher Curl",
+    "equipmentFreeAlternative": "Towel Isometric Curl",
+    "similarExercises": [
+      "Barbell Bicep Curl",
+      "Dumbbell Hammer Curls"
+    ],
+    "tags": [
+      "arms",
+      "biceps",
+      "cable",
+      "isolation",
+      "hypertrophy"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0868.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-close-grip-bench-press",
+    "name": "Close-Grip Barbell Bench Press",
+    "description": "Premier compound mass builder for triceps that allows the heaviest loads to be handled safely.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Triceps",
+      "Upper Chest",
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Barbell",
+      "Flat Bench"
+    ],
+    "equipmentAlternatives": [
+      "Dumbbells",
+      "Smith Machine"
+    ],
+    "startingPosition": "Lie on flat bench. Grip bar with hands shoulder-width apart (approximately 12-14 inches apart).",
+    "instructions": [
+      "Unrack bar and stabilize it over lower chest.",
+      "Lower bar with elbows tucked closely against sides until bar touches mid-chest.",
+      "Press explosively upward focusing on pushing with triceps to lockout."
+    ],
+    "formTips": [
+      "Do not grip too narrowly (hands closer than 8 inches strains wrists).",
+      "Keep elbows tucked close to ribcage."
+    ],
+    "commonMistakes": [
+      "Hands touching each other (excessive wrist strain).",
+      "Bouncing bar."
+    ],
+    "breathingTechnique": "Inhale lowering bar; exhale pressing up.",
+    "recommendedSets": 3,
+    "recommendedReps": 8,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 45,
+        "reps": 10
+      },
+      {
+        "weight": 50,
+        "reps": 8
+      },
+      {
+        "weight": 55,
+        "reps": 6
+      }
+    ],
+    "safetyInstructions": "Always use safety catches or spotter on heavy sets.",
+    "injuryPreventionTips": "Shoulder-width grip protects both wrists and elbows.",
+    "beginnerModification": "Diamond Push-ups or Dumbbell Close-Grip Press",
+    "advancedVariation": "Pause Close-Grip Bench Press",
+    "easierAlternative": "Tricep Rope Pushdown",
+    "harderAlternative": "Weighted Dips",
+    "equipmentFreeAlternative": "Diamond Push-ups",
+    "similarExercises": [
+      "Bench Press",
+      "Chest Dips",
+      "Tricep Rope Pushdown"
+    ],
+    "tags": [
+      "arms",
+      "triceps",
+      "barbell",
+      "bench",
+      "compound",
+      "strength"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0030.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-overhead-dumbbell-tricep-extension",
+    "name": "Overhead Dumbbell Tricep Extension",
+    "description": "Places the triceps long head on maximum stretch by elevating upper arms overhead.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Triceps Long Head"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbell",
+      "Bench"
+    ],
+    "equipmentAlternatives": [
+      "EZ-Bar",
+      "Cable Rope"
+    ],
+    "startingPosition": "Sit upright holding a single dumbbell vertically with both hands cupping the upper inner head overhead.",
+    "instructions": [
+      "Keep upper arms close to ears and elbows pointing forward.",
+      "Lower dumbbell smoothly behind your head until forearms pass 90 degrees.",
+      "Press dumbbell back overhead until arms are extended straight.",
+      "Squeeze triceps hard at the top."
+    ],
+    "formTips": [
+      "Keep elbows tucked in toward head, avoid excessive flaring.",
+      "Keep core engaged to prevent back arching."
+    ],
+    "commonMistakes": [
+      "Flaring elbows wide.",
+      "Arching lower back excessively."
+    ],
+    "breathingTechnique": "Inhale lowering behind head; exhale pressing overhead.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 16,
+        "reps": 12
+      },
+      {
+        "weight": 20,
+        "reps": 10
+      },
+      {
+        "weight": 22,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Ensure two-hand grip is secure before bringing dumbbell over head.",
+    "injuryPreventionTips": "Warm up elbows thoroughly before heavy overhead extensions.",
+    "beginnerModification": "Cable Tricep Pushdown",
+    "advancedVariation": "Single-Arm Dumbbell Overhead Extension",
+    "easierAlternative": "Tricep Rope Pushdown",
+    "harderAlternative": "EZ-Bar Skull Crushers",
+    "equipmentFreeAlternative": "Bench Dips",
+    "similarExercises": [
+      "EZ-Bar Skull Crushers",
+      "Tricep Rope Pushdown"
+    ],
+    "tags": [
+      "arms",
+      "triceps",
+      "dumbbells",
+      "overhead",
+      "isolation"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2188.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-cable-woodchoppers",
+    "name": "Cable Woodchoppers (High-to-Low)",
+    "description": "Dynamic rotational core exercise that sculpts obliques and builds athletic torso rotational strength.",
+    "category": "Core",
+    "type": "Isolation",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Obliques",
+      "Abs",
+      "Shoulders"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "Cable Machine",
+      "D-Handle"
+    ],
+    "equipmentAlternatives": [
+      "Medicine Ball",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Set pulley high. Stand sideways to cable in athletic stance holding handle with both hands over shoulder.",
+    "instructions": [
+      "Keep arms mostly straight with slight bend in elbows.",
+      "Rotate torso downward and across body toward opposite knee.",
+      "Pivot back foot as you rotate, driving power from hips and obliques.",
+      "Return under control to high starting position."
+    ],
+    "formTips": [
+      "Rotate from core and hips, not by pulling with arms.",
+      "Keep core braced throughout."
+    ],
+    "commonMistakes": [
+      "Pulling with arms rather than rotating torso.",
+      "Bending spine sideways."
+    ],
+    "breathingTechnique": "Exhale chopping across; inhale returning.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 15,
+        "reps": 12
+      },
+      {
+        "weight": 17.5,
+        "reps": 12
+      },
+      {
+        "weight": 20,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Start light to master rotational mechanics.",
+    "injuryPreventionTips": "Pivot back foot to protect lumbar spine and knees from torque.",
+    "beginnerModification": "Band Standing Torso Rotation",
+    "advancedVariation": "Low-to-High Cable Woodchopper",
+    "easierAlternative": "Russian Twists",
+    "harderAlternative": "Medicine Ball Rotational Slams",
+    "equipmentFreeAlternative": "Bicycle Crunches",
+    "similarExercises": [
+      "Plank",
+      "Russian Twists"
+    ],
+    "tags": [
+      "core",
+      "obliques",
+      "cable",
+      "rotational",
+      "athletics"
+    ],
+    "imageUrl": null,
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-ab-wheel-rollout",
+    "name": "Ab Wheel Rollout",
+    "description": "Gold standard anti-extension core exercise building rock-solid deep abdominals and core stability.",
+    "category": "Core",
+    "type": "Bodyweight",
+    "difficulty": "Advanced",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Lats",
+      "Shoulders",
+      "Hip Flexors"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "Ab Wheel"
+    ],
+    "equipmentAlternatives": [
+      "Barbell with plates",
+      "Stability Ball"
+    ],
+    "startingPosition": "Kneel on mat holding ab wheel directly beneath your shoulders.",
+    "instructions": [
+      "Tuck pelvis slightly (posterior tilt) and brace abs tight.",
+      "Slowly roll wheel forward extending body toward floor.",
+      "Go as far as you can without letting lower back arch or sag.",
+      "Squeeze abs and lats to pull wheel back to starting position."
+    ],
+    "formTips": [
+      "Never let lower back hyperextend or collapse.",
+      "Keep arms straight throughout."
+    ],
+    "commonMistakes": [
+      "Arching lower back (puts dangerous shear on lumbar spine).",
+      "Leading with hips instead of abs."
+    ],
+    "breathingTechnique": "Inhale rolling out; exhale contracting back.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 10
+      },
+      {
+        "bodyweight": true,
+        "reps": 10
+      },
+      {
+        "bodyweight": true,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Stop rollout before lower back arches.",
+    "injuryPreventionTips": "Start with limited range of motion (facing a wall) to prevent collapse.",
+    "beginnerModification": "Stability Ball Rollout or Plank",
+    "advancedVariation": "Standing Ab Wheel Rollout",
+    "easierAlternative": "Plank",
+    "harderAlternative": "Standing Ab Wheel Rollout",
+    "equipmentFreeAlternative": "Walkout Planks",
+    "similarExercises": [
+      "Plank",
+      "Hanging Leg Raise"
+    ],
+    "tags": [
+      "core",
+      "abs",
+      "ab-wheel",
+      "anti-extension",
+      "bodyweight"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0857.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-bicycle-crunches",
+    "name": "Bicycle Crunches",
+    "description": "Ranked as one of the highest EMG abdominal exercises for rectus abdominis and oblique activation.",
+    "category": "Core",
+    "type": "Bodyweight",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Obliques",
+      "Hip Flexors"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "No Equipment"
+    ],
+    "equipmentAlternatives": [
+      "Yoga Mat"
+    ],
+    "startingPosition": "Lie on back with hands lightly behind head, knees bent and feet elevated.",
+    "instructions": [
+      "Press lower back firmly into floor.",
+      "Bring right elbow toward left knee while extending right leg straight.",
+      "Alternate sides smoothly bringing left elbow to right knee.",
+      "Maintain continuous pedal-like cadence under control."
+    ],
+    "formTips": [
+      "Do not pull on neck with hands.",
+      "Focus on turning ribcage toward opposite hip."
+    ],
+    "commonMistakes": [
+      "Pulling head violently with hands.",
+      "Rushing through reps without feeling contraction."
+    ],
+    "breathingTechnique": "Exhale on each twist; inhale in center.",
+    "recommendedSets": 3,
+    "recommendedReps": 20,
+    "recommendedRest": 45,
+    "recommendedTempo": "1-1-1-0",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 20
+      },
+      {
+        "bodyweight": true,
+        "reps": 20
+      },
+      {
+        "bodyweight": true,
+        "reps": 20
+      }
+    ],
+    "safetyInstructions": "Keep fingers loose at temples.",
+    "injuryPreventionTips": "Keep lower back flat against floor to avoid lumbar strain.",
+    "beginnerModification": "Standard Floor Crunches",
+    "advancedVariation": "Weighted Russian Twists",
+    "easierAlternative": "Plank",
+    "harderAlternative": "Hanging Leg Raise",
+    "equipmentFreeAlternative": "Bicycle Crunches",
+    "similarExercises": [
+      "Plank",
+      "Hanging Leg Raise"
+    ],
+    "tags": [
+      "core",
+      "abs",
+      "obliques",
+      "bodyweight",
+      "calisthenics"
+    ],
+    "imageUrl": null,
+    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0003.gif",
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-stationary-bike",
+    "name": "Stationary / Spin Bike",
+    "description": "Low-impact cardiovascular conditioning building aerobic base and leg endurance without joint stress.",
+    "category": "Cardio",
+    "type": "Machine",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Cardio",
+    "muscleGroup": "Cardio",
+    "secondaryMuscles": [
+      "Quads",
+      "Hamstrings",
+      "Calves"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Stationary Bike"
+    ],
+    "equipmentAlternatives": [
+      "Treadmill",
+      "Rowing Machine"
+    ],
+    "startingPosition": "Adjust saddle height so knee has slight 5-10 degree bend at bottom of pedal stroke.",
+    "instructions": [
+      "Secure feet in pedals.",
+      "Pedal at steady cadence (80-100 RPM) with moderate resistance.",
+      "Maintain upright posture with relaxed shoulders.",
+      "Perform steady-state endurance or high-intensity interval intervals."
+    ],
+    "formTips": [
+      "Do not bounce in saddle.",
+      "Pedal in smooth complete circles."
+    ],
+    "commonMistakes": [
+      "Setting saddle too low cramping knees.",
+      "Leaning heavy weight on handlebars."
+    ],
+    "breathingTechnique": "Rhythmic breathing matched to pedal cadence.",
+    "recommendedSets": 1,
+    "recommendedReps": 20,
+    "recommendedDuration": 1200,
+    "recommendedRest": 0,
+    "defaultSets": [
+      {
+        "duration": 1200,
+        "distance": 8
+      }
+    ],
+    "safetyInstructions": "Clip or strap feet securely into pedals.",
+    "injuryPreventionTips": "Correct saddle height prevents patellar tendon irritation.",
+    "beginnerModification": "Recumbent Stationary Bike",
+    "advancedVariation": "Tabata Sprint Intervals on Assault Bike",
+    "easierAlternative": "Walking",
+    "harderAlternative": "Airdyne / Assault Bike",
+    "equipmentFreeAlternative": "High Knees",
+    "similarExercises": [
+      "Treadmill Running / Outdoor Run",
+      "Rowing Machine (Ergometer)"
+    ],
+    "tags": [
+      "cardio",
+      "stamina",
+      "bike",
+      "low-impact",
+      "machine"
+    ],
+    "imageUrl": null,
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-jump-rope",
+    "name": "Jump Rope / Skipping",
+    "description": "Elite cardiovascular, calf conditioning, and coordination exercise favored by boxers and athletes.",
+    "category": "Cardio",
+    "type": "Bodyweight",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Cardio",
+    "muscleGroup": "Cardio",
+    "secondaryMuscles": [
+      "Calves",
+      "Forearms",
+      "Shoulders",
+      "Core"
+    ],
+    "bodyPart": "Full Body",
+    "equipment": [
+      "Jump Rope"
+    ],
+    "equipmentAlternatives": [
+      "No Equipment (Air Jumps)"
+    ],
+    "startingPosition": "Stand tall holding rope handles with rope resting behind heels, elbows close to ribs.",
+    "instructions": [
+      "Rotate wrists smoothly to whip rope over head.",
+      "Jump 1-2 inches off floor just enough to let rope slide beneath feet.",
+      "Land softly on balls of feet with knees slightly unlocked.",
+      "Establish smooth rhythmic cadence."
+    ],
+    "formTips": [
+      "Turn rope with wrists, not whole arms.",
+      "Keep jumps minimal and light."
+    ],
+    "commonMistakes": [
+      "Jumping too high exhausting calves rapidly.",
+      "Whipping arms from shoulders."
+    ],
+    "breathingTechnique": "Rhythmic continuous breathing.",
+    "recommendedSets": 3,
+    "recommendedReps": 100,
+    "recommendedDuration": 180,
+    "recommendedRest": 60,
+    "recommendedTempo": "Continuous Pace",
+    "defaultSets": [
+      {
+        "duration": 60,
+        "reps": 100,
+        "bodyweight": true
+      },
+      {
+        "duration": 60,
+        "reps": 100,
+        "bodyweight": true
+      },
+      {
+        "duration": 60,
+        "reps": 100,
+        "bodyweight": true
+      }
+    ],
+    "safetyInstructions": "Wear supportive cushioned athletic shoes.",
+    "injuryPreventionTips": "Skip on gym mat or wooden floor rather than hard concrete.",
+    "beginnerModification": "Single-unders with slow bounce",
+    "advancedVariation": "Double-unders or High Knees skipping",
+    "easierAlternative": "Jumping Jacks",
+    "harderAlternative": "Double-Unders",
+    "equipmentFreeAlternative": "Jumping Jacks",
+    "similarExercises": [
+      "Treadmill Running / Outdoor Run"
+    ],
+    "tags": [
+      "cardio",
+      "jump-rope",
+      "agility",
+      "calves",
+      "athletics"
+    ],
+    "imageUrl": null,
+    "thumbnailUrl": null
+  },
+  {
+    "id": "ex-kneeling-cable-crunch",
+    "name": "Kneeling Cable Crunch",
+    "description": "High-tension abdominal movement using constant cable resistance to curl the spine and overload the rectus abdominis.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Obliques"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "Cable Machine",
+      "Rope Attachment"
+    ],
+    "equipmentAlternatives": [
+      "Resistance Bands"
+    ],
+    "startingPosition": "Kneel before high pulley cable with rope attachment held beside ears or temples, hips high.",
+    "instructions": [
+      "Lock hips in place; do not sit back onto your heels during the movement.",
+      "Contract abs and flex spine downward, drawing elbows toward knees or mid-thigh.",
+      "Hold the peak contraction at bottom for 1 full second while exhaling deeply.",
+      "Slowly uncurl spine under control until torso is parallel to floor."
+    ],
+    "formTips": [
+      "Initiate movement entirely from the spine curling, not by hinging at the hips.",
+      "Keep hands anchored to head."
+    ],
+    "commonMistakes": [
+      "Sitting back onto calves turning it into a hip hinge.",
+      "Pulling with triceps instead of crunching with abs."
+    ],
+    "breathingTechnique": "Exhale forcefully as you crunch downward; inhale on controlled ascent.",
+    "recommendedSets": 3,
+    "recommendedReps": 15,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 25,
+        "reps": 15
+      },
+      {
+        "weight": 30,
+        "reps": 12
+      },
+      {
+        "weight": 35,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Avoid excessively heavy weight that causes lower back hyper-extension at the top.",
+    "injuryPreventionTips": "Maintain abdominal brace throughout the full range of motion.",
+    "beginnerModification": "Standard Floor Crunches",
+    "advancedVariation": "Slow 3-second pause at bottom contraction",
+    "easierAlternative": "Plank",
+    "harderAlternative": "Hanging Leg Raise",
+    "equipmentFreeAlternative": "Floor Crunch",
+    "similarExercises": [
+      "Ab Wheel Rollout",
+      "Hanging Leg Raise",
+      "Bicycle Crunches"
+    ],
+    "tags": [
+      "core",
+      "abs",
+      "cable",
+      "hypertrophy",
+      "isolation"
+    ]
+  },
+  {
+    "id": "ex-captains-chair-knee-raise",
+    "name": "Captain's Chair Knee Raise",
+    "description": "Supported vertical knee raise targeting the lower portion of the rectus abdominis and hip flexors with spinal support.",
+    "category": "Strength",
+    "type": "Bodyweight",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Hip Flexors",
+      "Obliques"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "Captain's Chair",
+      "Parallel Bars"
+    ],
+    "equipmentAlternatives": [
+      "Pull-up Bar",
+      "Floor"
+    ],
+    "startingPosition": "Step onto station, rest forearms on padded armrests, grasp handles, and let legs hang freely with back resting against pad.",
+    "instructions": [
+      "Press down through forearms to depress shoulders away from ears.",
+      "Engage core and raise knees upward toward chest in a controlled curling motion.",
+      "Tilt pelvis slightly upward at top to achieve full lower abdominal engagement.",
+      "Lower knees slowly back down without swinging or using momentum."
+    ],
+    "formTips": [
+      "Curl pelvis up at end of movement to maximize rectus abdominis recruitment.",
+      "Do not swing legs."
+    ],
+    "commonMistakes": [
+      "Using momentum or arching lower back off the pad.",
+      "Shrugging shoulders into ears."
+    ],
+    "breathingTechnique": "Exhale as knees lift toward chest; inhale lowering legs smoothly.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-1",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Maintain firm grip and steady forearm contact on arm pads.",
+    "injuryPreventionTips": "Keep back firmly flush against back pad to avoid lumbar hyperextension.",
+    "beginnerModification": "Bent Knee Lifts with shorter range",
+    "advancedVariation": "Straight Leg Captain's Chair Raise",
+    "easierAlternative": "Lying Leg Raises on floor",
+    "harderAlternative": "Hanging Leg Raise",
+    "equipmentFreeAlternative": "Lying Reverse Crunches",
+    "similarExercises": [
+      "Hanging Leg Raise",
+      "Plank",
+      "Bicycle Crunches"
+    ],
+    "tags": [
+      "core",
+      "abs",
+      "bodyweight",
+      "lower-abs"
+    ]
+  },
+  {
+    "id": "ex-side-plank",
+    "name": "Side Plank",
+    "description": "Essential isometric core stability exercise targeting the obliques, quadratus lumborum, and lateral hip stabilizers.",
+    "category": "Strength",
+    "type": "Bodyweight",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Core",
+    "muscleGroup": "Core",
+    "secondaryMuscles": [
+      "Obliques",
+      "Gluteus Medius",
+      "Shoulders"
+    ],
+    "bodyPart": "Core",
+    "equipment": [
+      "Yoga Mat"
+    ],
+    "equipmentAlternatives": [
+      "No Equipment"
+    ],
+    "startingPosition": "Lie on your side with elbow stacked directly under shoulder, legs extended, and feet stacked or staggered.",
+    "instructions": [
+      "Press forearm into the floor and lift hips until body forms a straight diagonal line from head to feet.",
+      "Engage core, contract obliques, and squeeze glutes.",
+      "Hold position steadily while maintaining normal breathing pattern.",
+      "Lower hips gently down and repeat on opposite side."
+    ],
+    "formTips": [
+      "Do not let hips sag toward the floor.",
+      "Keep neck neutral aligned with spine."
+    ],
+    "commonMistakes": [
+      "Rolling forward or backward with torso.",
+      "Elbow positioned too far away from shoulder joint."
+    ],
+    "breathingTechnique": "Slow, steady diaphragmatic breaths throughout isometric hold.",
+    "recommendedSets": 3,
+    "recommendedReps": 1,
+    "recommendedDuration": 45,
+    "recommendedRest": 45,
+    "recommendedTempo": "Static Isometric Hold",
+    "defaultSets": [
+      {
+        "duration": 30,
+        "reps": 1,
+        "bodyweight": true
+      },
+      {
+        "duration": 30,
+        "reps": 1,
+        "bodyweight": true
+      },
+      {
+        "duration": 30,
+        "reps": 1,
+        "bodyweight": true
+      }
+    ],
+    "safetyInstructions": "If shoulder joint aches, position elbow strictly perpendicular underneath clavicle.",
+    "injuryPreventionTips": "Avoid sagging hips which places shear stress on lumbar spine.",
+    "beginnerModification": "Side plank from knees instead of feet",
+    "advancedVariation": "Side plank with top leg elevated (Star Plank) or hip dips",
+    "easierAlternative": "Kneeling Side Plank",
+    "harderAlternative": "Side Plank Hip Dips",
+    "equipmentFreeAlternative": "Standard Plank",
+    "similarExercises": [
+      "Plank",
+      "Cable Woodchoppers (High-to-Low)"
+    ],
+    "tags": [
+      "core",
+      "obliques",
+      "isometric",
+      "stability",
+      "bodyweight"
+    ]
+  },
+  {
+    "id": "ex-cable-glute-kickbacks",
+    "name": "Cable Glute Kickbacks",
+    "description": "Unilateral isolation exercise targeting the gluteus maximus with continuous cable tension throughout hip extension.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Glutes",
+    "muscleGroup": "Glutes",
+    "secondaryMuscles": [
+      "Hamstrings"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Cable Machine",
+      "Ankle Strap"
+    ],
+    "equipmentAlternatives": [
+      "Resistance Bands"
+    ],
+    "startingPosition": "Attach ankle strap to low pulley, face machine, hinge slightly at hips holding frame for balance.",
+    "instructions": [
+      "Keep standing leg slightly bent and brace core to stabilize spine.",
+      "Kick working leg backward and slightly outward in a controlled arc using glute contraction.",
+      "Squeeze glute intensely at peak extension without hyperextending lumbar spine.",
+      "Return slowly to starting position under tension."
+    ],
+    "formTips": [
+      "Initiate movement strictly from the hip, not by arching lower back.",
+      "Squeeze glute hard at top."
+    ],
+    "commonMistakes": [
+      "Arching lumbar spine to get higher leg kick.",
+      "Swinging leg using momentum."
+    ],
+    "breathingTechnique": "Exhale kicking back; inhale returning leg forward.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 10,
+        "reps": 12
+      },
+      {
+        "weight": 12.5,
+        "reps": 12
+      },
+      {
+        "weight": 15,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Keep torso steady; do not whip upper body forward.",
+    "injuryPreventionTips": "Lock pelvis in neutral to protect lumbar vertebrae.",
+    "beginnerModification": "Bodyweight Donkey Kicks on mat",
+    "advancedVariation": "1.5 Rep Cable Kickbacks (kick, halfway return, kick, full return)",
+    "easierAlternative": "Glute Bridge / Hip Thrust",
+    "harderAlternative": "Barbell Hip Thrust",
+    "equipmentFreeAlternative": "Bodyweight Glute Kickback",
+    "similarExercises": [
+      "Glute Bridge / Hip Thrust",
+      "Romanian Deadlift"
+    ],
+    "tags": [
+      "glutes",
+      "cable",
+      "isolation",
+      "hypertrophy",
+      "unilateral"
+    ]
+  },
+  {
+    "id": "ex-hip-adductor-machine",
+    "name": "Hip Adductor Machine",
+    "description": "Isolates the inner thigh adductor muscles to improve hip stability, groin strength, and squat depth performance.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Groin",
+      "Pelvic Floor"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Adductor Machine"
+    ],
+    "equipmentAlternatives": [
+      "Cable Machine with Ankle Cuff",
+      "Resistance Bands"
+    ],
+    "startingPosition": "Sit tall against backrest with pads positioned on insides of knees, legs spread comfortably wide.",
+    "instructions": [
+      "Grip side handles and brace upper body against back support.",
+      "Squeeze knees inward together against resistance in a smooth arc.",
+      "Touch or pause briefly when pads meet in center, squeezing inner thighs.",
+      "Open legs back outward under control to initial width."
+    ],
+    "formTips": [
+      "Control the eccentric return; do not allow weight stack to slam.",
+      "Keep lower back flat against back pad."
+    ],
+    "commonMistakes": [
+      "Using too much weight causing jerking at groin.",
+      "Lifting hips off the seat during squeeze."
+    ],
+    "breathingTechnique": "Exhale squeezing legs together; inhale opening legs outward.",
+    "recommendedSets": 3,
+    "recommendedReps": 15,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 35,
+        "reps": 15
+      },
+      {
+        "weight": 40,
+        "reps": 12
+      },
+      {
+        "weight": 45,
+        "reps": 12
+      }
+    ],
+    "safetyInstructions": "Do not set starting pin position so wide that it overstretches groin tendons.",
+    "injuryPreventionTips": "Warm up hips with dynamic leg swings prior to loading heavy weight.",
+    "beginnerModification": "Lying Scissor Kicks or Copenhagen Plank from knees",
+    "advancedVariation": "3-second eccentric return with 1-second squeeze hold",
+    "easierAlternative": "Hip Abductor Machine",
+    "harderAlternative": "Copenhagen Side Plank",
+    "equipmentFreeAlternative": "Sumo Squat Pulses",
+    "similarExercises": [
+      "Hip Abductor Machine",
+      "Barbell Squat"
+    ],
+    "tags": [
+      "legs",
+      "inner-thigh",
+      "adductor",
+      "machine",
+      "isolation"
+    ]
+  },
+  {
+    "id": "ex-bench-dips",
+    "name": "Bench Dips",
+    "description": "Effective bodyweight tricep exercise performed on the edge of a flat bench to build arm mass and lockout power.",
+    "category": "Strength",
+    "type": "Bodyweight",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Triceps",
+      "Front Deltoids",
+      "Chest"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Flat Bench"
+    ],
+    "equipmentAlternatives": [
+      "Chair",
+      "Sturdy Box"
+    ],
+    "startingPosition": "Sit on bench edge, hands beside hips gripping rim, slide hips off front with legs extended and heels on floor.",
+    "instructions": [
+      "Keep hips close to the bench as you bend elbows backward.",
+      "Lower body until upper arms are roughly parallel to the floor (approx 90-degree elbow bend).",
+      "Press through heels of your palms to extend triceps and return to top.",
+      "Lock out triceps briefly at peak contraction."
+    ],
+    "formTips": [
+      "Keep back and glutes close to bench edge throughout the movement.",
+      "Avoid flaring elbows wide."
+    ],
+    "commonMistakes": [
+      "Drifting body forward away from bench straining front shoulders.",
+      "Descending too deep past 90 degrees."
+    ],
+    "breathingTechnique": "Inhale lowering hips down; exhale pressing back up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Stop descent if you feel excessive anterior shoulder impingement.",
+    "injuryPreventionTips": "Keep shoulders depressed and chest proudly lifted.",
+    "beginnerModification": "Bend knees 90 degrees with feet flat on floor closer to bench",
+    "advancedVariation": "Elevate feet on secondary bench or place weight plate on lap",
+    "easierAlternative": "Tricep Rope Pushdown",
+    "harderAlternative": "Parallel Bar Dips",
+    "equipmentFreeAlternative": "Diamond Push-ups",
+    "similarExercises": [
+      "Chest Dips",
+      "Tricep Rope Pushdown",
+      "Diamond Push-ups"
+    ],
+    "tags": [
+      "arms",
+      "triceps",
+      "bodyweight",
+      "dips",
+      "bench"
+    ]
+  },
+  {
+    "id": "ex-concentration-curls",
+    "name": "Concentration Dumbbell Curls",
+    "description": "Classic strict Arnold-style bicep isolation curl that anchors the tricep against the inner thigh to prevent cheating.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Arms",
+    "muscleGroup": "Arms",
+    "secondaryMuscles": [
+      "Brachialis",
+      "Forearms"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbell",
+      "Flat Bench"
+    ],
+    "equipmentAlternatives": [
+      "Kettlebell",
+      "Cable Low Pulley"
+    ],
+    "startingPosition": "Sit on bench with legs open, rest back of tricep against inner thigh of same side holding dumbbell, arm extended.",
+    "instructions": [
+      "Anchor tricep firmly into thigh without letting elbow drift.",
+      "Curl dumbbell upward toward shoulder while supinating wrist (pinky turned slightly upward).",
+      "Squeeze bicep forcefully at top contraction.",
+      "Lower dumbbell under strict control to full arm extension."
+    ],
+    "formTips": [
+      "Do not swing upper body to generate momentum.",
+      "Maintain full contact between tricep and thigh."
+    ],
+    "commonMistakes": [
+      "Lifting elbow off inner thigh during curl.",
+      "Curling too fast on negative."
+    ],
+    "breathingTechnique": "Exhale curling dumbbell up; inhale lowering down under control.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "2-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 10,
+        "reps": 12
+      },
+      {
+        "weight": 12,
+        "reps": 10
+      },
+      {
+        "weight": 14,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Maintain firm grip and keep free hand braced on opposite knee.",
+    "injuryPreventionTips": "Achieve full extension without hyperextending elbow joint.",
+    "beginnerModification": "Lighter dumbbell with 15 reps",
+    "advancedVariation": "Peak contraction pause with slow 4-second negative",
+    "easierAlternative": "Preacher Curl (EZ-Bar)",
+    "harderAlternative": "Incline Dumbbell Bicep Curl",
+    "equipmentFreeAlternative": "Towel Resistance Curl",
+    "similarExercises": [
+      "Preacher Curl (EZ-Bar)",
+      "Incline Dumbbell Bicep Curl",
+      "Barbell Bicep Curl"
+    ],
+    "tags": [
+      "arms",
+      "biceps",
+      "dumbbells",
+      "isolation",
+      "unilateral"
+    ]
+  },
+  {
+    "id": "ex-stair-climber",
+    "name": "Stair Climber (StairMaster)",
+    "description": "High-calorie aerobic & conditioning machine that provides low-impact cardiovascular workout while training quads, calves, and glutes.",
+    "category": "Cardio",
+    "type": "Cardio",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Cardio",
+    "muscleGroup": "Cardio",
+    "secondaryMuscles": [
+      "Glutes",
+      "Quads",
+      "Calves",
+      "Core"
+    ],
+    "bodyPart": "Full Body",
+    "equipment": [
+      "Stair Climber"
+    ],
+    "equipmentAlternatives": [
+      "Outdoor Stadium Stairs",
+      "Incline Treadmill Walking"
+    ],
+    "startingPosition": "Step onto bottom stair, lightly hold side handrails for balance, and stand upright with chest elevated.",
+    "instructions": [
+      "Step through the full foot (heel to toe), driving down with whole foot rather than just tiptoes.",
+      "Keep posture upright and spine neutral without leaning forward over console.",
+      "Maintain a steady, rhythmic climbing cadence.",
+      "Adjust speed level gradually to match aerobic threshold."
+    ],
+    "formTips": [
+      "Do not lean heavily onto handrails or bear bodyweight through arms.",
+      "Step firmly through heel to recruit glutes."
+    ],
+    "commonMistakes": [
+      "Leaning forward and slumping over handrails.",
+      "Skipping stairs with sloppy footwork."
+    ],
+    "breathingTechnique": "Deep continuous nasal/mouth breathing matching stepping tempo.",
+    "recommendedSets": 1,
+    "recommendedDuration": 1200,
+    "recommendedRest": 60,
+    "defaultSets": [
+      {
+        "duration": 1200,
+        "reps": 1,
+        "weight": 0
+      }
+    ],
+    "safetyInstructions": "Keep eyes on steps; never turn around backward while machine is running.",
+    "injuryPreventionTips": "Avoid excessive heel elevation on steps to prevent Achilles tendon strain.",
+    "beginnerModification": "Level 4-5 steady pace for 10-15 minutes",
+    "advancedVariation": "HIIT intervals: 1 min high speed (Level 12+), 1 min moderate speed (Level 6)",
+    "easierAlternative": "Stationary / Spin Bike",
+    "harderAlternative": "Sprint Interval Treadmill Running",
+    "equipmentFreeAlternative": "Outdoor Stair Climbing",
+    "similarExercises": [
+      "Treadmill Running / Outdoor Run",
+      "Stationary / Spin Bike"
+    ],
+    "tags": [
+      "cardio",
+      "stairmaster",
+      "endurance",
+      "glutes",
+      "fat-burn"
+    ]
+  },
+  {
+    "id": "ex-burpees",
+    "name": "Burpees",
+    "description": "Full-body metabolic conditioning powerhouse combining squat, plank, push-up, and vertical jump into one fluid movement.",
+    "category": "Cardio",
+    "type": "Calisthenics",
+    "difficulty": "Intermediate",
+    "primaryMuscle": "Full Body",
+    "muscleGroup": "Cardio",
+    "secondaryMuscles": [
+      "Chest",
+      "Quads",
+      "Shoulders",
+      "Core",
+      "Cardio"
+    ],
+    "bodyPart": "Full Body",
+    "equipment": [
+      "No Equipment"
+    ],
+    "equipmentAlternatives": [
+      "Yoga Mat"
+    ],
+    "startingPosition": "Stand tall with feet shoulder-width apart and arms by your sides.",
+    "instructions": [
+      "Squat down and place hands on floor directly in front of feet.",
+      "Kick feet back into a full push-up / plank position.",
+      "Lower chest to touch floor in a smooth push-up.",
+      "Press up, jump feet back toward hands, and explosively jump straight up with hands reaching overhead."
+    ],
+    "formTips": [
+      "Land softly on balls of feet transitioning immediately into next repetition.",
+      "Keep core braced in plank."
+    ],
+    "commonMistakes": [
+      "Sagging hips and arching lower back during plank/push-up.",
+      "Landing on stiff straight knees."
+    ],
+    "breathingTechnique": "Inhale dropping down; exhale explosively jumping up.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "Continuous Pace",
+    "defaultSets": [
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 12
+      },
+      {
+        "bodyweight": true,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Avoid jumping if experiencing knee joint inflammation; step feet back instead.",
+    "injuryPreventionTips": "Land with knees bent to absorb ground impact smoothly.",
+    "beginnerModification": "Step-back burpees without the push-up or jump",
+    "advancedVariation": "Burpee Pull-up or Burpee Box Jump",
+    "easierAlternative": "Mountain Climbers",
+    "harderAlternative": "Burpee Box Jumps",
+    "equipmentFreeAlternative": "Jumping Jacks",
+    "similarExercises": [
+      "Push-ups",
+      "Barbell Squat",
+      "Jump Rope / Skipping"
+    ],
+    "tags": [
+      "full-body",
+      "cardio",
+      "calisthenics",
+      "hiit",
+      "conditioning"
+    ]
+  },
+  {
+    "id": "ex-smith-machine-squat",
+    "name": "Smith Machine Squat",
+    "description": "Guided track squat that removes lateral balance demands, allowing focused quad loading and variable foot placements.",
+    "category": "Strength",
+    "type": "Compound",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Legs",
+    "muscleGroup": "Legs",
+    "secondaryMuscles": [
+      "Quads",
+      "Glutes",
+      "Hamstrings"
+    ],
+    "bodyPart": "Lower Body",
+    "equipment": [
+      "Smith Machine"
+    ],
+    "equipmentAlternatives": [
+      "Hack Squat Machine",
+      "Barbell Squat"
+    ],
+    "startingPosition": "Position bar across upper traps, rotate wrists to unhook safeties, feet positioned 6-10 inches ahead of bar line.",
+    "instructions": [
+      "Brace core and sit back into hips as you descend.",
+      "Lower until thighs are at least parallel to floor.",
+      "Drive upward through heels and mid-foot to stand tall.",
+      "Rotate bar to re-engage safety hooks when set is complete."
+    ],
+    "formTips": [
+      "Placing feet slightly in front of bar targets quads with minimal spinal shear.",
+      "Keep chest elevated."
+    ],
+    "commonMistakes": [
+      "Placing feet directly under hips which can push knees excessively forward on a fixed track.",
+      "Failing to turn hooks to lock."
+    ],
+    "breathingTechnique": "Inhale descending; exhale driving upward through heels.",
+    "recommendedSets": 3,
+    "recommendedReps": 10,
+    "recommendedRest": 90,
+    "recommendedTempo": "2-0-1-0",
+    "defaultSets": [
+      {
+        "weight": 50,
+        "reps": 10
+      },
+      {
+        "weight": 60,
+        "reps": 8
+      },
+      {
+        "weight": 65,
+        "reps": 8
+      }
+    ],
+    "safetyInstructions": "Set safety stops at appropriate depth before loading heavy weights.",
+    "injuryPreventionTips": "Ensure wrists are neutral and bar rests comfortably across traps.",
+    "beginnerModification": "Lighter weight focusing on 90-degree depth",
+    "advancedVariation": "Pause Smith Squat with 2-second hold at bottom",
+    "easierAlternative": "Dumbbell Goblet Squat",
+    "harderAlternative": "Barbell Squat",
+    "equipmentFreeAlternative": "Bodyweight Squats",
+    "similarExercises": [
+      "Barbell Squat",
+      "Hack Squat Machine",
+      "45-Degree Leg Press"
+    ],
+    "tags": [
+      "legs",
+      "quads",
+      "smith-machine",
+      "squat",
+      "compound"
+    ]
+  },
+  {
+    "id": "ex-incline-dumbbell-flyes",
+    "name": "Incline Dumbbell Flyes",
+    "description": "Upper chest isolation movement that isolates the clavicular pectorals with an accentuated eccentric stretch.",
+    "category": "Strength",
+    "type": "Isolation",
+    "difficulty": "Beginner",
+    "primaryMuscle": "Chest",
+    "muscleGroup": "Chest",
+    "secondaryMuscles": [
+      "Front Deltoids"
+    ],
+    "bodyPart": "Upper Body",
+    "equipment": [
+      "Dumbbells",
+      "Incline Bench"
+    ],
+    "equipmentAlternatives": [
+      "Cable Low Pulley",
+      "Incline Machine Fly"
+    ],
+    "startingPosition": "Lie on 30-degree incline bench with dumbbells held above upper chest, palms facing each other, elbows slightly bent.",
+    "instructions": [
+      "Maintain a fixed slight bend in elbows throughout.",
+      "Lower dumbbells outward and slightly back in a wide arc until chest stretch is felt.",
+      "Bring dumbbells back together along same arc path, contracting upper pecs.",
+      "Squeeze chest at top without letting dumbbells bang together."
+    ],
+    "formTips": [
+      "Keep bench angle between 30 and 45 degrees.",
+      "Imagine hugging a wide oak tree."
+    ],
+    "commonMistakes": [
+      "Bending elbows past 90 degrees turning it into a press.",
+      "Over-stretching shoulder capsule below bench plane."
+    ],
+    "breathingTechnique": "Inhale spreading arms wide; exhale drawing dumbbells together.",
+    "recommendedSets": 3,
+    "recommendedReps": 12,
+    "recommendedRest": 60,
+    "recommendedTempo": "3-1-1-0",
+    "defaultSets": [
+      {
+        "weight": 12,
+        "reps": 12
+      },
+      {
+        "weight": 14,
+        "reps": 10
+      },
+      {
+        "weight": 14,
+        "reps": 10
+      }
+    ],
+    "safetyInstructions": "Never drop dumbbells backward behind shoulders.",
+    "injuryPreventionTips": "Keep scapulae retracted and avoid extreme range of motion under heavy load.",
+    "beginnerModification": "Low-to-High Cable Flyes",
+    "advancedVariation": "1.5 rep incline flyes",
+    "easierAlternative": "Flat Dumbbell Chest Flyes",
+    "harderAlternative": "Low-to-High Cable Flyes",
+    "equipmentFreeAlternative": "Incline Push-ups",
+    "similarExercises": [
+      "Dumbbell Flat Chest Flyes",
+      "Low-to-High Cable Flyes",
+      "Incline Dumbbell Press"
+    ],
+    "tags": [
+      "chest",
+      "upper-chest",
+      "flyes",
+      "dumbbells",
+      "isolation"
+    ]
   }
 ];
-
-COMMON_EXERCISES_CATALOG.forEach((ex) => {
-  if (!ex.difficultyPresets) {
-    ex.difficultyPresets = {
-      beginner: getDifficultyPreset(ex, 'beginner'),
-      intermediate: getDifficultyPreset(ex, 'intermediate'),
-      advanced: getDifficultyPreset(ex, 'advanced'),
-    };
-  }
-});

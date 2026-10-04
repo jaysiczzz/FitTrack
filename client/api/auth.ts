@@ -14,10 +14,8 @@ export const registerUser = (payload: {
 export const loginUser = (payload: { email: string; password: string }) =>
   apiRequest('/api/auth/login', { method: 'POST', body: payload as any });
 
-export const refreshTokenApi = (refreshToken: string) =>
-  apiRequest('/api/auth/refresh', { method: 'POST', body: { refreshToken } });
-
 export const logoutUserApi = (refreshToken?: string | null) =>
+
   apiRequest('/api/auth/logout', { method: 'POST', body: { refreshToken: refreshToken || undefined } });
 
 export const changePasswordApi = (payload: { currentPassword: string; newPassword: string }) =>

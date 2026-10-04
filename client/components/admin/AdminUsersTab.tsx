@@ -14,11 +14,13 @@ import { useToast } from '@/context/ToastContext';
 import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
+import FilterChip from '@/components/ui/FilterChip';
 import { AdminUserItem, updateUserRoleApi, deleteUserApi } from '@/api/admin';
 import {
   adminOverrideSubscriptionApi,
   SubscriptionTierType,
 } from '@/api/subscription';
+import { capitalizeWords } from '@/utils/formatters';
 
 interface AdminUsersTabProps {
   users: AdminUserItem[];
@@ -44,7 +46,7 @@ export default function AdminUsersTab({
   onReloadUsers,
 }: AdminUsersTabProps) {
   const { colors } = useThemeColors();
-  const { showSuccess, showError, showWarning } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
   const [updatingUserRole, setUpdatingUserRole] = useState(false);
@@ -131,44 +133,34 @@ export default function AdminUsersTab({
           returnKeyType="search"
         />
         {search.length > 0 && (
-          <TouchableOpacity onPress={() => onSearchChange('')}>
-            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+          <TouchableOpacity
+            onPress={() => onSearchChange('')}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
           </TouchableOpacity>
         )}
       </View>
 
       {/* Role Filter Chips */}
-      <View className="flex-row gap-2">
+      <View className="flex-row flex-wrap gap-2">
         {(['ALL', 'USER', 'ADMIN'] as const).map((filter) => (
-          <TouchableOpacity
+          <FilterChip
             key={filter}
+            label={filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes Only' : 'Admins Only'}
+            selected={roleFilter === filter}
             onPress={() => {
               triggerHapticFeedback();
               onRoleFilterChange(filter);
             }}
-            className={`px-3 py-1.5 rounded-full border ${
-              roleFilter === filter
-                ? 'bg-amber-500 border-amber-500'
-                : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                roleFilter === filter
-                  ? 'text-black font-bold'
-                  : 'text-text-muted dark:text-text-muted-dark'
-              }`}
-            >
-              {filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes Only' : 'Admins Only'}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
       {/* User List */}
       {loading && !refreshing ? (
         <View className="py-20 items-center justify-center">
-          <ActivityIndicator size="small" color="#F59E0B" />
+          <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
             Loading user records...
           </Text>
@@ -191,20 +183,20 @@ export default function AdminUsersTab({
                 <View className="flex-1">
                   <View className="flex-row items-center gap-2 mb-1">
                     <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                      {item.firstName} {item.lastName}
+                      {capitalizeWords(item.firstName)} {capitalizeWords(item.lastName)}
                     </Text>
                     {isItemAdmin ? (
-                      <View className="bg-amber-500/20 px-2 py-0.5 rounded-full">
-                        <Text className="text-[10px] font-bold text-amber-500">ADMIN</Text>
+                      <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">ADMIN</Text>
                       </View>
                     ) : (
-                      <View className="bg-blue-500/10 px-2 py-0.5 rounded-full">
-                        <Text className="text-[10px] font-bold text-blue-500">ATHLETE</Text>
+                      <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">ATHLETE</Text>
                       </View>
                     )}
                     {isPro && (
-                      <View className="bg-emerald-500/15 px-2 py-0.5 rounded-full">
-                        <Text className="text-[10px] font-bold text-emerald-500">PRO</Text>
+                      <View className="bg-success/15 border border-success/30 px-2 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-bold text-success dark:text-success-dark">PRO</Text>
                       </View>
                     )}
                   </View>
@@ -222,7 +214,8 @@ export default function AdminUsersTab({
                     triggerHapticFeedback();
                     setSelectedUser(item);
                   }}
-                  className="bg-surface-card dark:bg-surface-card-dark px-3 py-1.5 rounded-lg border border-input-border dark:border-input-border-dark"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  className="bg-surface-card dark:bg-surface-card-dark min-h-[44px] px-3.5 py-2 rounded-lg border border-input-border dark:border-input-border-dark items-center justify-center"
                 >
                   <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                     Manage
@@ -243,7 +236,7 @@ export default function AdminUsersTab({
           onRequestClose={() => setSelectedUser(null)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
               <View className="flex-row items-center justify-between mb-4">
                 <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                   Manage User
@@ -253,19 +246,19 @@ export default function AdminUsersTab({
 
               <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-xl mb-4">
                 <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                  {selectedUser.firstName} {selectedUser.lastName}
+                  {capitalizeWords(selectedUser.firstName)} {capitalizeWords(selectedUser.lastName)}
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                   {selectedUser.email}
                 </Text>
                 <View className="flex-row gap-2 mt-2">
-                  <View className="bg-amber-500/20 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-amber-500">
+                  <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded">
+                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
                       ROLE: {selectedUser.role}
                     </Text>
                   </View>
-                  <View className="bg-blue-500/20 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-blue-500">
+                  <View className="bg-info/10 border border-info/20 px-2 py-0.5 rounded">
+                    <Text className="text-[10px] font-bold text-info dark:text-info-dark">
                       TIER: {selectedUser.subscription?.tier || 'FREE'}
                     </Text>
                   </View>
@@ -278,20 +271,22 @@ export default function AdminUsersTab({
                 <TouchableOpacity
                   onPress={() => handleToggleUserRole(selectedUser)}
                   disabled={updatingUserRole}
-                  className={`py-3 rounded-xl border flex-row items-center justify-center gap-2 ${
+                  className={`min-h-[48px] py-3.5 rounded-xl border flex-row items-center justify-center gap-2 ${
                     selectedUser.role === 'ADMIN'
-                      ? 'bg-rose-500/15 border-rose-500/30'
-                      : 'bg-amber-500 border-amber-500'
+                      ? 'bg-danger/15 border-danger/30'
+                      : 'bg-accent border-accent'
                   }`}
                 >
                   <Ionicons
                     name="shield-outline"
                     size={16}
-                    color={selectedUser.role === 'ADMIN' ? '#EF4444' : '#000'}
+                    color={selectedUser.role === 'ADMIN' ? colors.danger : colors.accentContrast}
                   />
                   <Text
                     className={`text-xs font-bold ${
-                      selectedUser.role === 'ADMIN' ? 'text-rose-500' : 'text-black'
+                      selectedUser.role === 'ADMIN'
+                        ? 'text-danger dark:text-danger-dark'
+                        : 'text-accent-contrast'
                     }`}
                   >
                     {selectedUser.role === 'ADMIN' ? 'Demote to Athlete' : 'Promote to Admin'}
@@ -303,7 +298,7 @@ export default function AdminUsersTab({
                   onPress={() => {
                     setShowOverrideModal(true);
                   }}
-                  className="py-3 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-center gap-2"
+                  className="min-h-[48px] py-3.5 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-center gap-2"
                 >
                   <Ionicons name="ribbon-outline" size={16} color={colors.textPrimary} />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -314,10 +309,10 @@ export default function AdminUsersTab({
                 {/* 3. Delete Account */}
                 <TouchableOpacity
                   onPress={() => handleDeleteUserAccount(selectedUser)}
-                  className="py-3 rounded-xl bg-rose-500/10 border border-rose-500/20 flex-row items-center justify-center gap-2 mt-2"
+                  className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 flex-row items-center justify-center gap-2 mt-2"
                 >
-                  <Ionicons name="trash-outline" size={16} color="#EF4444" />
-                  <Text className="text-xs font-bold text-rose-500">
+                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
+                  <Text className="text-xs font-bold text-danger dark:text-danger-dark">
                     Delete User Account
                   </Text>
                 </TouchableOpacity>
@@ -336,7 +331,7 @@ export default function AdminUsersTab({
           onRequestClose={() => setShowOverrideModal(false)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                   Grant Subscription Tier
@@ -363,9 +358,10 @@ export default function AdminUsersTab({
                       triggerHapticFeedback();
                       setOverrideTier(item.tier);
                     }}
-                    className={`p-3 rounded-xl border flex-row items-center justify-between ${
+                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                    className={`min-h-[48px] p-3 rounded-xl border flex-row items-center justify-between ${
                       overrideTier === item.tier
-                        ? 'bg-amber-500/15 border-amber-500'
+                        ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
                         : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
@@ -378,7 +374,7 @@ export default function AdminUsersTab({
                       </Text>
                     </View>
                     {overrideTier === item.tier && (
-                      <Ionicons name="checkmark-circle" size={18} color="#F59E0B" />
+                      <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
                     )}
                   </TouchableOpacity>
                 ))}
@@ -387,12 +383,12 @@ export default function AdminUsersTab({
               <TouchableOpacity
                 onPress={handleApplySubscriptionOverride}
                 disabled={savingOverride}
-                className="bg-amber-500 py-3 rounded-xl items-center justify-center"
+                className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center"
               >
                 {savingOverride ? (
-                  <ActivityIndicator size="small" color="#000" />
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
                 ) : (
-                  <Text className="text-xs font-bold text-black">Apply Tier Override</Text>
+                  <Text className="text-xs font-bold text-accent-contrast">Apply Tier Override</Text>
                 )}
               </TouchableOpacity>
             </View>

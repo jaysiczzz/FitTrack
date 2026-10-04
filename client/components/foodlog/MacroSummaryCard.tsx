@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Platform } from 'react-native';
+import { View, Text } from 'react-native';
 import { MacroTargets } from './foodLogTypes';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
@@ -22,7 +22,7 @@ export default function MacroSummaryCard({
   loggedFat,
   goal,
 }: MacroSummaryCardProps) {
-  const { colors } = useThemeColors();
+  
   const caloriesRemaining = Math.max(0, targets.calories - loggedCalories);
   const calPercent = Math.min(100, Math.round((loggedCalories / Math.max(1, targets.calories)) * 100));
   const isOverLimit = loggedCalories > targets.calories;
@@ -57,14 +57,14 @@ export default function MacroSummaryCard({
       <View className="flex-row items-center gap-3 bg-input dark:bg-input-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark">
         {/* Circular Percentage Ring */}
         <View
-          className={`w-[96px] h-[96px] rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-1 border-4 ${
+          className={`w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-1 border-4 ${
             isOverLimit
               ? 'border-danger'
               : 'border-accent dark:border-accent-dark'
           }`}
         >
           <Text
-            className={`text-center font-black text-2xl leading-7 ${
+            className={`text-center font-black text-xl sm:text-2xl leading-6 sm:leading-7 ${
               isOverLimit
                 ? 'text-danger dark:text-danger-dark'
                 : 'text-text-primary dark:text-text-primary-dark'
@@ -78,11 +78,15 @@ export default function MacroSummaryCard({
         </View>
 
         {/* Calories Remaining Numbers */}
-        <View className="flex-1 justify-center">
+        <View className="flex-1 min-w-0 justify-center">
           <Text className="text-[10px] uppercase tracking-wider text-text-muted dark:text-text-muted-dark font-bold mb-0.5">
             {isOverLimit ? 'OVER TARGET BY' : 'CALORIES REMAINING'}
           </Text>
-          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark leading-8 my-0.5">
+          <Text
+            className="text-2xl sm:text-3xl font-black text-text-primary dark:text-text-primary-dark leading-8 my-0.5"
+            numberOfLines={1}
+            adjustsFontSizeToFit
+          >
             {isOverLimit
               ? (loggedCalories - targets.calories).toLocaleString()
               : caloriesRemaining.toLocaleString()}{' '}
@@ -90,7 +94,7 @@ export default function MacroSummaryCard({
               kcal
             </Text>
           </Text>
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
             {loggedCalories.toLocaleString()} logged of {targets.calories.toLocaleString()} kcal
           </Text>
         </View>

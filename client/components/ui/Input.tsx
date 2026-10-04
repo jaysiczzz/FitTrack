@@ -45,6 +45,7 @@ const Input = React.forwardRef<TextInput, Props>(
         <View className="relative w-full flex-row items-center">
           <TextInput
             ref={ref}
+            keyboardAppearance={isDark ? 'dark' : 'light'}
             className={`flex-1 bg-input dark:bg-input-dark border ${
               error
                 ? 'border-danger dark:border-danger-dark'

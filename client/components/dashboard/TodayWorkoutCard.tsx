@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 
 export interface DashboardWorkoutExercise {
@@ -37,8 +37,8 @@ export default function TodayWorkoutCard({
                 Today's Workout
               </Text>
               <View className="bg-emerald-500/15 dark:bg-emerald-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
-                <Ionicons name="checkmark-circle" size={13} color="#10B981" />
-                <Text className="text-emerald-500 dark:text-emerald-400 font-extrabold text-[10px]">
+                <Ionicons name="checkmark-circle" size={13} color={colors.accent} />
+                <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
                   Completed 🏆
                 </Text>
               </View>
@@ -51,7 +51,8 @@ export default function TodayWorkoutCard({
           <TouchableOpacity
             onPress={() => router.push('/(screen)/workouts' as any)}
             activeOpacity={0.8}
-            className="bg-accent/10 dark:bg-accent-dark/15 px-3 py-1.5 rounded-xl border border-accent/30 dark:border-accent-dark/30"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
           >
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">
               View Routine
@@ -63,7 +64,7 @@ export default function TodayWorkoutCard({
         <View className="p-3.5 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25 flex-row items-center justify-between">
           <View className="flex-row items-center gap-3">
             <View className="w-10 h-10 rounded-2xl bg-emerald-500/20 items-center justify-center">
-              <Ionicons name="barbell" size={20} color="#10B981" />
+              <Ionicons name="barbell" size={20} color={colors.accent} />
             </View>
             <View>
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -78,7 +79,8 @@ export default function TodayWorkoutCard({
           <TouchableOpacity
             onPress={() => router.push('/(screen)/workouts' as any)}
             activeOpacity={0.7}
-            className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
           >
             <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
               History
@@ -100,7 +102,7 @@ export default function TodayWorkoutCard({
             </Text>
             {exercises.length > 0 && (
               <View className="bg-amber-500/15 dark:bg-amber-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
-                <Ionicons name="time-outline" size={12} color="#F59E0B" />
+                <Ionicons name="time-outline" size={12} color={colors.warning} />
                 <Text className="text-amber-600 dark:text-amber-400 font-extrabold text-[10px]">
                   In Progress
                 </Text>
@@ -114,15 +116,18 @@ export default function TodayWorkoutCard({
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(screen)/workouts' as any)}
-          activeOpacity={0.8}
-          className="bg-accent/10 dark:bg-accent-dark/15 px-3 py-1.5 rounded-xl border border-accent/30 dark:border-accent-dark/30"
-        >
-          <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-            {exercises.length > 0 ? 'Resume' : '+ Start'}
-          </Text>
-        </TouchableOpacity>
+        {exercises.length > 0 && (
+          <TouchableOpacity
+            onPress={() => router.push('/(screen)/workouts' as any)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
+          >
+            <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+              Resume
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Exercises List or Empty State */}
@@ -141,7 +146,7 @@ export default function TodayWorkoutCard({
             </Text>
           </View>
           <View className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl">
-            <Text className="text-white font-bold text-xs">
+            <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
               Start
             </Text>
           </View>
@@ -158,7 +163,7 @@ export default function TodayWorkoutCard({
               <View className="flex-row items-center flex-1 mr-2">
                 {ex.isCompleted ? (
                   <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-3">
-                    <Ionicons name="checkmark" size={13} color="#10B981" />
+                    <Ionicons name="checkmark" size={13} color={colors.accent} />
                   </View>
                 ) : (
                   <View className="w-6 h-6 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">

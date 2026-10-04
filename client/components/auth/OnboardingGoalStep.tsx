@@ -36,7 +36,7 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
   onNext,
   error,
 }) => {
-  const { colors } = useThemeColors();
+  
   const [activeStory, setActiveStory] = useState<TestimonialItem | null>(null);
 
   useEffect(() => {
@@ -120,7 +120,7 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
                   }`}
                 >
                   {isSelected ? (
-                    <Text className="text-black text-[10px] font-extrabold">✓</Text>
+                    <Text className="text-accent-contrast dark:text-accent-contrast-dark text-[10px] font-extrabold">✓</Text>
                   ) : null}
                 </View>
               </View>

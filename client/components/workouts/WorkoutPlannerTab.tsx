@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
@@ -497,8 +497,8 @@ export default function WorkoutPlannerTab({
                   onPress={() => onStartRoutine(todayRoutine)}
                   className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-sm"
                 >
-                  <Ionicons name="play" size={16} color="#FFFFFF" />
-                  <Text className="text-white text-xs font-black uppercase tracking-wider">
+                  <Ionicons name="play" size={16} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase tracking-wider">
                     Start Today's Workout
                   </Text>
                 </TouchableOpacity>
@@ -507,7 +507,7 @@ export default function WorkoutPlannerTab({
               <View className="flex-row items-center justify-between py-1">
                 <View className="flex-row items-center gap-3">
                   <View className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center">
-                    <Ionicons name="leaf-outline" size={20} color="#10B981" />
+                    <Ionicons name="leaf-outline" size={20} color={colors.accent} />
                   </View>
                   <View>
                     <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
@@ -582,8 +582,8 @@ export default function WorkoutPlannerTab({
               onPress={() => setShowCreateModal(true)}
               className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl flex-row items-center gap-1"
             >
-              <Ionicons name="add" size={16} color="#FFFFFF" />
-              <Text className="text-white text-xs font-bold">New</Text>
+              <Ionicons name="add" size={16} color={colors.accentContrast} />
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">New</Text>
             </TouchableOpacity>
           </View>
 
@@ -613,8 +613,8 @@ export default function WorkoutPlannerTab({
                   onPress={() => onStartRoutine(routine)}
                   className="px-3 py-1.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1"
                 >
-                  <Ionicons name="play" size={12} color="#FFFFFF" />
-                  <Text className="text-white text-xs font-black uppercase">Start</Text>
+                  <Ionicons name="play" size={12} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase">Start</Text>
                 </TouchableOpacity>
               </View>
             </SurfaceCard>
@@ -740,8 +740,8 @@ export default function WorkoutPlannerTab({
               onPress={() => setShowCreateModal(true)}
               className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl flex-row items-center gap-1"
             >
-              <Ionicons name="add" size={16} color="#FFFFFF" />
-              <Text className="text-white text-xs font-bold">New Routine</Text>
+              <Ionicons name="add" size={16} color={colors.accentContrast} />
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">New Routine</Text>
             </TouchableOpacity>
           </View>
 
@@ -771,9 +771,11 @@ export default function WorkoutPlannerTab({
                 {routine.isCustom ? (
                   <TouchableOpacity
                     onPress={() => handleDeleteRoutine(routine.id)}
-                    className="p-1"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="min-h-[44px] min-w-[44px] items-center justify-center"
+                    accessibilityLabel="Delete routine"
                   >
-                    <Ionicons name="trash-outline" size={16} color="#EF4444" />
+                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
                   </TouchableOpacity>
                 ) : null}
               </View>

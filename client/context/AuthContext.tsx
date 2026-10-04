@@ -5,6 +5,16 @@ import { authStorage } from '@/utils/authStorage';
 import { getUserProfile } from '@/api/user';
 import { logoutUserApi } from '@/api/auth';
 import { screenCache } from '@/utils/screenCache';
+import { capitalizeWords } from '@/utils/formatters';
+
+export function normalizeAuthUser(u: AuthUser | null): AuthUser | null {
+  if (!u) return null;
+  return {
+    ...u,
+    firstName: u.firstName ? capitalizeWords(u.firstName) : u.firstName,
+    lastName: u.lastName ? capitalizeWords(u.lastName) : u.lastName,
+  };
+}
 
 export interface AuthUser {
   id?: string;
@@ -48,9 +58,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
         const storedToken = await authStorage.getToken();
         const storedUser = await authStorage.getUser<AuthUser>();
 
+        const normalizedStored = normalizeAuthUser(storedUser);
         if (isMounted) {
           setToken(storedToken);
-          setUser(storedUser);
+          setUser(normalizedStored);
           setIsLoading(false); // Unblock app startup immediately!
         }
 
@@ -59,13 +70,15 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           getUserProfile()
             .then(async (profileRes) => {
               if (profileRes?.user && isMounted) {
-                setUser(profileRes.user);
-                await authStorage.setUser(profileRes.user);
+                const normalized = normalizeAuthUser(profileRes.user);
+                setUser(normalized);
+                await authStorage.setUser(normalized);
               }
             })
             .catch(async (err: any) => {
+              const msg = err?.message?.toLowerCase() || '';
               // If token expired / 401 Unauthorized, clear auth session
-              if (err?.message?.includes('401') || err?.message?.toLowerCase().includes('unauthorized')) {
+              if (msg.includes('401') || msg.includes('unauthorized') || msg.includes('session expired') || msg.includes('not authenticated')) {
                 console.warn('[AuthContext] Stored token is invalid or expired. Logging out.');
                 await authStorage.clearAuth();
                 if (isMounted) {
@@ -110,9 +123,10 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     if (newRefreshToken) {
       await authStorage.setRefreshToken(newRefreshToken);
     }
-    await authStorage.setUser(newUser);
+    const normalized = normalizeAuthUser(newUser);
+    await authStorage.setUser(normalized!);
     setToken(newToken);
-    setUser(newUser);
+    setUser(normalized);
     DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
     router.replace('/(screen)/dashboard');
   }, [router, user?.id]);
@@ -134,16 +148,22 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
 
 
   const updateUser = useCallback(async (updatedUser: AuthUser) => {
-    setUser(updatedUser);
-    await authStorage.setUser(updatedUser);
+    const normalized = normalizeAuthUser(updatedUser);
+    setUser(normalized);
+    if (normalized) {
+      await authStorage.setUser(normalized);
+    }
   }, []);
 
   const refreshProfile = useCallback(async () => {
     try {
       const res = await getUserProfile();
       if (res?.user) {
-        setUser(res.user);
-        await authStorage.setUser(res.user);
+        const normalized = normalizeAuthUser(res.user);
+        setUser(normalized);
+        if (normalized) {
+          await authStorage.setUser(normalized);
+        }
       }
     } catch (e) {
       console.warn('[AuthContext] Failed to refresh profile:', e);

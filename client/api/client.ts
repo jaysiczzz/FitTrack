@@ -1,4 +1,5 @@
 import { DeviceEventEmitter } from 'react-native';
+
 import { authStorage } from '../utils/authStorage';
 import { offlineQueue } from '../utils/offlineQueue';
 import { API_URL } from '../config';
@@ -11,10 +12,25 @@ export interface ApiRequestOptions extends Omit<RequestInit, 'body'> {
 }
 
 let refreshPromise: Promise<string | null> | null = null;
+let isHandlingUnauthorized = false;
+
+/**
+ * Debounced emitter for session invalidation to avoid spamming multiple logouts
+ */
+function emitUnauthorized(): void {
+  if (isHandlingUnauthorized) return;
+  isHandlingUnauthorized = true;
+  authStorage.clearAuth().finally(() => {
+    DeviceEventEmitter.emit('AUTH_UNAUTHORIZED');
+    setTimeout(() => {
+      isHandlingUnauthorized = false;
+    }, 2000);
+  });
+}
 
 // Listen for reconnection / app-active flush triggers
 DeviceEventEmitter.addListener('OFFLINE_QUEUE_TRIGGER_FLUSH', () => {
-  offlineQueue.flush((ep, opts) => apiRequest(ep, opts)).catch(() => {});
+  offlineQueue.flush((ep: string, opts: any) => apiRequest(ep, opts)).catch(() => {});
 });
 
 function isOfflineQueuableEndpoint(endpoint: string, method?: string): boolean {
@@ -37,6 +53,54 @@ function isOfflineQueuableEndpoint(endpoint: string, method?: string): boolean {
     endpoint.includes('/api/checkin') ||
     endpoint.includes('/api/user')
   );
+}
+
+/**
+ * Safely parses JWT payload to extract expiration timestamp (in seconds)
+ */
+function parseJwtExp(token: string): number | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    const base64Url = parts[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    let jsonPayload = '';
+    if (typeof atob === 'function') {
+      jsonPayload = decodeURIComponent(
+        atob(base64)
+          .split('')
+          .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
+          .join('')
+      );
+    } else {
+      const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=';
+      let str = base64.replace(/=+$/, '');
+      let output = '';
+      for (
+        let bc = 0, bs = 0, buffer, idx = 0;
+        (buffer = str.charAt(idx++));
+        ~buffer && ((bs = bc % 4 ? bs * 64 + buffer : buffer), bc++ % 4)
+          ? (output += String.fromCharCode(255 & (bs >> ((-2 * bc) & 6))))
+          : 0
+      ) {
+        buffer = chars.indexOf(buffer);
+      }
+      jsonPayload = output;
+    }
+    const parsed = JSON.parse(jsonPayload);
+    return typeof parsed.exp === 'number' ? parsed.exp : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Checks if JWT is expired or expiring within 30 seconds
+ */
+function isTokenExpired(token: string): boolean {
+  const exp = parseJwtExp(token);
+  if (!exp) return false;
+  return Date.now() >= (exp - 30) * 1000;
 }
 
 /**
@@ -84,7 +148,55 @@ async function doRefreshToken(): Promise<string | null> {
 }
 
 export async function apiRequest(endpoint: string, options: ApiRequestOptions = {}) {
-  const token = await authStorage.getToken();
+  // Public read-only endpoints (e.g. community stories shown during onboarding before
+  // the user has an account) must never trigger a forced logout when no session exists.
+  const isPublicEndpoint =
+    (!options.method || options.method.toUpperCase() === 'GET') &&
+    endpoint.startsWith('/api/testimonials') &&
+    !endpoint.startsWith('/api/testimonials/my');
+
+  const isAuthEndpoint =
+    isPublicEndpoint ||
+    endpoint.includes('/api/auth/refresh') ||
+    endpoint.includes('/api/auth/login') ||
+    endpoint.includes('/api/auth/register') ||
+    endpoint.includes('/api/auth/logout') ||
+    endpoint.includes('/api/auth/check-email') ||
+    endpoint.includes('/api/auth/forgot-password') ||
+    endpoint.includes('/api/auth/reset-password');
+
+  let token = await authStorage.getToken();
+
+  // Proactive token expiration handling for protected endpoints:
+  // If access token is expired or expiring within 30s, refresh silently BEFORE sending request
+  if (!isAuthEndpoint) {
+    if (token && isTokenExpired(token)) {
+      const refreshedToken = await doRefreshToken();
+      if (refreshedToken) {
+        token = refreshedToken;
+      } else {
+        // Refresh token invalid or expired — gracefully abort and notify auth context
+        emitUnauthorized();
+        throw new Error('Session expired. Please log in again.');
+      }
+    } else if (!token) {
+      // No token at all: check if we have a refresh token to restore session
+      const refreshToken = await authStorage.getRefreshToken();
+      if (refreshToken) {
+        const refreshedToken = await doRefreshToken();
+        if (refreshedToken) {
+          token = refreshedToken;
+        } else {
+          emitUnauthorized();
+          throw new Error('Not authenticated. Please log in.');
+        }
+      } else {
+        emitUnauthorized();
+        throw new Error('Not authenticated. Please log in.');
+      }
+    }
+  }
+
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -148,32 +260,20 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
     clearTimeout(timeoutId);
   }
 
-  // Handle Token Expiry & Silent Refresh
-  if (response.status === 401) {
-    const isAuthEndpoint =
-      endpoint.includes('/api/auth/refresh') ||
-      endpoint.includes('/api/auth/login') ||
-      endpoint.includes('/api/auth/register') ||
-      endpoint.includes('/api/auth/logout') ||
-      endpoint.includes('/api/auth/check-email') ||
-      endpoint.includes('/api/auth/forgot-password') ||
-      endpoint.includes('/api/auth/reset-password');
-
-    if (!isAuthEndpoint) {
-      if (!options._isRetry) {
-        const newAccessToken = await doRefreshToken();
-        if (newAccessToken) {
-          // Retry the original request once with fresh access token
-          return apiRequest(endpoint, {
-            ...options,
-            _isRetry: true,
-          });
-        }
+  // Handle Token Expiry & Silent Refresh if server returns 401
+  if (response.status === 401 && !isAuthEndpoint) {
+    if (!options._isRetry) {
+      const newAccessToken = await doRefreshToken();
+      if (newAccessToken) {
+        // Retry the original request once with fresh access token
+        return apiRequest(endpoint, {
+          ...options,
+          _isRetry: true,
+        });
       }
-
-      await authStorage.clearAuth();
-      DeviceEventEmitter.emit('AUTH_UNAUTHORIZED');
     }
+
+    emitUnauthorized();
   }
 
   const data = await response.json().catch(() => ({}));
@@ -185,11 +285,8 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
 
   // Trigger background flush of any previously queued mutations on successful request
   if (!options._skipOfflineQueue) {
-    offlineQueue.flush((ep, opts) => apiRequest(ep, opts)).catch(() => {});
+    offlineQueue.flush((ep: string, opts: any) => apiRequest(ep, opts)).catch(() => {});
   }
 
   return data;
 }
-
-
-

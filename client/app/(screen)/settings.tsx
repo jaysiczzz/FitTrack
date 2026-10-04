@@ -22,6 +22,7 @@ import TestimonialModal from '@/components/settings/TestimonialModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import EWalletModal from '@/components/subscription/EWalletModal';
 import AdminRevenueModal from '@/components/subscription/AdminRevenueModal';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
   getCurrentSubscriptionApi,
   getUserWalletApi,
@@ -89,6 +90,7 @@ export default function Settings() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEWalletModal, setShowEWalletModal] = useState(false);
   const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -193,7 +195,7 @@ export default function Settings() {
   // Request native permission
   const handleEnablePermissions = async () => {
     if (Platform.OS === 'web') {
-      showWarning('Web Notice', 'Push/Local notifications are best experienced on the iOS/Android app.');
+      showWarning('Web Notice', 'Push/Local notifications are best experienced on the Android app.');
       return;
     }
 
@@ -220,7 +222,7 @@ export default function Settings() {
   // Test notification button
   const handleTestNotification = async () => {
     if (Platform.OS === 'web') {
-      showWarning('Web Notice', 'Local notifications are supported natively on iOS and Android.');
+      showWarning('Web Notice', 'Local notifications are supported natively on Android.');
       return;
     }
 
@@ -273,25 +275,31 @@ export default function Settings() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
-        {/* Back Button & Header */}
-        <View className="flex-row items-center mb-1">
-          <Pressable
-            onPress={() => router.back()}
-            className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
-            accessibilityLabel="Go back"
-            accessibilityRole="button"
-          >
-            <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
-          </Pressable>
-          <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-            Settings
-          </Text>
-        </View>
+      <ScrollView
+        className="flex-1"
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+      >
+        <View className="w-full max-w-2xl self-center">
+          {/* Back Button & Header */}
+          <View className="flex-row items-center mb-1">
+            <Pressable
+              onPress={() => router.back()}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
+              accessibilityLabel="Go back"
+              accessibilityRole="button"
+            >
+              <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
+            </Pressable>
+            <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+              Settings
+            </Text>
+          </View>
 
-        <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark mt-1">
-          Manage your account, preferences, and daily reminders
-        </Text>
+          <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark mt-1">
+            Manage your account, preferences, and daily reminders
+          </Text>
 
         {/* Membership & Billing Section */}
         <SurfaceCard className="mb-3">
@@ -301,8 +309,8 @@ export default function Settings() {
             </Text>
             {currentSub?.tier && currentSub.tier !== 'FREE' ? (
               <View className="flex-row items-center bg-amber-500/15 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
-                <Ionicons name="sparkles" size={11} color="#F59E0B" />
-                <Text className="text-[10px] font-black text-amber-500 uppercase ml-1">
+                <Ionicons name="sparkles" size={11} color={colors.warning} />
+                <Text className="text-[10px] font-black text-warning dark:text-warning-dark uppercase ml-1">
                   {currentSub.tier === 'LIFETIME_FOUNDER' ? 'Lifetime Founder' : currentSub.tier.replace('_', ' ')}
                 </Text>
               </View>
@@ -353,7 +361,7 @@ export default function Settings() {
             onPress={() => setShowEWalletModal(true)}
           >
             <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="wallet" size={14} color="#10B981" />
+              <Ionicons name="wallet" size={14} color={colors.accent} />
             </View>
             <View className="flex-1">
               <View className="flex-row items-center justify-between pr-2">
@@ -374,16 +382,16 @@ export default function Settings() {
 
         {/* Admin Management Section (Visible for ADMIN role) */}
         {isAdmin && (
-          <SurfaceCard className="mb-3 border-amber-500/40 dark:border-amber-500/40">
+          <SurfaceCard className="mb-3 border-accent/30 dark:border-accent-dark/30">
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="shield-checkmark" size={16} color="#F59E0B" />
+                <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
                 <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
                   Admin Control Center
                 </Text>
               </View>
-              <View className="bg-amber-500/20 px-2 py-0.5 rounded-full">
-                <Text className="text-[10px] font-bold text-amber-500 uppercase">
+              <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
                   Executive Access
                 </Text>
               </View>
@@ -397,8 +405,8 @@ export default function Settings() {
                 router.push('/(screen)/admin');
               }}
             >
-              <View className="w-9 h-9 rounded-xl bg-amber-500/20 border border-amber-500/40 items-center justify-center mr-3">
-                <Ionicons name="apps-outline" size={18} color="#F59E0B" />
+              <View className="w-9 h-9 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 items-center justify-center mr-3">
+                <Ionicons name="apps-outline" size={18} color={colors.accent} />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
@@ -408,7 +416,7 @@ export default function Settings() {
                   Live KPIs, user directory, exercise catalog & support desk
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color="#F59E0B" />
+              <Ionicons name="chevron-forward" size={16} color={colors.accent} />
             </Pressable>
 
             {/* Quick Payouts & Ledger Modal Shortcut */}
@@ -419,8 +427,8 @@ export default function Settings() {
                 setShowAdminRevenueModal(true);
               }}
             >
-              <View className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
-                <Ionicons name="trending-up" size={16} color="#F59E0B" />
+              <View className="w-9 h-9 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/20 dark:border-accent-dark/20 items-center justify-center mr-3">
+                <Ionicons name="trending-up" size={16} color={colors.accent} />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -441,12 +449,34 @@ export default function Settings() {
             Account & Security
           </Text>
 
+          {/* Personal Information Row */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={() => {
+              hapticFeedback.light();
+              setShowEditProfileModal(true);
+            }}
+          >
+            <View className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
+              <Ionicons name="person-outline" size={14} color={colors.accent} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                Personal Information
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Update your name, age, height, weight & avatar
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
           <Pressable
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowResetPasswordModal(true)}
           >
             <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="key" size={14} color="#10B981" />
+              <Ionicons name="key" size={14} color={colors.accent} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -561,7 +591,7 @@ export default function Settings() {
                 value={notifSettings.mealReminders}
                 onValueChange={(val) => handleToggleNotification('mealReminders', val)}
                 thumbColor={colors.surface}
-                trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+                trackColor={{ false: colors.inputBorder, true: colors.accent }}
               />
             </View>
 
@@ -572,7 +602,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('breakfastTime', 'Breakfast Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Breakfast:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.breakfastTime)}
@@ -583,7 +612,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('lunchTime', 'Lunch Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Lunch:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.lunchTime)}
@@ -594,7 +622,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('dinnerTime', 'Dinner Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Dinner:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.dinnerTime)}
@@ -624,7 +651,7 @@ export default function Settings() {
                 value={notifSettings.hydrationReminders}
                 onValueChange={(val) => handleToggleNotification('hydrationReminders', val)}
                 thumbColor={colors.surface}
-                trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+                trackColor={{ false: colors.inputBorder, true: colors.accent }}
               />
             </View>
 
@@ -635,7 +662,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('hydrationTime1', 'Morning Hydration')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Alert 1:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.hydrationTime1)}
@@ -646,7 +672,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('hydrationTime2', 'Afternoon Hydration')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Alert 2:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.hydrationTime2)}
@@ -676,7 +701,7 @@ export default function Settings() {
                 value={notifSettings.workoutReminders}
                 onValueChange={(val) => handleToggleNotification('workoutReminders', val)}
                 thumbColor={colors.surface}
-                trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+                trackColor={{ false: colors.inputBorder, true: colors.accent }}
               />
             </View>
 
@@ -687,7 +712,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('workoutTime', 'Workout Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Training Time:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.workoutTime)}
@@ -717,7 +741,7 @@ export default function Settings() {
                 value={notifSettings.checkinReminders}
                 onValueChange={(val) => handleToggleNotification('checkinReminders', val)}
                 thumbColor={colors.surface}
-                trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+                trackColor={{ false: colors.inputBorder, true: colors.accent }}
               />
             </View>
 
@@ -728,7 +752,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('checkinTime', 'Daily Readiness Check-In')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Check-In Time:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.checkinTime)}
@@ -808,7 +831,7 @@ export default function Settings() {
                 value={notifSettings.quietHoursEnabled}
                 onValueChange={(val) => handleToggleNotification('quietHoursEnabled', val)}
                 thumbColor={colors.surface}
-                trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+                trackColor={{ false: colors.inputBorder, true: colors.accent }}
               />
             </View>
 
@@ -819,7 +842,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('quietHoursStart', 'Quiet Hours Start (Sleep)')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="moon-outline" size={12} color="#818CF8" style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Starts at:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.quietHoursStart)}
@@ -830,7 +852,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('quietHoursEnd', 'Quiet Hours End (Wake Up)')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="sunny-outline" size={12} color="#FB923C" style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Ends at:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.quietHoursEnd)}
@@ -849,12 +870,12 @@ export default function Settings() {
                 className="py-2.5 px-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-center active:opacity-80"
               >
                 {testingNotification ? (
-                  <ActivityIndicator size="small" color="#10B981" className="mr-2" />
+                  <ActivityIndicator size="small" color={colors.accent} className="mr-2" />
                 ) : (
-                  <Ionicons name="notifications-outline" size={16} color="#10B981" className="mr-2" />
+                  <Ionicons name="notifications-outline" size={16} color={colors.accent} className="mr-2" />
                 )}
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  Send Test Notification Now
+                  Verify Notification Reminders
                 </Text>
               </Pressable>
             ) : null}
@@ -877,7 +898,7 @@ export default function Settings() {
             Preferences
           </Text>
 
-          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark pt-3">
+          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
             <View className="w-8 h-8 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center mr-3">
               <Ionicons name="moon" size={14} color="#818CF8" />
             </View>
@@ -896,7 +917,7 @@ export default function Settings() {
               thumbColor={colors.surface}
               trackColor={{
                 false: colors.inputBorder,
-                true: '#10B981',
+                true: colors.accent,
               }}
             />
           </View>
@@ -904,7 +925,7 @@ export default function Settings() {
           {/* Weight Units Preference */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
             <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="barbell-outline" size={14} color="#10B981" />
+              <Ionicons name="barbell-outline" size={14} color={colors.accent} />
             </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -1026,8 +1047,8 @@ export default function Settings() {
                   Athlete Stories & Reviews
                 </Text>
                 <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full gap-1">
-                  <Ionicons name="star" size={10} color="#F59E0B" />
-                  <Text className="text-[10px] font-bold text-amber-500">Community</Text>
+                  <Ionicons name="star" size={10} color={colors.warning} />
+                  <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">Community</Text>
                 </View>
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
@@ -1043,7 +1064,7 @@ export default function Settings() {
             onPress={() => setShowPrivacyModal(true)}
           >
             <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="shield-checkmark" size={14} color="#10B981" />
+              <Ionicons name="shield-checkmark" size={14} color={colors.accent} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -1060,13 +1081,14 @@ export default function Settings() {
         {/* 5. Log Out Section */}
         <View className="mt-2">
           <Pressable
-            className="flex-row items-center justify-center rounded-2xl bg-danger/10 border border-danger/25 py-3.5 active:opacity-80"
+            className="flex-row items-center justify-center rounded-2xl bg-danger/10 border border-danger/25 min-h-[48px] py-3.5 active:opacity-80"
             onPress={() => setShowLogoutModal(true)}
           >
             <Text className="text-sm font-bold text-danger dark:text-danger-dark">
               Log Out
             </Text>
           </Pressable>
+        </View>
         </View>
       </ScrollView>
 
@@ -1144,6 +1166,15 @@ export default function Settings() {
         onClose={() => {
           setShowAdminRevenueModal(false);
           loadBillingSummary();
+        }}
+      />
+
+      {/* Edit Personal Information & Avatar Modal */}
+      <EditProfileModal
+        visible={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        onProfileUpdated={() => {
+          refreshProfile().catch(() => {});
         }}
       />
 

@@ -54,6 +54,7 @@ export const registerSchema = z.object({
       .min(1, 'Age must be at least 1')
       .max(120, 'Age must be under 120'),
     goal: z.enum(['MUSCLE_GAIN', 'WEIGHT_LOSS'] as const),
+    verificationToken: z.string().optional(),
   }),
 })
 
@@ -102,6 +103,31 @@ export const checkEmailSchema = z.object({
       .trim()
       .toLowerCase()
       .email('Please enter a valid email address'),
+  }),
+})
+
+export const sendVerificationSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+    firstName: z.string().trim().max(60).optional(),
+  }),
+})
+
+export const verifyEmailSchema = z.object({
+  body: z.object({
+    email: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .email('Please enter a valid email address'),
+    code: z
+      .string()
+      .trim()
+      .regex(/^\d{6}$/, 'Verification code must be 6 digits'),
   }),
 })
 

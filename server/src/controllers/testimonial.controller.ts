@@ -1,104 +1,16 @@
-import { Request, Response } from 'express'
+import { Response } from 'express'
+
 import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { Goal } from '@prisma/client'
-
-const SEED_TESTIMONIALS = [
-  {
-    authorName: 'Marcus T.',
-    rating: 5,
-    content: "FitTrack's daily readiness check-in and camera food scanner kept me accountable every single day. Dropping 12kg without feeling starved changed my relationship with food forever.",
-    highlightBadge: '🔥 -12kg in 16 Weeks',
-    goal: 'WEIGHT_LOSS' as Goal,
-    isFeatured: true,
-    helpfulCount: 42,
-    weightChangeKg: -12.0,
-    durationWeeks: 16,
-    verifiedAthlete: true,
-  },
-  {
-    authorName: 'Sarah L.',
-    rating: 5,
-    content: 'The progressive overload tracking in the workout logger is unmatched. Hit personal bests on both my squat and deadlift within 3 months of following the structured routine!',
-    highlightBadge: '💪 +4.5kg Muscle Mass',
-    goal: 'MUSCLE_GAIN' as Goal,
-    isFeatured: true,
-    helpfulCount: 38,
-    weightChangeKg: 4.5,
-    durationWeeks: 12,
-    verifiedAthlete: true,
-  },
-  {
-    authorName: 'David K.',
-    rating: 5,
-    content: 'The AI Coach routines broke my 6-month plateau. Having tailored warm-up sets and dynamic target adjustments made all the difference.',
-    highlightBadge: '🏆 100kg Bench Press PR',
-    goal: 'MUSCLE_GAIN' as Goal,
-    isFeatured: true,
-    helpfulCount: 29,
-    weightChangeKg: 2.0,
-    durationWeeks: 8,
-    verifiedAthlete: true,
-  },
-  {
-    authorName: 'Elena R.',
-    rating: 5,
-    content: 'What I love most is the simplicity. Logging meals with the camera scanner takes literally 10 seconds. Down 7kg and feeling more energetic than ever!',
-    highlightBadge: '⚡ 45-Day Consistency Streak',
-    goal: 'WEIGHT_LOSS' as Goal,
-    isFeatured: true,
-    helpfulCount: 35,
-    weightChangeKg: -7.0,
-    durationWeeks: 10,
-    verifiedAthlete: true,
-  },
-  {
-    authorName: 'Alex M.',
-    rating: 5,
-    content: 'Finally hitting my daily macro goals with consistency. The macro progress rings and nutrition insights keep me dialed in throughout my bulking phase.',
-    highlightBadge: '🥗 160g Daily Protein Target',
-    goal: 'MUSCLE_GAIN' as Goal,
-    isFeatured: true,
-    helpfulCount: 24,
-    weightChangeKg: 3.2,
-    durationWeeks: 14,
-    verifiedAthlete: true,
-  },
-  {
-    authorName: 'Jessica P.',
-    rating: 5,
-    content: 'Started using FitTrack for weight loss and ended up falling in love with daily readiness check-ins and recovery tracking. Highly recommend to anyone seeking consistency.',
-    highlightBadge: '🏃‍♀️ First 10K & -5kg',
-    goal: 'WEIGHT_LOSS' as Goal,
-    isFeatured: true,
-    helpfulCount: 31,
-    weightChangeKg: -5.0,
-    durationWeeks: 9,
-    verifiedAthlete: true,
-  },
-]
-
-async function ensureInitialTestimonials() {
-  try {
-    const count = await prisma.testimonial.count()
-    if (count === 0) {
-      for (const t of SEED_TESTIMONIALS) {
-        await prisma.testimonial.create({ data: t })
-      }
-    }
-  } catch (err) {
-    // Non-fatal if seeding runs into race condition
-    console.warn('Testimonial seed initialization skipped:', err)
-  }
-}
+import { capitalizeWords } from '../utils/formatters.utils'
 
 /**
  * GET /api/testimonials
  * Public endpoint to fetch testimonials with optional goal and sorting filters.
  */
 export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Response) => {
-  await ensureInitialTestimonials()
 
   const { goal, limit, sortBy } = req.query
   const userId = req.user?.id
@@ -132,7 +44,16 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
       take,
       select: {
         id: true,
+        userId: true,
         authorName: true,
+        avatarUrl: true,
+        user: {
+          select: {
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
+        },
         rating: true,
         content: true,
         highlightBadge: true,
@@ -158,10 +79,37 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
   ])
 
   const votedSet = new Set(userVotes.map((v) => v.testimonialId))
-  const mappedTestimonials = testimonials.map((t) => ({
-    ...t,
-    hasVoted: votedSet.has(t.id),
-  }))
+  const mappedTestimonials = testimonials.map((t) => {
+    let resolvedAuthorName = t.authorName
+    let resolvedAvatarUrl = t.avatarUrl
+
+    if (t.user) {
+      const first = capitalizeWords(t.user.firstName) || 'Athlete'
+      const last = capitalizeWords(t.user.lastName)
+      const lastInitial = last ? ` ${last.charAt(0).toUpperCase()}.` : ''
+      resolvedAuthorName = `${first}${lastInitial}`
+      resolvedAvatarUrl = t.user.avatarUrl ?? null
+    } else {
+      resolvedAuthorName = capitalizeWords(t.authorName)
+    }
+
+    return {
+      id: t.id,
+      userId: t.userId,
+      authorName: resolvedAuthorName,
+      avatarUrl: resolvedAvatarUrl,
+      rating: t.rating,
+      content: t.content,
+      highlightBadge: t.highlightBadge,
+      goal: t.goal,
+      helpfulCount: t.helpfulCount,
+      weightChangeKg: t.weightChangeKg,
+      durationWeeks: t.durationWeeks,
+      verifiedAthlete: t.verifiedAthlete,
+      createdAt: t.createdAt,
+      hasVoted: votedSet.has(t.id),
+    }
+  })
 
   const averageRating = allRatings._avg.rating
     ? Number(allRatings._avg.rating.toFixed(1))
@@ -186,19 +134,47 @@ export const getMyTestimonial = asyncHandler(async (req: AuthRequest, res: Respo
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const testimonial = await prisma.testimonial.findFirst({
-    where: { userId },
+  const [testimonials, user] = await Promise.all([
+    prisma.testimonial.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+    }),
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { firstName: true, lastName: true, avatarUrl: true },
+    }),
+  ])
+
+  const mapped = testimonials.map((t) => {
+    let resolvedAuthorName = t.authorName
+    let resolvedAvatarUrl = t.avatarUrl
+    if (user) {
+      const first = capitalizeWords(user.firstName) || 'Athlete'
+      const last = capitalizeWords(user.lastName)
+      const lastInitial = last ? ` ${last.charAt(0).toUpperCase()}.` : ''
+      resolvedAuthorName = `${first}${lastInitial}`
+      resolvedAvatarUrl = user.avatarUrl ?? null
+    } else {
+      resolvedAuthorName = capitalizeWords(t.authorName)
+    }
+    return {
+      ...t,
+      authorName: resolvedAuthorName,
+      avatarUrl: resolvedAvatarUrl,
+    }
   })
 
   res.json({
     success: true,
-    testimonial: testimonial || null,
+    testimonial: mapped[0] || null,
+    testimonials: mapped,
   })
 })
 
 /**
  * POST /api/testimonials
- * Create or update the authenticated user's testimonial.
+ * Create or update an authenticated user's testimonial.
+ * Supports multiple testimonials across milestones.
  */
 export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
@@ -208,17 +184,18 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { firstName: true, lastName: true, goal: true },
+    select: { firstName: true, lastName: true, goal: true, avatarUrl: true },
   })
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }
 
-  const { rating, content, highlightBadge, goal, weightChangeKg, durationWeeks } = req.body
+  const { id, rating, content, highlightBadge, goal, weightChangeKg, durationWeeks } = req.body
 
-  const first = user.firstName?.trim() || 'Athlete'
-  const lastInitial = user.lastName?.trim() ? ` ${user.lastName.trim().charAt(0).toUpperCase()}.` : ''
+  const first = capitalizeWords(user.firstName) || 'Athlete'
+  const last = capitalizeWords(user.lastName)
+  const lastInitial = last ? ` ${last.charAt(0).toUpperCase()}.` : ''
   const authorName = `${first}${lastInitial}`
 
   const resolvedGoal = (goal && (goal === 'MUSCLE_GAIN' || goal === 'WEIGHT_LOSS'))
@@ -232,18 +209,13 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
   ])
   const verifiedAthlete = workoutCount > 0 || checkInCount > 0
 
-  // Check if user already submitted a testimonial
-  const existing = await prisma.testimonial.findFirst({
-    where: { userId },
-  })
-
   let saved
-  if (existing) {
+  if (id) {
     saved = await prisma.testimonial.update({
-      where: { id: existing.id },
+      where: { id },
       data: {
-        userId,
         authorName,
+        avatarUrl: user.avatarUrl,
         rating: Number(rating),
         content: content.trim(),
         highlightBadge: highlightBadge ? highlightBadge.trim() : null,
@@ -259,6 +231,7 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
       data: {
         userId,
         authorName,
+        avatarUrl: user.avatarUrl,
         rating: Number(rating),
         content: content.trim(),
         highlightBadge: highlightBadge ? highlightBadge.trim() : null,
@@ -267,14 +240,14 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
         durationWeeks: durationWeeks !== undefined ? Number(durationWeeks) : null,
         verifiedAthlete,
         isFeatured: true,
-        helpfulCount: 1, // Start with 1 appreciation
+        helpfulCount: 0, // Starts at 0 honest appreciations
       },
     })
   }
 
   res.status(200).json({
     success: true,
-    message: existing
+    message: id
       ? 'Your testimonial has been updated successfully!'
       : 'Thank you! Your transformation story has been shared with the community.',
     testimonial: saved,
@@ -376,9 +349,18 @@ export const deleteMyTestimonial = asyncHandler(async (req: AuthRequest, res: Re
     return res.status(401).json({ error: 'Unauthorized' })
   }
 
-  const existing = await prisma.testimonial.findFirst({
-    where: { userId },
-  })
+  const targetId = typeof req.query.id === 'string' ? req.query.id : undefined
+
+  let existing
+  if (targetId) {
+    existing = await prisma.testimonial.findFirst({
+      where: { id: targetId, userId },
+    })
+  } else {
+    existing = await prisma.testimonial.findFirst({
+      where: { userId },
+    })
+  }
 
   if (!existing) {
     return res.status(404).json({ error: 'No testimonial found to delete' })

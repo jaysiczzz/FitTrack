@@ -31,7 +31,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
 
@@ -416,7 +416,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <Text
                     className={`text-[9px] font-bold uppercase mb-0.5 ${
                       isSelected
-                        ? 'text-white font-black'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -425,7 +425,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <Text
                     className={`text-xs font-black mb-1 ${
                       isSelected
-                        ? 'text-white'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
                         : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
@@ -436,7 +436,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <View
                     className={`w-2 h-2 rounded-full ${
                       isSelected
-                        ? 'bg-white'
+                        ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
                         : slot.hasWorkout
                         ? 'bg-accent dark:bg-accent-dark'
                         : 'bg-input-border dark:bg-input-border-dark'
@@ -578,9 +578,9 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                       onPress={() => setSessionToDelete(session)}
                       hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                       accessibilityLabel="Delete workout session"
-                      className="w-7 h-7 rounded-lg items-center justify-center bg-red-500/10 dark:bg-red-500/20 active:opacity-70"
+                      className="min-h-[44px] min-w-[44px] rounded-xl items-center justify-center bg-red-500/10 dark:bg-red-500/20 active:opacity-70"
                     >
-                      <Ionicons name="trash-outline" size={14} color="#EF4444" />
+                      <Ionicons name="trash-outline" size={15} color={colors.danger} />
                     </TouchableOpacity>
                   </View>
                 </View>
@@ -634,7 +634,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                       >
                         <View className="flex-row items-center flex-1 mr-2">
                           <View className="w-5 h-5 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-2">
-                            <Ionicons name="checkmark" size={11} color="#10B981" />
+                            <Ionicons name="checkmark" size={11} color={colors.accent} />
                           </View>
                           <Text
                             numberOfLines={1}

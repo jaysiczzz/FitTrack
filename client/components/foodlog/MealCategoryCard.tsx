@@ -1,7 +1,7 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Image, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FoodLogItem, MealType, getSmartFoodBadge, getBadgeStyles } from './foodLogTypes';
+import { FoodLogItem, MealType } from './foodLogTypes';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
@@ -79,6 +79,7 @@ export default function MealCategoryCard({
             <TouchableOpacity
               onPress={() => onScanPress(type)}
               activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
               accessibilityLabel={`Scan ${title}`}
             >
@@ -89,6 +90,7 @@ export default function MealCategoryCard({
           <TouchableOpacity
             onPress={() => onAddPress(type)}
             activeOpacity={0.7}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
             className="h-8 px-3 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
           >
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">+ Add</Text>
@@ -171,7 +173,7 @@ export default function MealCategoryCard({
                     {onDuplicateItem && (
                       <TouchableOpacity
                         onPress={() => onDuplicateItem(item)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                         activeOpacity={0.7}
                         className="w-5 h-5 rounded-full items-center justify-center"
                         accessibilityLabel={`Duplicate ${item.title}`}
@@ -181,7 +183,7 @@ export default function MealCategoryCard({
                     )}
                     <TouchableOpacity
                       onPress={() => onDeleteItem(item.id)}
-                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                       activeOpacity={0.7}
                       className="w-5 h-5 rounded-full items-center justify-center"
                       accessibilityLabel={`Delete ${item.title}`}

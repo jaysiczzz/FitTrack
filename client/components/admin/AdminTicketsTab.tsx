@@ -15,6 +15,7 @@ import { useToast } from '@/context/ToastContext';
 import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
+import FilterChip from '@/components/ui/FilterChip';
 import {
   AdminSupportTicket,
   updateAdminTicketApi,
@@ -97,44 +98,31 @@ export default function AdminTicketsTab({
   return (
     <View className="gap-3">
       {/* Filter chips */}
-      <View className="flex-row gap-2">
+      <View className="flex-row flex-wrap gap-2">
         {(['ALL', 'OPEN', 'IN_PROGRESS', 'RESOLVED'] as const).map((filter) => (
-          <TouchableOpacity
+          <FilterChip
             key={filter}
+            label={filter.replace('_', ' ')}
+            selected={ticketFilter === filter}
             onPress={() => {
               triggerHapticFeedback();
               onFilterChange(filter);
             }}
-            className={`px-3 py-1.5 rounded-full border ${
-              ticketFilter === filter
-                ? 'bg-amber-500 border-amber-500'
-                : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
-            }`}
-          >
-            <Text
-              className={`text-xs font-semibold ${
-                ticketFilter === filter
-                  ? 'text-black font-bold'
-                  : 'text-text-muted dark:text-text-muted-dark'
-              }`}
-            >
-              {filter}
-            </Text>
-          </TouchableOpacity>
+          />
         ))}
       </View>
 
       {/* Ticket List */}
       {loading && !refreshing ? (
         <View className="py-20 items-center justify-center">
-          <ActivityIndicator size="small" color="#F59E0B" />
+          <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
             Loading support queue...
           </Text>
         </View>
       ) : tickets.length === 0 ? (
         <SurfaceCard className="py-16 items-center justify-center">
-          <Ionicons name="checkmark-circle-outline" size={40} color="#10B981" />
+          <Ionicons name="checkmark-circle-outline" size={40} color={colors.accent} />
           <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark mt-2">
             Queue is clear!
           </Text>
@@ -156,8 +144,8 @@ export default function AdminTicketsTab({
             <SurfaceCard className="p-3.5">
               <View className="flex-row items-center justify-between mb-1.5">
                 <View className="flex-row items-center gap-2">
-                  <View className="bg-amber-500/10 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-amber-500 uppercase">
+                  <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded">
+                    <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark uppercase">
                       {t.category}
                     </Text>
                   </View>
@@ -169,19 +157,19 @@ export default function AdminTicketsTab({
                 <View
                   className={`px-2 py-0.5 rounded-full border ${
                     t.status === 'RESOLVED'
-                      ? 'bg-emerald-500/15 border-emerald-500/30'
+                      ? 'bg-success/15 border-success/30'
                       : t.status === 'IN_PROGRESS'
-                      ? 'bg-blue-500/15 border-blue-500/30'
-                      : 'bg-amber-500/15 border-amber-500/30'
+                      ? 'bg-info/15 border-info/30'
+                      : 'bg-warning/15 border-warning/30'
                   }`}
                 >
                   <Text
                     className={`text-[9px] font-bold uppercase ${
                       t.status === 'RESOLVED'
-                        ? 'text-emerald-500'
+                        ? 'text-success dark:text-success-dark'
                         : t.status === 'IN_PROGRESS'
-                        ? 'text-blue-500'
-                        : 'text-amber-500'
+                        ? 'text-info dark:text-info-dark'
+                        : 'text-warning dark:text-warning-dark'
                     }`}
                   >
                     {t.status.replace('_', ' ')}
@@ -221,7 +209,7 @@ export default function AdminTicketsTab({
           onRequestClose={() => setSelectedTicket(null)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
               <View className="flex-row items-center justify-between mb-3">
                 <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                   Support Ticket
@@ -232,7 +220,7 @@ export default function AdminTicketsTab({
               <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ gap: 10 }}>
                 <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-xl">
                   <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-[10px] font-bold text-amber-500 uppercase">
+                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase">
                       {selectedTicket.category} · {selectedTicket.id}
                     </Text>
                     <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
@@ -280,25 +268,25 @@ export default function AdminTicketsTab({
                   <TouchableOpacity
                     onPress={() => handleUpdateTicketStatus('IN_PROGRESS')}
                     disabled={updatingTicket}
-                    className="flex-1 py-2.5 rounded-xl bg-blue-500/15 border border-blue-500/30 items-center justify-center"
+                    className="flex-1 min-h-[48px] py-3 rounded-xl bg-info/15 border border-info/30 items-center justify-center"
                   >
-                    <Text className="text-[11px] font-bold text-blue-500">In Progress</Text>
+                    <Text className="text-xs font-bold text-info dark:text-info-dark">In Progress</Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
                     onPress={() => handleUpdateTicketStatus('RESOLVED')}
                     disabled={updatingTicket}
-                    className="flex-1 py-2.5 rounded-xl bg-emerald-500 items-center justify-center"
+                    className="flex-1 min-h-[48px] py-3 rounded-xl bg-accent items-center justify-center"
                   >
-                    <Text className="text-[11px] font-bold text-black">Mark Resolved</Text>
+                    <Text className="text-xs font-bold text-accent-contrast">Mark Resolved</Text>
                   </TouchableOpacity>
                 </View>
 
                 <TouchableOpacity
                   onPress={() => handleDeleteTicket(selectedTicket.id)}
-                  className="py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 items-center justify-center mt-1"
+                  className="min-h-[48px] py-3 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-1"
                 >
-                  <Text className="text-[11px] font-bold text-rose-500">Delete Ticket</Text>
+                  <Text className="text-xs font-bold text-danger dark:text-danger-dark">Delete Ticket</Text>
                 </TouchableOpacity>
               </ScrollView>
             </View>

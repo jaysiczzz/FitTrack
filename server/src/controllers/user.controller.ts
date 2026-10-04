@@ -2,8 +2,9 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import * as userModel from '../models/user.model'
 import { Goal } from '@prisma/client'
-import { asyncHandler } from '../utils/asyncHandler.utils'
 import { prisma } from '../config/db'
+import { asyncHandler } from '../utils/asyncHandler.utils'
+import { capitalizeWords } from '../utils/formatters.utils'
 
 export const getProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
     const userId = req.user?.id
@@ -16,7 +17,13 @@ export const getProfile = asyncHandler(async (req: AuthRequest, res: Response) =
         return res.status(404).json({ error: 'User not found' })
     }
 
-    res.json({ user })
+    res.json({
+        user: {
+            ...user,
+            firstName: capitalizeWords(user.firstName),
+            lastName: capitalizeWords(user.lastName),
+        },
+    })
 })
 
 export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -30,6 +37,7 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
     const updateData: {
         firstName?: string;
         lastName?: string;
+        avatarUrl?: string | null;
         height?: number;
         weight?: number;
         targetWeight?: number | null;
@@ -38,10 +46,23 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
     } = {}
 
     if (firstName && typeof firstName === 'string') {
-        updateData.firstName = firstName.trim()
+        updateData.firstName = capitalizeWords(firstName)
     }
     if (lastName && typeof lastName === 'string') {
-        updateData.lastName = lastName.trim()
+        updateData.lastName = capitalizeWords(lastName)
+    }
+
+    if (req.body.avatarUrl !== undefined) {
+        if (!req.body.avatarUrl) {
+            updateData.avatarUrl = null
+        } else {
+            const urlStr = String(req.body.avatarUrl).trim()
+            if (urlStr.startsWith('blob:')) {
+                updateData.avatarUrl = null
+            } else {
+                updateData.avatarUrl = urlStr
+            }
+        }
     }
 
     if (req.body.height !== undefined) {
@@ -89,7 +110,7 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
 
     const user = await userModel.updateUser(userId, updateData)
 
-    // Q4: Automatically sync/upsert WeightLog when weight is updated from profile
+    // Automatically sync/upsert WeightLog when weight is updated from profile
     if (updateData.weight !== undefined) {
         const now = new Date()
         const year = now.getFullYear()
@@ -120,6 +141,27 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
         }
     }
 
+    // Synchronize authorName and avatarUrl to all testimonials authored by this user
+    if (updateData.firstName !== undefined || updateData.lastName !== undefined || updateData.avatarUrl !== undefined) {
+        const first = user.firstName?.trim() || 'Athlete'
+        const lastInitial = user.lastName?.trim() ? ` ${user.lastName.trim().charAt(0).toUpperCase()}.` : ''
+        const authorName = `${first}${lastInitial}`
+
+        const testimonialUpdateData: { authorName: string; avatarUrl?: string | null } = {
+            authorName,
+        }
+        if (updateData.avatarUrl !== undefined) {
+            testimonialUpdateData.avatarUrl = user.avatarUrl
+        }
+
+        await prisma.testimonial.updateMany({
+            where: { userId },
+            data: testimonialUpdateData,
+        }).catch((err) => {
+            console.warn('Failed to cascade user profile changes to testimonials:', err)
+        })
+    }
+
     res.json({ user })
 })
 
@@ -136,6 +178,8 @@ export const deleteAccount = asyncHandler(async (req: AuthRequest, res: Response
 
     await userModel.deleteUser(userId)
 
-    res.json({ success: true, message: 'Account deleted successfully' })
+    res.json({ success: true, message: 'User account deleted successfully' })
 })
+
+export const deleteProfile = deleteAccount
 

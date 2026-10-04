@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
@@ -9,11 +9,13 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { loginUser } from '@/api/auth';
-import { useRegistration } from '../../context/RegistrationContext';
-import { useAuth } from '../../context/AuthContext';
+import { useRegistration } from '@/context/RegistrationContext';
+import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export default function AuthIndex() {
   const { colors } = useThemeColors();
+  const { isLandscape } = useResponsive();
   const [active, setActive] = useState<'login' | 'register'>('login');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -68,16 +70,13 @@ export default function AuthIndex() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1"
-      >
+      <KeyboardAvoidingView className="flex-1">
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: isKeyboardOpen ? 'flex-start' : 'center',
-            paddingTop: isKeyboardOpen ? 12 : 20,
+            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
+            paddingTop: isKeyboardOpen || isLandscape ? 12 : 20,
             paddingBottom: isKeyboardOpen ? 36 : 24,
           }}
           keyboardShouldPersistTaps="handled"
@@ -86,17 +85,8 @@ export default function AuthIndex() {
           bounces={false}
         >
           <View className="w-full max-w-[420px] mx-auto px-5">
-            <AuthHeader compact={isKeyboardOpen} />
+            <AuthHeader compact={isKeyboardOpen || isLandscape} />
             <AuthTabs active={active} onChange={handleTabChange} />
-
-            {error ? (
-              <View className="w-full mb-3.5 p-3 rounded-xl bg-danger/10 border border-danger/30 flex-row items-center">
-                <Ionicons name="alert-circle" size={18} color={colors.danger} className="mr-2" />
-                <Text className="text-xs font-semibold text-danger dark:text-danger-dark flex-1">
-                  {error}
-                </Text>
-              </View>
-            ) : null}
 
             {active === 'login' ? (
               <LoginForm

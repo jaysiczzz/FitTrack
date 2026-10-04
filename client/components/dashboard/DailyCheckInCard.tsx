@@ -13,7 +13,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
-import { COLORS, useThemeColors } from '../../constants/colors';
+import { useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 import {
   getTodayCheckInApi,
@@ -89,7 +89,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   const { user } = useAuth();
   const userId = user?.id;
   const { showToast, showSuccess } = useToast();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -381,7 +381,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             {streakStats.currentStreak > 0 ? (
               <View className="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full flex-row items-center">
                 <Text className="text-[11px] mr-1">🔥</Text>
-                <Text className="text-amber-500 dark:text-amber-400 font-extrabold text-[10px]">
+                <Text className="text-amber-700 dark:text-amber-400 font-extrabold text-[10px]">
                   {streakStats.currentStreak} {streakStats.currentStreak === 1 ? 'Day Streak' : 'Days Streak'}
                 </Text>
               </View>
@@ -484,15 +484,15 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                   activeOpacity={0.8}
                   disabled={isSavingMood}
                   onPress={() => handleSelectMood(mood)}
-                  className={`flex-1 py-2.5 px-1 rounded-xl items-center justify-center border transition-all ${
+                  className={`flex-1 py-1.5 px-0.5 rounded-xl items-center justify-center border transition-all ${
                     isSelected
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark shadow-xs'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
                 >
-                  <Text className="text-xl mb-1">{mood.emoji}</Text>
+                  <Text className="text-base mb-0.5">{mood.emoji}</Text>
                   <Text
-                    className={`text-[11px] font-bold text-center leading-tight ${
+                    className={`text-[10px] font-bold text-center leading-tight ${
                       isSelected
                         ? 'text-accent dark:text-accent-dark'
                         : 'text-text-muted dark:text-text-muted-dark'

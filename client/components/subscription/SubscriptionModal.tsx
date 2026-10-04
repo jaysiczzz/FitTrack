@@ -134,7 +134,7 @@ export default function SubscriptionModal({
   onClose,
   onSubscriptionUpdated,
 }: SubscriptionModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
   const { user } = useAuth();
 
@@ -526,7 +526,7 @@ export default function SubscriptionModal({
                         </View>
 
                         <View className="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full">
-                          <Text className="text-[10px] font-extrabold text-amber-500 dark:text-amber-400">
+                          <Text className="text-[10px] font-extrabold text-amber-700 dark:text-amber-400">
                             {plan.badge}
                           </Text>
                         </View>
@@ -593,16 +593,11 @@ export default function SubscriptionModal({
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
-                <View className="flex-row items-center justify-between mb-1">
-                  <View className="flex-row items-center gap-1.5">
-                    <Ionicons name="phone-portrait" size={15} color={paymentMethod === 'GCASH' ? '#0284C7' : colors.textMuted} />
-                    <Text className={`text-xs font-bold ${paymentMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
-                      GCash
-                    </Text>
-                  </View>
-                  <View className="bg-sky-500/20 px-1.5 py-0.5 rounded">
-                    <Text className="text-[8px] font-bold text-sky-600 dark:text-sky-400 uppercase">PH Choice</Text>
-                  </View>
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Ionicons name="phone-portrait" size={15} color={paymentMethod === 'GCASH' ? '#0284C7' : colors.textMuted} />
+                  <Text className={`text-xs font-bold ${paymentMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
+                    GCash
+                  </Text>
                 </View>
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
                   Direct GCash E-Wallet
@@ -619,16 +614,11 @@ export default function SubscriptionModal({
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
-                <View className="flex-row items-center justify-between mb-1">
-                  <View className="flex-row items-center gap-1.5">
-                    <Ionicons name="flash" size={15} color={paymentMethod === 'MAYA' ? '#10B981' : colors.textMuted} />
-                    <Text className={`text-xs font-bold ${paymentMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
-                      Maya
-                    </Text>
-                  </View>
-                  <View className="bg-emerald-500/20 px-1.5 py-0.5 rounded">
-                    <Text className="text-[8px] font-bold text-emerald-600 dark:text-emerald-400 uppercase">Instant</Text>
-                  </View>
+                <View className="flex-row items-center gap-1.5 mb-1">
+                  <Ionicons name="flash" size={15} color={paymentMethod === 'MAYA' ? '#10B981' : colors.textMuted} />
+                  <Text className={`text-xs font-bold ${paymentMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
+                    Maya
+                  </Text>
                 </View>
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
                   Maya Wallet & Card
@@ -824,11 +814,11 @@ export default function SubscriptionModal({
               }`}
             >
               {processingPayment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
+                <ActivityIndicator size="small" color={colors.accentContrast} className="mr-2" />
               ) : (
-                <Ionicons name="lock-closed" size={16} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Ionicons name="lock-closed" size={16} color={colors.accentContrast} style={{ marginRight: 6 }} />
               )}
-              <Text className="text-white font-black text-sm">
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm">
                 Pay {symbol}
                 {selectedPlan.price.toLocaleString(undefined, {
                   minimumFractionDigits: currency === 'PHP' ? 0 : 2,

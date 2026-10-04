@@ -2,7 +2,9 @@ import { apiRequest } from './client';
 
 export interface TestimonialItem {
   id: string;
+  userId?: string | null;
   authorName: string;
+  avatarUrl?: string | null;
   rating: number;
   content: string;
   highlightBadge?: string | null;
@@ -23,12 +25,14 @@ export interface TestimonialsResponse {
 }
 
 export interface SubmitTestimonialPayload {
+  id?: string;
   rating: number;
   content: string;
   highlightBadge?: string | null;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | null;
   weightChangeKg?: number | null;
   durationWeeks?: number | null;
+  avatarUrl?: string | null;
 }
 
 export const getTestimonialsApi = (
@@ -64,7 +68,9 @@ export const toggleHelpfulTestimonialApi = (
     method: 'POST',
   });
 
-export const deleteMyTestimonialApi = (): Promise<{ success: boolean; message: string }> =>
-  apiRequest('/api/testimonials/my', {
+export const deleteMyTestimonialApi = (id?: string): Promise<{ success: boolean; message: string }> => {
+  const query = id ? `?id=${encodeURIComponent(id)}` : '';
+  return apiRequest(`/api/testimonials/my${query}`, {
     method: 'DELETE',
   });
+};

@@ -1,5 +1,5 @@
 import React from 'react';
-import { TouchableOpacity, Text, ViewStyle, ActivityIndicator, Platform } from 'react-native';
+import { TouchableOpacity, Text, ViewStyle, ActivityIndicator } from 'react-native';
 import { useThemeColors } from '@/constants/colors';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'danger';
@@ -23,7 +23,7 @@ const Button: React.FC<Props> = ({
   style,
   className = '',
 }) => {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const isDisabled = disabled || loading;
 
   const getVariantStyles = () => {
@@ -58,8 +58,8 @@ const Button: React.FC<Props> = ({
       default:
         return {
           container: 'bg-accent dark:bg-accent-dark active:opacity-90',
-          text: 'text-white font-bold',
-          spinner: '#FFFFFF',
+          text: 'text-accent-contrast dark:text-accent-contrast-dark font-bold',
+          spinner: colors.accentContrast,
         };
     }
   };

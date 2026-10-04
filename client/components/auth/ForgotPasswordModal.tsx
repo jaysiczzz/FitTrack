@@ -32,7 +32,7 @@ export default function ForgotPasswordModal({
   onClose,
   onSuccess,
 }: ForgotPasswordModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
   const [step, setStep] = useState<'email' | 'reset'>('email');
@@ -44,6 +44,27 @@ export default function ForgotPasswordModal({
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [errorField, setErrorField] = useState<'email' | 'code' | 'password' | 'confirm'>('email');
+
+  const fail = (field: 'email' | 'code' | 'password' | 'confirm', msg: string) => {
+    setErrorField(field);
+    setErrorMsg(msg);
+  };
+
+  const inlineError = (field: 'email' | 'code' | 'password' | 'confirm') =>
+    errorMsg && errorField === field ? (
+      <View className="flex-row items-center mt-1.5">
+        <Ionicons name="alert-circle" size={13} color={colors.danger} />
+        <Text className="text-[11px] font-semibold text-danger dark:text-danger-dark ml-1 flex-1">
+          {errorMsg}
+        </Text>
+      </View>
+    ) : null;
+
+  const fieldBorder = (field: 'email' | 'code' | 'password' | 'confirm') =>
+    errorMsg && errorField === field
+      ? 'border-danger dark:border-danger-dark'
+      : 'border-input-border dark:border-input-border-dark';
 
   // Sync initialEmail if prop changes
   React.useEffect(() => {
@@ -73,12 +94,12 @@ export default function ForgotPasswordModal({
     const trimmed = email.trim().toLowerCase();
 
     if (!trimmed) {
-      setErrorMsg('Please enter your email address.');
+      fail('email', 'Please enter your email address.');
       return;
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-      setErrorMsg('Please enter a valid email address.');
+      fail('email', 'Please enter a valid email address.');
       return;
     }
 
@@ -88,9 +109,7 @@ export default function ForgotPasswordModal({
       showSuccess('Code Sent', `We sent a 6-digit reset code to ${trimmed}`);
       setStep('reset');
     } catch (err: any) {
-      const msg = err?.message || 'Failed to send reset code. Please check the email.';
-      setErrorMsg(msg);
-      showError('Request Failed', msg);
+      fail(step === 'reset' ? 'code' : 'email', err?.message || 'Failed to send reset code. Please check the email.');
     } finally {
       setLoading(false);
     }
@@ -102,23 +121,23 @@ export default function ForgotPasswordModal({
     const trimmedCode = code.trim();
 
     if (!trimmedCode || trimmedCode.length !== 6) {
-      setErrorMsg('Please enter the 6-digit verification code.');
+      fail('code', 'Please enter the 6-digit verification code.');
       return;
     }
 
     if (!newPassword) {
-      setErrorMsg('Please enter your new password.');
+      fail('password', 'Please enter your new password.');
       return;
     }
 
     const pwdCheck = validatePasswordStrength(newPassword);
     if (!pwdCheck.valid) {
-      setErrorMsg(pwdCheck.error || 'Password does not meet security requirements.');
+      fail('password', pwdCheck.error || 'Password does not meet security requirements.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setErrorMsg('Passwords do not match.');
+      fail('confirm', 'Passwords do not match.');
       return;
     }
 
@@ -135,8 +154,7 @@ export default function ForgotPasswordModal({
       handleClose();
     } catch (err: any) {
       const msg = err?.message || 'Failed to reset password. Please check your verification code.';
-      setErrorMsg(msg);
-      showError('Reset Failed', msg);
+      fail(msg.toLowerCase().includes('password') ? 'password' : 'code', msg);
     } finally {
       setLoading(false);
     }
@@ -144,13 +162,10 @@ export default function ForgotPasswordModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        className="flex-1 justify-end bg-black/50"
-      >
-        <Pressable className="flex-1" onPress={handleClose} />
+      <KeyboardAvoidingView className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4">
+        <Pressable className="flex-1 w-full" onPress={handleClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
+        <View className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -167,16 +182,6 @@ export default function ForgotPasswordModal({
           </View>
 
           <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
-            {/* Error Banner */}
-            {errorMsg ? (
-              <View className="mb-4 p-3 rounded-xl bg-danger/10 border border-danger/30 flex-row items-center">
-                <Ionicons name="alert-circle" size={18} color={colors.danger} className="mr-2" />
-                <Text className="text-xs font-semibold text-danger dark:text-danger-dark flex-1">
-                  {errorMsg}
-                </Text>
-              </View>
-            ) : null}
-
             {step === 'email' ? (
               /* STEP 1: Email Input */
               <View>
@@ -184,7 +189,7 @@ export default function ForgotPasswordModal({
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                     Account Email
                   </Text>
-                  <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+                  <View className={`flex-row items-center bg-input dark:bg-input-dark rounded-xl border ${fieldBorder('email')} px-3`}>
                     <Ionicons name="mail-outline" size={18} color={colors.textMuted} className="mr-2" />
                     <TextInput
                       value={email}
@@ -200,6 +205,7 @@ export default function ForgotPasswordModal({
                       className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
                     />
                   </View>
+                  {inlineError('email')}
                 </View>
 
                 <TouchableOpacity
@@ -208,9 +214,9 @@ export default function ForgotPasswordModal({
                   className="py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row mt-2 mb-4"
                 >
                   {loading ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
+                    <ActivityIndicator size="small" color={colors.accentContrast} />
                   ) : (
-                    <Text className="text-sm font-bold text-white">
+                    <Text className="text-sm font-bold text-accent-contrast dark:text-accent-contrast-dark">
                       Send Verification Code
                     </Text>
                   )}
@@ -224,7 +230,7 @@ export default function ForgotPasswordModal({
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                     6-Digit Verification Code
                   </Text>
-                  <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+                  <View className={`flex-row items-center bg-input dark:bg-input-dark rounded-xl border ${fieldBorder('code')} px-3`}>
                     <Ionicons name="key-outline" size={18} color={colors.textMuted} className="mr-2" />
                     <TextInput
                       value={code}
@@ -239,6 +245,7 @@ export default function ForgotPasswordModal({
                       className="flex-1 py-3 text-base font-bold tracking-widest text-text-primary dark:text-text-primary-dark"
                     />
                   </View>
+                  {inlineError('code')}
                 </View>
 
                 {/* New Password */}
@@ -246,7 +253,7 @@ export default function ForgotPasswordModal({
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                     New Password
                   </Text>
-                  <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+                  <View className={`flex-row items-center bg-input dark:bg-input-dark rounded-xl border ${fieldBorder('password')} px-3`}>
                     <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} className="mr-2" />
                     <TextInput
                       secureTextEntry={!showPassword}
@@ -271,6 +278,7 @@ export default function ForgotPasswordModal({
                       />
                     </TouchableOpacity>
                   </View>
+                  {inlineError('password')}
                   <PasswordRequirements password={newPassword} />
                 </View>
 
@@ -279,7 +287,7 @@ export default function ForgotPasswordModal({
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                     Confirm New Password
                   </Text>
-                  <View className="flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3">
+                  <View className={`flex-row items-center bg-input dark:bg-input-dark rounded-xl border ${fieldBorder('confirm')} px-3`}>
                     <Ionicons name="lock-closed-outline" size={18} color={colors.textMuted} className="mr-2" />
                     <TextInput
                       secureTextEntry={!showConfirm}
@@ -304,6 +312,7 @@ export default function ForgotPasswordModal({
                       />
                     </TouchableOpacity>
                   </View>
+                  {inlineError('confirm')}
                 </View>
 
                 {/* Action Buttons */}
@@ -322,9 +331,9 @@ export default function ForgotPasswordModal({
                     className="flex-1 py-3.5 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center flex-row"
                   >
                     {loading ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
+                      <ActivityIndicator size="small" color={colors.accentContrast} />
                     ) : (
-                      <Text className="text-sm font-bold text-white">
+                      <Text className="text-sm font-bold text-accent-contrast dark:text-accent-contrast-dark">
                         Reset Password
                       </Text>
                     )}

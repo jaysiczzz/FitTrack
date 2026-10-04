@@ -7,7 +7,12 @@ export const errorHandler = (
   res: Response,
   next: NextFunction
 ) => {
-  console.error(`[${req.method} ${req.originalUrl}]`, err)
+  const isProduction = process.env.NODE_ENV === 'production'
+  if (isProduction) {
+    console.error(`[${req.method} ${req.originalUrl}] ${err.name || 'Error'}: ${err.message || 'Internal error'}`)
+  } else {
+    console.error(`[${req.method} ${req.originalUrl}]`, err)
+  }
 
   if (err instanceof Prisma.PrismaClientKnownRequestError) {
     if (err.code === 'P2002') {
@@ -32,7 +37,6 @@ export const errorHandler = (
     return res.status(401).json({ error: 'Invalid or expired session. Please log in again.' })
   }
 
-  const isProduction = process.env.NODE_ENV === 'production'
   const message = isProduction
     ? 'An unexpected error occurred. Please try again later.'
     : (err.message || 'Something went wrong on our end. Please try again.')

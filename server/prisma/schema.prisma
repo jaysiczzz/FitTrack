@@ -13,6 +13,7 @@ model User {
   firstName       String
   lastName        String
   role            Role             @default(USER)
+  avatarUrl       String?
   height          Int              // cm
   weight          Float            // kg
   targetWeight    Float?           // kg
@@ -230,11 +231,24 @@ model PasswordResetToken {
   @@index([email])
 }
 
+model EmailVerification {
+  id        String   @id @default(uuid())
+  email     String
+  code      String
+  attempts  Int      @default(0)
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([email])
+}
+
 model Testimonial {
   id              String    @id @default(uuid())
   userId          String?
   user            User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
   authorName      String
+  avatarUrl       String?
   rating          Int       @default(5)
   content         String
   highlightBadge  String?   // e.g. "🏆 +15kg Bench PR", "🔥 -6kg Lost", "⚡ 14-Day Streak"

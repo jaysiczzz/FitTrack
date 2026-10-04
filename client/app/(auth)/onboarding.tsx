@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -10,11 +10,14 @@ import OnboardingPlanStep from '@/components/auth/OnboardingPlanStep';
 import Button from '@/components/ui/Button';
 import { useRouter } from 'expo-router';
 import { registerUser } from '@/api/auth';
-import { useRegistration } from '../../context/RegistrationContext';
-import { useAuth } from '../../context/AuthContext';
+import { useRegistration } from '@/context/RegistrationContext';
+import { useAuth } from '@/context/AuthContext';
+import { useResponsive } from '@/hooks/useResponsive';
+import { capitalizeWords } from '@/utils/formatters';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
+  const { isLandscape } = useResponsive();
   const [step, setStep] = useState<1 | 2 | 3>(1);
 
   // Form State
@@ -184,7 +187,7 @@ export default function OnboardingScreen() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'center',
+            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
             paddingVertical: 16,
             paddingBottom: isKeyboardOpen ? 120 : 24,
           }}
@@ -197,7 +200,7 @@ export default function OnboardingScreen() {
             <OnboardingHeader
               step={step}
               totalSteps={3}
-              compact={isKeyboardOpen}
+              compact={isKeyboardOpen || isLandscape}
               showBack={step !== 3}
               onBack={handleHeaderBack}
             />
@@ -244,7 +247,7 @@ export default function OnboardingScreen() {
                 loading={loading}
                 error={serverError}
                 isRegistered={!!registeredPayload}
-                userName={data?.firstName || ''}
+                userName={capitalizeWords(data?.firstName || '')}
                 goal={goal}
                 height={Number(height)}
                 weight={Number(weight)}

@@ -12,7 +12,7 @@ interface Props {
 }
 
 const GoalCard: React.FC<Props> = ({ label, description, icon, selected, onPress }) => {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   return (
     <TouchableOpacity
@@ -38,7 +38,7 @@ const GoalCard: React.FC<Props> = ({ label, description, icon, selected, onPress
     >
       {selected ? (
         <View className="absolute top-3 right-3 w-5 h-5 rounded-full bg-accent dark:bg-accent-dark items-center justify-center">
-          <Ionicons name="checkmark" size={12} color={isDark ? colors.background : '#FFFFFF'} />
+          <Ionicons name="checkmark" size={12} color={colors.accentContrast} />
         </View>
       ) : null}
 
