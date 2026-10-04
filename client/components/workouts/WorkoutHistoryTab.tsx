@@ -31,7 +31,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
-  const { showSuccess, showError } = useToast();
+  const { showSuccess } = useToast();
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
 
@@ -416,7 +416,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <Text
                     className={`text-[9px] font-bold uppercase mb-0.5 ${
                       isSelected
-                        ? 'text-white font-black'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -425,7 +425,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <Text
                     className={`text-xs font-black mb-1 ${
                       isSelected
-                        ? 'text-white'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
                         : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
@@ -436,7 +436,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                   <View
                     className={`w-2 h-2 rounded-full ${
                       isSelected
-                        ? 'bg-white'
+                        ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
                         : slot.hasWorkout
                         ? 'bg-accent dark:bg-accent-dark'
                         : 'bg-input-border dark:bg-input-border-dark'

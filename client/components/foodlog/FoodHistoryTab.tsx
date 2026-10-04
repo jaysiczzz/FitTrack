@@ -59,7 +59,7 @@ export default function FoodHistoryTab({
   const loadHistory = useCallback(async () => {
     setLoading(true);
     try {
-      const todayStr = getTodayDateString();
+      
       const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
       const foodTodayKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterTodayKey = authStorage.getScopedKey(userId, 'water_log_today');
@@ -487,7 +487,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-[9px] font-bold uppercase mb-0.5 ${
                       isSelected
-                        ? 'text-white font-black'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -496,7 +496,7 @@ export default function FoodHistoryTab({
                   <Text
                     className={`text-xs font-black mb-1 ${
                       isSelected
-                        ? 'text-white'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
                         : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
@@ -507,7 +507,7 @@ export default function FoodHistoryTab({
                   <View
                     className={`w-2 h-2 rounded-full ${
                       isSelected
-                        ? 'bg-white'
+                        ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
                         : slot.hasLog
                         ? slot.hitProtein
                           ? 'bg-accent dark:bg-accent-dark'

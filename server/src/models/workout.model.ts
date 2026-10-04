@@ -164,7 +164,7 @@ export const DEFAULT_LIBRARY = [
     "id": "ex-push-ups",
     "name": "Push-ups",
     "description": "Fundamental bodyweight pushing movement for building functional upper body strength and core stability.",
-    "category": "Warm-up",
+    "category": "Strength",
     "type": "Bodyweight",
     "difficulty": "Beginner",
     "primaryMuscle": "Chest",
@@ -931,13 +931,21 @@ export const DEFAULT_LIBRARY = [
     "recommendedSets": 3,
     "recommendedDuration": 60,
     "recommendedRest": 45,
+    "recommendedTempo": "Static Isometric Hold",
     "defaultSets": [
       {
         "bodyweight": true,
+        "duration": 60,
         "reps": 1
       },
       {
         "bodyweight": true,
+        "duration": 60,
+        "reps": 1
+      },
+      {
+        "bodyweight": true,
+        "duration": 60,
         "reps": 1
       }
     ],
@@ -2958,7 +2966,7 @@ export const DEFAULT_LIBRARY = [
     "id": "ex-diamond-push-ups",
     "name": "Diamond Push-ups",
     "description": "Close-grip push-up variation placing intense loading on the triceps and inner chest fibers.",
-    "category": "Warm-up",
+    "category": "Strength",
     "type": "Bodyweight",
     "difficulty": "Intermediate",
     "primaryMuscle": "Chest",
@@ -5228,18 +5236,22 @@ export const DEFAULT_LIBRARY = [
     "recommendedReps": 100,
     "recommendedDuration": 180,
     "recommendedRest": 60,
+    "recommendedTempo": "Continuous Pace",
     "defaultSets": [
       {
         "duration": 60,
-        "reps": 100
+        "reps": 100,
+        "bodyweight": true
       },
       {
         "duration": 60,
-        "reps": 100
+        "reps": 100,
+        "bodyweight": true
       },
       {
         "duration": 60,
-        "reps": 100
+        "reps": 100,
+        "bodyweight": true
       }
     ],
     "safetyInstructions": "Wear supportive cushioned athletic shoes.",
@@ -5452,18 +5464,22 @@ export const DEFAULT_LIBRARY = [
     "recommendedReps": 1,
     "recommendedDuration": 45,
     "recommendedRest": 45,
+    "recommendedTempo": "Static Isometric Hold",
     "defaultSets": [
       {
         "duration": 30,
-        "reps": 1
+        "reps": 1,
+        "bodyweight": true
       },
       {
         "duration": 30,
-        "reps": 1
+        "reps": 1,
+        "bodyweight": true
       },
       {
         "duration": 30,
-        "reps": 1
+        "reps": 1,
+        "bodyweight": true
       }
     ],
     "safetyInstructions": "If shoulder joint aches, position elbow strictly perpendicular underneath clavicle.",
@@ -5860,7 +5876,7 @@ export const DEFAULT_LIBRARY = [
     "type": "Calisthenics",
     "difficulty": "Intermediate",
     "primaryMuscle": "Full Body",
-    "muscleGroup": "Full Body",
+    "muscleGroup": "Cardio",
     "secondaryMuscles": [
       "Chest",
       "Quads",
@@ -5894,7 +5910,7 @@ export const DEFAULT_LIBRARY = [
     "recommendedSets": 3,
     "recommendedReps": 12,
     "recommendedRest": 60,
-    "recommendedTempo": "Continuous",
+    "recommendedTempo": "Continuous Pace",
     "defaultSets": [
       {
         "bodyweight": true,
@@ -6082,112 +6098,7 @@ export const DEFAULT_LIBRARY = [
   }
 ]
 
-const generatePresetsForExercise = (ex: any) => {
-  const isBodyweight = ex.type === 'Bodyweight' || ex.type === 'Calisthenics';
-  const isCardioOrStretch = ex.type === 'Cardio' || ex.type === 'Stretch' || ex.type === 'Mobility';
 
-  if (isCardioOrStretch) {
-    return {
-      beginner: {
-        difficulty: 'Beginner',
-        recommendedSets: 1,
-        recommendedReps: 1,
-        recommendedDuration: 600,
-        recommendedRest: 45,
-        recommendedTempo: 'Gentle Pace',
-        defaultSets: [{ weight: 0, reps: 1, duration: 600 }],
-        cue: 'Beginner: Light 10-minute aerobic pace to build baseline stamina.'
-      },
-      intermediate: {
-        difficulty: 'Intermediate',
-        recommendedSets: 1,
-        recommendedReps: 1,
-        recommendedDuration: 1800,
-        recommendedRest: 60,
-        recommendedTempo: 'Target Pace',
-        defaultSets: [{ weight: 0, reps: 1, duration: 1800 }],
-        cue: 'Intermediate: Standard 30-minute steady-state endurance threshold.'
-      },
-      advanced: {
-        difficulty: 'Advanced',
-        recommendedSets: 1,
-        recommendedReps: 1,
-        recommendedDuration: 2700,
-        recommendedRest: 90,
-        recommendedTempo: 'HIIT / High Pace',
-        defaultSets: [{ weight: 0, reps: 1, duration: 2700 }],
-        cue: 'Advanced: Intense 45-minute interval or high-tempo endurance challenge.'
-      }
-    };
-  }
-
-  if (isBodyweight) {
-    return {
-      beginner: {
-        difficulty: 'Beginner',
-        recommendedSets: 3,
-        recommendedReps: 8,
-        recommendedRest: 60,
-        recommendedTempo: '2-0-1-0',
-        defaultSets: [{ bodyweight: true, reps: 8 }, { bodyweight: true, reps: 8 }, { bodyweight: true, reps: 8 }],
-        cue: 'Beginner: Focus on clean posture, knee modifications, and controlled reps.'
-      },
-      intermediate: {
-        difficulty: 'Intermediate',
-        recommendedSets: 3,
-        recommendedReps: 12,
-        recommendedRest: 75,
-        recommendedTempo: '2-0-1-0',
-        defaultSets: [{ bodyweight: true, reps: 12 }, { bodyweight: true, reps: 12 }, { bodyweight: true, reps: 10 }],
-        cue: 'Intermediate: Strict form with full depth & scapular stabilization.'
-      },
-      advanced: {
-        difficulty: 'Advanced',
-        recommendedSets: 4,
-        recommendedReps: 18,
-        recommendedRest: 90,
-        recommendedTempo: '3-1-1-0',
-        defaultSets: [{ bodyweight: true, reps: 18 }, { bodyweight: true, reps: 16 }, { bodyweight: true, reps: 15 }, { bodyweight: true, reps: 12 }],
-        cue: 'Advanced: Explosive push & 3-second controlled eccentric descent.'
-      }
-    };
-  }
-
-  const baseWeight = (ex.defaultSets && ex.defaultSets[0]?.weight) ? Number(ex.defaultSets[0].weight) : 30;
-  const begW = Math.max(10, Math.round(baseWeight * 0.6));
-  const intW = baseWeight;
-  const advW = Math.round(baseWeight * 1.35);
-
-  return {
-    beginner: {
-      difficulty: 'Beginner',
-      recommendedSets: 3,
-      recommendedReps: 12,
-      recommendedRest: 60,
-      recommendedTempo: '2-0-1-0',
-      defaultSets: [{ weight: begW, reps: 12 }, { weight: begW, reps: 12 }, { weight: begW, reps: 10 }],
-      cue: 'Beginner: Lighter load (12 reps) to master path of motion and joint stability.'
-    },
-    intermediate: {
-      difficulty: 'Intermediate',
-      recommendedSets: 3,
-      recommendedReps: 10,
-      recommendedRest: 90,
-      recommendedTempo: '2-0-1-0',
-      defaultSets: [{ weight: intW, reps: 10 }, { weight: Math.round(intW * 1.05), reps: 8 }, { weight: Math.round(intW * 1.1), reps: 8 }],
-      cue: 'Intermediate: Moderate working load (10 reps) for progressive hypertrophy.'
-    },
-    advanced: {
-      difficulty: 'Advanced',
-      recommendedSets: 4,
-      recommendedReps: 6,
-      recommendedRest: 120,
-      recommendedTempo: '3-1-1-0',
-      defaultSets: [{ weight: advW, reps: 6 }, { weight: Math.round(advW * 1.05), reps: 5 }, { weight: Math.round(advW * 1.1), reps: 4 }],
-      cue: 'Advanced: Heavy working load (6 reps) with 3s slow negative & explosive drive.'
-    }
-  };
-};
 
 
 export interface LibraryFilterOptions {

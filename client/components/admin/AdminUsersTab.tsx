@@ -20,6 +20,7 @@ import {
   adminOverrideSubscriptionApi,
   SubscriptionTierType,
 } from '@/api/subscription';
+import { capitalizeWords } from '@/utils/formatters';
 
 interface AdminUsersTabProps {
   users: AdminUserItem[];
@@ -45,7 +46,7 @@ export default function AdminUsersTab({
   onReloadUsers,
 }: AdminUsersTabProps) {
   const { colors } = useThemeColors();
-  const { showSuccess, showError, showWarning } = useToast();
+  const { showSuccess, showError } = useToast();
 
   const [selectedUser, setSelectedUser] = useState<AdminUserItem | null>(null);
   const [updatingUserRole, setUpdatingUserRole] = useState(false);
@@ -182,7 +183,7 @@ export default function AdminUsersTab({
                 <View className="flex-1">
                   <View className="flex-row items-center gap-2 mb-1">
                     <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                      {item.firstName} {item.lastName}
+                      {capitalizeWords(item.firstName)} {capitalizeWords(item.lastName)}
                     </Text>
                     {isItemAdmin ? (
                       <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
@@ -245,7 +246,7 @@ export default function AdminUsersTab({
 
               <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-xl mb-4">
                 <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                  {selectedUser.firstName} {selectedUser.lastName}
+                  {capitalizeWords(selectedUser.firstName)} {capitalizeWords(selectedUser.lastName)}
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                   {selectedUser.email}

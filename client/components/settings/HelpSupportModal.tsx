@@ -14,7 +14,7 @@ import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
-import { sendFeedbackApi, FeedbackPayload } from '@/api/support';
+import { sendFeedbackApi } from '@/api/support';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
 
@@ -102,7 +102,7 @@ export default function HelpSupportModal({
   onClose,
   initialTab = 'faq',
 }: HelpSupportModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
   const [activeTab, setActiveTab] = useState<'faq' | 'contact'>(initialTab);

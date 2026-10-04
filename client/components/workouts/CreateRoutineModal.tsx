@@ -70,6 +70,7 @@ export default function CreateRoutineModal({
       name: libEx.name,
       category: libEx.category || 'Strength',
       type: libEx.type || 'Compound',
+      primaryMuscle: libEx.primaryMuscle || libEx.muscleGroup || 'Chest',
       muscleGroup: libEx.muscleGroup || libEx.primaryMuscle || 'Chest',
       defaultSets,
     };

@@ -24,7 +24,7 @@ interface ResetPasswordModalProps {
 }
 
 export default function ResetPasswordModal({ visible, onClose }: ResetPasswordModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
   const [currentPassword, setCurrentPassword] = useState('');

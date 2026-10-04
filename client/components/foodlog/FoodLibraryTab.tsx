@@ -8,6 +8,7 @@ import {
   Image,
   ActivityIndicator,
   Platform,
+  DeviceEventEmitter,
 } from 'react-native';
 import {
   FoodCatalogItem,
@@ -33,8 +34,11 @@ import {
 import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import FilterChip from '../ui/FilterChip';
+import MealSelectorPill from './MealSelectorPill';
+import ResponsiveMacroRow from './ResponsiveMacroRow';
 import MealComboDetailsModal from './MealComboDetailsModal';
 import FoodDetailsInspectorModal from './FoodDetailsInspectorModal';
+import { useResponsive } from '@/hooks/useResponsive';
 
 export type LibraryMode = 'combos' | 'search' | 'recent';
 export type ComboFilter = 'ALL' | 'High Protein' | 'Fat Loss' | 'Post-Workout' | 'Clean Bulking' | 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -72,18 +76,32 @@ export default function FoodLibraryTab({
   const [recentFoods, setRecentFoods] = useState<FoodCatalogItem[]>([]);
   const [sessionAddedCount, setSessionAddedCount] = useState(0);
 
+  // Pagination state for progressive loading
+  const PAGE_SIZE = 12;
+  const [visibleCount, setVisibleCount] = useState<number>(12);
+
+  useEffect(() => {
+    setVisibleCount(12);
+  }, [libraryMode, searchQuery, activeCategory, activeComboFilter]);
+
   const debounceTimerRef = useRef<any>(null);
 
   useEffect(() => {
-    if (defaultMeal) {
-      setSelectedMeal(defaultMeal);
-    }
+    setSelectedMeal(defaultMeal || getSmartMealType());
   }, [defaultMeal]);
 
   useEffect(() => {
-    getRecentLoggedFoods().then((list) => {
-      setRecentFoods(list);
-    });
+    const loadRecents = () => {
+      getRecentLoggedFoods().then((list) => {
+        setRecentFoods(list);
+      });
+    };
+    loadRecents();
+
+    const sub = DeviceEventEmitter.addListener('RECENT_FOODS_UPDATED', loadRecents);
+    return () => {
+      sub.remove();
+    };
   }, []);
 
   // Fetch foods from Open Food Facts API when in 'search' mode
@@ -185,6 +203,14 @@ export default function FoodLibraryTab({
     return [...localFiltered, ...uniqueOff];
   }, [searchQuery, activeCategory, recentFoods, offFoods, libraryMode]);
 
+  const paginatedCombos = useMemo(() => {
+    return filteredCombos.slice(0, visibleCount);
+  }, [filteredCombos, visibleCount]);
+
+  const paginatedFoods = useMemo(() => {
+    return displayedFoods.slice(0, visibleCount);
+  }, [displayedFoods, visibleCount]);
+
   // 1-Tap Log entire Meal Combo
   const handleLogMealCombo = (combo: MealCombo, scale: number = 1.0, targetMeal?: MealType) => {
     const scaledCalories = Math.round(combo.calories * scale);
@@ -260,6 +286,11 @@ export default function FoodLibraryTab({
 
   return (
     <View className="flex-1">
+      <View className="flex-row items-center justify-between mb-2">
+        <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+          Food Library
+        </Text>
+      </View>
       {/* Session Added Banner */}
       {sessionAddedCount > 0 && onSwitchToToday && (
         <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 rounded-2xl p-3 mb-3 flex-row items-center justify-between">
@@ -281,155 +312,127 @@ export default function FoodLibraryTab({
         </View>
       )}
 
-      {/* Top Segmented Mode Selector: Meal Combos vs Search vs Recents */}
-      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl border border-input-border dark:border-input-border-dark mb-3">
-        {[
-          { key: 'combos', label: 'Balanced Meal Combos', icon: 'restaurant-outline' as const },
-          { key: 'search', label: 'Search All Foods', icon: 'search-outline' as const },
-          { key: 'recent', label: `Recents (${recentFoods.length})`, icon: 'time-outline' as const },
-        ].map((tab) => {
-          const active = libraryMode === tab.key;
-          return (
-            <TouchableOpacity
-              key={tab.key}
-              onPress={() => setLibraryMode(tab.key as LibraryMode)}
-              activeOpacity={0.8}
-              className={`flex-1 py-2 px-1 rounded-xl items-center justify-center flex-row gap-1.5 ${
-                active ? 'bg-accent dark:bg-accent-dark' : ''
-              }`}
-            >
-              <Ionicons
-                name={tab.icon}
-                size={13}
-                color={active ? '#FFFFFF' : colors.textMuted}
-              />
-              <Text
-                numberOfLines={1}
-                className={`text-[11px] font-extrabold ${
-                  active ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
-                }`}
-              >
-                {tab.label}
-              </Text>
+      {/* Row 2: Search Input + Meal Selector Pill Inline */}
+      <View className="flex-row items-center gap-2 mb-2.5">
+        <View className="flex-1 flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3 min-h-[34px] py-1">
+          <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
+          <TextInput
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholder={
+              libraryMode === 'combos'
+                ? 'Search meal combos...'
+                : libraryMode === 'recent'
+                ? 'Search recents...'
+                : 'Search foods & brands...'
+            }
+            placeholderTextColor={colors.textMuted}
+            className="flex-1 py-2 text-xs text-text-primary dark:text-text-primary-dark font-medium"
+            returnKeyType="search"
+            clearButtonMode="while-editing"
+            autoCorrect={false}
+          />
+          {isLoadingOff ? (
+            <ActivityIndicator size="small" color={colors.accent} className="ml-1" />
+          ) : searchQuery.length > 0 ? (
+            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
             </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {/* Target Meal Type Selector: Log To Meal */}
-      <View className="mb-3">
-        <View className="flex-row justify-between items-center mb-1.5">
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] tracking-wider font-bold uppercase">
-            Log To Meal:
-          </Text>
-          <View className="bg-accent/15 dark:bg-accent-dark/25 px-2 py-0.5 rounded-full border border-accent/20">
-            <Text className="text-accent dark:text-accent-dark text-[10px] font-extrabold">
-              {MEAL_LABELS[selectedMeal]}
-            </Text>
-          </View>
+          ) : null}
         </View>
 
-        <View className="flex-row gap-1.5">
-          {(['breakfast', 'lunch', 'dinner', 'snack'] as const).map((m) => {
-            const isSelected = selectedMeal === m;
-            return (
-              <TouchableOpacity
-                key={m}
-                onPress={() => setSelectedMeal(m)}
-                activeOpacity={0.8}
-                className={`flex-1 py-2 px-1 rounded-xl items-center justify-center border ${
-                  isSelected
-                    ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
-                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                }`}
-              >
-                <Ionicons
-                  name={MEAL_GLYPHS[m]}
-                  size={14}
-                  color={isSelected ? '#FFFFFF' : colors.textMuted}
-                  style={{ marginBottom: 2 }}
-                />
-                <Text
-                  className={`text-[10px] font-bold capitalize ${
-                    isSelected
-                      ? 'text-white font-black'
-                      : 'text-text-primary dark:text-text-primary-dark'
-                  }`}
-                >
-                  {MEAL_LABELS[m]}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </View>
-
-      {/* Search Input Bar */}
-      <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5 mb-3">
-        <Ionicons name="search" size={17} color={colors.textMuted} className="mr-2" />
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder={
-            libraryMode === 'combos'
-              ? 'Search meal combos (chicken, salmon, oats, bowl)...'
-              : 'Search verified staples (chicken, oats, eggs) & brands...'
-          }
-          placeholderTextColor={colors.textMuted}
-          className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark font-medium"
-          returnKeyType="search"
-          clearButtonMode="while-editing"
-          autoCorrect={false}
+        <MealSelectorPill
+          selectedMeal={selectedMeal}
+          onSelectMeal={setSelectedMeal}
+          compact
         />
-        {isLoadingOff ? (
-          <ActivityIndicator size="small" color={colors.accent} className="ml-1" />
-        ) : searchQuery.length > 0 ? (
-          <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-            <Ionicons name="close-circle" size={17} color={colors.textMuted} />
-          </TouchableOpacity>
-        ) : null}
+      </View>
+
+      {/* Row 3: Source Chips + Contextual Filters with Scroll Hint */}
+      <View className="relative mb-3">
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          className="flex-row"
+          contentContainerStyle={{ paddingRight: 28, alignItems: 'center' }}
+        >
+          {/* Leading Source Chips */}
+          <FilterChip
+            label="Meals"
+            selected={libraryMode === 'combos'}
+            onPress={() => setLibraryMode('combos')}
+            className="mr-1.5"
+          />
+          <FilterChip
+            label="Foods"
+            selected={libraryMode === 'search'}
+            onPress={() => setLibraryMode('search')}
+            className="mr-1.5"
+          />
+          <FilterChip
+            label="Recents"
+            count={recentFoods.length > 0 ? recentFoods.length : undefined}
+            selected={libraryMode === 'recent'}
+            onPress={() => setLibraryMode('recent')}
+            className="mr-2"
+          />
+
+          {/* Visual Divider between Source Chips and Category Sub-Filters */}
+          <View className="h-5 w-[1px] bg-input-border dark:bg-input-border-dark mr-2" />
+
+          {/* Sub-Filters: Combos */}
+          {libraryMode === 'combos' && (
+            <>
+              {[
+                { key: 'ALL', label: 'All Combos' },
+                { key: 'High Protein', label: 'High Protein' },
+                { key: 'Fat Loss', label: 'Fat Loss' },
+                { key: 'Post-Workout', label: 'Post-Workout' },
+                { key: 'Clean Bulking', label: 'Clean Bulking' },
+                { key: 'breakfast', label: 'Breakfast' },
+                { key: 'lunch', label: 'Lunch' },
+                { key: 'dinner', label: 'Dinner' },
+                { key: 'snack', label: 'Snacks' },
+              ].map((f) => (
+                <FilterChip
+                  key={f.key}
+                  label={f.label}
+                  selected={activeComboFilter === f.key}
+                  onPress={() => setActiveComboFilter(f.key as ComboFilter)}
+                  className="mr-1.5"
+                />
+              ))}
+            </>
+          )}
+
+          {/* Sub-Filters: Search Foods */}
+          {libraryMode === 'search' && (
+            <>
+              {[
+                { key: 'ALL', label: 'All' },
+                { key: 'Protein', label: 'Protein' },
+                { key: 'Carbs', label: 'Carbs' },
+                { key: 'Fats', label: 'Fats' },
+                { key: 'Vegetables', label: 'Veggies' },
+                { key: 'Fruits', label: 'Fruits' },
+                { key: 'Dairy', label: 'Dairy' },
+              ].map((cat) => (
+                <FilterChip
+                  key={cat.key}
+                  label={cat.label}
+                  selected={activeCategory === cat.key}
+                  onPress={() => setActiveCategory(cat.key as FilterCategory)}
+                  className="mr-1.5"
+                />
+              ))}
+            </>
+          )}
+        </ScrollView>
       </View>
 
       {/* ===================== MODE 1: BALANCED MEAL COMBOS ===================== */}
       {libraryMode === 'combos' && (
         <View>
-          {/* Goal & Meal Filter Chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            className="flex-row mb-3"
-            contentContainerStyle={{ paddingRight: 10 }}
-          >
-            {[
-              { key: 'ALL', label: 'All Combos' },
-              { key: 'High Protein', label: '🔥 High Protein' },
-              { key: 'Fat Loss', label: '✂️ Fat Loss' },
-              { key: 'Post-Workout', label: '⚡ Post-Workout' },
-              { key: 'Clean Bulking', label: '💪 Clean Bulking' },
-              { key: 'breakfast', label: '🌅 Breakfast' },
-              { key: 'lunch', label: '☀️ Lunch' },
-              { key: 'dinner', label: '🌙 Dinner' },
-              { key: 'snack', label: '🍎 Snacks' },
-            ].map((f) => (
-              <FilterChip
-                key={f.key}
-                label={f.label}
-                selected={activeComboFilter === f.key}
-                onPress={() => setActiveComboFilter(f.key as ComboFilter)}
-                className="mr-1.5"
-              />
-            ))}
-          </ScrollView>
-
-          {/* Combos Count Header */}
-          <View className="flex-row items-center justify-between px-1 mb-2.5">
-            <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-              Curated Balanced Meals ({filteredCombos.length})
-            </Text>
-            <Text className="text-[11px] text-accent dark:text-accent-dark font-bold">
-              1-Tap Macro Logging
-            </Text>
-          </View>
 
           {/* Combos Cards List */}
           {filteredCombos.length === 0 ? (
@@ -443,121 +446,100 @@ export default function FoodLibraryTab({
               </Text>
             </View>
           ) : (
-            filteredCombos.map((combo) => {
-              const totalMacroCals = combo.protein * 4 + combo.carbs * 4 + combo.fat * 9;
-              const pPct = totalMacroCals > 0 ? Math.round(((combo.protein * 4) / totalMacroCals) * 100) : 0;
-              const cPct = totalMacroCals > 0 ? Math.round(((combo.carbs * 4) / totalMacroCals) * 100) : 0;
-              const fPct = totalMacroCals > 0 ? 100 - pPct - cPct : 0;
+            <View className="flex-row flex-wrap justify-between">
+              {paginatedCombos.map((combo) => {
+                const goalBadgeContainerClass =
+                  combo.goal === 'High Protein'
+                    ? 'bg-emerald-500/15 border-emerald-500/30 dark:bg-emerald-500/20 dark:border-emerald-500/40'
+                    : combo.goal === 'Fat Loss'
+                    ? 'bg-rose-500/15 border-rose-500/30 dark:bg-rose-500/20 dark:border-rose-500/40'
+                    : combo.goal === 'Post-Workout'
+                    ? 'bg-sky-500/15 border-sky-500/30 dark:bg-sky-500/20 dark:border-sky-500/40'
+                    : combo.goal === 'Clean Bulking'
+                    ? 'bg-purple-500/15 border-purple-500/30 dark:bg-purple-500/20 dark:border-purple-500/40'
+                    : 'bg-amber-500/15 border-amber-500/30 dark:bg-amber-500/20 dark:border-amber-500/40';
 
-              const goalBadgeClass =
-                combo.goal === 'High Protein'
-                  ? 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30'
-                  : combo.goal === 'Fat Loss'
-                  ? 'bg-rose-500/15 text-rose-500 border-rose-500/30'
-                  : combo.goal === 'Post-Workout'
-                  ? 'bg-sky-500/15 text-sky-500 border-sky-500/30'
-                  : combo.goal === 'Clean Bulking'
-                  ? 'bg-purple-500/15 text-purple-500 border-purple-500/30'
-                  : 'bg-amber-500/15 text-amber-500 border-amber-500/30';
+                const goalBadgeTextColor =
+                  combo.goal === 'High Protein'
+                    ? (isDark ? '#86EFAC' : '#059669')
+                    : combo.goal === 'Fat Loss'
+                    ? (isDark ? '#FDA4AF' : '#DC2626')
+                    : combo.goal === 'Post-Workout'
+                    ? (isDark ? '#7DD3FC' : '#0284C7')
+                    : combo.goal === 'Clean Bulking'
+                    ? (isDark ? '#D8B4FE' : '#9333EA')
+                    : (isDark ? '#FDE047' : '#B45309');
 
-              return (
-                <View
-                  key={combo.id}
-                  className="mb-3.5 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-4 shadow-sm"
-                >
-                  {/* Top Row: Icon, Title & Goal Badge */}
-                  <View className="flex-row items-start justify-between mb-2">
-                    <View className="flex-row items-center gap-3 flex-1 pr-2">
-                      <View className="w-11 h-11 rounded-2xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark">
-                        <Text className="text-xl">{combo.icon}</Text>
+                return (
+                  <TouchableOpacity
+                    key={combo.id}
+                    onPress={() => setSelectedComboForDetails(combo)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View details for ${combo.title}`}
+                    className="w-full md:w-[48.5%] lg:w-[32%] mb-3 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 shadow-sm"
+                  >
+                    {/* Top Row: Icon, Title & Goal Badge */}
+                    <View className="flex-row items-start justify-between mb-2">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                        <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark shrink-0">
+                          <Text className="text-lg">{combo.icon}</Text>
+                        </View>
+                        <View className="flex-1 min-w-0">
+                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                            {combo.title}
+                          </Text>
+                          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium mt-0.5" numberOfLines={1}>
+                            ⏱️ {combo.prepTimeMinutes}m · {combo.tagline}
+                          </Text>
+                        </View>
                       </View>
-                      <View className="flex-1">
-                        <Text className="text-base font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
-                          {combo.title}
-                        </Text>
-                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium mt-0.5">
-                          ⏱️ {combo.prepTimeMinutes} min • {combo.tagline}
+
+                      <View className={`px-2 py-0.5 rounded-full border shrink-0 ${goalBadgeContainerClass}`}>
+                        <Text
+                          style={{ color: goalBadgeTextColor }}
+                          className="text-[9px] font-extrabold uppercase"
+                        >
+                          {combo.goal}
                         </Text>
                       </View>
                     </View>
 
-                    <View className={`px-2 py-0.5 rounded-full border ${goalBadgeClass}`}>
-                      <Text className="text-[9px] font-extrabold uppercase">
-                        {combo.goal}
-                      </Text>
+                    {/* Responsive 4-Column Macro Row */}
+                    <View className="mt-1">
+                      <ResponsiveMacroRow
+                        calories={combo.calories}
+                        protein={combo.protein}
+                        carbs={combo.carbs}
+                        fat={combo.fat}
+                        compact
+                      />
                     </View>
-                  </View>
 
-                  {/* Macro Pills Grid */}
-                  <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border/60 mb-2.5 flex-row items-center justify-between">
-                    <View className="items-center flex-1">
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Calories</Text>
-                      <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                        {combo.calories}
-                      </Text>
-                    </View>
-                    <View className="items-center flex-1 border-x border-input-border/60">
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Protein</Text>
-                      <Text className="text-sm font-black text-emerald-500">
-                        {combo.protein}g
-                      </Text>
-                    </View>
-                    <View className="items-center flex-1 border-r border-input-border/60">
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Carbs</Text>
-                      <Text className="text-sm font-black text-sky-500">
-                        {combo.carbs}g
-                      </Text>
-                    </View>
-                    <View className="items-center flex-1">
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Fat</Text>
-                      <Text className="text-sm font-black text-amber-500">
-                        {combo.fat}g
-                      </Text>
-                    </View>
-                  </View>
-
-                  {/* Visual Macro Bar */}
-                  <View className="h-1.5 rounded-full overflow-hidden flex-row bg-input-border/30 mb-2.5">
-                    <View style={{ width: `${pPct}%`, backgroundColor: '#10B981' }} />
-                    <View style={{ width: `${cPct}%`, backgroundColor: '#0EA5E9' }} />
-                    <View style={{ width: `${fPct}%`, backgroundColor: '#F59E0B' }} />
-                  </View>
-
-                  {/* Ingredients Preview */}
-                  <View className="mb-3">
-                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4" numberOfLines={2}>
+                    {/* Ingredients Preview */}
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
                       <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
                       {combo.ingredients.map((ing) => ing.name).join(' · ')}
                     </Text>
-                  </View>
+                  </TouchableOpacity>
+                );
+              })}
 
-                  {/* Action Buttons Row */}
-                  <View className="flex-row items-center justify-between pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60 gap-2">
-                    <TouchableOpacity
-                      onPress={() => setSelectedComboForDetails(combo)}
-                      activeOpacity={0.7}
-                      className="px-3 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
-                    >
-                      <Ionicons name="receipt-outline" size={13} color={colors.accent} />
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                        Recipe & Scale
-                      </Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      onPress={() => handleLogMealCombo(combo, 1.0, selectedMeal)}
-                      activeOpacity={0.8}
-                      className="flex-1 py-2 px-3 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <Ionicons name="flash" size={13} color="#FFFFFF" />
-                      <Text className="text-xs font-black text-white">
-                        1-Tap Log ({combo.calories} kcal)
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+              {/* Load More Combos */}
+              {filteredCombos.length > visibleCount && (
+                <View className="w-full items-center my-3">
+                  <TouchableOpacity
+                    onPress={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                    activeOpacity={0.8}
+                    className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-5 py-2 rounded-xl shadow-sm"
+                  >
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                      Load More Combos ({filteredCombos.length - visibleCount} remaining)
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              );
-            })
+              )}
+            </View>
           )}
         </View>
       )}
@@ -565,43 +547,6 @@ export default function FoodLibraryTab({
       {/* ===================== MODE 2 & 3: SEARCH ALL FOODS / RECENTS ===================== */}
       {(libraryMode === 'search' || libraryMode === 'recent') && (
         <View>
-          {libraryMode === 'search' && (
-            <View className="mb-2">
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-                {[
-                  { key: 'ALL', label: 'All Foods' },
-                  { key: 'Protein', label: 'Protein' },
-                  { key: 'Carbs', label: 'Carbs' },
-                  { key: 'Fats', label: 'Fats' },
-                  { key: 'Fruits', label: 'Fruits' },
-                  { key: 'Vegetables', label: 'Veggies' },
-                  { key: 'Dairy', label: 'Dairy' },
-                ].map((cat) => (
-                  <FilterChip
-                    key={cat.key}
-                    label={cat.label}
-                    selected={activeCategory === cat.key}
-                    onPress={() => setActiveCategory(cat.key as FilterCategory)}
-                    className="mr-1.5"
-                  />
-                ))}
-              </ScrollView>
-            </View>
-          )}
-
-          {/* Database Indicator */}
-          <View className="flex-row items-center justify-between px-1 mb-2.5">
-            <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-              {libraryMode === 'recent'
-                ? `Recent Foods (${recentFoods.length})`
-                : activeCategory !== 'ALL'
-                ? `${activeCategory} Foods (${displayedFoods.length})`
-                : `Verified Staples & Online Foods (${displayedFoods.length})`}
-            </Text>
-            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
-              Tap for Nutrition Facts
-            </Text>
-          </View>
 
           {/* Foods List */}
           {isLoadingOff && displayedFoods.length === 0 ? (
@@ -622,150 +567,101 @@ export default function FoodLibraryTab({
               </Text>
             </View>
           ) : (
-            displayedFoods.map((item) => {
-              const nutriscoreColor =
-                item.nutriscore === 'A'
-                  ? 'bg-emerald-600 text-white'
-                  : item.nutriscore === 'B'
-                  ? 'bg-emerald-500 text-white'
-                  : item.nutriscore === 'C'
-                  ? 'bg-amber-500 text-white'
-                  : item.nutriscore === 'D'
-                  ? 'bg-orange-500 text-white'
-                  : item.nutriscore === 'E'
-                  ? 'bg-rose-600 text-white'
-                  : '';
+            <View className="flex-row flex-wrap justify-between">
+              {paginatedFoods.map((item) => {
+                const nutriscoreBg =
+                  item.nutriscore === 'A'
+                    ? 'bg-emerald-600'
+                    : item.nutriscore === 'B'
+                    ? 'bg-emerald-500'
+                    : item.nutriscore === 'C'
+                    ? 'bg-amber-500'
+                    : item.nutriscore === 'D'
+                    ? 'bg-orange-500'
+                    : item.nutriscore === 'E'
+                    ? 'bg-rose-600'
+                    : '';
 
-              return (
-                <View
-                  key={item.id}
-                  className="mb-3 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 shadow-sm"
-                >
-                  {/* Top Row: Icon/Image + Name + Verified Badge */}
-                  <View className="flex-row items-start justify-between mb-2">
-                    <TouchableOpacity
-                      onPress={() => setSelectedFoodForInspection(item)}
-                      activeOpacity={0.7}
-                      className="flex-row items-center gap-3 flex-1 pr-2"
-                    >
-                      {item.imageUri ? (
-                        <Image
-                          source={{ uri: item.imageUri }}
-                          className="w-11 h-11 rounded-2xl bg-input border border-input-border"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View className="w-11 h-11 rounded-2xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark">
-                          <Text className="text-xl">{item.icon || '🥗'}</Text>
+                return (
+                  <TouchableOpacity
+                    key={item.id}
+                    onPress={() => setSelectedFoodForInspection(item)}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityLabel={`View details for ${item.name}`}
+                    className="w-full md:w-[48.5%] lg:w-[32%] mb-3 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 shadow-sm"
+                  >
+                    {/* Top Row: Icon/Image + Name & Subtitle */}
+                    <View className="flex-row items-start justify-between mb-2">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                        {item.imageUri ? (
+                          <Image
+                            source={{ uri: item.imageUri }}
+                            className="w-10 h-10 rounded-xl bg-input border border-input-border shrink-0"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark shrink-0">
+                            <Text className="text-lg">{item.icon || '🥗'}</Text>
+                          </View>
+                        )}
+                        <View className="flex-1 min-w-0">
+                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                            {item.name}
+                          </Text>
+                          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
+                            {item.brand ? `${item.brand} · ` : ''}{item.servingSize} ({item.servingWeightG || 100}g)
+                          </Text>
                         </View>
-                      )}
-                      <View className="flex-1">
-                        <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
-                          {item.name}
-                        </Text>
-                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                          {item.brand ? `${item.brand} • ` : ''}{item.servingSize} ({item.servingWeightG || 100}g)
-                        </Text>
                       </View>
-                    </TouchableOpacity>
 
-                    {/* Quality Badges */}
-                    <View className="flex-row items-center gap-1.5">
-                      {item.isVerified ? (
-                        <View className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex-row items-center gap-1">
-                          <Ionicons name="checkmark-circle" size={11} color="#10B981" />
-                          <Text className="text-[9px] font-black text-emerald-500">
-                            Verified
-                          </Text>
-                        </View>
-                      ) : null}
-
+                      {/* Compact Nutri-Score badge if present (no "Verified" clutter) */}
                       {item.nutriscore ? (
-                        <View className={`px-1.5 py-0.5 rounded-md ${nutriscoreColor}`}>
-                          <Text className="text-[8px] font-black">
-                            Nutri-Score {item.nutriscore}
+                        <View className={`px-1.5 py-0.5 rounded-md shrink-0 ${nutriscoreBg}`}>
+                          <Text className="text-[8px] font-black text-white">
+                            Nutri {item.nutriscore}
                           </Text>
                         </View>
                       ) : null}
                     </View>
-                  </View>
 
-                  {/* Macro Pills Grid */}
-                  <View className="p-2 rounded-xl bg-input dark:bg-input-dark border border-input-border/60 mb-2 flex-row items-center justify-between">
-                    <View className="items-center flex-1">
-                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Calories</Text>
-                      <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                        {item.calories} kcal
-                      </Text>
+                    {/* Responsive 4-Column Macro Row */}
+                    <View className="mt-1">
+                      <ResponsiveMacroRow
+                        calories={item.calories}
+                        protein={item.protein}
+                        carbs={item.carbs}
+                        fat={item.fat}
+                        compact
+                      />
                     </View>
-                    <View className="items-center flex-1 border-x border-input-border/60">
-                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Protein</Text>
-                      <Text className="text-xs font-black text-emerald-500">
-                        {item.protein}g
-                      </Text>
-                    </View>
-                    <View className="items-center flex-1 border-r border-input-border/60">
-                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Carbs</Text>
-                      <Text className="text-xs font-black text-sky-500">
-                        {item.carbs}g
-                      </Text>
-                    </View>
-                    <View className="items-center flex-1">
-                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Fat</Text>
-                      <Text className="text-xs font-black text-amber-500">
-                        {item.fat}g
-                      </Text>
-                    </View>
-                  </View>
 
-                  {/* Micronutrients Line (if available) */}
-                  {(item.fiber !== undefined || item.sugar !== undefined || item.sodiumMg !== undefined) && (
-                    <View className="flex-row items-center gap-3 px-1 mb-2.5">
-                      {item.fiber !== undefined && (
-                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                          🌾 Fiber: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.fiber}g</Text>
-                        </Text>
-                      )}
-                      {item.sugar !== undefined && (
-                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                          🍬 Sugar: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.sugar}g</Text>
-                        </Text>
-                      )}
-                      {item.sodiumMg !== undefined && (
-                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                          🧂 Sodium: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{item.sodiumMg}mg</Text>
-                        </Text>
-                      )}
-                    </View>
-                  )}
-
-                  {/* Action Buttons Row */}
-                  <View className="flex-row items-center justify-between pt-2 border-t border-input-border/60 dark:border-input-border-dark/60 gap-2">
-                    <TouchableOpacity
-                      onPress={() => setSelectedFoodForInspection(item)}
-                      activeOpacity={0.7}
-                      className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
-                    >
-                      <Ionicons name="nutrition-outline" size={13} color={colors.accent} />
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                        Nutrition Facts & Scale
+                    {/* Ingredients / Description Preview if available */}
+                    {Boolean(item.ingredients || item.description) && (
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
+                        <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
+                        {item.ingredients || item.description}
                       </Text>
-                    </TouchableOpacity>
+                    )}
+                  </TouchableOpacity>
+                );
+              })}
 
-                    <TouchableOpacity
-                      onPress={() => handleQuickLogStandard(item)}
-                      activeOpacity={0.8}
-                      className="flex-1 py-1.5 px-3 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center justify-center gap-1.5 shadow-sm"
-                    >
-                      <Ionicons name="add" size={14} color="#FFFFFF" />
-                      <Text className="text-xs font-black text-white">
-                        Quick Add (+{item.servingSize})
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
+              {/* Load More Foods */}
+              {displayedFoods.length > visibleCount && (
+                <View className="w-full items-center my-3">
+                  <TouchableOpacity
+                    onPress={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
+                    activeOpacity={0.8}
+                    className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-5 py-2 rounded-xl shadow-sm"
+                  >
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                      Load More Foods ({displayedFoods.length - visibleCount} remaining)
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              );
-            })
+              )}
+            </View>
           )}
         </View>
       )}

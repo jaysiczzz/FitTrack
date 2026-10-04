@@ -7,7 +7,6 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
-import QuickActionToolbar from '@/components/foodlog/QuickActionToolbar';
 import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
 import WaterTrackerCard from '@/components/foodlog/WaterTrackerCard';
 import AiScanModal from '@/components/foodlog/AiScanModal';
@@ -17,12 +16,13 @@ import FoodLibraryTab from '@/components/foodlog/FoodLibraryTab';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import EditMealModal from '@/components/foodlog/EditMealModal';
 import RemoveFoodModal from '@/components/foodlog/RemoveFoodModal';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
-import { saveDailyFoodLogApi, getDailyFoodLogApi, completeDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
+import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
 import { screenCache } from '@/utils/screenCache';
 import { useThemeColors } from '@/constants/colors';
 
@@ -30,7 +30,7 @@ export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
   const router = useRouter();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
   const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
@@ -54,6 +54,7 @@ export default function FoodLog() {
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<FoodLogItem | null>(null);
+  const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
 
   // Targets computed dynamically based on user body stats & goal
   const targets: MacroTargets = useMemo(() => {
@@ -248,7 +249,7 @@ export default function FoodLog() {
     AsyncStorage.setItem(waterKey, clamped.toString()).catch((err) =>
       console.log('Error saving water:', err)
     );
-    AsyncStorage.setItem(dateWaterKey, clamped.toString()).catch(() => {});
+    AsyncStorage.setItem(dateWaterKey, clamped.toString()).catch(() => { });
 
     DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', waterMl: clamped });
     autoSyncFoodAndWater(userId, todayStr, itemsRef.current, clamped);
@@ -275,6 +276,26 @@ export default function FoodLog() {
         .catch((err) => console.log('Error saving food log:', err));
       return updated;
     });
+
+    // Automatically record to Recents history so all meals appear in Recents tab
+    toAdd.forEach((item) => {
+      saveFoodToRecentHistory({
+        id: item.id || `food-${Date.now()}`,
+        name: item.title,
+        category: 'Staples',
+        servingSize: item.subtitle || '1 serving',
+        servingWeightG: 100,
+        servingUnit: 'serving',
+        calories: item.calories,
+        protein: item.protein,
+        carbs: item.carbs,
+        fat: item.fat,
+        icon: item.icon || 'restaurant',
+        imageUri: item.imageUri,
+        keywords: [item.title.toLowerCase()],
+      }).catch(() => { });
+    });
+    DeviceEventEmitter.emit('RECENT_FOODS_UPDATED');
 
     if (toAdd.length === 1) {
       const single = toAdd[0];
@@ -395,7 +416,7 @@ export default function FoodLog() {
             try {
               const parsed = JSON.parse(rawDates);
               if (Array.isArray(parsed)) datesArr = parsed;
-            } catch {}
+            } catch { }
           }
           if (!datesArr.includes(todayStr)) {
             datesArr.unshift(todayStr);
@@ -471,211 +492,201 @@ export default function FoodLog() {
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
         <View className="w-full max-w-5xl self-center mx-auto">
-          {/* Screen Header */}
-          <View className="flex-row items-center justify-between mb-4">
-            <View>
-              <Text className="text-3xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-                Nutrition
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-normal">
-                Real-time daily fuel & macro tracking
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              onPress={() => router.push('/(screen)/calendar' as any)}
-              activeOpacity={0.8}
-              className="flex-row items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-2xl border bg-amber-500/10 border-amber-500/30"
-              accessibilityLabel="Activity Calendar"
-            >
-              <Ionicons
-                name="calendar"
-                size={15}
-                color={colors.warning}
-              />
-              <Text className="text-xs font-black text-warning dark:text-warning-dark">
-                Calendar
-              </Text>
-            </TouchableOpacity>
+          {/* Streamlined Screen Header */}
+          <View className="mb-3.5">
+            <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+              Nutrition
+            </Text>
           </View>
 
-        {/* Top Navigation Tabs (Today's Log | Library | History) */}
-        <FoodLogTabs
-          activeTab={activeTab}
-          onChange={setActiveTab}
-        />
+          {/* Top Navigation Tabs (Today's Log | Library | History) */}
+          <FoodLogTabs
+            activeTab={activeTab}
+            onChange={(tab) => {
+              setActiveTab(tab);
+              if (tab === 'today') {
+                setScanTargetMeal(undefined);
+              }
+            }}
+          />
 
-        {activeTab === 'history' ? (
-          /* History & Trends Tab View */
-          <FoodHistoryTab
-            targets={targets}
-            onReLogItem={handleAddMealItem}
-            onSwitchToToday={() => setActiveTab('today')}
-          />
-        ) : activeTab === 'library' ? (
-          /* Food Library Tab View */
-          <FoodLibraryTab
-            onAddFood={handleAddMealItem}
-            defaultMeal={scanTargetMeal}
-            onSwitchToToday={() => setActiveTab('today')}
-          />
-        ) : (
-          /* Today's Log Tab View */
-          <>
-            {/* 1. Daily Macro & Calorie Budget Summary Card */}
-            <MacroSummaryCard
+          {activeTab === 'history' ? (
+            /* History & Trends Tab View */
+            <FoodHistoryTab
               targets={targets}
-              loggedCalories={loggedCalories}
-              loggedProtein={loggedProtein}
-              loggedCarbs={loggedCarbs}
-              loggedFat={loggedFat}
-              goal={goal}
-            />
-
-            {/* 2. Quick Action Toolbar (Photo Scan, Describe Meal, AI Suggest) */}
-            <QuickActionToolbar
-              onPhotoScan={() => {
+              onReLogItem={handleAddMealItem}
+              onSwitchToToday={() => {
                 setScanTargetMeal(undefined);
-                setScanInitialMode('photo');
-                setShowScanModal(true);
+                setActiveTab('today');
               }}
-              onTextLog={() => {
+            />
+          ) : activeTab === 'library' ? (
+            /* Food Library Tab View */
+            <FoodLibraryTab
+              onAddFood={handleAddMealItem}
+              defaultMeal={scanTargetMeal}
+              onSwitchToToday={() => {
                 setScanTargetMeal(undefined);
-                setScanInitialMode('text');
-                setShowScanModal(true);
+                setActiveTab('today');
               }}
-              onAiSuggest={() => setShowAiSuggestModal(true)}
-              onCopyYesterday={handleCopyYesterday}
             />
+          ) : (
+            /* Today's Log Tab View */
+            <>
+              {/* 1. Daily Macro & Calorie Budget Summary Card */}
+              <MacroSummaryCard
+                targets={targets}
+                loggedCalories={loggedCalories}
+                loggedProtein={loggedProtein}
+                loggedCarbs={loggedCarbs}
+                loggedFat={loggedFat}
+                goal={goal}
+              />
 
-            {/* 3. Meal Category Cards */}
-            <View className="mb-2">
-              <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-2.5">
-                Today's Logged Meals
-              </Text>
-
-              {loading && items.length === 0 ? (
-                <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
-                  <ActivityIndicator size="small" color={colors.accent} />
-                  <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
-                    Loading Today's Meals...
+              {/* 2. Today's Logged Meals Header with Compact AI Suggest Button */}
+              <View className="mb-2">
+                <View className="flex-row items-center justify-between mb-2.5">
+                  <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm">
+                    Today's Logged Meals
                   </Text>
-                  <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
-                    Fetching your logged food and hydration
-                  </Text>
-                </View>
-              ) : (
-                <View className="flex-col md:flex-row md:flex-wrap md:justify-between">
-                  {/* Breakfast */}
-                  <View className="w-full md:w-[49%]">
-                    <MealCategoryCard
-                      type="breakfast"
-                      title="Breakfast"
-                      items={breakfastItems}
-                      onAddPress={openSearchForMeal}
-                      onScanPress={openScanForMeal}
-                      onDeleteItem={promptDeleteItem}
-                      onEditItem={(item) => setItemToEdit(item)}
-                      onDuplicateItem={handleDuplicateMeal}
-                    />
-                  </View>
 
-                  {/* Lunch */}
-                  <View className="w-full md:w-[49%]">
-                    <MealCategoryCard
-                      type="lunch"
-                      title="Lunch"
-                      items={lunchItems}
-                      onAddPress={openSearchForMeal}
-                      onScanPress={openScanForMeal}
-                      onDeleteItem={promptDeleteItem}
-                      onEditItem={(item) => setItemToEdit(item)}
-                      onDuplicateItem={handleDuplicateMeal}
-                    />
-                  </View>
-
-                  {/* Dinner */}
-                  <View className="w-full md:w-[49%]">
-                    <MealCategoryCard
-                      type="dinner"
-                      title="Dinner"
-                      items={dinnerItems}
-                      onAddPress={openSearchForMeal}
-                      onScanPress={openScanForMeal}
-                      onDeleteItem={promptDeleteItem}
-                      onEditItem={(item) => setItemToEdit(item)}
-                      onDuplicateItem={handleDuplicateMeal}
-                    />
-                  </View>
-
-                  {/* Snacks & Drinks */}
-                  <View className="w-full md:w-[49%]">
-                    <MealCategoryCard
-                      type="snack"
-                      title="Snacks & Drinks"
-                      items={snackItems}
-                      onAddPress={openSearchForMeal}
-                      onScanPress={openScanForMeal}
-                      onDeleteItem={promptDeleteItem}
-                      onEditItem={(item) => setItemToEdit(item)}
-                      onDuplicateItem={handleDuplicateMeal}
-                    />
-                  </View>
-                </View>
-              )}
-            </View>
-
-
-            {/* 4. Hydration Water Tracker */}
-            <WaterTrackerCard
-              waterMl={waterMl}
-              targetMl={targetWaterMl}
-              onAddWater={handleAddWaterDelta}
-            />
-
-            {/* 5. Daily Summary Completion Control */}
-            <View className="mt-2 mb-4">
-              {isDayCompleted ? (
-                <View className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex-row items-center justify-between">
-                  <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                    <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center">
-                      <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
-                    </View>
-                    <View className="flex-1">
-                      <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                        Daily Intake Completed 🎉
-                      </Text>
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                        {loggedCalories} kcal · {loggedProtein}g Protein sealed into History
-                      </Text>
-                    </View>
-                  </View>
                   <TouchableOpacity
-                    onPress={handleReopenDay}
-                    activeOpacity={0.7}
-                    className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                    onPress={() => setShowAiSuggestModal(true)}
+                    activeOpacity={0.8}
+                    className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
                   >
-                    <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
-                      Reopen Day
+                    <Ionicons name="sparkles" size={13} color={colors.accent} />
+                    <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                      AI Suggest
                     </Text>
                   </TouchableOpacity>
                 </View>
-              ) : (
-                <Button
-                  title="Complete Day"
-                  onPress={handleSaveAndCompleteDay}
-                />
-              )}
-            </View>
-          </>
-        )}
+
+                {loading && items.length === 0 ? (
+                  <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
+                    <ActivityIndicator size="small" color={colors.accent} />
+                    <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
+                      Loading Today's Meals...
+                    </Text>
+                    <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+                      Fetching your logged food and hydration
+                    </Text>
+                  </View>
+                ) : (
+                  <View className="flex-col md:flex-row md:flex-wrap md:justify-between">
+                    {/* Breakfast */}
+                    <View className="w-full md:w-[49%]">
+                      <MealCategoryCard
+                        type="breakfast"
+                        title="Breakfast"
+                        items={breakfastItems}
+                        onAddPress={openSearchForMeal}
+                        onScanPress={openScanForMeal}
+                        onDeleteItem={promptDeleteItem}
+                        onEditItem={(item) => setItemToEdit(item)}
+                        onDuplicateItem={handleDuplicateMeal}
+                      />
+                    </View>
+
+                    {/* Lunch */}
+                    <View className="w-full md:w-[49%]">
+                      <MealCategoryCard
+                        type="lunch"
+                        title="Lunch"
+                        items={lunchItems}
+                        onAddPress={openSearchForMeal}
+                        onScanPress={openScanForMeal}
+                        onDeleteItem={promptDeleteItem}
+                        onEditItem={(item) => setItemToEdit(item)}
+                        onDuplicateItem={handleDuplicateMeal}
+                      />
+                    </View>
+
+                    {/* Dinner */}
+                    <View className="w-full md:w-[49%]">
+                      <MealCategoryCard
+                        type="dinner"
+                        title="Dinner"
+                        items={dinnerItems}
+                        onAddPress={openSearchForMeal}
+                        onScanPress={openScanForMeal}
+                        onDeleteItem={promptDeleteItem}
+                        onEditItem={(item) => setItemToEdit(item)}
+                        onDuplicateItem={handleDuplicateMeal}
+                      />
+                    </View>
+
+                    {/* Snacks & Drinks */}
+                    <View className="w-full md:w-[49%]">
+                      <MealCategoryCard
+                        type="snack"
+                        title="Snacks & Drinks"
+                        items={snackItems}
+                        onAddPress={openSearchForMeal}
+                        onScanPress={openScanForMeal}
+                        onDeleteItem={promptDeleteItem}
+                        onEditItem={(item) => setItemToEdit(item)}
+                        onDuplicateItem={handleDuplicateMeal}
+                      />
+                    </View>
+                  </View>
+                )}
+              </View>
+
+
+              {/* 4. Hydration Water Tracker */}
+              <WaterTrackerCard
+                waterMl={waterMl}
+                targetMl={targetWaterMl}
+                onAddWater={handleAddWaterDelta}
+              />
+
+              {/* 5. Daily Summary Completion Control */}
+              <View className="mt-2 mb-4">
+                {isDayCompleted ? (
+                  <View className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                      <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center">
+                        <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                          Daily Intake Completed 🎉
+                        </Text>
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                          {loggedCalories} kcal · {loggedProtein}g Protein sealed into History
+                        </Text>
+                      </View>
+                    </View>
+                    <TouchableOpacity
+                      onPress={handleReopenDay}
+                      activeOpacity={0.7}
+                      className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                    >
+                      <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                        Reopen Day
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <Button
+                    title="Complete Day"
+                    onPress={() => setShowCompleteConfirm(true)}
+                  />
+                )}
+              </View>
+            </>
+          )}
         </View>
       </ScrollView>
 
       {/* AI Scan & Photo Modal */}
       <AiScanModal
         visible={showScanModal}
-        onClose={() => setShowScanModal(false)}
+        onClose={() => {
+          setShowScanModal(false);
+          setScanTargetMeal(undefined);
+        }}
         onAddMealItem={handleAddMealItem}
         initialMealType={scanTargetMeal}
         initialMode={scanInitialMode}
@@ -710,6 +721,20 @@ export default function FoodLog() {
         item={itemToDelete}
         onConfirm={handleConfirmDelete}
         onCancel={() => setItemToDelete(null)}
+      />
+
+      {/* Complete Day Confirmation Modal */}
+      <ConfirmModal
+        visible={showCompleteConfirm}
+        title="Complete Day's Log?"
+        message="This will seal your logged meals, calories, and hydration into your history trends. You can reopen it anytime if you need to log more."
+        confirmText="Complete Day"
+        cancelText="Keep Logging"
+        onConfirm={() => {
+          setShowCompleteConfirm(false);
+          handleSaveAndCompleteDay();
+        }}
+        onCancel={() => setShowCompleteConfirm(false)}
       />
     </SafeAreaView>
   );

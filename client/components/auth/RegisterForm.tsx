@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import PasswordRequirements from '@/components/ui/PasswordRequirements';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { checkEmailApi } from '@/api/auth';
+import { capitalizeWords } from '@/utils/formatters';
 
 interface Props {
   onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => void;
@@ -33,11 +34,9 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
 
   const handleSubmit = async () => {
     let valid = true;
-    let firstError = '';
 
     if (!firstName.trim()) {
       setFirstNameError('First name is required');
-      if (!firstError) firstError = 'First name is required';
       valid = false;
     } else {
       setFirstNameError('');
@@ -45,7 +44,6 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
 
     if (!lastName.trim()) {
       setLastNameError('Last name is required');
-      if (!firstError) firstError = 'Last name is required';
       valid = false;
     } else {
       setLastNameError('');
@@ -54,11 +52,9 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setEmailError('Email is required');
-      if (!firstError) firstError = 'Email is required';
       valid = false;
     } else if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError('Please enter a valid email address');
-      if (!firstError) firstError = 'Please enter a valid email address';
       valid = false;
     } else {
       const domain = trimmedEmail.split('@')[1]?.toLowerCase();
@@ -73,9 +69,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
         'iclud.com': 'icloud.com',
       };
       if (domain && typoSuggestions[domain]) {
-        const typoMsg = `Did you mean @${typoSuggestions[domain]}?`;
-        setEmailError(typoMsg);
-        if (!firstError) firstError = typoMsg;
+        setEmailError(`Did you mean @${typoSuggestions[domain]}?`);
         valid = false;
       } else {
         setEmailError('');
@@ -84,39 +78,31 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
 
     if (!password) {
       setPasswordError('Password is required');
-      if (!firstError) firstError = 'Password is required';
       valid = false;
     } else {
       const pwdCheck = validatePasswordStrength(password);
       if (!pwdCheck.valid) {
-        const pwdMsg = pwdCheck.error || 'Password does not meet security requirements';
-        setPasswordError(pwdMsg);
-        if (!firstError) firstError = pwdMsg;
+        setPasswordError(pwdCheck.error || 'Password does not meet security requirements');
         valid = false;
       } else {
         setPasswordError('');
       }
     }
 
-    if (!valid) {
-      if (firstError && onError) onError(firstError);
-      return;
-    }
+    if (!valid) return;
 
     if (onClearError) onClearError();
     setCheckingEmail(true);
     try {
       await checkEmailApi(trimmedEmail);
       onSubmit({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: capitalizeWords(firstName),
+        lastName: capitalizeWords(lastName),
         email: trimmedEmail,
         password,
       });
     } catch (err: any) {
-      const msg = err.message || 'An account with this email already exists. Please log in.';
-      setEmailError(msg);
-      if (onError) onError(msg);
+      setEmailError(err.message || 'An account with this email already exists. Please log in.');
     } finally {
       setCheckingEmail(false);
     }

@@ -50,7 +50,7 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 // Configure foreground presentation behavior (Alert banner + sound on native)
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
-    handleNotification: async (notification) => {
+    handleNotification: async () => {
       let playSound = true;
       try {
         const saved = await AsyncStorage.getItem('fittrack_notification_settings');

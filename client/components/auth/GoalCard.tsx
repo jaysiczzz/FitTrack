@@ -12,7 +12,7 @@ interface Props {
 }
 
 const GoalCard: React.FC<Props> = ({ label, description, icon, selected, onPress }) => {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   return (
     <TouchableOpacity

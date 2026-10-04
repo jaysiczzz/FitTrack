@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -116,16 +116,18 @@ export default function TodayWorkoutCard({
           </Text>
         </View>
 
-        <TouchableOpacity
-          onPress={() => router.push('/(screen)/workouts' as any)}
-          activeOpacity={0.8}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
-        >
-          <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-            {exercises.length > 0 ? 'Resume' : '+ Start'}
-          </Text>
-        </TouchableOpacity>
+        {exercises.length > 0 && (
+          <TouchableOpacity
+            onPress={() => router.push('/(screen)/workouts' as any)}
+            activeOpacity={0.8}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
+          >
+            <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+              Resume
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Exercises List or Empty State */}

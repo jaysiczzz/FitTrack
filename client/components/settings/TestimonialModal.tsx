@@ -10,6 +10,8 @@ import {
   KeyboardAvoidingView,
   ActivityIndicator,
   RefreshControl,
+  Image,
+  DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -17,7 +19,6 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 import {
   getTestimonialsApi,
   getMyTestimonialApi,
@@ -72,7 +73,9 @@ export default function TestimonialModal({
   const [durationWeeks, setDurationWeeks] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasExistingReview, setHasExistingReview] = useState<boolean>(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [myReviews, setMyReviews] = useState<TestimonialItem[]>([]);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [isComposing, setIsComposing] = useState<boolean>(false);
 
   // Load persistent votes from AsyncStorage
   const loadStoredVotes = useCallback(async () => {
@@ -120,37 +123,69 @@ export default function TestimonialModal({
     }
   }, [selectedGoalFilter, sortBy, storageKey]);
 
+  const handleNewStory = useCallback(() => {
+    setEditingId(null);
+    setContent('');
+    setHighlightBadge('');
+    setWeightChangeKg('');
+    setDurationWeeks('');
+    setRating(5);
+    setIsComposing(true);
+    setActiveTab('write');
+  }, []);
+
+  const handleSelectStory = useCallback((rev: TestimonialItem) => {
+    setEditingId(rev.id);
+    setRating(rev.rating);
+    setContent(rev.content);
+    setHighlightBadge(rev.highlightBadge || '');
+    setWeightChangeKg(rev.weightChangeKg != null ? String(rev.weightChangeKg) : '');
+    setDurationWeeks(rev.durationWeeks != null ? String(rev.durationWeeks) : '');
+    setIsComposing(true);
+    setActiveTab('write');
+  }, []);
+
   const fetchMyReview = useCallback(async () => {
     if (!user) return;
     try {
-      const res = await getMyTestimonialApi();
-      if (res.testimonial) {
-        setHasExistingReview(true);
-        setRating(res.testimonial.rating);
-        setContent(res.testimonial.content);
-        setHighlightBadge(res.testimonial.highlightBadge || '');
-        if (res.testimonial.weightChangeKg != null) {
-          setWeightChangeKg(String(res.testimonial.weightChangeKg));
-        }
-        if (res.testimonial.durationWeeks != null) {
-          setDurationWeeks(String(res.testimonial.durationWeeks));
-        }
-      } else {
-        setHasExistingReview(false);
-      }
+      const res = (await getMyTestimonialApi()) as any;
+      const list: TestimonialItem[] = res.testimonials || (res.testimonial ? [res.testimonial] : []);
+      setMyReviews(list);
+      setHasExistingReview(list.length > 0);
     } catch {
       // Ignored
     }
   }, [user]);
 
+  // Handle modal opening and initial tab setup
   useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
+      setIsComposing(false);
       loadStoredVotes();
       fetchFeed();
       fetchMyReview();
     }
-  }, [visible, initialTab, loadStoredVotes, fetchFeed, fetchMyReview]);
+  }, [visible, initialTab]);
+
+  // Refetch feed when filter or sorting changes
+  useEffect(() => {
+    if (visible) {
+      fetchFeed();
+    }
+  }, [visible, selectedGoalFilter, sortBy, fetchFeed]);
+
+  // Live update when any user submits or modifies testimonials
+  useEffect(() => {
+    if (!visible) return;
+    const sub = DeviceEventEmitter.addListener('testimonials:updated', () => {
+      fetchFeed();
+      fetchMyReview();
+    });
+    return () => {
+      sub.remove();
+    };
+  }, [visible, fetchFeed, fetchMyReview]);
 
   const handleUpvote = async (item: TestimonialItem) => {
     const isVoted = votedIds.has(item.id);
@@ -229,13 +264,12 @@ export default function TestimonialModal({
   };
 
   const handleSubmit = async () => {
-    setFormError(null);
     if (!content.trim()) {
-      setFormError('Please share a few words about your journey.');
+      showError('Required Field', 'Please share a few words about your journey.');
       return;
     }
     if (content.trim().length < 8) {
-      setFormError('Please enter at least 8 characters in your testimony.');
+      showError('Too Short', 'Please enter at least 8 characters in your testimony.');
       return;
     }
 
@@ -245,42 +279,43 @@ export default function TestimonialModal({
       const parsedWeeks = durationWeeks.trim() ? parseInt(durationWeeks, 10) : undefined;
 
       const res = await submitTestimonialApi({
+        id: editingId || undefined,
         rating,
         content: content.trim(),
         highlightBadge: highlightBadge.trim() || undefined,
         goal: (user?.goal === 'MUSCLE_GAIN' || user?.goal === 'WEIGHT_LOSS') ? user.goal : undefined,
         weightChangeKg: !isNaN(parsedWeight as number) ? parsedWeight : undefined,
         durationWeeks: !isNaN(parsedWeeks as number) ? parsedWeeks : undefined,
+        avatarUrl: user?.avatarUrl || undefined,
       });
 
-      showSuccess('Success', res.message || 'Thank you for sharing your journey!');
+      DeviceEventEmitter.emit('testimonials:updated');
+      showSuccess('Success', res.message || 'Thank you for sharing your transformation story!');
       setHasExistingReview(true);
-      setFormError(null);
       fetchFeed();
+      await fetchMyReview();
+      setIsComposing(false);
+      setEditingId(null);
       setActiveTab('feed');
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to submit testimony. Please check your connection and try again.');
+      showError('Submission Error', err?.message || 'Failed to submit testimony. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleDelete = async () => {
-    setFormError(null);
     try {
       setIsSubmitting(true);
-      await deleteMyTestimonialApi();
+      await deleteMyTestimonialApi(editingId || undefined);
+      DeviceEventEmitter.emit('testimonials:updated');
       showSuccess('Removed', 'Your testimony has been deleted.');
-      setHasExistingReview(false);
-      setContent('');
-      setHighlightBadge('');
-      setWeightChangeKg('');
-      setDurationWeeks('');
-      setRating(5);
-      setFormError(null);
+      handleNewStory();
+      setIsComposing(false);
       fetchFeed();
+      await fetchMyReview();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to delete testimony.');
+      showError('Error', err?.message || 'Failed to delete testimony.');
     } finally {
       setIsSubmitting(false);
     }
@@ -353,7 +388,14 @@ export default function TestimonialModal({
             </TouchableOpacity>
 
             <TouchableOpacity
-              onPress={() => setActiveTab('write')}
+              onPress={() => {
+                setActiveTab('write');
+                if (hasExistingReview) {
+                  setIsComposing(false);
+                } else {
+                  setIsComposing(true);
+                }
+              }}
               hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
               className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
                 activeTab === 'write'
@@ -362,7 +404,7 @@ export default function TestimonialModal({
               }`}
             >
               <Ionicons
-                name="create-outline"
+                name="person-outline"
                 size={16}
                 color={activeTab === 'write' ? colors.accent : colors.textMuted}
               />
@@ -373,7 +415,7 @@ export default function TestimonialModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                {hasExistingReview ? 'Edit Your Story' : 'Share Your Story'}
+                {hasExistingReview ? 'My Stories' : 'Share Story'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -407,11 +449,18 @@ export default function TestimonialModal({
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => setActiveTab('write')}
+                  onPress={() => {
+                    setActiveTab('write');
+                    if (hasExistingReview) {
+                      setIsComposing(false);
+                    } else {
+                      setIsComposing(true);
+                    }
+                  }}
                   className="bg-accent px-3 py-1.5 rounded-xl shadow-sm"
                 >
                   <Text className="text-[11px] font-bold text-white">
-                    {hasExistingReview ? 'Edit Yours' : '+ Write Story'}
+                    {hasExistingReview ? 'My Stories' : '+ Share Story'}
                   </Text>
                 </TouchableOpacity>
               </View>
@@ -531,11 +580,19 @@ export default function TestimonialModal({
                           {/* Header: Avatar, Name, Rating */}
                           <View className="flex-row items-center justify-between mb-2">
                             <View className="flex-row items-center gap-2.5">
-                              <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
-                                <Text className="text-xs font-extrabold text-accent dark:text-accent-mint">
-                                  {item.authorName.charAt(0).toUpperCase()}
-                                </Text>
-                              </View>
+                              {item.avatarUrl && !item.avatarUrl.startsWith('blob:') ? (
+                                <Image
+                                  source={{ uri: item.avatarUrl }}
+                                  className="w-8 h-8 rounded-full border border-accent/40 bg-input dark:bg-input-dark"
+                                  resizeMode="cover"
+                                />
+                              ) : (
+                                <View className="w-8 h-8 rounded-full bg-accent/15 dark:bg-accent-dark/25 items-center justify-center border border-accent/35 dark:border-accent-dark/50">
+                                  <Text className="text-xs font-black text-accent dark:text-accent-mint">
+                                    {item.authorName.charAt(0).toUpperCase()}
+                                  </Text>
+                                </View>
+                              )}
                               <View>
                                 <View className="flex-row items-center gap-1">
                                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -569,26 +626,26 @@ export default function TestimonialModal({
                           </View>
 
                           {/* Transformation Metrics / Badges */}
-                          <View className="flex-row flex-wrap gap-1 mb-2.5">
+                          <View className="flex-row flex-wrap gap-1 mb-2">
                             {item.highlightBadge ? (
-                              <View className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/25">
-                                <Text className="text-[10px] font-bold text-accent dark:text-accent-mint">
+                              <View className="px-1.5 py-0.5 rounded-md bg-accent/15 dark:bg-accent-dark/25 border border-accent/30 dark:border-accent-dark/40">
+                                <Text className="text-[9px] font-bold text-accent dark:text-accent-mint">
                                   {item.highlightBadge}
                                 </Text>
                               </View>
                             ) : null}
 
                             {item.weightChangeKg ? (
-                              <View className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25">
-                                <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                              <View className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/30 dark:border-emerald-500/40">
+                                <Text className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
                                   {item.weightChangeKg > 0 ? `+${item.weightChangeKg} kg` : `${item.weightChangeKg} kg`}
                                 </Text>
                               </View>
                             ) : null}
 
                             {item.durationWeeks ? (
-                              <View className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/25">
-                                <Text className="text-[10px] font-bold text-purple-600 dark:text-purple-400">
+                              <View className="px-1.5 py-0.5 rounded-md bg-purple-500/15 dark:bg-purple-500/25 border border-purple-500/30 dark:border-purple-500/40">
+                                <Text className="text-[9px] font-bold text-purple-700 dark:text-purple-300">
                                   ⏱️ {item.durationWeeks} Weeks
                                 </Text>
                               </View>
@@ -645,173 +702,315 @@ export default function TestimonialModal({
               contentContainerStyle={{ paddingBottom: 60 }}
             >
               <View className="pb-8">
-                {/* Inline Error Banner */}
-                <ModalErrorBanner error={formError} onDismiss={() => setFormError(null)} />
+                {/* List of user's stories (when user has stories and not actively composing) */}
+                {myReviews.length > 0 && !isComposing ? (
+                  <View>
+                    {/* Header Row */}
+                    <View className="flex-row items-center justify-between mb-3.5">
+                      <View>
+                        <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+                          Your Published Stories ({myReviews.length})
+                        </Text>
+                        <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                          Milestones you've shared with the community
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={handleNewStory}
+                        activeOpacity={0.8}
+                        className="px-3 py-1.5 rounded-xl bg-accent flex-row items-center gap-1 shadow-sm"
+                      >
+                        <Ionicons name="add" size={14} color="#FFFFFF" />
+                        <Text className="text-xs font-bold text-white">
+                          New Story
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
 
-                {/* Intro Card + Auto-Fill Button */}
-                <View className="p-3.5 rounded-2xl bg-input dark:bg-input-dark mb-4 border border-input-border dark:border-input-border-dark">
-                  <View className="flex-row items-center justify-between mb-1">
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      {hasExistingReview ? 'Update Your Testimony' : 'Inspire Fellow Athletes'}
-                    </Text>
+                    {/* List of User's Story Cards */}
+                    {myReviews.map((item, index) => (
+                      <View
+                        key={item.id}
+                        className="p-4 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark mb-3 shadow-sm"
+                      >
+                        {/* Top row: Rating, Story Number, and Edit Story Button */}
+                        <View className="flex-row items-center justify-between mb-2">
+                          <View className="flex-row items-center gap-1.5">
+                            <View className="flex-row items-center gap-0.5">
+                              {[1, 2, 3, 4, 5].map((s) => (
+                                <Ionicons
+                                  key={s}
+                                  name={s <= item.rating ? 'star' : 'star-outline'}
+                                  size={13}
+                                  color="#F59E0B"
+                                />
+                              ))}
+                            </View>
+                            <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-1">
+                              Story #{index + 1}
+                            </Text>
+                          </View>
+
+                          {/* Top-Right "Edit Story" Button */}
+                          <TouchableOpacity
+                            onPress={() => handleSelectStory(item)}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                            className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/15 border border-accent/30"
+                          >
+                            <Ionicons name="pencil" size={12} color={colors.accent} />
+                            <Text className="text-[11px] font-bold text-accent dark:text-accent-mint">
+                              Edit Story
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+
+                        {/* Highlight Badge */}
+                        {item.highlightBadge ? (
+                          <View className="flex-row mb-2">
+                            <View className="px-2 py-0.5 rounded-md bg-accent/15 dark:bg-accent-dark/25 border border-accent/30">
+                              <Text className="text-[10px] font-bold text-accent dark:text-accent-mint">
+                                {item.highlightBadge}
+                              </Text>
+                            </View>
+                          </View>
+                        ) : null}
+
+                        {/* Quote Content */}
+                        <Text className="text-xs text-text-primary dark:text-text-primary-dark leading-relaxed mb-3 italic">
+                          "{item.content}"
+                        </Text>
+
+                        {/* Footer: Metrics and Inspired count */}
+                        <View className="flex-row items-center justify-between pt-2 border-t border-input-border/50 dark:border-input-border-dark/50">
+                          <View className="flex-row flex-wrap gap-1.5">
+                            {item.weightChangeKg != null ? (
+                              <View className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
+                                <Text className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
+                                  {item.weightChangeKg > 0 ? `+${item.weightChangeKg} kg` : `${item.weightChangeKg} kg`}
+                                </Text>
+                              </View>
+                            ) : null}
+                            {item.durationWeeks != null ? (
+                              <View className="px-1.5 py-0.5 rounded-md bg-purple-500/15 border border-purple-500/30">
+                                <Text className="text-[9px] font-bold text-purple-700 dark:text-purple-300">
+                                  ⏱️ {item.durationWeeks} Weeks
+                                </Text>
+                              </View>
+                            ) : null}
+                          </View>
+
+                          <View className="flex-row items-center gap-1">
+                            <Ionicons name="heart" size={11} color="#F43F5E" />
+                            <Text className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark">
+                              {item.helpfulCount || 0} inspired
+                            </Text>
+                          </View>
+                        </View>
+                      </View>
+                    ))}
+
+                    {/* Action card to add another story */}
                     <TouchableOpacity
-                      onPress={handleAutoFill}
-                      activeOpacity={0.7}
-                      className="px-2 py-1 rounded-lg bg-accent/15 border border-accent/30 flex-row items-center gap-1"
+                      onPress={handleNewStory}
+                      activeOpacity={0.8}
+                      className="p-3.5 rounded-2xl border-2 border-dashed border-accent/40 bg-accent/5 items-center justify-center flex-row gap-2 mt-1"
                     >
-                      <Ionicons name="sparkles" size={11} color={colors.accent} />
-                      <Text className="text-[10px] font-bold text-accent dark:text-accent-mint">
-                        Auto-Fill
+                      <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
+                      <Text className="text-xs font-bold text-accent dark:text-accent-mint">
+                        Share Another Milestone Story
                       </Text>
                     </TouchableOpacity>
                   </View>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-relaxed">
-                    Share your experience with workouts, nutrition tracking, or AI coach recommendations.
-                  </Text>
-                </View>
-
-                {/* Rating Selector */}
-                <View className="mb-4">
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-2">
-                    Overall Experience
-                  </Text>
-                  <View className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark">
-                    <View className="flex-row items-center gap-1.5">
-                      {[1, 2, 3, 4, 5].map((s) => (
+                ) : (
+                  /* COMPOSER / EDITOR FORM */
+                  <View>
+                    {/* Back to Stories Header (if existing stories) */}
+                    {myReviews.length > 0 && (
+                      <View className="flex-row items-center justify-between mb-3.5 pb-2 border-b border-input-border/60 dark:border-input-border-dark/60">
                         <TouchableOpacity
-                          key={s}
-                          onPress={() => setRating(s)}
-                          className="p-1"
+                          onPress={() => {
+                            setIsComposing(false);
+                            setEditingId(null);
+                          }}
                           activeOpacity={0.7}
+                          className="flex-row items-center gap-1 px-2.5 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                         >
-                          <Ionicons
-                            name={s <= rating ? 'star' : 'star-outline'}
-                            size={28}
-                            color="#F59E0B"
-                          />
+                          <Ionicons name="chevron-back" size={14} color={colors.accent} />
+                          <Text className="text-xs font-bold text-accent dark:text-accent-mint">
+                            Back to My Stories
+                          </Text>
                         </TouchableOpacity>
-                      ))}
+
+                        <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
+                          {editingId ? 'Editing Story' : 'New Milestone Story'}
+                        </Text>
+                      </View>
+                    )}
+
+                    {/* Intro Card + Auto-Fill Button */}
+                    <View className="p-3.5 rounded-2xl bg-input dark:bg-input-dark mb-4 border border-input-border dark:border-input-border-dark">
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          {editingId ? 'Edit Selected Story' : 'Write a Transformation Story'}
+                        </Text>
+                        <TouchableOpacity
+                          onPress={handleAutoFill}
+                          activeOpacity={0.7}
+                          className="px-2 py-1 rounded-lg bg-accent/15 border border-accent/30 flex-row items-center gap-1"
+                        >
+                          <Ionicons name="sparkles" size={11} color={colors.accent} />
+                          <Text className="text-[10px] font-bold text-accent dark:text-accent-mint">
+                            Auto-Fill
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-relaxed">
+                        Share your experience with workouts, nutrition tracking, or AI coach recommendations.
+                      </Text>
                     </View>
-                    <Text className="text-[11px] font-semibold text-accent dark:text-accent-mint">
-                      {getRatingLabel(rating)}
-                    </Text>
-                  </View>
-                </View>
 
-                {/* Optional Metric Inputs: Weight Change & Duration */}
-                <View className="flex-row gap-2.5 mb-4">
-                  <View className="flex-1">
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
-                      Weight Change (kg)
-                    </Text>
-                    <TextInput
-                      value={weightChangeKg}
-                      onChangeText={setWeightChangeKg}
-                      placeholder="e.g. -6.5 or +3.0"
-                      placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                      keyboardType="numeric"
-                      className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
-                    />
-                  </View>
-                  <View className="flex-1">
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
-                      Duration (Weeks)
-                    </Text>
-                    <TextInput
-                      value={durationWeeks}
-                      onChangeText={setDurationWeeks}
-                      placeholder="e.g. 12"
-                      placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                      keyboardType="number-pad"
-                      className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
-                    />
-                  </View>
-                </View>
+                    {/* Rating Selector */}
+                    <View className="mb-4">
+                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-2">
+                        Overall Experience
+                      </Text>
+                      <View className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark">
+                        <View className="flex-row items-center gap-1.5">
+                          {[1, 2, 3, 4, 5].map((s) => (
+                            <TouchableOpacity
+                              key={s}
+                              onPress={() => setRating(s)}
+                              className="p-1"
+                              activeOpacity={0.7}
+                            >
+                              <Ionicons
+                                name={s <= rating ? 'star' : 'star-outline'}
+                                size={28}
+                                color="#F59E0B"
+                              />
+                            </TouchableOpacity>
+                          ))}
+                        </View>
+                        <Text className="text-[11px] font-semibold text-accent dark:text-accent-mint">
+                          {getRatingLabel(rating)}
+                        </Text>
+                      </View>
+                    </View>
 
-                {/* Testimony Input */}
-                <View className="mb-4">
-                  <View className="flex-row items-center justify-between mb-1.5">
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      Your Transformation or Review
-                    </Text>
-                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                      {content.length}/1000
-                    </Text>
-                  </View>
-                  <TextInput
-                    multiline
-                    numberOfLines={4}
-                    value={content}
-                    onChangeText={(val) => {
-                      setContent(val);
-                      if (formError) setFormError(null);
-                    }}
-                    placeholder="Tell us what you accomplished with FitTrack, how the AI coach helped, or your favorite feature..."
-                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                    textAlignVertical="top"
-                    className="p-3.5 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark min-h-[110px]"
-                  />
-                </View>
+                    {/* Optional Metric Inputs: Weight Change & Duration */}
+                    <View className="flex-row gap-2.5 mb-4">
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
+                          Weight Change (kg)
+                        </Text>
+                        <TextInput
+                          value={weightChangeKg}
+                          onChangeText={setWeightChangeKg}
+                          placeholder="e.g. -6.5 or +3.0"
+                          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                          keyboardType="numeric"
+                          className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
+                          Duration (Weeks)
+                        </Text>
+                        <TextInput
+                          value={durationWeeks}
+                          onChangeText={setDurationWeeks}
+                          placeholder="e.g. 12"
+                          placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                          keyboardType="number-pad"
+                          className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
+                        />
+                      </View>
+                    </View>
 
-                {/* Achievement Badge (Optional) */}
-                <View className="mb-5">
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
-                    Milestone or Achievement Badge (Optional)
-                  </Text>
-                  <TextInput
-                    value={highlightBadge}
-                    onChangeText={setHighlightBadge}
-                    placeholder="e.g. 🏆 +15kg Bench PR or 🔥 -5kg in 8 Weeks"
-                    placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                    className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2.5"
-                  />
-
-                  {/* Preset quick suggestions */}
-                  <View className="flex-row flex-wrap gap-1.5">
-                    {PRESET_BADGES.map((badge) => (
-                      <TouchableOpacity
-                        key={badge}
-                        onPress={() => setHighlightBadge(badge)}
-                        className="px-2.5 py-1 rounded-full bg-input dark:bg-input-dark border border-input-border/70 dark:border-input-border-dark/70"
-                      >
+                    {/* Testimony Input */}
+                    <View className="mb-4">
+                      <View className="flex-row items-center justify-between mb-1.5">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          Your Transformation or Review
+                        </Text>
                         <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                          {badge}
+                          {content.length}/500
+                        </Text>
+                      </View>
+                      <TextInput
+                        multiline
+                        numberOfLines={4}
+                        value={content}
+                        onChangeText={setContent}
+                        placeholder="Tell us what you accomplished with FitTrack, how the AI coach helped, or your favorite feature..."
+                        placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                        textAlignVertical="top"
+                        className="p-3.5 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark min-h-[110px]"
+                      />
+                    </View>
+
+                    {/* Achievement Badge (Optional) */}
+                    <View className="mb-5">
+                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
+                        Milestone or Achievement Badge (Optional)
+                      </Text>
+                      <TextInput
+                        value={highlightBadge}
+                        onChangeText={setHighlightBadge}
+                        placeholder="e.g. 🏆 +15kg Bench PR or 🔥 -5kg in 8 Weeks"
+                        placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
+                        className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2.5"
+                      />
+
+                      {/* Preset quick suggestions */}
+                      <View className="flex-row flex-wrap gap-1.5">
+                        {PRESET_BADGES.map((badge) => (
+                          <TouchableOpacity
+                            key={badge}
+                            onPress={() => setHighlightBadge(badge)}
+                            className="px-2.5 py-1 rounded-full bg-input dark:bg-input-dark border border-input-border/70 dark:border-input-border-dark/70"
+                          >
+                            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                              {badge}
+                            </Text>
+                          </TouchableOpacity>
+                        ))}
+                      </View>
+                    </View>
+
+                    {/* Submit Button */}
+                    <TouchableOpacity
+                      onPress={handleSubmit}
+                      disabled={isSubmitting}
+                      className="w-full min-h-[48px] py-3.5 rounded-2xl bg-accent items-center justify-center shadow-lg shadow-accent/20 mb-3"
+                      activeOpacity={0.8}
+                    >
+                      {isSubmitting ? (
+                        <ActivityIndicator size="small" color="#FFFFFF" />
+                      ) : (
+                        <Text className="text-xs font-bold text-white">
+                          {editingId ? 'Update This Story' : 'Publish Story'}
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+
+                    {/* Delete Option if currently editing an existing review */}
+                    {editingId ? (
+                      <TouchableOpacity
+                        onPress={handleDelete}
+                        disabled={isSubmitting}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        className="w-full min-h-[44px] py-2.5 rounded-2xl items-center justify-center"
+                        activeOpacity={0.7}
+                      >
+                        <Text className="text-xs font-semibold text-danger dark:text-danger-dark">
+                          Remove This Story
                         </Text>
                       </TouchableOpacity>
-                    ))}
+                    ) : null}
                   </View>
-                </View>
-
-                {/* Submit Button */}
-                <TouchableOpacity
-                  onPress={handleSubmit}
-                  disabled={isSubmitting}
-                  className="w-full min-h-[48px] py-3.5 rounded-2xl bg-accent items-center justify-center shadow-lg shadow-accent/20 mb-3"
-                  activeOpacity={0.8}
-                >
-                  {isSubmitting ? (
-                    <ActivityIndicator size="small" color="#FFFFFF" />
-                  ) : (
-                    <Text className="text-xs font-bold text-white">
-                      {hasExistingReview ? 'Update Testimony' : 'Publish My Testimony'}
-                    </Text>
-                  )}
-                </TouchableOpacity>
-
-                {/* Delete Option if review exists */}
-                {hasExistingReview ? (
-                  <TouchableOpacity
-                    onPress={handleDelete}
-                    disabled={isSubmitting}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="w-full min-h-[44px] py-2.5 rounded-2xl items-center justify-center"
-                    activeOpacity={0.7}
-                  >
-                    <Text className="text-xs font-semibold text-danger dark:text-danger-dark">
-                      Remove My Testimony
-                    </Text>
-                  </TouchableOpacity>
-                ) : null}
+                )}
               </View>
             </ScrollView>
           )}

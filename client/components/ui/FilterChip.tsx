@@ -39,8 +39,8 @@ export default function FilterChip({
         activeOpacity={0.75}
         accessibilityRole="button"
         accessibilityState={{ selected }}
-        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-        className={`min-h-[44px] px-3.5 py-2 justify-center items-center ${roundedClass} border ${
+        hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+        className={`min-h-[32px] px-3 py-1.5 justify-center items-center rounded-xl border ${
           selected
             ? activeBorderClass
             : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'

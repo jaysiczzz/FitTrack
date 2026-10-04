@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,7 @@ import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboa
 import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
 import CommunityStoriesCard from '@/components/dashboard/CommunityStoriesCard';
 import TestimonialModal from '@/components/settings/TestimonialModal';
+import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
 
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
@@ -25,6 +26,7 @@ import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import { screenCache } from '@/utils/screenCache';
 import { useResponsive } from '@/hooks/useResponsive';
+import { capitalizeWords } from '@/utils/formatters';
 
 function calculateWorkoutStreak(
   sessions: ApiWorkoutSession[],
@@ -123,28 +125,60 @@ export default function Dashboard() {
   const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
   const [todayCompletedWorkoutStats, setTodayCompletedWorkoutStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
 
-  // AI Insights State
-  const [insights, setInsights] = useState<AIInsight[]>([
-    {
-      title: 'Workout & Nutrition Synergy',
-      lines: [
-        'Log your meals and completed sets to unlock customized AI performance & recovery recommendations.',
-      ],
-    },
-    {
-      title: 'Post-Workout Anabolic Window',
-      lines: [
-        'Consuming 25-35g of high quality protein within 60 minutes after exercise accelerates muscle protein synthesis.',
-      ],
-    },
-  ]);
-
   // Dynamic targets based on goal
   const targetCalories = userGoal === 'MUSCLE_GAIN' ? 2400 : 1900;
   const targetProtein = userGoal === 'MUSCLE_GAIN' ? 160 : 145;
   const targetCarbs = userGoal === 'MUSCLE_GAIN' ? 260 : 180;
   const targetFat = userGoal === 'MUSCLE_GAIN' ? 75 : 55;
   const targetWater = 2000;
+
+  // AI Insights State - Local Dynamic vs Gemini Deep AI
+  const [geminiInsights, setGeminiInsights] = useState<AIInsight[] | null>(null);
+  const [insightMode, setInsightMode] = useState<'local' | 'gemini'>('local');
+
+  // Real-time dynamic coaching tips calculated instantly from live sets, macros, and hydration
+  const dynamicLocalInsights = useMemo<AIInsight[]>(() => {
+    return generateDynamicCoachingInsights({
+      caloriesLogged,
+      proteinLogged,
+      carbsLogged,
+      fatLogged,
+      targetCalories,
+      targetProtein,
+      targetCarbs,
+      targetFat,
+      waterMl,
+      targetWater,
+      userGoal,
+      todayExercises,
+      workoutSessionDone,
+      todayCompletedWorkoutStats,
+      currentStreak,
+      userName,
+    });
+  }, [
+    caloriesLogged,
+    proteinLogged,
+    carbsLogged,
+    fatLogged,
+    targetCalories,
+    targetProtein,
+    targetCarbs,
+    targetFat,
+    waterMl,
+    targetWater,
+    userGoal,
+    todayExercises,
+    workoutSessionDone,
+    todayCompletedWorkoutStats,
+    currentStreak,
+    userName,
+  ]);
+
+  const activeInsights =
+    insightMode === 'gemini' && geminiInsights && geminiInsights.length > 0
+      ? geminiInsights
+      : dynamicLocalInsights;
 
   // Time-aware greeting
   const getGreeting = () => {
@@ -157,13 +191,13 @@ export default function Dashboard() {
   const loadUserData = async () => {
     try {
       if (user) {
-        if (user.firstName) setUserName(user.firstName);
+        if (user.firstName) setUserName(capitalizeWords(user.firstName));
         if (user.goal) setUserGoal(user.goal);
       } else {
         const uStr = await AsyncStorage.getItem('user');
         if (uStr) {
           const parsed = JSON.parse(uStr);
-          if (parsed.firstName) setUserName(parsed.firstName);
+          if (parsed.firstName) setUserName(capitalizeWords(parsed.firstName));
           if (parsed.goal) setUserGoal(parsed.goal);
         }
       }
@@ -208,7 +242,7 @@ export default function Dashboard() {
         try {
           const parsed = JSON.parse(savedLog);
           if (Array.isArray(parsed)) localItems = parsed;
-        } catch {}
+        } catch { }
       }
       dashboardItemsRef.current = localItems;
 
@@ -521,7 +555,7 @@ export default function Dashboard() {
         AsyncStorage.setItem(waterKey, newTotal.toString()),
         AsyncStorage.setItem(dateWaterKey, newTotal.toString()),
       ]);
-      await AsyncStorage.removeItem('water_log_today').catch(() => {});
+      await AsyncStorage.removeItem('water_log_today').catch(() => { });
 
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'dashboard_screen', waterMl: newTotal });
 
@@ -531,7 +565,7 @@ export default function Dashboard() {
         try {
           const parsed = JSON.parse(savedFood);
           if (Array.isArray(parsed)) currentItems = parsed;
-        } catch {}
+        } catch { }
       }
       dashboardItemsRef.current = currentItems;
 
@@ -562,11 +596,23 @@ export default function Dashboard() {
     try {
       const res = await getAIInsights();
       if (res.success && res.insights?.length) {
-        setInsights(res.insights);
-        showSuccess('AI Insights Refreshed', 'Generated latest performance predictions.');
+        setGeminiInsights(res.insights);
+        setInsightMode('gemini');
+        showSuccess('Gemini Deep AI Active', 'Generated comprehensive performance predictions.');
+      } else {
+        showToast({
+          message: 'Real-time Tips Active',
+          description: 'Calculated personalized coaching from your logged stats.',
+          type: 'info',
+        });
       }
     } catch (err: any) {
       console.log('AI Insights Error:', err.message);
+      showToast({
+        message: 'Live Tips Active',
+        description: 'Unable to reach Gemini API. Showing real-time coaching tips.',
+        type: 'warning',
+      });
     } finally {
       setLoadingAi(false);
     }
@@ -592,14 +638,9 @@ export default function Dashboard() {
         <View className="w-full max-w-5xl self-center mx-auto">
           {/* Header Greeting */}
           <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-1 mr-2">
-              <Text className="text-text-primary dark:text-text-primary-dark text-3xl font-black tracking-tight">
-                {getGreeting()}, {userName}
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal">
-                Your live fitness and accountability overview
-              </Text>
-            </View>
+            <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight">
+              {getGreeting()}, {userName}
+            </Text>
 
             <TouchableOpacity
               onPress={() => router.push('/(screen)/calendar' as any)}
@@ -618,148 +659,153 @@ export default function Dashboard() {
             </TouchableOpacity>
           </View>
 
-        {initialLoading ? (
-          <View className="my-2">
-            <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
-              <ActivityIndicator size="small" color={colors.accent} />
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
-                Syncing Fitness Dashboard...
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
-                Updating your calories, hydration & workouts
-              </Text>
-            </View>
-
-            {/* Skeleton placeholder stats */}
-            <View className="flex-row gap-2.5 mb-2.5">
-              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-              </View>
-              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-              </View>
-            </View>
-            <View className="flex-row gap-2.5 mb-3">
-              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-              </View>
-              <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-              </View>
-            </View>
-          </View>
-        ) : (
-          <>
-            {/* Motivation-Based Daily Check-In */}
-            <DailyCheckInCard
-              onCheckInCompleted={() => {
-                setIsCheckedIn(true);
-              }}
-            />
-
-            {/* Key Metrics Grid: 2x2 on phone, 4 across on tablet */}
-            <View className="flex-col md:flex-row gap-2.5 mb-3">
-              <View className="flex-row flex-1 gap-2.5">
-                <StatCard
-                  iconName="flame"
-                  title="Calories"
-                  value={`${caloriesLogged.toLocaleString()} kcal`}
-                  subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
-                  onPress={() => router.push('/(screen)/foodlog' as any)}
-                />
-                <StatCard
-                  iconName="water"
-                  title="Hydration"
-                  value={`${waterMl.toLocaleString()} ml`}
-                  subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
-                />
+          {initialLoading ? (
+            <View className="my-2">
+              <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
+                <ActivityIndicator size="small" color={colors.accent} />
+                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
+                  Syncing Fitness Dashboard...
+                </Text>
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
+                  Updating your calories, hydration & workouts
+                </Text>
               </View>
 
-              <View className="flex-row flex-1 gap-2.5">
-                <StatCard
-                  iconName="barbell"
-                  title="Workouts"
-                  value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-                  subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
-                  onPress={() => router.push('/(screen)/workouts' as any)}
-                />
-                <StatCard
-                  iconName="sparkles"
-                  title="Streak"
-                  value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
-                  subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
-                />
+              {/* Skeleton placeholder stats */}
+              <View className="flex-row gap-2.5 mb-2.5">
+                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+                </View>
+                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+                </View>
+              </View>
+              <View className="flex-row gap-2.5 mb-3">
+                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+                </View>
+                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
+                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
+                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
+                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
+                </View>
               </View>
             </View>
+          ) : (
+            <>
+              {/* Motivation-Based Daily Check-In */}
+              <DailyCheckInCard
+                onCheckInCompleted={() => {
+                  setIsCheckedIn(true);
+                }}
+              />
 
-            {/* Today's Workout & Daily Nutrition Breakdown (Side-by-side on wide screens) */}
-            <View className="flex-col lg:flex-row lg:gap-4 items-start">
-              <View className="w-full lg:flex-1">
-                <TodayWorkoutCard
-                  exercises={todayExercises}
-                  isSessionCompleted={workoutSessionDone}
-                  completedStats={todayCompletedWorkoutStats}
-                />
+              {/* Key Metrics Grid: 2x2 on phone, 4 across on tablet */}
+              <View className="flex-col md:flex-row gap-2.5 mb-3">
+                <View className="flex-row flex-1 gap-2.5">
+                  <StatCard
+                    iconName="flame"
+                    title="Calories"
+                    value={`${caloriesLogged.toLocaleString()} kcal`}
+                    subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
+                    onPress={() => router.push('/(screen)/foodlog' as any)}
+                  />
+                  <StatCard
+                    iconName="water"
+                    title="Hydration"
+                    value={`${waterMl.toLocaleString()} ml`}
+                    subtitle={`Goal: ${targetWater.toLocaleString()} ml`}
+                  />
+                </View>
+
+                <View className="flex-row flex-1 gap-2.5">
+                  <StatCard
+                    iconName="barbell"
+                    title="Workouts"
+                    value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
+                    subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
+                    onPress={() => router.push('/(screen)/workouts' as any)}
+                  />
+                  <StatCard
+                    iconName="sparkles"
+                    title="Streak"
+                    value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
+                    subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
+                  />
+                </View>
               </View>
 
-              <View className="w-full lg:flex-1">
-                <MacroProgressCard
-                  caloriesLogged={caloriesLogged}
-                  targetCalories={targetCalories}
-                  proteinLogged={proteinLogged}
-                  targetProtein={targetProtein}
-                  carbsLogged={carbsLogged}
-                  targetCarbs={targetCarbs}
-                  fatLogged={fatLogged}
-                  targetFat={targetFat}
-                />
+              {/* Today's Workout & Daily Nutrition Breakdown (Side-by-side on wide screens) */}
+              <View className="flex-col lg:flex-row lg:gap-4 items-start">
+                <View className="w-full lg:flex-1">
+                  <TodayWorkoutCard
+                    exercises={todayExercises}
+                    isSessionCompleted={workoutSessionDone}
+                    completedStats={todayCompletedWorkoutStats}
+                  />
+                </View>
+
+                <View className="w-full lg:flex-1">
+                  <MacroProgressCard
+                    caloriesLogged={caloriesLogged}
+                    targetCalories={targetCalories}
+                    proteinLogged={proteinLogged}
+                    targetProtein={targetProtein}
+                    carbsLogged={carbsLogged}
+                    targetCarbs={targetCarbs}
+                    fatLogged={fatLogged}
+                    targetFat={targetFat}
+                  />
+                </View>
               </View>
-            </View>
 
-            {/* Interactive Daily Goals Checklist */}
-            <DailyGoalsCard
-              isCheckedIn={isCheckedIn}
-              caloriesLogged={caloriesLogged}
-              targetCalories={targetCalories}
-              activeMinutes={activeMinutesToday}
-              completedExercisesCount={completedExercisesCount}
-              totalExercisesCount={todayExercises.length}
-              workoutSessionDone={workoutSessionDone}
-              isNutritionDone={isNutritionDone}
-              waterMl={waterMl}
-              targetWaterMl={targetWater}
-              onQuickAddWater={handleQuickAddWater}
-              onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-            />
+              {/* Interactive Daily Goals Checklist */}
+              <DailyGoalsCard
+                isCheckedIn={isCheckedIn}
+                caloriesLogged={caloriesLogged}
+                targetCalories={targetCalories}
+                activeMinutes={activeMinutesToday}
+                completedExercisesCount={completedExercisesCount}
+                totalExercisesCount={todayExercises.length}
+                workoutSessionDone={workoutSessionDone}
+                isNutritionDone={isNutritionDone}
+                waterMl={waterMl}
+                targetWaterMl={targetWater}
+                onQuickAddWater={handleQuickAddWater}
+                onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+              />
 
-            {/* AI Insights & Predictions */}
-            <AiInsightsCard
-              insights={insights}
-              loading={loadingAi}
-              onRefresh={refreshAIInsights}
-            />
+              {/* AI Insights & Predictions */}
+              <AiInsightsCard
+                insights={activeInsights}
+                loading={loadingAi}
+                mode={insightMode === 'gemini' && geminiInsights?.length ? 'gemini' : 'local'}
+                hasGeminiInsights={Boolean(geminiInsights && geminiInsights.length > 0)}
+                onRefresh={refreshAIInsights}
+                onToggleMode={() => {
+                  setInsightMode((prev) => (prev === 'gemini' ? 'local' : 'gemini'));
+                }}
+              />
 
-            {/* Community Athlete Stories & Testimonials */}
-            <CommunityStoriesCard
-              onOpenFeed={() => {
-                setTestimonialInitialTab('feed');
-                setShowTestimonialsModal(true);
-              }}
-              onOpenWrite={() => {
-                setTestimonialInitialTab('write');
-                setShowTestimonialsModal(true);
-              }}
-            />
-          </>
-        )}
+              {/* Community Athlete Stories & Testimonials */}
+              <CommunityStoriesCard
+                onOpenFeed={() => {
+                  setTestimonialInitialTab('feed');
+                  setShowTestimonialsModal(true);
+                }}
+                onOpenWrite={() => {
+                  setTestimonialInitialTab('write');
+                  setShowTestimonialsModal(true);
+                }}
+              />
+            </>
+          )}
         </View>
       </ScrollView>
 

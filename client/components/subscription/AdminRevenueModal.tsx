@@ -21,6 +21,7 @@ import {
   AdminRevenueResponse,
   SubscriptionTierType,
 } from '@/api/subscription';
+import { capitalizeWords } from '@/utils/formatters';
 
 interface AdminRevenueModalProps {
   visible: boolean;
@@ -28,7 +29,7 @@ interface AdminRevenueModalProps {
 }
 
 export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
   const [data, setData] = useState<AdminRevenueResponse | null>(null);
@@ -39,7 +40,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
   const [showPayoutModal, setShowPayoutModal] = useState(false);
   const [payoutAmount, setPayoutAmount] = useState('');
   const [payoutDestination, setPayoutDestination] = useState('');
-  const [payoutNotes, setPayoutNotes] = useState('');
+  const [payoutNotes] = useState('');
   const [processingPayout, setProcessingPayout] = useState(false);
 
   // Override subscriber state
@@ -361,7 +362,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
                           >
                             <View className="flex-1 mr-2">
                               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                                {sub.user?.firstName} {sub.user?.lastName}
+                                {capitalizeWords(sub.user?.firstName)} {capitalizeWords(sub.user?.lastName)}
                               </Text>
                               <Text className="text-[11px] text-text-muted">{sub.user?.email}</Text>
                               <Text className="text-[10px] text-text-muted mt-0.5">
@@ -425,7 +426,7 @@ export default function AdminRevenueModal({ visible, onClose }: AdminRevenueModa
                                 {tx.description}
                               </Text>
                               <Text className="text-[10px] text-text-muted">
-                                {tx.user ? `${tx.user.firstName} (${tx.user.email}) · ` : ''}
+                                {tx.user ? `${capitalizeWords(tx.user.firstName)} (${tx.user.email}) · ` : ''}
                                 {dateStr} · {tx.paymentMethod}
                               </Text>
                             </View>

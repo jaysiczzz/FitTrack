@@ -8,13 +8,13 @@ import {
   Pressable,
   ActivityIndicator,
   KeyboardAvoidingView,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface SetTargetWeightModalProps {
   visible: boolean;
@@ -118,7 +118,7 @@ export default function SetTargetWeightModal({
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg shadow-2xl">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg shadow-2xl max-h-[85%]">
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -133,95 +133,98 @@ export default function SetTargetWeightModal({
           </View>
 
           {/* Inline Error Banner */}
-          <ModalErrorBanner
-            error={targetError}
-            onDismiss={() => setTargetError(null)}
-            className="mt-3 mb-0"
-          />
+          {targetError ? (
+            <View className="mt-3 p-3 rounded-xl bg-danger/10 border border-danger/30 flex-row items-center gap-2">
+              <Ionicons name="alert-circle" size={16} color={colors.danger} />
+              <Text className="text-xs text-danger flex-1">{targetError}</Text>
+            </View>
+          ) : null}
 
-          <View className="my-5 items-center bg-input/40 dark:bg-input-dark/40 p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
-            <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
-              Target Goal
-            </Text>
-
-            <View className="flex-row items-baseline justify-center mb-3">
-              <TextInput
-                value={inputVal}
-                onChangeText={setInputVal}
-                keyboardType="decimal-pad"
-                className="text-4xl font-black text-text-primary dark:text-text-primary-dark text-center min-w-[120px]"
-                selectTextOnFocus
-              />
-              <Text className="text-xl font-bold text-accent dark:text-accent-dark ml-1">
-                {unitLabel}
+          <ScrollView showsVerticalScrollIndicator={false} className="w-full">
+            <View className="my-5 items-center bg-input/40 dark:bg-input-dark/40 p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
+              <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-1">
+                Target Goal
               </Text>
-            </View>
 
-            {/* Steppers */}
-            <View className="flex-row items-center justify-center gap-2">
-              <TouchableOpacity
-                onPress={() => handleAdjust(isLbs ? -4.0 : -2.0)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
-              >
-                <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  {isLbs ? '-4.0' : '-2.0'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleAdjust(isLbs ? -1.0 : -0.5)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
-              >
-                <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  {isLbs ? '-1.0' : '-0.5'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleAdjust(isLbs ? +1.0 : +0.5)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
-              >
-                <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  {isLbs ? '+1.0' : '+0.5'}
-                </Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleAdjust(isLbs ? +4.0 : +2.0)}
-                activeOpacity={0.7}
-                hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
-              >
-                <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
-                  {isLbs ? '+4.0' : '+2.0'}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-
-          {/* Goal Insight Box */}
-          {!isNaN(targetNum) && diffInUnit > 0 && (
-            <View className="mb-5 p-3 rounded-2xl bg-accent/10 border border-accent/25 flex-row items-center">
-              <Ionicons name="sparkles" size={18} color="#10B981" style={{ marginRight: 10 }} />
-              <View className="flex-1">
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  {diffInUnit.toFixed(1)} {unitLabel} {goal === 'WEIGHT_LOSS' ? 'to lose' : 'to gain'}
-                </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                  At a sustainable ~{weeklyPace}{unitLabel}/week rate, this goal is achievable in approximately {estimatedWeeks} {estimatedWeeks === 1 ? 'week' : 'weeks'}.
+              <View className="flex-row items-baseline justify-center mb-3">
+                <TextInput
+                  value={inputVal}
+                  onChangeText={setInputVal}
+                  keyboardType="decimal-pad"
+                  className="text-4xl font-black text-text-primary dark:text-text-primary-dark text-center min-w-[120px]"
+                  selectTextOnFocus
+                />
+                <Text className="text-xl font-bold text-accent dark:text-accent-dark ml-1">
+                  {unitLabel}
                 </Text>
               </View>
+
+              {/* Steppers */}
+              <View className="flex-row items-center justify-center gap-2">
+                <TouchableOpacity
+                  onPress={() => handleAdjust(isLbs ? -4.0 : -2.0)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
+                >
+                  <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+                    {isLbs ? '-4.0' : '-2.0'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleAdjust(isLbs ? -1.0 : -0.5)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
+                >
+                  <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+                    {isLbs ? '-1.0' : '-0.5'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleAdjust(isLbs ? +1.0 : +0.5)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
+                >
+                  <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+                    {isLbs ? '+1.0' : '+0.5'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={() => handleAdjust(isLbs ? +4.0 : +2.0)}
+                  activeOpacity={0.7}
+                  hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                  className="px-3.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark justify-center items-center"
+                >
+                  <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+                    {isLbs ? '+4.0' : '+2.0'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </View>
-          )}
+
+            {/* Goal Insight Box */}
+            {!isNaN(targetNum) && diffInUnit > 0 && (
+              <View className="mb-5 p-3 rounded-2xl bg-accent/10 border border-accent/25 flex-row items-center">
+                <Ionicons name="sparkles" size={18} color="#10B981" style={{ marginRight: 10 }} />
+                <View className="flex-1">
+                  <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                    {diffInUnit.toFixed(1)} {unitLabel} {goal === 'WEIGHT_LOSS' ? 'to lose' : 'to gain'}
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                    At a sustainable ~{weeklyPace}{unitLabel}/week rate, this goal is achievable in approximately {estimatedWeeks} {estimatedWeeks === 1 ? 'week' : 'weeks'}.
+                  </Text>
+                </View>
+              </View>
+            )}
+          </ScrollView>
 
           {/* Action Buttons */}
-          <View className="flex-col gap-2 mb-2">
+          <View className="flex-col gap-2 pt-2 border-t border-input-border/40 dark:border-input-border-dark/40">
             <TouchableOpacity
               onPress={handleSave}
               disabled={saving}
@@ -229,11 +232,11 @@ export default function SetTargetWeightModal({
               className="w-full bg-accent dark:bg-accent-dark min-h-[48px] py-3.5 rounded-2xl items-center justify-center flex-row shadow-sm"
             >
               {saving ? (
-                <ActivityIndicator size="small" color="#FFFFFF" className="mr-2" />
+                <ActivityIndicator size="small" color={colors.accentContrast} className="mr-2" />
               ) : (
-                <Ionicons name="checkmark-circle-outline" size={18} color="#FFFFFF" className="mr-1.5" />
+                <Ionicons name="checkmark-circle-outline" size={18} color={colors.accentContrast} className="mr-1.5" />
               )}
-              <Text className="text-white font-bold text-sm">
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-sm">
                 Save Target Goal
               </Text>
             </TouchableOpacity>

@@ -83,7 +83,7 @@ const INITIAL_GREETING: ChatMessage = {
 
 export default function AiCoachScreen() {
   const router = useRouter();
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { user } = useAuth();
   const { showError, showSuccess } = useToast();
 
@@ -217,7 +217,7 @@ export default function AiCoachScreen() {
           },
         ]);
 
-        const streamRes = await streamChatWithCoachApi(apiPayload, (chunk) => {
+        const streamRes = await streamChatWithCoachApi(apiPayload, (chunk: string) => {
           streamedText += chunk;
           setMessages((prev) =>
             prev.map((m) =>

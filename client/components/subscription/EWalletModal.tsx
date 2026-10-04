@@ -53,12 +53,12 @@ export default function EWalletModal({
   onClose,
   onBalanceUpdated,
 }: EWalletModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
   const [currency, setCurrency] = useState<CurrencyType>('PHP');
   const [rawBalance, setRawBalance] = useState<number>(0.0);
-  const [walletBaseCurrency, setWalletBaseCurrency] = useState<string>('PHP');
+  const [, setWalletBaseCurrency] = useState<string>('PHP');
   const [transactions, setTransactions] = useState<WalletTransactionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [showTopUp, setShowTopUp] = useState(false);

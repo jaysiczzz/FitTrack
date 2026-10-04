@@ -33,7 +33,7 @@ interface WeightProgressCardProps {
 }
 
 export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCardProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { user, updateUser } = useAuth();
   const { showSuccess, showError } = useToast();
   const userId = user?.id;
@@ -54,7 +54,7 @@ export default function WeightProgressCard({ onWeightUpdated }: WeightProgressCa
     logCount: 0,
     trend: 'stable',
   });
-  const [loading, setLoading] = useState(false);
+  
   const [showLogModal, setShowLogModal] = useState(false);
   const [showTargetModal, setShowTargetModal] = useState(false);
   const [showHistory, setShowHistory] = useState(false);
