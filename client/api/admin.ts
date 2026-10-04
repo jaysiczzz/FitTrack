@@ -185,29 +185,3 @@ export const deleteAdminTicketApi = (
     method: 'DELETE',
   });
 
-/**
- * Toggle featured visibility of an athlete transformation story
- */
-export const toggleStoryFeatureApi = (
-  id: string
-): Promise<{
-  success: boolean;
-  isFeatured: boolean;
-  message: string;
-}> =>
-  apiRequest(`/api/admin/stories/${id}/feature`, {
-    method: 'PATCH',
-  });
-
-/**
- * Delete an athlete transformation story from the database
- */
-export const deleteStoryApi = (
-  id: string
-): Promise<{
-  success: boolean;
-  message: string;
-}> =>
-  apiRequest(`/api/admin/stories/${id}`, {
-    method: 'DELETE',
-  });

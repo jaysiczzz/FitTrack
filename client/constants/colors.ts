@@ -24,7 +24,7 @@ export const COLORS = {
   inputBorder: {
     DEFAULT: '#E2E8F0',
     light: '#E2E8F0',
-    dark: '#1F2937',
+    dark: '#334155',
   },
   accent: {
     DEFAULT: '#047857',
@@ -53,13 +53,13 @@ export const COLORS = {
     dark: '#F87171',
   },
   info: {
-    DEFAULT: '#0284C7',
-    light: '#0284C7',
+    DEFAULT: '#0369A1',
+    light: '#0369A1',
     dark: '#38BDF8',
   },
   warning: {
-    DEFAULT: '#D97706',
-    light: '#D97706',
+    DEFAULT: '#B45309',
+    light: '#B45309',
     dark: '#FBBF24',
   },
   success: {

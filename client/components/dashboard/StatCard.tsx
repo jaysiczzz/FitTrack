@@ -8,7 +8,7 @@ export interface StatCardProps {
   value: string;
   subtitle?: string;
   iconName?: keyof typeof Ionicons.glyphMap;
-  icon?: string;
+  
   onPress?: () => void;
 }
 
@@ -17,10 +17,10 @@ export default function StatCard({
   value,
   subtitle,
   iconName,
-  icon,
+  
   onPress,
 }: StatCardProps) {
-  const { colors } = useThemeColors();
+  
   const Container = onPress ? TouchableOpacity : View;
 
   const getBadgeConfig = () => {

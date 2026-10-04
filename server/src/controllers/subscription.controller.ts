@@ -4,8 +4,6 @@ import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
 import {
-  getOrCreateStripeCustomer,
-  createPaymentIntent,
   verifyPaymentIntent,
   createStripeCheckoutSession,
   processCardPayment,
@@ -17,8 +15,8 @@ import {
 import {
   convertCurrency,
   formatCurrencyString,
-  USD_PHP_EXCHANGE_RATE,
 } from '../utils/currency.utils'
+
 
 export interface PlanDefinition {
   id: string

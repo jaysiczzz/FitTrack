@@ -10,11 +10,11 @@ import {
   getPlanPricing,
 } from './subscription.controller'
 import {
-  createPaymentIntent,
   verifyPaymentIntent,
   createStripeCheckoutSession,
   processCardPayment,
 } from '../services/stripe.service'
+
 import { createPayMongoCheckoutSession, verifyPayMongoPayment } from '../services/paymongo.service'
 import { convertCurrency, formatCurrencyString, USD_PHP_EXCHANGE_RATE } from '../utils/currency.utils'
 

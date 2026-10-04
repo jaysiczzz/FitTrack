@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TouchableOpacity, Text, Platform } from 'react-native';
+import { View, TouchableOpacity, Text } from 'react-native';
 
 export type WorkoutTabType = 'today' | 'planner' | 'library' | 'history';
 
@@ -18,7 +18,7 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
   ];
 
   return (
-    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl mb-4 p-1 w-full">
+    <View className="flex-row bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl mb-3.5 p-1 w-full">
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
         return (
@@ -29,9 +29,9 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
             accessibilityState={{ selected: isActive }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 min-h-[44px] py-2.5 px-1 items-center justify-center rounded-xl border flex-row ${
+            className={`flex-1 min-h-[34px] py-1.5 px-2 items-center justify-center rounded-xl border flex-row ${
               isActive
-                ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+                ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40 shadow-xs'
                 : 'bg-transparent border-transparent'
             }`}
           >

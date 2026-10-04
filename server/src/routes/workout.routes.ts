@@ -53,8 +53,8 @@ router.get('/library/:id', getExerciseByIdController)
 // System-Managed Exercise Library Administration Write Routes (ADMIN ONLY)
 router.post('/library', adminMiddleware, createExerciseController)
 router.put('/library/:id', adminMiddleware, updateExerciseController)
-router.patch('/library/:id', adminMiddleware, updateExerciseController)
 router.delete('/library/:id', adminMiddleware, deleteExerciseFromLibraryController)
+
 
 // User Workout Management Routes (User-Managed Personal Data)
 router.get('/today', getTodaySession)

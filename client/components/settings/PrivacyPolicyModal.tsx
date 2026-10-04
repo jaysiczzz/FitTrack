@@ -10,7 +10,7 @@ interface PrivacyPolicyModalProps {
 }
 
 export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyModalProps) {
-  const { colors } = useThemeColors();
+  
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>

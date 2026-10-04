@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import ModalErrorBanner from './ModalErrorBanner';
@@ -54,57 +54,59 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
         onPress={!loading ? onCancel : undefined}
       >
         <Pressable
-          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl"
+          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
           onPress={(e) => e.stopPropagation()}
         >
           {/* Action Sheet Drag Indicator / Pull Bar (Phone only) */}
           <View className="w-10 h-1.5 rounded-full bg-input-border dark:bg-input-border-dark mb-4 md:hidden" />
 
-          {/* Squircle Icon Badge (if provided) */}
-          {iconName ? (
-            <View
-              className={`w-14 h-14 rounded-2xl items-center justify-center mb-3.5 ${
-                destructive
-                  ? 'bg-danger/10 border border-danger/25'
-                  : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/25'
-              }`}
-            >
-              <Ionicons
-                name={iconName}
-                size={26}
-                color={destructive ? colors.danger : colors.accent}
-              />
-            </View>
-          ) : icon ? (
-            <View
-              className={`w-14 h-14 rounded-2xl items-center justify-center mb-3.5 ${
-                destructive
-                  ? 'bg-danger/10 border border-danger/25'
-                  : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/25'
-              }`}
-            >
-              <Text className="text-2xl">{icon}</Text>
-            </View>
-          ) : null}
+          <ScrollView className="w-full" showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
+            {/* Squircle Icon Badge (if provided) */}
+            {iconName ? (
+              <View
+                className={`w-14 h-14 rounded-2xl items-center justify-center mb-3.5 ${
+                  destructive
+                    ? 'bg-danger/10 border border-danger/25'
+                    : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/25'
+                }`}
+              >
+                <Ionicons
+                  name={iconName}
+                  size={26}
+                  color={destructive ? colors.danger : colors.accent}
+                />
+              </View>
+            ) : icon ? (
+              <View
+                className={`w-14 h-14 rounded-2xl items-center justify-center mb-3.5 ${
+                  destructive
+                    ? 'bg-danger/10 border border-danger/25'
+                    : 'bg-accent/10 dark:bg-accent-dark/15 border border-accent/25'
+                }`}
+              >
+                <Text className="text-2xl">{icon}</Text>
+              </View>
+            ) : null}
 
-          {/* Title */}
-          <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark mb-1.5 text-center tracking-tight">
-            {title}
-          </Text>
-
-          {/* Description Message (if provided) */}
-          {message ? (
-            <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center mb-5 leading-5 px-3 max-w-[360px]">
-              {message}
+            {/* Title */}
+            <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark mb-1.5 text-center tracking-tight">
+              {title}
             </Text>
-          ) : null}
 
-          {/* Custom Content Slot (if any) */}
-          {children ? (
-            <View className="w-full mb-4">
-              {children}
-            </View>
-          ) : null}
+            {/* Description Message (if provided) */}
+            {message ? (
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center mb-5 leading-5 px-3 max-w-[360px]">
+                {message}
+              </Text>
+            ) : null}
+
+            {/* Custom Content Slot (if any) */}
+            {children ? (
+              <View className="w-full mb-4">
+                {children}
+              </View>
+            ) : null}
+          </ScrollView>
 
           {/* Inline Error Banner */}
           <ModalErrorBanner
@@ -114,7 +116,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
           />
 
           {/* Action Buttons (Thumb-friendly Stacked Pattern) */}
-          <View className="w-full gap-y-2.5">
+          <View className="w-full gap-y-2.5 mt-2">
             <TouchableOpacity
               activeOpacity={0.85}
               disabled={loading}

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useWeightUnit } from '@/constants/units';
@@ -111,8 +111,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           {onViewDetails && (
             <View className="flex-row items-center gap-1.5 mt-1">
-              <View className="px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 flex-row items-center gap-1">
-                <Ionicons name="body-outline" size={9} color={colors.accent} />
+              <View className="px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 items-center">
                 <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
                   Anatomy & Form
                 </Text>
@@ -249,35 +248,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           return (
             <View key={s.id || idx} className="mb-2 flex-row items-center justify-between gap-1.5">
-              {/* SET Number with 1-Tap Copy Previous Set Shortcut */}
-              <TouchableOpacity
-                disabled={idx === 0 || !onUpdateSet}
-                activeOpacity={idx > 0 ? 0.7 : 1}
-                onPress={() => {
-                  if (idx > 0 && onUpdateSet) {
-                    const prev = sets[idx - 1];
-                    if (prev) {
-                      if (prev.weight !== undefined && prev.weight !== null) {
-                        onUpdateSet(s.id, 'weight', Number(prev.weight) || 0, Boolean(prev.bodyweight));
-                      }
-                      if (prev.reps !== undefined && prev.reps !== null) {
-                        onUpdateSet(s.id, 'reps', Number(prev.reps) || 10);
-                      }
-                    }
-                  }
-                }}
-                accessibilityLabel={idx > 0 ? `Set ${displaySetNumber}. Tap to copy values from set ${idx}` : `Set ${displaySetNumber}`}
-                className="w-8 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark relative"
+              {/* SET Number Badge */}
+              <View
+                accessibilityLabel={`Set ${displaySetNumber}`}
+                className="w-8 h-9 items-center justify-center rounded-xl bg-input dark:bg-input-dark"
               >
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                   {displaySetNumber}
                 </Text>
-                {idx > 0 && (
-                  <View className="absolute -top-1 -right-1 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-full w-3.5 h-3.5 items-center justify-center">
-                    <Ionicons name="copy-outline" size={8} color={colors.textMuted} />
-                  </View>
-                )}
-              </TouchableOpacity>
+              </View>
 
               {/* Weight / Load Column */}
               {!isCardio && !isStretch && (

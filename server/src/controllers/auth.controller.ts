@@ -8,6 +8,7 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { validateEmailDeliverability, EMAIL_REGEX } from '../utils/emailValidation.utils'
 import { sendPasswordResetEmail } from '../services/email.service'
+import { capitalizeWords } from '../utils/formatters.utils'
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body
@@ -48,8 +49,8 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         user: {
             id: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
+            firstName: capitalizeWords(user.firstName),
+            lastName: capitalizeWords(user.lastName),
             role: user.role,
         },
     })
@@ -101,9 +102,12 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
     const hashedPassword = await hashPassword(password)
 
+    const cleanFirst = capitalizeWords(firstName)
+    const cleanLast = capitalizeWords(lastName)
+
     const user = await userModel.createUser({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
+        firstName: cleanFirst,
+        lastName: cleanLast,
         email: normalizedEmail,
         password: hashedPassword,
         height,
@@ -122,8 +126,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         user: {
             id: user.id,
             email: user.email,
-            firstName: user.firstName,
-            lastName: user.lastName,
+            firstName: cleanFirst,
+            lastName: cleanLast,
             role: user.role,
             height: user.height,
             weight: user.weight,

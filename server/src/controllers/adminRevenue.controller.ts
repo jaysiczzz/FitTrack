@@ -5,14 +5,14 @@ import { asyncHandler } from '../utils/asyncHandler.utils'
 import { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
 import {
   getOrCreatePlatformWallet,
-  SUBSCRIPTION_PLANS,
 } from './subscription.controller'
 
 /**
  * GET /api/admin/revenue/overview
  * Comprehensive financial and subscription metrics for administrators
  */
-export const getAdminRevenueOverview = asyncHandler(async (req: AuthRequest, res: Response) => {
+export const getAdminRevenueOverview = asyncHandler(async (_req: AuthRequest, res: Response) => {
+
   const platformWallet = await getOrCreatePlatformWallet()
 
   // Total active subscribers

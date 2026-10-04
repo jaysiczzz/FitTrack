@@ -50,6 +50,7 @@ export interface RoutineExercise {
   name: string;
   category?: string;
   type?: string;
+  primaryMuscle?: string;
   muscleGroup?: string;
   defaultSets: RoutineExerciseSet[];
 }

@@ -49,7 +49,7 @@ export default function AiScanModal({
   initialMealType,
   initialMode = 'photo',
 }: AiScanModalProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showWarning, showError, showSuccess } = useToast();
 
   const [activeTab, setActiveTab] = useState<'photo' | 'text'>(initialMode);
@@ -121,6 +121,7 @@ export default function AiScanModal({
     if (phaseTimerRef.current.t2) clearTimeout(phaseTimerRef.current.t2);
     setAnalysisPhase('uploading');
     setLoading(false);
+    setSelectedMeal(initialMealType || getSmartMealType());
   };
 
   const handleClose = () => {

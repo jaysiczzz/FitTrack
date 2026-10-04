@@ -56,7 +56,6 @@ function calculateStreakStats(datesDesc: string[], todayStr: string) {
       if (!prevDate) {
         currentRun = 1
       } else {
-        const expectedNext = getPreviousDateString(d, -1) // Next calendar day
         // check if d is consecutive to prevDate
         const expected = getLocalDateString(new Date(new Date(prevDate).getTime() + 24 * 60 * 60 * 1000))
         if (d === expected) {
@@ -65,6 +64,7 @@ function calculateStreakStats(datesDesc: string[], todayStr: string) {
           currentRun = 1
         }
       }
+
       prevDate = d
       if (currentRun > bestStreak) {
         bestStreak = currentRun

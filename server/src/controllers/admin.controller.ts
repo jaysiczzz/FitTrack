@@ -10,6 +10,7 @@ import {
   deleteTicket,
   getTicketStats,
 } from '../services/ticket.service'
+import { capitalizeWords } from '../utils/formatters.utils'
 
 /**
  * GET /api/admin/system-stats
@@ -201,10 +202,16 @@ export const getAdminUsers = asyncHandler(async (req: AuthRequest, res: Response
     },
   })
 
+  const mappedUsers = users.map((u) => ({
+    ...u,
+    firstName: capitalizeWords(u.firstName),
+    lastName: capitalizeWords(u.lastName),
+  }))
+
   res.json({
     success: true,
-    total: users.length,
-    users,
+    total: mappedUsers.length,
+    users: mappedUsers,
   })
 })
 

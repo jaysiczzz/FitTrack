@@ -29,7 +29,7 @@ export default function MacroProgressCard({
   targetFat,
 }: MacroProgressCardProps) {
   const router = useRouter();
-  const { colors } = useThemeColors();
+  
   const calPct = caloriePercent ?? (targetCalories ? Math.round((caloriesLogged / targetCalories) * 100) : 0);
   const proteinPercent = Math.min(100, Math.round((proteinLogged / (targetProtein || 140)) * 100));
   const carbsPercent = Math.min(100, Math.round((carbsLogged / (targetCarbs || 230)) * 100));

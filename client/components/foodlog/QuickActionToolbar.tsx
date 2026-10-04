@@ -16,7 +16,7 @@ export default function QuickActionToolbar({
   onAiSuggest,
   onCopyYesterday,
 }: QuickActionToolbarProps) {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
 
   return (
     <View className="mb-3.5">

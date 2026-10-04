@@ -8,6 +8,7 @@ export interface UserProfilePayload {
   targetWeight?: number | null;
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
+  avatarUrl?: string | null;
 }
 
 export const getUserProfile = () => apiRequest('/api/user/profile');

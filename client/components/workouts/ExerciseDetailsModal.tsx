@@ -7,6 +7,7 @@ import ModalCloseButton from '../ui/ModalCloseButton';
 import ExerciseVisual from './ExerciseVisual';
 import BodyAnatomyMap from './BodyAnatomyMap';
 import ExerciseMovementGuide from './ExerciseMovementGuide';
+import ExerciseVideoModal from './ExerciseVideoModal';
 import { DifficultyPreset, getDifficultyPreset } from './workoutPresets';
 
 export { DifficultyPreset, getDifficultyPreset };
@@ -30,7 +31,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   onAddExercise,
   onUpdateExercisePreset,
 }) => {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const [activeTab, setActiveTab] = useState<DetailsTab>('all');
 
   const initialTier = useMemo(() => {
@@ -41,6 +42,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   }, [exercise]);
 
   const [activeTier, setActiveTier] = useState<'beginner' | 'intermediate' | 'advanced'>(initialTier);
+  const [isVideoModalVisible, setIsVideoModalVisible] = useState(false);
 
   React.useEffect(() => {
     setActiveTier(initialTier);
@@ -164,7 +166,11 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               difficulty={exercise.difficulty}
               secondaryMuscles={exercise.secondaryMuscles}
               imageUrl={exercise.imageUrl}
+              thumbnailUrl={exercise.thumbnailUrl}
+              gifUrl={exercise.gifUrl}
+              tempo={exercise.recommendedTempo}
               size="banner"
+              onOpenVideo={() => setIsVideoModalVisible(true)}
             />
 
             {/* Description */}
@@ -333,13 +339,20 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
             >
               <Text className="text-white font-bold text-sm">
                 {mode === 'update'
-                  ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
+                   ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
                   : `Add (${activeTier.toUpperCase()}) to Today's Workout`}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
+
+      {/* Video & Form Coaching Modal */}
+      <ExerciseVideoModal
+        visible={isVideoModalVisible}
+        exercise={exercise}
+        onClose={() => setIsVideoModalVisible(false)}
+      />
     </Modal>
   );
 };

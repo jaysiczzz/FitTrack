@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -13,6 +13,7 @@ import { registerUser } from '@/api/auth';
 import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
+import { capitalizeWords } from '@/utils/formatters';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
@@ -246,7 +247,7 @@ export default function OnboardingScreen() {
                 loading={loading}
                 error={serverError}
                 isRegistered={!!registeredPayload}
-                userName={data?.firstName || ''}
+                userName={capitalizeWords(data?.firstName || '')}
                 goal={goal}
                 height={Number(height)}
                 weight={Number(weight)}

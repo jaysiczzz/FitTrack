@@ -63,5 +63,4 @@ if (!process.env.JWT_SECRET) {
 }
 
 export const jwtSecret = process.env.JWT_SECRET as string;
-export const jwtExpiresIn = '7d';
-export const isProduction = process.env.NODE_ENV === 'production';
+export const isProduction = process.env.NODE_ENV === 'production';

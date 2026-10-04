@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -76,6 +76,14 @@ export default function CommunityStoriesCard({
   useEffect(() => {
     loadStoredVotes();
     loadStories();
+
+    // Listen for live testimonial updates across the app
+    const sub = DeviceEventEmitter.addListener('testimonials:updated', () => {
+      loadStories();
+    });
+    return () => {
+      sub.remove();
+    };
   }, [loadStoredVotes, loadStories]);
 
   const handleUpvote = async (item: TestimonialItem) => {
@@ -152,9 +160,9 @@ export default function CommunityStoriesCard({
         <TouchableOpacity
           onPress={onOpenFeed}
           activeOpacity={0.7}
-          className="px-2.5 py-1.5 rounded-xl bg-accent/10 border border-accent/25 flex-row items-center gap-1"
+          className="px-3 py-1.5 rounded-xl bg-accent/10 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/40 flex-row items-center gap-1.5"
         >
-          <Text className="text-accent dark:text-accent-mint text-xs font-bold">
+          <Text className="text-accent dark:text-accent-dark text-xs font-black">
             All Stories
           </Text>
           <Ionicons name="chevron-forward" size={13} color={colors.accent} />
@@ -203,11 +211,19 @@ export default function CommunityStoriesCard({
                 <View>
                   <View className="flex-row items-center justify-between mb-2">
                     <View className="flex-row items-center gap-2">
-                      <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center border border-accent/40">
-                        <Text className="text-xs font-extrabold text-accent dark:text-accent-mint">
-                          {item.authorName.charAt(0).toUpperCase()}
-                        </Text>
-                      </View>
+                      {item.avatarUrl && !item.avatarUrl.startsWith('blob:') ? (
+                        <Image
+                          source={{ uri: item.avatarUrl }}
+                          className="w-8 h-8 rounded-full border border-accent/40 bg-input dark:bg-input-dark"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View className="w-8 h-8 rounded-full bg-accent/15 dark:bg-accent-dark/25 items-center justify-center border border-accent/35 dark:border-accent-dark/50">
+                          <Text className="text-xs font-black text-accent dark:text-accent-dark">
+                            {item.authorName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                       <View>
                         <View className="flex-row items-center gap-1">
                           <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -241,18 +257,18 @@ export default function CommunityStoriesCard({
                   </View>
 
                   {/* Badges / Metrics Row */}
-                  <View className="flex-row flex-wrap gap-1 mb-2">
+                  <View className="flex-row flex-wrap gap-1 mb-1.5">
                     {item.highlightBadge ? (
-                      <View className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/25">
-                        <Text className="text-[9px] font-bold text-accent dark:text-accent-mint">
+                      <View className="px-1.5 py-0.5 rounded-md bg-accent/15 dark:bg-accent-dark/25 border border-accent/30 dark:border-accent-dark/40">
+                        <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
                           {item.highlightBadge}
                         </Text>
                       </View>
                     ) : null}
 
                     {item.weightChangeKg ? (
-                      <View className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/25">
-                        <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                      <View className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/30 dark:border-emerald-500/40">
+                        <Text className="text-[9px] font-bold text-emerald-700 dark:text-emerald-300">
                           {item.weightChangeKg > 0
                             ? `+${item.weightChangeKg} kg`
                             : `${item.weightChangeKg} kg`}
@@ -261,8 +277,8 @@ export default function CommunityStoriesCard({
                     ) : null}
 
                     {item.durationWeeks ? (
-                      <View className="px-2 py-0.5 rounded-full bg-purple-500/15 border border-purple-500/25">
-                        <Text className="text-[9px] font-bold text-purple-600 dark:text-purple-400">
+                      <View className="px-1.5 py-0.5 rounded-md bg-purple-500/15 dark:bg-purple-500/25 border border-purple-500/30 dark:border-purple-500/40">
+                        <Text className="text-[9px] font-bold text-purple-700 dark:text-purple-300">
                           ⏱️ {item.durationWeeks} wks
                         </Text>
                       </View>

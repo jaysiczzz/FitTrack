@@ -10,8 +10,8 @@ export interface FoodLogItem {
   carbs: number;
   fat: number;
   goalBadge?: string;
-  goalBadgeColor?: 'green' | 'blue' | 'yellow' | 'purple';
-  icon?: string;
+  goalBadgeColor?: 'green' | 'blue' | 'yellow' | 'purple' | 'red';
+  icon?: string;                
   healthNotes?: string;
   macros?: string[];
   imageUri?: string;
@@ -101,7 +101,7 @@ export const formatDateHeading = (dateStr: string): string => {
   });
 };
 
-export type BadgeColor = 'green' | 'blue' | 'yellow' | 'purple';
+export type BadgeColor = 'green' | 'blue' | 'yellow' | 'purple' | 'red';
 
 export interface SmartBadgeSource {
   calories?: number | null;
@@ -218,6 +218,11 @@ export const getBadgeStyles = (color?: BadgeColor) => {
       return {
         container: 'bg-tertiary/15 border-tertiary/30 dark:border-tertiary-dark/30',
         text: 'text-tertiary dark:text-tertiary-dark',
+      };
+    case 'red':
+      return {
+        container: 'bg-danger/15 border-danger/30 dark:bg-danger-dark/20 dark:border-danger-dark/40',
+        text: 'text-danger dark:text-danger-dark',
       };
     case 'yellow':
     default:

@@ -8,16 +8,22 @@ const transporter = nodemailer.createTransport({
   },
 })
 
+interface CodeEmailOptions {
+  toEmail: string
+  code: string
+  firstName?: string
+  subject: string
+  intro: string
+  footerNote: string
+  plainText: string
+}
+
 /**
- * Sends a 6-digit password reset verification code via email.
+ * Shared sender for 6-digit code emails.
  * If SMTP_PASS is not configured in .env, falls back to console logging so local dev is unblocked.
  */
-export async function sendPasswordResetEmail(
-  toEmail: string,
-  code: string,
-  firstName?: string
-): Promise<{ success: boolean; delivered: boolean }> {
-  const subject = 'FitTrack - Your Password Reset Code'
+async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
+  const { toEmail, code, firstName, subject, intro, footerNote, plainText } = opts
   const htmlContent = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
       <div style="text-align: center; margin-bottom: 24px;">
@@ -30,7 +36,7 @@ export async function sendPasswordResetEmail(
       </p>
 
       <p style="font-size: 15px; line-height: 1.6; color: #4b5563;">
-        We received a request to reset the password for your FitTrack account. Use the 6-digit verification code below to proceed:
+        ${intro}
       </p>
 
       <div style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border: 1.5px dashed #3b82f6; border-radius: 14px; padding: 22px; text-align: center; margin: 28px 0;">
@@ -43,7 +49,7 @@ export async function sendPasswordResetEmail(
       </div>
 
       <p style="font-size: 13px; line-height: 1.5; color: #6b7280;">
-        ⏱️ This code will expire in <strong>15 minutes</strong>. If you did not request a password reset, you can safely ignore this email — your account remains protected.
+        ⏱️ This code will expire in <strong>15 minutes</strong>. ${footerNote}
       </p>
 
       <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 28px 0 20px 0;" />
@@ -63,6 +69,7 @@ export async function sendPasswordResetEmail(
     console.log('\n======================================================')
     console.log('[EMAIL SERVICE - DEV SIMULATED DELIVERY]')
     console.log(`To:       ${toEmail}`)
+    console.log(`Subject:  ${subject}`)
     console.log(`Code:     ${code}`)
     console.log('NOTE: In production, SMTP_PASS must be configured.')
     console.log('======================================================\n')
@@ -75,11 +82,52 @@ export async function sendPasswordResetEmail(
       to: toEmail,
       subject,
       html: htmlContent,
-      text: `Your FitTrack password reset code is: ${code}. It expires in 15 minutes.`,
+      text: plainText,
     })
     return { success: true, delivered: true }
   } catch (error: any) {
     console.error(`[EMAIL ERROR] Failed sending to ${toEmail}:`, error.message || 'Unknown SMTP error')
     return { success: false, delivered: false }
   }
+}
+
+/**
+ * Sends a 6-digit password reset verification code via email.
+ */
+export function sendPasswordResetEmail(
+  toEmail: string,
+  code: string,
+  firstName?: string
+): Promise<{ success: boolean; delivered: boolean }> {
+  return sendCodeEmail({
+    toEmail,
+    code,
+    firstName,
+    subject: 'FitTrack - Your Password Reset Code',
+    intro:
+      'We received a request to reset the password for your FitTrack account. Use the 6-digit verification code below to proceed:',
+    footerNote:
+      'If you did not request a password reset, you can safely ignore this email — your account remains protected.',
+    plainText: `Your FitTrack password reset code is: ${code}. It expires in 15 minutes.`,
+  })
+}
+
+/**
+ * Sends a 6-digit email verification code used to confirm ownership of an email during sign-up.
+ */
+export function sendEmailVerificationEmail(
+  toEmail: string,
+  code: string,
+  firstName?: string
+): Promise<{ success: boolean; delivered: boolean }> {
+  return sendCodeEmail({
+    toEmail,
+    code,
+    firstName,
+    subject: 'FitTrack - Verify Your Email',
+    intro:
+      'Welcome to FitTrack! Enter the 6-digit code below in the app to verify your email address and continue setting up your account:',
+    footerNote: 'If you did not try to create a FitTrack account, you can safely ignore this email.',
+    plainText: `Your FitTrack email verification code is: ${code}. It expires in 15 minutes.`,
+  })
 }

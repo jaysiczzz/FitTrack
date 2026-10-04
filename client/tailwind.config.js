@@ -24,11 +24,12 @@ module.exports = {
         },
         'input-border': {
           DEFAULT: '#E2E8F0',
-          dark: '#1F2937',
+          dark: '#334155',
         },
         accent: {
           DEFAULT: '#047857',
           dark: '#10B981',
+          mint: '#34D399',
         },
         'accent-contrast': {
           DEFAULT: '#FFFFFF',
@@ -47,11 +48,11 @@ module.exports = {
           dark: '#F87171',
         },
         info: {
-          DEFAULT: '#0284C7',
+          DEFAULT: '#0369A1',
           dark: '#38BDF8',
         },
         warning: {
-          DEFAULT: '#D97706',
+          DEFAULT: '#B45309',
           dark: '#FBBF24',
         },
         tertiary: {

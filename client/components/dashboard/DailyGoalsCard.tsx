@@ -1,9 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { COLORS, useThemeColors } from '@/constants/colors';
+import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 
 export interface DailyGoalItem {
@@ -46,7 +46,7 @@ export default function DailyGoalsCard({
   onCheckInPress,
 }: DailyGoalsCardProps) {
   const router = useRouter();
-  const { colors } = useThemeColors();
+  
 
   const isNutritionDoneResolved = Boolean(isNutritionDone);
   const isWorkoutDoneResolved = Boolean(workoutSessionDone);

@@ -38,9 +38,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     estimatedDurationMinutes: 45,
     exercises: [
       {
-        name: 'Barbell Bench Press',
+        exerciseId: 'ex-bench-press',
+        name: 'Bench Press',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Chest',
         muscleGroup: 'Chest',
         defaultSets: [
           { weight: 60, reps: 10 },
@@ -49,9 +51,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-overhead-shoulder-press',
         name: 'Overhead Shoulder Press',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Shoulders',
         muscleGroup: 'Shoulders',
         defaultSets: [
           { weight: 35, reps: 10 },
@@ -60,9 +64,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-incline-dumbbell-press',
         name: 'Incline Dumbbell Press',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Chest',
         muscleGroup: 'Chest',
         defaultSets: [
           { weight: 20, reps: 10 },
@@ -71,9 +77,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-push-ups',
         name: 'Push-ups',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Chest',
         muscleGroup: 'Chest',
         defaultSets: [
           { bodyweight: true, reps: 15 },
@@ -92,9 +100,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     estimatedDurationMinutes: 45,
     exercises: [
       {
+        exerciseId: 'ex-pull-ups',
         name: 'Pull-ups',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Back',
         muscleGroup: 'Back',
         defaultSets: [
           { bodyweight: true, reps: 10 },
@@ -103,9 +113,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-bent-over-barbell-row',
         name: 'Bent-Over Barbell Row',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Back',
         muscleGroup: 'Back',
         defaultSets: [
           { weight: 50, reps: 10 },
@@ -114,20 +126,24 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
-        name: 'Dumbbell Bicep Curl',
+        exerciseId: 'ex-barbell-bicep-curl',
+        name: 'Barbell Bicep Curl',
         category: 'Strength',
         type: 'Isolation',
-        muscleGroup: 'Biceps',
+        primaryMuscle: 'Biceps',
+        muscleGroup: 'Arms',
         defaultSets: [
-          { weight: 14, reps: 12 },
-          { weight: 14, reps: 10 },
-          { weight: 16, reps: 8 },
+          { weight: 20, reps: 12 },
+          { weight: 22, reps: 10 },
+          { weight: 25, reps: 8 },
         ],
       },
       {
+        exerciseId: 'ex-lat-pulldown',
         name: 'Lat Pulldown',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Back',
         muscleGroup: 'Back',
         defaultSets: [
           { weight: 50, reps: 12 },
@@ -146,9 +162,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     estimatedDurationMinutes: 50,
     exercises: [
       {
-        name: 'Barbell Back Squat',
+        exerciseId: 'ex-barbell-squat',
+        name: 'Barbell Squat',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Quadriceps',
         muscleGroup: 'Legs',
         defaultSets: [
           { weight: 70, reps: 10 },
@@ -157,9 +175,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-romanian-deadlift',
         name: 'Romanian Deadlift',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Hamstrings',
         muscleGroup: 'Legs',
         defaultSets: [
           { weight: 60, reps: 10 },
@@ -168,9 +188,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
-        name: 'Walking Lunges',
+        exerciseId: 'ex-walking-dumbbell-lunges',
+        name: 'Walking Dumbbell Lunges',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Legs',
         muscleGroup: 'Legs',
         defaultSets: [
           { weight: 14, reps: 12 },
@@ -179,10 +201,12 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-plank',
         name: 'Plank',
         category: 'Core',
         type: 'Isometric',
-        muscleGroup: 'Abs',
+        primaryMuscle: 'Core',
+        muscleGroup: 'Core',
         defaultSets: [
           { bodyweight: true, reps: 60 },
           { bodyweight: true, reps: 60 },
@@ -200,9 +224,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     estimatedDurationMinutes: 40,
     exercises: [
       {
-        name: 'Barbell Bench Press',
+        exerciseId: 'ex-bench-press',
+        name: 'Bench Press',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Chest',
         muscleGroup: 'Chest',
         defaultSets: [
           { weight: 65, reps: 8 },
@@ -211,9 +237,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-bent-over-barbell-row',
         name: 'Bent-Over Barbell Row',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Back',
         muscleGroup: 'Back',
         defaultSets: [
           { weight: 55, reps: 8 },
@@ -222,9 +250,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-overhead-shoulder-press',
         name: 'Overhead Shoulder Press',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Shoulders',
         muscleGroup: 'Shoulders',
         defaultSets: [
           { weight: 40, reps: 8 },
@@ -243,9 +273,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     estimatedDurationMinutes: 35,
     exercises: [
       {
-        name: 'Goblet Squats',
+        exerciseId: 'ex-goblet-squat',
+        name: 'Dumbbell Goblet Squat',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Legs',
         muscleGroup: 'Legs',
         defaultSets: [
           { weight: 20, reps: 12 },
@@ -254,9 +286,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-push-ups',
         name: 'Push-ups',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Chest',
         muscleGroup: 'Chest',
         defaultSets: [
           { bodyweight: true, reps: 15 },
@@ -265,9 +299,11 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
         ],
       },
       {
+        exerciseId: 'ex-pull-ups',
         name: 'Pull-ups',
         category: 'Strength',
         type: 'Compound',
+        primaryMuscle: 'Back',
         muscleGroup: 'Back',
         defaultSets: [
           { bodyweight: true, reps: 8 },

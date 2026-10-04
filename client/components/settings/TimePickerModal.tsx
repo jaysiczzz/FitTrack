@@ -219,7 +219,7 @@ export default function TimePickerModal({
               activeOpacity={0.9}
               className="flex-1 min-h-[48px] py-3 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center shadow-md shadow-accent/20"
             >
-              <Text className="text-xs font-black text-white uppercase tracking-wider">
+              <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark uppercase tracking-wider">
                 Apply Time
               </Text>
             </TouchableOpacity>

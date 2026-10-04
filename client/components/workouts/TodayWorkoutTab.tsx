@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator, Alert, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
 
@@ -49,6 +49,7 @@ export interface TodayExerciseItem {
   difficultyPresets?: Record<string, any> | null;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
+  gifUrl?: string | null;
   sets: SetRow[];
 }
 
@@ -63,6 +64,7 @@ export interface PersonalRecordItem {
 interface TodayWorkoutTabProps {
   exercises: TodayExerciseItem[];
   loading?: boolean;
+  isRestDay?: boolean;
   completedSessionsCount?: number;
   completedStats?: { duration: number; caloriesBurned: number } | null;
   scheduledRoutine?: WorkoutRoutineTemplate | null;
@@ -83,6 +85,7 @@ interface TodayWorkoutTabProps {
 const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   exercises,
   loading = false,
+  isRestDay = false,
   completedSessionsCount = 0,
   completedStats,
   scheduledRoutine,
@@ -99,11 +102,11 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onCompleteSession,
   onStartRestTimer,
 }) => {
-  const { colors, isDark } = useThemeColors();
+  const { colors } = useThemeColors();
   const { showWarning } = useToast();
   const { startRestTimer } = useWorkoutTimer();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
-  const [loadingPrs, setLoadingPrs] = useState(false);
+  const [, setLoadingPrs] = useState(false);
 
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
@@ -231,8 +234,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       similarExercises: exercise.similarExercises || catalogMatch?.similarExercises || [],
       tags: exercise.tags || catalogMatch?.tags || [],
       difficultyPresets: exercise.difficultyPresets || catalogMatch?.difficultyPresets || null,
-      imageUrl: exercise.imageUrl || null,
-      thumbnailUrl: exercise.thumbnailUrl || null,
+      imageUrl: exercise.imageUrl || catalogMatch?.imageUrl || null,
+      thumbnailUrl: exercise.thumbnailUrl || catalogMatch?.thumbnailUrl || null,
+      gifUrl: exercise.gifUrl || catalogMatch?.gifUrl || null,
       defaultSets: exercise.sets.map((s) => ({
         weight: s.weight ? String(s.weight) : '',
         reps: s.reps ? String(s.reps) : '',
@@ -250,6 +254,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           setSelectedExerciseDetail((prev) => ({
             ...details,
             ...res.exercise,
+            gifUrl: res.exercise.gifUrl || details.gifUrl || catalogMatch?.gifUrl || null,
             difficulty: exercise.difficulty || res.exercise.difficulty || details.difficulty,
           }));
         }
@@ -291,43 +296,47 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             <TouchableOpacity
               onPress={onOpenAiGenerator}
               activeOpacity={0.8}
-              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
+              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
             >
+              <Ionicons name="sparkles" size={12} color={colors.accent} />
               <Text className="text-accent dark:text-accent-dark font-bold text-xs">
                 AI Routine
               </Text>
             </TouchableOpacity>
           )}
 
-          <TouchableOpacity
-            onPress={() => {
-              if (onStartRestTimer) {
-                onStartRestTimer(90, 'Manual Rest Timer');
-              } else {
-                startRestTimer(90, 'Manual Rest Timer');
-              }
-            }}
-            activeOpacity={0.8}
-            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
-          >
-            <Ionicons name="timer-outline" size={13} color={colors.accent} />
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-              Rest
-            </Text>
-          </TouchableOpacity>
+          {/* Only show Rest timer when exercises are actively loaded */}
+          {exercises.length > 0 && (
+            <TouchableOpacity
+              onPress={() => {
+                if (onStartRestTimer) {
+                  onStartRestTimer(90, 'Manual Rest Timer');
+                } else {
+                  startRestTimer(90, 'Manual Rest Timer');
+                }
+              }}
+              activeOpacity={0.8}
+              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
+            >
+              <Ionicons name="timer-outline" size={13} color={colors.accent} />
+              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                Rest
+              </Text>
+            </TouchableOpacity>
+          )}
 
           <TouchableOpacity
             onPress={onNavigateToLibrary}
             activeOpacity={0.8}
-            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5"
+            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1"
           >
+            <Ionicons name="add" size={13} color={colors.textPrimary} />
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-              + Add
+              Add
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-
 
       {/* Exercises List / Loading Skeleton / Empty State */}
       {loading && exercises.length === 0 ? (
@@ -354,10 +363,35 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             </SurfaceCard>
           ))}
         </View>
-      ) : (
-        <>
-          {/* Scheduled Routine from Planner Spotlight */}
-          {scheduledRoutine && exercises.length === 0 && (
+      ) : exercises.length > 0 ? (
+        exercises.map((item) => (
+              <ExerciseCard
+                key={item.key}
+                exerciseId={item.exerciseId}
+                name={item.name}
+                category={item.category}
+                difficulty={item.difficulty}
+                primaryMuscle={item.primaryMuscle}
+                secondaryMuscles={item.secondaryMuscles}
+                equipment={item.equipment}
+                type={item.type}
+                recommendedSets={item.recommendedSets}
+                recommendedReps={item.recommendedReps}
+                recommendedRest={item.recommendedRest}
+                imageUrl={item.thumbnailUrl || item.imageUrl}
+                sets={item.sets}
+                personalRecord={getPRForExercise(item.name)}
+                onToggleSet={(setId) => handleToggleSetWithRest(item, setId)}
+                onUpdateSet={(setId, field, val, bw) => onUpdateSet && onUpdateSet(item.key, setId, field, val, bw)}
+
+                onAddSet={() => onAddSet && onAddSet(item.key)}
+                onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
+                onRemoveExercise={() => onRemoveExercise(item.key)}
+                onViewDetails={() => handleOpenDetailsByName(item)}
+              />
+            ))
+          ) : scheduledRoutine ? (
+            /* Scheduled Routine from Planner Spotlight */
             <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
               <View className="flex-row items-center justify-between mb-1.5">
                 <View className="flex-row items-center gap-1.5">
@@ -386,15 +420,76 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 >
                   <Ionicons name="flash" size={15} color={colors.accentContrast} />
                   <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase tracking-wider">
-                    Load Planned Workout ({scheduledRoutine.exercises.length} Exercises)
+                    Load Planned Workout
                   </Text>
                 </TouchableOpacity>
               )}
-            </SurfaceCard>
-          )}
 
-          {/* Exercises List / Empty State */}
-          {exercises.length === 0 ? (
+              <View className="flex-row items-center justify-center gap-4 mt-3 pt-2.5 border-t border-accent/20">
+                <TouchableOpacity onPress={onNavigateToLibrary} className="flex-row items-center gap-1">
+                  <Ionicons name="barbell-outline" size={12} color={colors.accent} />
+                  <Text className="text-xs font-semibold text-accent dark:text-accent-dark">Browse Library</Text>
+                </TouchableOpacity>
+                <Text className="text-text-muted text-xs">•</Text>
+                {onNavigateToPlanner && (
+                  <TouchableOpacity onPress={onNavigateToPlanner} className="flex-row items-center gap-1">
+                    <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
+                    <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">Edit in Planner</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+            </SurfaceCard>
+          ) : isRestDay ? (
+            /* Dedicated Rest Day Card */
+            <SurfaceCard className="mb-3.5 p-6 border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 items-center">
+              <View className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mb-3">
+                <Ionicons name="battery-charging-outline" size={28} color="#10B981" />
+              </View>
+              <View className="flex-row items-center gap-1.5 mb-1">
+                <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                <Text className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Scheduled Rest Day
+                </Text>
+              </View>
+              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1 text-center">
+                Rest & Active Recovery
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center leading-5 max-w-[280px] mb-4">
+                Your split has today scheduled for muscle repair, mobility, and recharging. Prioritize sleep, hydration, and nutrition!
+              </Text>
+              <View className="flex-row items-center justify-center gap-2">
+                {onOpenAiGenerator && (
+                  <TouchableOpacity
+                    onPress={onOpenAiGenerator}
+                    className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
+                  >
+                    <Ionicons name="sparkles" size={13} color={colors.accent} />
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      AI Routine
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={onNavigateToLibrary}
+                  className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
+                >
+                  <Ionicons name="barbell-outline" size={13} color={colors.accent} />
+                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                    Library
+                  </Text>
+                </TouchableOpacity>
+                {onNavigateToPlanner && (
+                  <TouchableOpacity
+                    onPress={onNavigateToPlanner}
+                    className="px-3 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                  >
+                    <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                  </TouchableOpacity>
+                )}
+              </View>
+            </SurfaceCard>
+          ) : (
+            /* Default Empty State */
             <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
               <View className="w-12 h-12 rounded-full bg-input dark:bg-input-dark items-center justify-center mb-3">
                 <Ionicons name="barbell" size={26} color={colors.textMuted} />
@@ -403,28 +498,29 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 No exercises scheduled yet
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
-                Generate a personalized routine with AI, choose from the library, or plan your week.
+                Choose exercises from the library, generate a quick routine with AI, or plan your weekly split.
               </Text>
               <View className="flex-row flex-wrap justify-center gap-2">
+                <TouchableOpacity
+                  onPress={onNavigateToLibrary}
+                  className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
+                >
+                  <Ionicons name="barbell" size={14} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
+                    Library
+                  </Text>
+                </TouchableOpacity>
                 {onOpenAiGenerator && (
                   <TouchableOpacity
                     onPress={onOpenAiGenerator}
-                    className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
+                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
                   >
-                    <Ionicons name="sparkles" size={14} color={colors.accentContrast} />
-                    <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
+                    <Ionicons name="sparkles" size={13} color={colors.accent} />
+                    <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
                       AI Routine
                     </Text>
                   </TouchableOpacity>
                 )}
-                <TouchableOpacity
-                  onPress={onNavigateToLibrary}
-                  className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl"
-                >
-                  <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                    Library
-                  </Text>
-                </TouchableOpacity>
                 {onNavigateToPlanner && (
                   <TouchableOpacity
                     onPress={onNavigateToPlanner}
@@ -438,36 +534,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 )}
               </View>
             </View>
-          ) : (
-            exercises.map((item) => (
-              <ExerciseCard
-                key={item.key}
-                exerciseId={item.exerciseId}
-                name={item.name}
-                category={item.category}
-                difficulty={item.difficulty}
-                primaryMuscle={item.primaryMuscle}
-                secondaryMuscles={item.secondaryMuscles}
-                equipment={item.equipment}
-                type={item.type}
-                recommendedSets={item.recommendedSets}
-                recommendedReps={item.recommendedReps}
-                recommendedRest={item.recommendedRest}
-                imageUrl={item.thumbnailUrl || item.imageUrl}
-                sets={item.sets}
-                personalRecord={getPRForExercise(item.name)}
-                onToggleSet={(setId) => handleToggleSetWithRest(item, setId)}
-                onUpdateSet={(setId, field, val, bw) => onUpdateSet && onUpdateSet(item.key, setId, field, val, bw)}
-
-                onAddSet={() => onAddSet && onAddSet(item.key)}
-                onDeleteSet={(setId) => onDeleteSet && onDeleteSet(item.key, setId)}
-                onRemoveExercise={() => onRemoveExercise(item.key)}
-                onViewDetails={() => handleOpenDetailsByName(item)}
-              />
-            ))
           )}
-        </>
-      )}
 
       {/* Complete Session Button & Validation Banner */}
       {exercises.length > 0 ? (

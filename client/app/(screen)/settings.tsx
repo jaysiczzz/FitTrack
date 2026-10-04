@@ -22,6 +22,7 @@ import TestimonialModal from '@/components/settings/TestimonialModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import EWalletModal from '@/components/subscription/EWalletModal';
 import AdminRevenueModal from '@/components/subscription/AdminRevenueModal';
+import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
   getCurrentSubscriptionApi,
   getUserWalletApi,
@@ -89,6 +90,7 @@ export default function Settings() {
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEWalletModal, setShowEWalletModal] = useState(false);
   const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
+  const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
 
@@ -447,6 +449,28 @@ export default function Settings() {
             Account & Security
           </Text>
 
+          {/* Personal Information Row */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={() => {
+              hapticFeedback.light();
+              setShowEditProfileModal(true);
+            }}
+          >
+            <View className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
+              <Ionicons name="person-outline" size={14} color={colors.accent} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                Personal Information
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Update your name, age, height, weight & avatar
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
           <Pressable
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowResetPasswordModal(true)}
@@ -578,7 +602,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('breakfastTime', 'Breakfast Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Breakfast:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.breakfastTime)}
@@ -589,7 +612,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('lunchTime', 'Lunch Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Lunch:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.lunchTime)}
@@ -600,7 +622,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('dinnerTime', 'Dinner Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Dinner:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.dinnerTime)}
@@ -641,7 +662,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('hydrationTime1', 'Morning Hydration')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Alert 1:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.hydrationTime1)}
@@ -652,7 +672,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('hydrationTime2', 'Afternoon Hydration')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Alert 2:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.hydrationTime2)}
@@ -693,7 +712,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('workoutTime', 'Workout Reminder')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Training Time:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.workoutTime)}
@@ -734,7 +752,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('checkinTime', 'Daily Readiness Check-In')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="time-outline" size={12} color={colors.accent} style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Check-In Time:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.checkinTime)}
@@ -825,7 +842,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('quietHoursStart', 'Quiet Hours Start (Sleep)')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="moon-outline" size={12} color="#818CF8" style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Starts at:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.quietHoursStart)}
@@ -836,7 +852,6 @@ export default function Settings() {
                   onPress={() => openTimePicker('quietHoursEnd', 'Quiet Hours End (Wake Up)')}
                   className="flex-row items-center px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-70"
                 >
-                  <Ionicons name="sunny-outline" size={12} color="#FB923C" style={{ marginRight: 6 }} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mr-1">Ends at:</Text>
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {formatTimeDisplay(notifSettings.quietHoursEnd)}
@@ -1151,6 +1166,15 @@ export default function Settings() {
         onClose={() => {
           setShowAdminRevenueModal(false);
           loadBillingSummary();
+        }}
+      />
+
+      {/* Edit Personal Information & Avatar Modal */}
+      <EditProfileModal
+        visible={showEditProfileModal}
+        onClose={() => setShowEditProfileModal(false)}
+        onProfileUpdated={() => {
+          refreshProfile().catch(() => {});
         }}
       />
 

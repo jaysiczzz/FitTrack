@@ -1,9 +1,9 @@
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import React, { useState, useEffect, useMemo } from 'react';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompletedSession, formatDateHeading, getTodayDateString } from '../workouts/workoutTypes';
-import { DailyFoodHistorySummary, FoodLogItem, getSmartFoodBadge, MEAL_LABELS } from '../foodlog/foodLogTypes';
+import { DailyFoodHistorySummary, FoodLogItem, getSmartFoodBadge } from '../foodlog/foodLogTypes';
 import { getWorkoutHistory } from '@/api/workout';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '@/api/foodlog';
 import { getCheckInHistoryApi, CheckInRecord } from '@/api/checkin';
@@ -56,7 +56,7 @@ interface UnifiedFitnessCalendarProps {
   onSelectDate?: (dateStr: string | null) => void;
   onRepeatSession?: (session: CompletedSession) => void;
   onDeleteSession?: (session: CompletedSession) => void;
-  onReLogFoodItem?: (item: FoodLogItem) => void;
+  
   onSwitchToTodayWorkout?: () => void;
   onSwitchToTodayNutrition?: () => void;
 }
@@ -69,7 +69,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   onSelectDate: externalOnSelectDate,
   onRepeatSession,
   onDeleteSession,
-  onReLogFoodItem,
+  
   onSwitchToTodayWorkout,
   onSwitchToTodayNutrition,
 }) => {
@@ -91,7 +91,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   const [localWorkouts, setLocalWorkouts] = useState<CompletedSession[]>([]);
   const [localNutrition, setLocalNutrition] = useState<DailyFoodHistorySummary[]>([]);
   const [localCheckIns, setLocalCheckIns] = useState<Record<string, CheckInRecord>>({});
-  const [loadingData, setLoadingData] = useState(false);
+  
 
   const activeSelectedDate = externalSelectedDate !== undefined ? externalSelectedDate : internalSelectedDate;
   const handleSelectDate = (dateStr: string | null) => {
@@ -453,11 +453,11 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             <Ionicons
               name="sparkles"
               size={12}
-              color={filter === 'all' ? '#FFFFFF' : colors.textMuted}
+              color={filter === 'all' ? colors.accentContrast : colors.textMuted}
             />
             <Text
               className={`text-xs font-black ${
-                filter === 'all' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                filter === 'all' ? 'text-accent-contrast dark:text-accent-contrast-dark' : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
               All Activity
@@ -476,11 +476,11 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             <Ionicons
               name="barbell"
               size={13}
-              color={filter === 'workouts' ? '#FFFFFF' : colors.textMuted}
+              color={filter === 'workouts' ? colors.accentContrast : colors.textMuted}
             />
             <Text
               className={`text-xs font-black ${
-                filter === 'workouts' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                filter === 'workouts' ? 'text-accent-contrast dark:text-accent-contrast-dark' : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
               Workouts
@@ -499,11 +499,11 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             <Ionicons
               name="restaurant"
               size={13}
-              color={filter === 'nutrition' ? '#FFFFFF' : colors.textMuted}
+              color={filter === 'nutrition' ? '#0B1120' : colors.textMuted}
             />
             <Text
               className={`text-xs font-black ${
-                filter === 'nutrition' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                filter === 'nutrition' ? 'text-slate-900' : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
               Nutrition
@@ -648,7 +648,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   <Text
                     className={`text-xs ${
                       isSelected
-                        ? 'font-black text-white'
+                        ? 'font-black text-accent-contrast dark:text-accent-contrast-dark'
                         : day.isToday
                         ? 'font-black text-accent dark:text-accent-dark'
                         : showWorkoutDot || showNutritionDot
@@ -666,14 +666,14 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                     {showWorkoutDot && (
                       <View
                         className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-white' : 'bg-emerald-500'
+                          isSelected ? 'bg-accent-contrast dark:bg-accent-contrast-dark' : 'bg-emerald-500'
                         }`}
                       />
                     )}
                     {showNutritionDot && (
                       <View
                         className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-amber-200' : 'bg-amber-500'
+                          isSelected ? 'bg-amber-300 dark:bg-amber-900' : 'bg-amber-500'
                         }`}
                       />
                     )}

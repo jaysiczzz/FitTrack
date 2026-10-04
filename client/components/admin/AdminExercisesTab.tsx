@@ -49,8 +49,8 @@ export default function AdminExercisesTab({
   const [savingExercise, setSavingExercise] = useState(false);
   const [newExName, setNewExName] = useState('');
   const [newExMuscle, setNewExMuscle] = useState('Chest');
-  const [newExCategory, setNewExCategory] = useState('Strength');
-  const [newExDifficulty, setNewExDifficulty] = useState('Intermediate');
+  const [newExCategory] = useState('Strength');
+  const [newExDifficulty] = useState('Intermediate');
   const [newExImageUrl, setNewExImageUrl] = useState('');
   const [newExInstructions, setNewExInstructions] = useState('');
 

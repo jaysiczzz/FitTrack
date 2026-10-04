@@ -15,6 +15,7 @@ import { AuthProvider } from "../context/AuthContext";
 import { WorkoutTimerProvider } from "../context/WorkoutTimerContext";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { StatusBar } from "expo-status-bar";
 import { initWebAriaFix } from "@/utils/webAriaFix";
 import "../global.css";
 
@@ -84,6 +85,7 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
+      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <ToastProvider>
         <AuthProvider>
           <WorkoutTimerProvider>

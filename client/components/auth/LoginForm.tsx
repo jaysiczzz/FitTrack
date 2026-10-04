@@ -42,7 +42,8 @@ const LoginForm: React.FC<Props> = ({
     if (lower.includes('email') || lower.includes('account')) {
       setEmailError(serverError);
       setPasswordError('');
-    } else if (lower.includes('password')) {
+    } else {
+      // Covers "password" errors plus generic ones (invalid credentials, network, etc.)
       setPasswordError(serverError);
       setEmailError('');
     }
@@ -70,17 +71,14 @@ const LoginForm: React.FC<Props> = ({
     const trimmedEmail = email.trim();
     if (!trimmedEmail) {
       setEmailError('Email is required');
-      if (onError) onError('Email is required');
       valid = false;
     } else if (!EMAIL_REGEX.test(trimmedEmail)) {
       setEmailError('Please enter a valid email address');
-      if (onError) onError('Please enter a valid email address');
       valid = false;
     }
 
     if (!password) {
       setPasswordError('Password is required');
-      if (valid && onError) onError('Password is required');
       valid = false;
     }
 

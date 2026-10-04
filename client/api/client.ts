@@ -1,4 +1,5 @@
-import { DeviceEventEmitter, Platform } from 'react-native';
+import { DeviceEventEmitter } from 'react-native';
+
 import { authStorage } from '../utils/authStorage';
 import { offlineQueue } from '../utils/offlineQueue';
 import { API_URL } from '../config';
@@ -147,7 +148,15 @@ async function doRefreshToken(): Promise<string | null> {
 }
 
 export async function apiRequest(endpoint: string, options: ApiRequestOptions = {}) {
+  // Public read-only endpoints (e.g. community stories shown during onboarding before
+  // the user has an account) must never trigger a forced logout when no session exists.
+  const isPublicEndpoint =
+    (!options.method || options.method.toUpperCase() === 'GET') &&
+    endpoint.startsWith('/api/testimonials') &&
+    !endpoint.startsWith('/api/testimonials/my');
+
   const isAuthEndpoint =
+    isPublicEndpoint ||
     endpoint.includes('/api/auth/refresh') ||
     endpoint.includes('/api/auth/login') ||
     endpoint.includes('/api/auth/register') ||

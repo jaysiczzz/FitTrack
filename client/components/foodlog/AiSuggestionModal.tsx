@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { MealType, FoodLogItem } from './foodLogTypes';
+import { FoodLogItem } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
