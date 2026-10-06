@@ -51,19 +51,37 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
 
             <View className="mb-4">
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
-                ✨ AI Vision & Photo Analysis
+                ✨ AI Vision & Multimodal Processing
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                When you scan food with our AI food scanner, images are processed in real-time via Google Gemini Vision solely to estimate macros and calories. Images are not retained or used for public machine learning training.
+                When you use our AI features (AI Camera Food Scanner, 24/7 AI Coach, and AI Workout Generator), images and prompts are processed securely in real-time via Google Gemini API solely to generate your macro analysis, training cues, or workout plans. Your media and chat prompts are never retained for advertising or used for public machine learning model training.
               </Text>
             </View>
 
             <View className="mb-4">
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
-                📱 Offline Storage
+                💳 Payment & Financial Security
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                Recent foods, check-ins, and notification preferences are cached locally on your device for instant performance and offline functionality. Logging out automatically clears session caches from your device.
+                All subscription and e-wallet transactions are processed directly through PCI-DSS Level 1 certified gateways (Stripe, PayMongo, GCash, Maya). FitTrack never stores your credit card numbers, CVVs, or e-wallet MPINs on its servers.
+              </Text>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
+                🗑️ Account Deletion & Right to Erasure
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
+                You have complete ownership of your fitness and nutrition records. You can permanently delete your account and wipe all associated workout sessions, food logs, body weight history, and credentials at any time directly in Settings → Danger Zone → Delete Account.
+              </Text>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
+                📱 Offline Storage & Local Caching
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
+                Recent foods, check-ins, and notification preferences are cached locally on your device for instant offline responsiveness. Logging out automatically purges all temporary cached sessions from your device.
               </Text>
             </View>
 

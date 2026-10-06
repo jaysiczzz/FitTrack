@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Platform } from 'react-native';
+import { View, Text, TouchableOpacity, Platform, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
 import { useThemeColors } from '@/constants/colors';
@@ -11,7 +11,6 @@ interface OnboardingGoalStepProps {
   onNext: () => void;
   error?: string;
 }
-
 
 const GOALS = [
   {
@@ -36,7 +35,7 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
   onNext,
   error,
 }) => {
-  
+  const { colors } = useThemeColors();
   const [activeStory, setActiveStory] = useState<TestimonialItem | null>(null);
 
   useEffect(() => {
@@ -45,9 +44,9 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
       return;
     }
 
-    // Live API fetch for verified athlete stories
+    // Live API fetch for authentic athlete stories submitted by real users
     let isMounted = true;
-    getTestimonialsApi(selectedGoal)
+    getTestimonialsApi(selectedGoal, 'featured', 3)
       .then((res) => {
         if (isMounted && res.testimonials && res.testimonials.length > 0) {
           setActiveStory(res.testimonials[0]);
@@ -158,38 +157,98 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
 
       {/* Verified Athlete Social Proof Card */}
       {selectedGoal && activeStory ? (
-        <View className="mb-3.5 p-3 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25">
-          <View className="flex-row items-center justify-between mb-1.5">
-            <View className="flex-row items-center space-x-2">
-              <View className="w-5 h-5 rounded-full bg-accent/25 items-center justify-center">
-                <Text className="text-[10px] font-black text-accent dark:text-accent-mint">
-                  {activeStory.authorName.charAt(0)}
-                </Text>
-              </View>
-              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                {activeStory.authorName}
-              </Text>
-              {activeStory.highlightBadge ? (
-                <View className="px-1.5 py-0.5 rounded-full bg-accent/20 border border-accent/30">
-                  <Text className="text-[9px] font-extrabold text-accent dark:text-accent-mint">
-                    {activeStory.highlightBadge}
+        <View className="mb-3.5 p-3.5 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25">
+          {/* Top Row: User Avatar, Name, Verified Badge, Star Rating */}
+          <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-center gap-2 flex-1 mr-2">
+              {activeStory.avatarUrl && !activeStory.avatarUrl.startsWith('blob:') ? (
+                <Image
+                  source={{ uri: activeStory.avatarUrl }}
+                  className="w-7 h-7 rounded-full border border-accent/40 bg-input dark:bg-input-dark"
+                  resizeMode="cover"
+                />
+              ) : (
+                <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center border border-accent/35 dark:border-accent-dark/50">
+                  <Text className="text-xs font-black text-accent dark:text-accent-dark">
+                    {activeStory.authorName.charAt(0).toUpperCase()}
                   </Text>
                 </View>
-              ) : null}
+              )}
+              <View className="flex-1">
+                <View className="flex-row items-center gap-1">
+                  <Text
+                    numberOfLines={1}
+                    className="text-xs font-bold text-text-primary dark:text-text-primary-dark"
+                  >
+                    {activeStory.authorName}
+                  </Text>
+                  {activeStory.verifiedAthlete !== false ? (
+                    <Ionicons name="checkmark-circle" size={13} color="#10B981" />
+                  ) : null}
+                </View>
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                  {activeStory.goal === 'MUSCLE_GAIN'
+                    ? 'Muscle Gain Athlete'
+                    : activeStory.goal === 'WEIGHT_LOSS'
+                    ? 'Fat Loss Athlete'
+                    : 'FitTrack Athlete'}
+                </Text>
+              </View>
             </View>
 
-            <View className="flex-row items-center space-x-0.5">
+            {/* Star Rating */}
+            <View className="flex-row items-center gap-0.5">
               {[1, 2, 3, 4, 5].map((s) => (
                 <Ionicons
                   key={s}
                   name={s <= activeStory.rating ? 'star' : 'star-outline'}
-                  size={10}
+                  size={11}
                   color="#F59E0B"
                 />
               ))}
             </View>
           </View>
-          <Text className="text-[11px] italic text-text-primary dark:text-text-primary-dark leading-snug">
+
+          {/* Transformation Milestones & Metrics Row */}
+          <View className="flex-row flex-wrap gap-1.5 mb-2">
+            {activeStory.highlightBadge ? (
+              <View className="px-2 py-0.5 rounded-md bg-accent/20 dark:bg-accent-dark/25 border border-accent/30 dark:border-accent-dark/40">
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                  {activeStory.highlightBadge}
+                </Text>
+              </View>
+            ) : null}
+
+            {activeStory.weightChangeKg !== undefined && activeStory.weightChangeKg !== null ? (
+              <View className="px-2 py-0.5 rounded-md bg-emerald-500/15 dark:bg-emerald-500/25 border border-emerald-500/30 dark:border-emerald-500/40">
+                <Text className="text-[10px] font-bold text-emerald-700 dark:text-emerald-300">
+                  {activeStory.weightChangeKg > 0
+                    ? `+${activeStory.weightChangeKg} kg`
+                    : `${activeStory.weightChangeKg} kg`}
+                </Text>
+              </View>
+            ) : null}
+
+            {activeStory.durationWeeks ? (
+              <View className="px-2 py-0.5 rounded-md bg-purple-500/15 dark:bg-purple-500/25 border border-purple-500/30 dark:border-purple-500/40">
+                <Text className="text-[10px] font-bold text-purple-700 dark:text-purple-300">
+                  ⏱️ {activeStory.durationWeeks} wks
+                </Text>
+              </View>
+            ) : null}
+
+            {activeStory.helpfulCount ? (
+              <View className="px-2 py-0.5 rounded-md bg-input dark:bg-input-dark border border-input-border/60 dark:border-input-border-dark/60 flex-row items-center gap-1">
+                <Ionicons name="heart" size={9} color={colors.accent} />
+                <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
+                  {activeStory.helpfulCount}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+
+          {/* Quote Body */}
+          <Text className="text-xs italic text-text-primary dark:text-text-primary-dark leading-relaxed">
             "{activeStory.content}"
           </Text>
         </View>

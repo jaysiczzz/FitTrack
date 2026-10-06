@@ -17,13 +17,19 @@ export interface AthleteBadge {
 interface AthleteBadgesCardProps {
   currentStreak?: number;
   totalWorkouts?: number;
+  totalMealsLogged?: number;
+  hasHitMacroTarget?: boolean;
 }
 
 export default function AthleteBadgesCard({
   currentStreak = 0,
   totalWorkouts = 0,
+  totalMealsLogged = 0,
+  hasHitMacroTarget = false,
 }: AthleteBadgesCardProps) {
   const { colors } = useThemeColors();
+
+  const isMacroUnlocked = hasHitMacroTarget || totalMealsLogged >= 5;
 
   const badges: AthleteBadge[] = [
     {
@@ -59,8 +65,12 @@ export default function AthleteBadgesCard({
       description: 'Hit daily calorie & macro targets',
       icon: 'restaurant',
       color: '#10B981',
-      unlocked: true,
-      progressText: 'Active',
+      unlocked: isMacroUnlocked,
+      progressText: isMacroUnlocked
+        ? 'Unlocked'
+        : totalMealsLogged > 0
+        ? `${totalMealsLogged}/5 Logs`
+        : '0/5 Logs',
     },
     {
       id: 'b-iron',

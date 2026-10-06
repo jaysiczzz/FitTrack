@@ -10,6 +10,7 @@ import {
   deleteTicket,
   getTicketStats,
 } from '../services/ticket.service'
+import { sendTicketResolutionEmail } from '../services/email.service'
 import { capitalizeWords } from '../utils/formatters.utils'
 
 /**
@@ -81,9 +82,9 @@ export const getAdminSystemStats = asyncHandler(async (req: AuthRequest, res: Re
     prisma.walletTransaction.aggregate({
       where: { type: 'SUBSCRIPTION', status: 'COMPLETED' },
       _sum: { amount: true, fee: true, netAmount: true },
-    }),
-    getOrCreatePlatformWallet(),
-    getTicketStats(),
+    }).catch(() => ({ _sum: { amount: 0, fee: 0, netAmount: 0 } })),
+    getOrCreatePlatformWallet().catch(() => ({ balance: 0, currency: 'PHP' } as any)),
+    getTicketStats().catch(() => ({ total: 0, open: 0, inProgress: 0, resolved: 0 })),
   ])
 
   // MRR calculation (PHP/USD normalized)
@@ -92,6 +93,34 @@ export const getAdminSystemStats = asyncHandler(async (req: AuthRequest, res: Re
   const mrr = Number((monthlyRevenue + annualNormalizedMonthly).toFixed(2))
 
   const totalProSubscribers = activeMonthly + activeAnnual + activeLifetime
+
+  // Advanced KPIs & Telemetry
+  const dauEstimate = Math.max(workoutsCompletedToday, mealsLoggedToday, 1)
+  const mauEstimate = Math.max(totalAthletes, 1)
+  const dauMauRatio = Number(((dauEstimate / mauEstimate) * 100).toFixed(1))
+  const proConversionRate = Number(((totalProSubscribers / Math.max(totalAthletes, 1)) * 100).toFixed(1))
+  const supportResolutionRate = ticketStats.total > 0
+    ? Number(((ticketStats.resolved / ticketStats.total) * 100).toFixed(1))
+    : 100.0
+
+  // 30-day growth trend sampling (6 data points across past 30 days)
+  const intervals = [30, 24, 18, 12, 6, 0]
+  const growthHistory = await Promise.all(
+    intervals.map(async (daysAgo) => {
+      const pointDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
+      const dayLabel = daysAgo === 0 ? 'Today' : `${daysAgo}d ago`
+      const [usersAtPoint, workoutsAtPoint] = await Promise.all([
+        prisma.user.count({ where: { createdAt: { lte: pointDate } } }).catch(() => 0),
+        prisma.workoutSession.count({ where: { completed: true, completedAt: { lte: pointDate } } }).catch(() => 0),
+      ])
+      return {
+        date: pointDate.toISOString().split('T')[0],
+        label: dayLabel,
+        usersCount: usersAtPoint,
+        activityCount: workoutsAtPoint,
+      }
+    })
+  )
 
   res.json({
     success: true,
@@ -109,6 +138,14 @@ export const getAdminSystemStats = asyncHandler(async (req: AuthRequest, res: Re
         mealsLoggedToday,
         totalStories,
       },
+      engagement: {
+        dau: dauEstimate,
+        mau: mauEstimate,
+        dauMauRatio,
+        proConversionRate,
+        supportResolutionRate,
+      },
+      growthHistory,
       aiEngine: {
         foodScansToday: aiScansToday,
         coachQuestionsToday: aiMessagesToday,
@@ -308,6 +345,18 @@ export const updateAdminTicket = asyncHandler(async (req: AuthRequest, res: Resp
   const updated = await updateTicket(id, { status, adminNotes })
   if (!updated) {
     return res.status(404).json({ error: 'Ticket not found' })
+  }
+
+  // Notify user via email if ticket is in progress or resolved, or if admin provided resolution notes
+  if (updated.userEmail && (status === 'RESOLVED' || status === 'IN_PROGRESS' || adminNotes)) {
+    sendTicketResolutionEmail({
+      toEmail: updated.userEmail,
+      userName: updated.userName,
+      ticketId: updated.id,
+      subject: updated.subject,
+      status: updated.status,
+      adminNotes: updated.adminNotes || undefined,
+    }).catch((err) => console.error('[Support Email] Notification failed:', err))
   }
 
   res.json({

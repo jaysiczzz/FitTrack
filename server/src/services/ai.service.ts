@@ -526,4 +526,40 @@ You are conversing directly with ${context.firstName || 'the user'}.
   return fullResponse.trim()
 }
 
+export async function autocompleteExerciseWithAI(name: string): Promise<{
+  primaryMuscle: string
+  secondaryMuscles: string[]
+  category: string
+  type: string
+  difficulty: string
+  equipment: string[]
+  instructions: string[]
+  formTips: string[]
+  commonMistakes: string[]
+  breathingTechnique: string
+}> {
+  const prompt = `You are an elite certified strength & conditioning coach (CSCS).
+Break down this exercise for a fitness app exercise catalog: "${name}".
+
+Return a single JSON object with these exact keys:
+- "primaryMuscle": Primary targeted muscle. Must be one of: "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"
+- "secondaryMuscles": Array of 1-3 secondary muscles worked (e.g. ["Triceps", "Front Delts"])
+- "category": Exercise category. Must be one of: "Strength", "Hypertrophy", "Cardio", "Endurance", "Mobility"
+- "type": "Compound" or "Isolation"
+- "difficulty": "Beginner", "Intermediate", or "Advanced"
+- "equipment": Array of required equipment (e.g. ["Barbell"], ["Dumbbells"], ["Cable"], ["Machine"], or ["Bodyweight"])
+- "instructions": Array of 3 to 5 clear, concise step-by-step instructions
+- "formTips": Array of 2 to 3 pro trainer tips to maximize engagement and ensure proper posture
+- "commonMistakes": Array of 2 to 3 common mistakes or injury risks to avoid
+- "breathingTechnique": One clear sentence detailing the breathing cadence (e.g. "Inhale deeply as you lower the weight, and exhale forcefully as you drive upward.")
+
+Return strictly valid JSON only.`
+
+  const text = await generateWithFallback([prompt], {
+    responseMimeType: 'application/json',
+  })
+
+  return JSON.parse(text)
+}
+
 

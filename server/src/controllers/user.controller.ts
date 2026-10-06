@@ -67,16 +67,16 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
 
     if (req.body.height !== undefined) {
         const height = Number(req.body.height)
-        if (!Number.isInteger(height) || height <= 0 || height > 300) {
-            return res.status(400).json({ error: 'Height must be between 1 and 300 cm' })
+        if (!Number.isInteger(height) || height < 50 || height > 250) {
+            return res.status(400).json({ error: 'Height must be between 50 and 250 cm' })
         }
         updateData.height = height
     }
 
     if (req.body.weight !== undefined) {
         const weight = Number(req.body.weight)
-        if (Number.isNaN(weight) || weight <= 0 || weight > 500) {
-            return res.status(400).json({ error: 'Weight must be between 1 and 500 kg' })
+        if (Number.isNaN(weight) || weight < 20 || weight > 350) {
+            return res.status(400).json({ error: 'Weight must be between 20 and 350 kg' })
         }
         updateData.weight = weight
     }
@@ -86,8 +86,8 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
             updateData.targetWeight = null
         } else {
             const targetWeight = Number(req.body.targetWeight)
-            if (Number.isNaN(targetWeight) || targetWeight <= 0 || targetWeight > 500) {
-                return res.status(400).json({ error: 'Target weight must be between 1 and 500 kg' })
+            if (Number.isNaN(targetWeight) || targetWeight < 20 || targetWeight > 350) {
+                return res.status(400).json({ error: 'Target weight must be between 20 and 350 kg' })
             }
             updateData.targetWeight = targetWeight
         }
@@ -95,8 +95,8 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
 
     if (req.body.age !== undefined) {
         const age = Number(req.body.age)
-        if (!Number.isInteger(age) || age <= 0 || age > 120) {
-            return res.status(400).json({ error: 'Age must be between 1 and 120' })
+        if (!Number.isInteger(age) || age < 12 || age > 110) {
+            return res.status(400).json({ error: 'Age must be between 12 and 110' })
         }
         updateData.age = age
     }

@@ -22,7 +22,7 @@ export const changePasswordApi = (payload: { currentPassword: string; newPasswor
   apiRequest('/api/auth/change-password', { method: 'POST', body: payload });
 
 export const forgotPasswordApi = (email: string) =>
-  apiRequest('/api/auth/forgot-password', { method: 'POST', body: { email } });
+  apiRequest('/api/auth/forgot-password', { method: 'POST', body: { email }, timeout: 60000 });
 
 export const resetPasswordWithCodeApi = (payload: { email: string; code: string; newPassword: string }) =>
   apiRequest('/api/auth/reset-password', { method: 'POST', body: payload });
@@ -30,5 +30,9 @@ export const resetPasswordWithCodeApi = (payload: { email: string; code: string;
 export const checkEmailApi = (email: string) =>
   apiRequest('/api/auth/check-email', { method: 'POST', body: { email } });
 
+export const sendVerificationCodeApi = (payload: { email: string; firstName?: string }) =>
+  apiRequest('/api/auth/send-verification', { method: 'POST', body: payload, timeout: 60000 });
 
+export const verifyEmailCodeApi = (payload: { email: string; code: string }) =>
+  apiRequest('/api/auth/verify-email', { method: 'POST', body: payload });
 

@@ -85,6 +85,7 @@ export default function FoodLibraryTab({
   }, [libraryMode, searchQuery, activeCategory, activeComboFilter]);
 
   const debounceTimerRef = useRef<any>(null);
+  const sentinelRef = useRef<any>(null);
 
   useEffect(() => {
     setSelectedMeal(defaultMeal || getSmartMealType());
@@ -210,6 +211,22 @@ export default function FoodLibraryTab({
   const paginatedFoods = useMemo(() => {
     return displayedFoods.slice(0, visibleCount);
   }, [displayedFoods, visibleCount]);
+
+  // Automated Infinite Scroll when reaching list end
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof IntersectionObserver !== 'undefined' && sentinelRef.current) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting && displayedFoods.length > visibleCount) {
+            setVisibleCount((prev) => prev + PAGE_SIZE);
+          }
+        },
+        { rootMargin: '300px' }
+      );
+      observer.observe(sentinelRef.current);
+      return () => observer.disconnect();
+    }
+  }, [displayedFoods.length, visibleCount]);
 
   // 1-Tap Log entire Meal Combo
   const handleLogMealCombo = (combo: MealCombo, scale: number = 1.0, targetMeal?: MealType) => {
@@ -610,7 +627,14 @@ export default function FoodLibraryTab({
                             {item.name}
                           </Text>
                           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
-                            {item.brand ? `${item.brand} · ` : ''}{item.servingSize} ({item.servingWeightG || 100}g)
+                            {item.brand ? `${item.brand} · ` : ''}
+                            {(() => {
+                              const s = item.servingSize || '1 serving';
+                              if (/\(\s*\d+\s*g\s*\)/i.test(s) || /\b\d+\s*g\b/i.test(s)) {
+                                return s;
+                              }
+                              return `${s} (${item.servingWeightG || 100}g)`;
+                            })()}
                           </Text>
                         </View>
                       </View>
@@ -647,18 +671,16 @@ export default function FoodLibraryTab({
                 );
               })}
 
-              {/* Load More Foods */}
+              {/* Automated Infinite Scroll Sentinel */}
               {displayedFoods.length > visibleCount && (
-                <View className="w-full items-center my-3">
-                  <TouchableOpacity
-                    onPress={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    activeOpacity={0.8}
-                    className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-5 py-2 rounded-xl shadow-sm"
-                  >
-                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                      Load More Foods ({displayedFoods.length - visibleCount} remaining)
-                    </Text>
-                  </TouchableOpacity>
+                <View
+                  ref={sentinelRef}
+                  className="w-full items-center my-4 py-2"
+                >
+                  <ActivityIndicator size="small" color={colors.accent} />
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-1 font-medium">
+                    Loading more foods...
+                  </Text>
                 </View>
               )}
             </View>

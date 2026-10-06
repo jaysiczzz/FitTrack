@@ -22,7 +22,13 @@ export const errorHandler = (
     if (err.code === 'P2025') {
       return res.status(404).json({ error: 'Record not found' })
     }
-    return res.status(400).json({ error: 'Invalid request data' })
+    if (err.code === 'P2000' || err.code === 'P2003' || err.code === 'P2005' || err.code === 'P2006') {
+      return res.status(400).json({ error: 'Invalid request data' })
+    }
+    const message = isProduction
+      ? 'A database error occurred. Please try again later.'
+      : (err.message || 'Database error occurred')
+    return res.status(500).json({ error: message })
   }
 
   if (err instanceof Prisma.PrismaClientValidationError) {

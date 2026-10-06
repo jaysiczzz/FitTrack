@@ -5,6 +5,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import AiScanModal from '@/components/foodlog/AiScanModal';
+import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import { FoodLogItem, getTodayDateString } from '@/components/foodlog/foodLogTypes';
 import { autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
 import { useToast } from '@/context/ToastContext';
@@ -63,6 +64,7 @@ export default function FloatingNavBar() {
   const { showSuccess } = useToast();
   const { colors } = useThemeColors();
   const [showScanModal, setShowScanModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   // Determine active route
   const getIsActive = (route: string) => {
@@ -120,7 +122,15 @@ export default function FloatingNavBar() {
 
   const bottomInset = Math.max(8, insets.bottom);
 
-  if (pathname && pathname.includes('ai-coach')) {
+  // Hide the navbar on sub-screens that provide their own top header or back buttons
+  if (
+    !pathname ||
+    pathname.includes('ai-coach') ||
+    pathname.includes('settings') ||
+    pathname.includes('calendar') ||
+    pathname.includes('admin') ||
+    pathname.includes('auth')
+  ) {
     return null;
   }
 
@@ -201,7 +211,7 @@ export default function FloatingNavBar() {
                 hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
               >
                 <View
-                  className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark"
+                  className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark relative"
                   style={styles.centerButton}
                 >
                   <Ionicons name="camera" size={24} color={colors.accentContrast} />
@@ -211,7 +221,7 @@ export default function FloatingNavBar() {
                   className="text-[10px] text-center tracking-tight font-bold text-accent dark:text-accent-dark mt-0.5"
                   numberOfLines={1}
                 >
-                  Scan
+                  AI Scan
                 </Text>
               </TouchableOpacity>
             </View>
@@ -270,6 +280,16 @@ export default function FloatingNavBar() {
         visible={showScanModal}
         onClose={() => setShowScanModal(false)}
         onAddMealItem={handleAddMealFromScan}
+        onUpgradePress={() => {
+          setShowScanModal(false);
+          setShowSubscriptionModal(true);
+        }}
+      />
+
+      {/* Pro Subscription Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
       />
     </>
   );

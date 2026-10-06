@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
@@ -15,6 +15,7 @@ import {
   PlannerViewMode,
   MonthlySchedule,
   CompletedSession,
+  formatRawWorkoutSession,
 } from './workoutTypes';
 import {
   DEFAULT_ROUTINE_TEMPLATES,
@@ -43,7 +44,7 @@ interface WorkoutPlannerTabProps {
 export default function WorkoutPlannerTab({
   onStartRoutine,
   onSwitchToToday,
-  initialMode = 'daily',
+  initialMode = 'weekly',
 }: WorkoutPlannerTabProps) {
   const { colors } = useThemeColors();
   const { user } = useAuth();
@@ -58,7 +59,7 @@ export default function WorkoutPlannerTab({
   const viewModeKey = authStorage.getScopedKey(userId, 'workout_planner_view_mode');
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
 
-  // Active planner tab mode: 'daily' | 'weekly' | 'monthly'
+  // Active planner tab mode: 'weekly' | 'monthly'
   const [viewMode, setViewMode] = useState<PlannerViewMode>(initialMode);
 
   // Core planner data
@@ -138,14 +139,18 @@ export default function WorkoutPlannerTab({
         if (!isNaN(val) && val >= 1 && val <= 4) setCurrentMesocycleWeek(val);
       }
 
-      if (savedViewMode && (savedViewMode === 'daily' || savedViewMode === 'weekly' || savedViewMode === 'monthly')) {
-        setViewMode(savedViewMode as PlannerViewMode);
+      if (savedViewMode === 'monthly') {
+        setViewMode('monthly');
+      } else {
+        setViewMode('weekly');
       }
 
       if (cachedHistory) {
         try {
           const parsed = JSON.parse(cachedHistory);
-          if (Array.isArray(parsed)) setWorkoutHistory(parsed);
+          if (Array.isArray(parsed)) {
+            setWorkoutHistory(parsed.map(formatRawWorkoutSession));
+          }
         } catch {}
       }
 
@@ -181,8 +186,9 @@ export default function WorkoutPlannerTab({
         }
 
         if (historyRes?.sessions && Array.isArray(historyRes.sessions)) {
-          setWorkoutHistory(historyRes.sessions);
-          AsyncStorage.setItem(historyKey, JSON.stringify(historyRes.sessions)).catch(() => {});
+          const formatted = historyRes.sessions.map(formatRawWorkoutSession);
+          setWorkoutHistory(formatted);
+          AsyncStorage.setItem(historyKey, JSON.stringify(formatted)).catch(() => {});
         }
       } catch (err) {
         console.log('[WorkoutPlanner] Using offline cache mode');
@@ -202,7 +208,29 @@ export default function WorkoutPlannerTab({
 
   useEffect(() => {
     loadPlannerData();
-  }, [loadPlannerData]);
+
+    // Listen for workout completions and deletions to update monthly calendar stats immediately
+    const handleHistorySync = async () => {
+      try {
+        const historyRes = await getWorkoutHistory();
+        if (historyRes?.sessions && Array.isArray(historyRes.sessions)) {
+          const formatted = historyRes.sessions.map(formatRawWorkoutSession);
+          setWorkoutHistory(formatted);
+          AsyncStorage.setItem(historyKey, JSON.stringify(formatted)).catch(() => {});
+        }
+      } catch (err) {
+        console.log('[WorkoutPlanner] Error refreshing history on workout update:', err);
+      }
+    };
+
+    const sub = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', handleHistorySync);
+    const subDel = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', handleHistorySync);
+
+    return () => {
+      sub.remove();
+      subDel.remove();
+    };
+  }, [loadPlannerData, historyKey]);
 
   // Mode switcher handler with persistence
   const handleSwitchMode = (mode: PlannerViewMode) => {
@@ -225,6 +253,7 @@ export default function WorkoutPlannerTab({
     setWeeklySplit(newSplit);
     try {
       await AsyncStorage.setItem(splitKey, JSON.stringify(newSplit));
+      DeviceEventEmitter.emit('WORKOUT_SPLIT_UPDATED', { split: newSplit });
       updateWorkoutPlanApi({ weeklySplit: newSplit }).catch(() => {});
     } catch (err) {
       console.log('Error saving weekly split:', err);
@@ -289,6 +318,20 @@ export default function WorkoutPlannerTab({
     await saveMonthlySchedule(updated);
   };
 
+  // Clear all scheduled routines and rest days for a specific month
+  const handleClearMonthSchedule = async (year: number, month: number) => {
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}-`;
+    const updated = { ...monthlySchedule };
+
+    Object.keys(updated).forEach((key) => {
+      if (key.startsWith(monthPrefix)) {
+        delete updated[key];
+      }
+    });
+
+    await saveMonthlySchedule(updated);
+  };
+
   const handleUpdateTargetDays = async (targetDays: number) => {
     setMonthlyTargetDays(targetDays);
     AsyncStorage.setItem(monthlyTargetDaysKey, String(targetDays)).catch(() => {});
@@ -301,13 +344,8 @@ export default function WorkoutPlannerTab({
     updateWorkoutPlanApi({ currentMesocycleWeek: weekNumber }).catch(() => {});
   };
 
-  // Today's scheduled routine
+  // Current day of week for weekly split highlight
   const todayDay = getTodayDayOfWeek();
-  const todayRoutineId = weeklySplit[todayDay];
-  const todayRoutine = useMemo(
-    () => routines.find((r) => r.id === todayRoutineId) || null,
-    [routines, todayRoutineId]
-  );
 
   const handleAssignRoutineToDay = (routineId: string | null) => {
     if (!assignModalDay) return;
@@ -368,35 +406,12 @@ export default function WorkoutPlannerTab({
 
   return (
     <View className="mb-6">
-      {/* 3-Segment View Switcher: Daily | Weekly | Monthly */}
+      {/* 2-Segment View Switcher: Weekly Split | Monthly Calendar */}
       <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-4 border border-input-border dark:border-input-border-dark">
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => handleSwitchMode('daily')}
-          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
-            viewMode === 'daily'
-              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
-              : ''
-          }`}
-        >
-          <Ionicons
-            name="today"
-            size={14}
-            color={viewMode === 'daily' ? colors.accent : colors.textMuted}
-          />
-          <Text
-            className={`text-xs font-black ${
-              viewMode === 'daily'
-                ? 'text-accent dark:text-accent-dark'
-                : 'text-text-muted dark:text-text-muted-dark'
-            }`}
-          >
-            Daily Plan
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          activeOpacity={0.8}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === 'weekly' }}
           onPress={() => handleSwitchMode('weekly')}
           className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             viewMode === 'weekly'
@@ -422,6 +437,8 @@ export default function WorkoutPlannerTab({
 
         <TouchableOpacity
           activeOpacity={0.8}
+          accessibilityRole="tab"
+          accessibilityState={{ selected: viewMode === 'monthly' }}
           onPress={() => handleSwitchMode('monthly')}
           className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             viewMode === 'monthly'
@@ -441,186 +458,10 @@ export default function WorkoutPlannerTab({
                 : 'text-text-muted dark:text-text-muted-dark'
             }`}
           >
-            Monthly
+            Monthly Calendar
           </Text>
         </TouchableOpacity>
       </View>
-
-      {/* VIEW 1: DAILY PLAN */}
-      {viewMode === 'daily' && (
-        <View>
-          {/* Today's Scheduled Plan Card */}
-          <SurfaceCard className="mb-4 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
-            <View className="flex-row items-center justify-between mb-2">
-              <View className="flex-row items-center gap-1.5">
-                <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark animate-pulse" />
-                <Text className="text-[11px] font-black text-accent dark:text-accent-dark uppercase tracking-wider">
-                  Today's Scheduled Routine
-                </Text>
-              </View>
-              <View className="bg-accent/20 dark:bg-accent-dark/30 px-2 py-0.5 rounded-full">
-                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
-                  {DAYS_OF_WEEK.find((d) => d.key === todayDay)?.full || 'Today'}
-                </Text>
-              </View>
-            </View>
-
-            {todayRoutine ? (
-              <View>
-                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark mb-1">
-                  {todayRoutine.title}
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-3 leading-relaxed">
-                  {todayRoutine.exercises.length} Exercises · ~{todayRoutine.estimatedDurationMinutes} min · {todayRoutine.category}
-                </Text>
-
-                {/* Exercise preview pills */}
-                <View className="flex-row flex-wrap gap-1.5 mb-3">
-                  {todayRoutine.exercises.slice(0, 3).map((ex, i) => (
-                    <View key={i} className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg">
-                      <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
-                        {ex.name}
-                      </Text>
-                    </View>
-                  ))}
-                  {todayRoutine.exercises.length > 3 && (
-                    <View className="bg-input dark:bg-input-dark px-2 py-1 rounded-lg">
-                      <Text className="text-[10px] text-text-muted font-bold">
-                        +{todayRoutine.exercises.length - 3} more
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => onStartRoutine(todayRoutine)}
-                  className="bg-accent dark:bg-accent-dark py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-sm"
-                >
-                  <Ionicons name="play" size={16} color={colors.accentContrast} />
-                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase tracking-wider">
-                    Start Today's Workout
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <View className="flex-row items-center justify-between py-1">
-                <View className="flex-row items-center gap-3">
-                  <View className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center">
-                    <Ionicons name="leaf-outline" size={20} color={colors.accent} />
-                  </View>
-                  <View>
-                    <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                      Rest & Recovery Day
-                    </Text>
-                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                      No workout scheduled today. Stretch & hydrate!
-                    </Text>
-                  </View>
-                </View>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    const dayObj = DAYS_OF_WEEK.find((d) => d.key === todayDay);
-                    if (dayObj) setAssignModalDay(dayObj);
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
-                >
-                  <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                    Change
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-          </SurfaceCard>
-
-          {/* Quick Switch Shortcuts Card */}
-          <SurfaceCard className="mb-4 p-4">
-            <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider mb-2">
-              Planner Shortcuts
-            </Text>
-            <View className="flex-row gap-2">
-              <TouchableOpacity
-                onPress={() => handleSwitchMode('weekly')}
-                className="flex-1 p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border flex-row items-center justify-between"
-              >
-                <View>
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Edit 7-Day Split
-                  </Text>
-                  <Text className="text-[10px] text-text-muted mt-0.5">Customize days</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleSwitchMode('monthly')}
-                className="flex-1 p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border flex-row items-center justify-between"
-              >
-                <View>
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Month Overview
-                  </Text>
-                  <Text className="text-[10px] text-text-muted mt-0.5">Full calendar view</Text>
-                </View>
-                <Ionicons name="chevron-forward" size={14} color={colors.textMuted} />
-              </TouchableOpacity>
-            </View>
-          </SurfaceCard>
-
-          {/* Available Workout Routines Quick Starter */}
-          <View className="flex-row justify-between items-center mb-3 mt-1">
-            <View>
-              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark">
-                Quick-Start Routines
-              </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                Start any routine right now
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={() => setShowCreateModal(true)}
-              className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl flex-row items-center gap-1"
-            >
-              <Ionicons name="add" size={16} color={colors.accentContrast} />
-              <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">New</Text>
-            </TouchableOpacity>
-          </View>
-
-          {routines.map((routine) => (
-            <SurfaceCard key={routine.id} className="mb-3">
-              <View className="flex-row justify-between items-start mb-2">
-                <View className="flex-1 mr-2">
-                  <View className="flex-row items-center gap-2 mb-1">
-                    <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                      {routine.title}
-                    </Text>
-                    {routine.isCustom && (
-                      <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
-                        <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
-                          Custom
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                    {routine.exercises.length} Exercises · ~{routine.estimatedDurationMinutes} min · {routine.category}
-                  </Text>
-                </View>
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => onStartRoutine(routine)}
-                  className="px-3 py-1.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1"
-                >
-                  <Ionicons name="play" size={12} color={colors.accentContrast} />
-                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase">Start</Text>
-                </TouchableOpacity>
-              </View>
-            </SurfaceCard>
-          ))}
-        </View>
-      )}
 
       {/* VIEW 2: WEEKLY SPLIT */}
       {viewMode === 'weekly' && (
@@ -835,6 +676,7 @@ export default function WorkoutPlannerTab({
           currentMesocycleWeek={currentMesocycleWeek}
           onUpdateScheduleDay={handleUpdateScheduleDay}
           onAutoFillMonthFromSplit={handleAutoFillMonthFromSplit}
+          onClearMonthSchedule={handleClearMonthSchedule}
           onUpdateTargetDays={handleUpdateTargetDays}
           onUpdateMesocycleWeek={handleUpdateMesocycleWeek}
           onStartRoutine={onStartRoutine}

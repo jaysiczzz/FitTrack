@@ -11,6 +11,7 @@ import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
 import WaterTrackerCard from '@/components/foodlog/WaterTrackerCard';
 import AiScanModal from '@/components/foodlog/AiScanModal';
 import AiSuggestionModal from '@/components/foodlog/AiSuggestionModal';
+import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import FoodLogTabs, { FoodLogTabType } from '@/components/foodlog/FoodLogTabs';
 import FoodLibraryTab from '@/components/foodlog/FoodLibraryTab';
 import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
@@ -52,6 +53,7 @@ export default function FoodLog() {
   const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<FoodLogItem | null>(null);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
@@ -690,6 +692,16 @@ export default function FoodLog() {
         onAddMealItem={handleAddMealItem}
         initialMealType={scanTargetMeal}
         initialMode={scanInitialMode}
+        onUpgradePress={() => {
+          setShowScanModal(false);
+          setShowSubscriptionModal(true);
+        }}
+      />
+
+      {/* Subscription Modal for In-App Upgrades */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
       />
 
 

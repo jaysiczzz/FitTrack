@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompletedSession, formatDateHeading, getTodayDateString } from '../workouts/workoutTypes';
@@ -56,6 +56,7 @@ interface UnifiedFitnessCalendarProps {
   onSelectDate?: (dateStr: string | null) => void;
   onRepeatSession?: (session: CompletedSession) => void;
   onDeleteSession?: (session: CompletedSession) => void;
+  hideHeader?: boolean;
   
   onSwitchToTodayWorkout?: () => void;
   onSwitchToTodayNutrition?: () => void;
@@ -69,6 +70,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   onSelectDate: externalOnSelectDate,
   onRepeatSession,
   onDeleteSession,
+  hideHeader = false,
   
   onSwitchToTodayWorkout,
   onSwitchToTodayNutrition,
@@ -281,8 +283,18 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
     };
 
     loadStandaloneData();
+
+    const subComplete = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      if (isMounted && !externalWorkoutHistory) loadStandaloneData();
+    });
+    const subDelete = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', () => {
+      if (isMounted && !externalWorkoutHistory) loadStandaloneData();
+    });
+
     return () => {
       isMounted = false;
+      subComplete.remove();
+      subDelete.remove();
     };
   }, [userId, externalWorkoutHistory, externalNutritionHistory]);
 
@@ -439,6 +451,25 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   return (
     <View className="mb-4">
       <SurfaceCard className="mb-3 p-4">
+        {/* Header */}
+        {!hideHeader && (
+          <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-input-border/40 dark:border-input-border-dark/40">
+            <View className="flex-row items-center gap-2">
+              <View className="w-7 h-7 rounded-lg bg-accent/15 items-center justify-center">
+                <Ionicons name="calendar-outline" size={16} color={colors.accent} />
+              </View>
+              <View>
+                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
+                  Activity & Consistency Calendar
+                </Text>
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                  Daily workouts, nutrition logs, and readiness history
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
         {/* 1. Category Filter Segmented Tabs */}
         <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3 border border-input-border dark:border-input-border-dark">
           <TouchableOpacity

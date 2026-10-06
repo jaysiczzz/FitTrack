@@ -18,10 +18,8 @@ import SurfaceCard from '@/components/ui/SurfaceCard';
 import ResetPasswordModal from '@/components/settings/ResetPasswordModal';
 import HelpSupportModal from '@/components/settings/HelpSupportModal';
 import PrivacyPolicyModal from '@/components/settings/PrivacyPolicyModal';
-import TestimonialModal from '@/components/settings/TestimonialModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import EWalletModal from '@/components/subscription/EWalletModal';
-import AdminRevenueModal from '@/components/subscription/AdminRevenueModal';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
   getCurrentSubscriptionApi,
@@ -86,10 +84,8 @@ export default function Settings() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpInitialTab, setHelpInitialTab] = useState<'faq' | 'contact'>('faq');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTestimonialModal, setShowTestimonialModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEWalletModal, setShowEWalletModal] = useState(false);
-  const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -342,7 +338,7 @@ export default function Settings() {
                   </View>
                 ) : (
                   <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
-                    <Text className="text-[9px] font-bold text-accent uppercase">Upgrade</Text>
+                    <Text className="text-[9px] font-bold text-emerald-500 uppercase">Upgrade</Text>
                   </View>
                 )}
               </View>
@@ -417,28 +413,6 @@ export default function Settings() {
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            </Pressable>
-
-            {/* Quick Payouts & Ledger Modal Shortcut */}
-            <Pressable
-              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-              onPress={() => {
-                hapticFeedback.light();
-                setShowAdminRevenueModal(true);
-              }}
-            >
-              <View className="w-9 h-9 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/20 dark:border-accent-dark/20 items-center justify-center mr-3">
-                <Ionicons name="trending-up" size={16} color={colors.accent} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                  Quick Revenue Modal
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                  Fast MRR check, Stripe fees & instant payout modal
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
             </Pressable>
           </SurfaceCard>
         )}
@@ -1033,30 +1007,6 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
-          {/* Athlete Stories & Testimonials */}
-          <Pressable
-            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-            onPress={() => setShowTestimonialModal(true)}
-          >
-            <View className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
-              <Ionicons name="sparkles" size={14} color={colors.accent} />
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                  Athlete Stories & Reviews
-                </Text>
-                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full gap-1">
-                  <Ionicons name="star" size={10} color={colors.warning} />
-                  <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">Community</Text>
-                </View>
-              </View>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Read transformations or share your journey
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
 
           {/* Privacy Policy */}
           <Pressable
@@ -1134,11 +1084,6 @@ export default function Settings() {
         initialTab={helpInitialTab}
       />
 
-      {/* Athlete Testimonials Modal */}
-      <TestimonialModal
-        visible={showTestimonialModal}
-        onClose={() => setShowTestimonialModal(false)}
-      />
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicyModal
@@ -1158,15 +1103,6 @@ export default function Settings() {
         visible={showEWalletModal}
         onClose={() => setShowEWalletModal(false)}
         onBalanceUpdated={(newBal) => setWalletBalance(newBal)}
-      />
-
-      {/* Admin Revenue Dashboard Modal */}
-      <AdminRevenueModal
-        visible={showAdminRevenueModal}
-        onClose={() => {
-          setShowAdminRevenueModal(false);
-          loadBillingSummary();
-        }}
       />
 
       {/* Edit Personal Information & Avatar Modal */}

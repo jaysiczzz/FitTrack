@@ -15,6 +15,19 @@ export interface AdminSystemStats {
     mealsLoggedToday: number;
     totalStories: number;
   };
+  engagement?: {
+    dau: number;
+    mau: number;
+    dauMauRatio: number;
+    proConversionRate: number;
+    supportResolutionRate: number;
+  };
+  growthHistory?: {
+    date: string;
+    label: string;
+    usersCount: number;
+    activityCount: number;
+  }[];
   aiEngine: {
     foodScansToday: number;
     coachQuestionsToday: number;

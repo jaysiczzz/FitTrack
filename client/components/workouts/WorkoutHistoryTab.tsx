@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import SurfaceCard from '../ui/SurfaceCard';
 import ConfirmModal from '../ui/ConfirmModal';
+import { useWeightUnit, convertFromKg } from '@/constants/units';
 
 interface WorkoutHistoryTabProps {
   onRepeatSession?: (session: CompletedSession) => void;
@@ -34,6 +35,9 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const { showSuccess } = useToast();
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
+
+  const [unit] = useWeightUnit();
+  const unitLabel = unit.toLowerCase();
 
   const [history, setHistory] = useState<CompletedSession[]>([]);
   const [loading, setLoading] = useState(false);
@@ -94,7 +98,8 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                 e.name?.toLowerCase().includes('dip')
               );
               if (first.weight && Number(first.weight) > 0) {
-                setsSummary = `${setsCount} sets · ${first.weight}kg × ${first.reps || 10} reps`;
+                const displayWeight = convertFromKg(Number(first.weight), unit);
+                setsSummary = `${setsCount} sets · ${displayWeight}${unitLabel} × ${first.reps || 10} reps`;
               } else if (isExBodyweight) {
                 setsSummary = `${setsCount} sets · Body Weight × ${first.reps || 10} reps`;
               } else if (first.reps) {
@@ -156,6 +161,14 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
 
   useEffect(() => {
     fetchHistory();
+
+    const sub = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      fetchHistory();
+    });
+
+    return () => {
+      sub.remove();
+    };
   }, [fetchHistory]);
 
   const toggleExpand = (id: string) => {
@@ -177,6 +190,17 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       console.log('[Workout History] Failed to save updated history cache:', err)
     );
 
+    // Also remove legacy dashboard key if present to prevent stale fallback
+    const legacyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history');
+    AsyncStorage.removeItem(legacyKey).catch(() => {});
+
+    // If deleting today's session, clear today's exercises cache
+    const todayStr = getTodayDateString();
+    if (target.dateStr === todayStr) {
+      const todayCacheKey = authStorage.getScopedKey(userId, `fittrack_today_exercises_${todayStr}`);
+      AsyncStorage.removeItem(todayCacheKey).catch(() => {});
+    }
+
     // 2. Clean up expanded state
     setExpandedDates((prev) => {
       const next = { ...prev };
@@ -187,7 +211,10 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     // 3. Instant toast feedback (0ms delay)
     showSuccess('Workout session deleted');
 
-    // 4. Fire server deletion in background
+    // 4. Emit event across all screens/tabs (Dashboard, Monthly Planner, Workouts screen)
+    DeviceEventEmitter.emit('WORKOUT_SESSION_DELETED', { sessionId: target.id, dateStr: target.dateStr });
+
+    // 5. Fire server deletion in background
     try {
       await deleteWorkoutSessionApi(target.id);
     } catch (err) {
@@ -288,20 +315,26 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   return (
     <View className="mb-6">
       {/* 1. Range Selection Filter Tabs */}
-      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3.5 border border-input-border dark:border-input-border-dark">
+      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-4 border border-input-border dark:border-input-border-dark">
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('15days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === '15days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={selectedRange === '15days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '15days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -312,18 +345,24 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('7days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === '7days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={selectedRange === '7days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '7days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -334,18 +373,24 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('all');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === 'all' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="infinite-outline"
+            size={15}
+            color={selectedRange === 'all' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === 'all' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'

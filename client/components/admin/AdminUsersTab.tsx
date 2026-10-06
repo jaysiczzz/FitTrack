@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -15,12 +14,21 @@ import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
 import FilterChip from '@/components/ui/FilterChip';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import { AdminUserItem, updateUserRoleApi, deleteUserApi } from '@/api/admin';
 import {
   adminOverrideSubscriptionApi,
   SubscriptionTierType,
 } from '@/api/subscription';
 import { capitalizeWords } from '@/utils/formatters';
+
+const formatGoal = (goal?: string) => {
+  if (!goal) return 'General Fitness';
+  if (goal === 'MUSCLE_GAIN') return 'Muscle Gain';
+  if (goal === 'WEIGHT_LOSS') return 'Weight Loss';
+  if (goal === 'MAINTENANCE') return 'Maintenance';
+  return capitalizeWords(goal.replace(/_/g, ' ').toLowerCase());
+};
 
 interface AdminUsersTabProps {
   users: AdminUserItem[];
@@ -54,14 +62,27 @@ export default function AdminUsersTab({
   const [savingOverride, setSavingOverride] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
 
-  const handleToggleUserRole = async (targetUser: AdminUserItem) => {
+  // Confirmation modal states
+  const [roleConfirmTarget, setRoleConfirmTarget] = useState<{ user: AdminUserItem; newRole: 'USER' | 'ADMIN' } | null>(null);
+  const [deleteConfirmTarget, setDeleteConfirmTarget] = useState<AdminUserItem | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
+  const [overrideConfirm, setOverrideConfirm] = useState(false);
+
+  const handleToggleUserRole = (targetUser: AdminUserItem) => {
+    triggerHapticFeedback();
     const newRole = targetUser.role === 'ADMIN' ? 'USER' : 'ADMIN';
+    setRoleConfirmTarget({ user: targetUser, newRole });
+  };
+
+  const executeToggleUserRole = async () => {
+    if (!roleConfirmTarget) return;
     try {
       setUpdatingUserRole(true);
       triggerHapticFeedback();
-      const res = await updateUserRoleApi(targetUser.id, newRole);
+      const res = await updateUserRoleApi(roleConfirmTarget.user.id, roleConfirmTarget.newRole);
       if (res.success) {
-        showSuccess('Role Updated', `${targetUser.firstName} is now a ${newRole}.`);
+        showSuccess('Role Updated', `${roleConfirmTarget.user.firstName} is now a ${roleConfirmTarget.newRole}.`);
+        setRoleConfirmTarget(null);
         setSelectedUser(null);
         onReloadUsers();
       }
@@ -72,7 +93,12 @@ export default function AdminUsersTab({
     }
   };
 
-  const handleApplySubscriptionOverride = async () => {
+  const handleApplySubscriptionOverride = () => {
+    triggerHapticFeedback();
+    setOverrideConfirm(true);
+  };
+
+  const executeApplySubscriptionOverride = async () => {
     if (!selectedUser) return;
     try {
       setSavingOverride(true);
@@ -80,6 +106,7 @@ export default function AdminUsersTab({
       const res = await adminOverrideSubscriptionApi(selectedUser.id, overrideTier, 'ACTIVE', 1);
       if (res.success) {
         showSuccess('Tier Granted', `Updated ${selectedUser.firstName}'s plan to ${overrideTier}.`);
+        setOverrideConfirm(false);
         setShowOverrideModal(false);
         setSelectedUser(null);
         onReloadUsers();
@@ -92,30 +119,27 @@ export default function AdminUsersTab({
   };
 
   const handleDeleteUserAccount = (targetUser: AdminUserItem) => {
-    Alert.alert(
-      'Delete User Record',
-      `Permanently delete account for ${targetUser.firstName} (${targetUser.email}) and erase all their fitness data?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete Permanently',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              triggerHapticFeedback();
-              const res = await deleteUserApi(targetUser.id);
-              if (res.success) {
-                showSuccess('User Deleted', 'Account has been eradicated from Neon PostgreSQL.');
-                setSelectedUser(null);
-                onReloadUsers();
-              }
-            } catch (err: any) {
-              showError('Delete Failed', err?.message || 'Could not delete user account.');
-            }
-          },
-        },
-      ]
-    );
+    triggerHapticFeedback();
+    setDeleteConfirmTarget(targetUser);
+  };
+
+  const executeDeleteUserAccount = async () => {
+    if (!deleteConfirmTarget) return;
+    try {
+      setDeletingUser(true);
+      triggerHapticFeedback();
+      const res = await deleteUserApi(deleteConfirmTarget.id);
+      if (res.success) {
+        showSuccess('User Deleted', 'Account has been removed from database.');
+        setDeleteConfirmTarget(null);
+        setSelectedUser(null);
+        onReloadUsers();
+      }
+    } catch (err: any) {
+      showError('Delete Failed', err?.message || 'Could not delete user account.');
+    } finally {
+      setDeletingUser(false);
+    }
   };
 
   return (
@@ -203,9 +227,16 @@ export default function AdminUsersTab({
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                     {item.email}
                   </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-1.5">
-                    🏋️ {item._count?.workoutSessions || 0} sessions · 🥗 {item._count?.dailyFoodLogs || 0} meal days · Goal: {item.goal}
-                  </Text>
+                  <View className="flex-row items-center gap-1.5 mt-1.5 flex-wrap">
+                    <View className="bg-input/80 dark:bg-input-dark/80 px-2 py-0.5 rounded-md border border-input-border/50">
+                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
+                        Goal: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{formatGoal(item.goal)}</Text>
+                      </Text>
+                    </View>
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                      🏋️ {item._count?.workoutSessions || 0} sessions · 🥗 {item._count?.dailyFoodLogs || 0} meal days
+                    </Text>
+                  </View>
                 </View>
 
                 {/* Action Menu Trigger */}
@@ -230,7 +261,7 @@ export default function AdminUsersTab({
       {/* ── Manage User Modal ── */}
       {selectedUser && (
         <Modal
-          visible={!!selectedUser && !showOverrideModal}
+          visible={!!selectedUser && !showOverrideModal && !roleConfirmTarget && !deleteConfirmTarget}
           transparent
           animationType="fade"
           onRequestClose={() => setSelectedUser(null)}
@@ -251,17 +282,31 @@ export default function AdminUsersTab({
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                   {selectedUser.email}
                 </Text>
-                <View className="flex-row gap-2 mt-2">
+                <View className="flex-row flex-wrap gap-1.5 mt-2">
                   <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded">
                     <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                      ROLE: {selectedUser.role}
+                      Role: {selectedUser.role}
                     </Text>
                   </View>
                   <View className="bg-info/10 border border-info/20 px-2 py-0.5 rounded">
                     <Text className="text-[10px] font-bold text-info dark:text-info-dark">
-                      TIER: {selectedUser.subscription?.tier || 'FREE'}
+                      Tier: {selectedUser.subscription?.tier?.replace(/_/g, ' ') || 'FREE'}
                     </Text>
                   </View>
+                  <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded">
+                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+                      Goal: {formatGoal(selectedUser.goal)}
+                    </Text>
+                  </View>
+                </View>
+
+                <View className="mt-2.5 pt-2 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row justify-between">
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                    Total Workouts: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.workoutSessions || 0}</Text>
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                    Meal Days: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.dailyFoodLogs || 0}</Text>
+                  </Text>
                 </View>
               </View>
 
@@ -271,17 +316,12 @@ export default function AdminUsersTab({
                 <TouchableOpacity
                   onPress={() => handleToggleUserRole(selectedUser)}
                   disabled={updatingUserRole}
-                  className={`min-h-[48px] py-3.5 rounded-xl border flex-row items-center justify-center gap-2 ${
+                  className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
                     selectedUser.role === 'ADMIN'
                       ? 'bg-danger/15 border-danger/30'
                       : 'bg-accent border-accent'
                   }`}
                 >
-                  <Ionicons
-                    name="shield-outline"
-                    size={16}
-                    color={selectedUser.role === 'ADMIN' ? colors.danger : colors.accentContrast}
-                  />
                   <Text
                     className={`text-xs font-bold ${
                       selectedUser.role === 'ADMIN'
@@ -298,9 +338,8 @@ export default function AdminUsersTab({
                   onPress={() => {
                     setShowOverrideModal(true);
                   }}
-                  className="min-h-[48px] py-3.5 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-center gap-2"
+                  className="min-h-[48px] py-3.5 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark items-center justify-center"
                 >
-                  <Ionicons name="ribbon-outline" size={16} color={colors.textPrimary} />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     Override Subscription Tier
                   </Text>
@@ -309,9 +348,8 @@ export default function AdminUsersTab({
                 {/* 3. Delete Account */}
                 <TouchableOpacity
                   onPress={() => handleDeleteUserAccount(selectedUser)}
-                  className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 flex-row items-center justify-center gap-2 mt-2"
+                  className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-2"
                 >
-                  <Ionicons name="trash-outline" size={16} color={colors.danger} />
                   <Text className="text-xs font-bold text-danger dark:text-danger-dark">
                     Delete User Account
                   </Text>
@@ -325,7 +363,7 @@ export default function AdminUsersTab({
       {/* ── Override Subscription Modal ── */}
       {showOverrideModal && selectedUser && (
         <Modal
-          visible={showOverrideModal}
+          visible={showOverrideModal && !overrideConfirm}
           transparent
           animationType="fade"
           onRequestClose={() => setShowOverrideModal(false)}
@@ -349,7 +387,6 @@ export default function AdminUsersTab({
                     { tier: 'FREE', label: 'Free Tier', desc: 'Standard quotas' },
                     { tier: 'PRO_MONTHLY', label: 'Pro Monthly', desc: 'Full AI Vision & Routines' },
                     { tier: 'PRO_ANNUAL', label: 'Pro Annual', desc: '12 Months access' },
-                    { tier: 'LIFETIME_FOUNDER', label: 'Lifetime Founder', desc: 'Permanent VIP VIP' },
                   ] as const
                 ).map((item) => (
                   <TouchableOpacity
@@ -395,6 +432,51 @@ export default function AdminUsersTab({
           </View>
         </Modal>
       )}
+
+      {/* ── Role Change Confirmation Modal ── */}
+      <ConfirmModal
+        visible={Boolean(roleConfirmTarget)}
+        title={roleConfirmTarget?.newRole === 'ADMIN' ? 'Promote to Administrator?' : 'Demote to Athlete?'}
+        message={
+          roleConfirmTarget?.newRole === 'ADMIN'
+            ? `Grant full administrative privileges to ${roleConfirmTarget?.user.firstName} ${roleConfirmTarget?.user.lastName} (${roleConfirmTarget?.user.email})?`
+            : `Remove administrator permissions for ${roleConfirmTarget?.user.firstName} ${roleConfirmTarget?.user.lastName}?`
+        }
+        confirmText={roleConfirmTarget?.newRole === 'ADMIN' ? 'Promote to Admin' : 'Demote User'}
+        cancelText="Cancel"
+        isDanger={roleConfirmTarget?.newRole === 'USER'}
+        iconName={roleConfirmTarget?.newRole === 'ADMIN' ? 'shield-checkmark-outline' : 'shield-outline'}
+        loading={updatingUserRole}
+        onConfirm={executeToggleUserRole}
+        onCancel={() => setRoleConfirmTarget(null)}
+      />
+
+      {/* ── User Account Deletion Confirmation Modal ── */}
+      <ConfirmModal
+        visible={Boolean(deleteConfirmTarget)}
+        title="Permanently Delete User?"
+        message={`Are you sure you want to permanently erase the account for ${deleteConfirmTarget?.firstName} ${deleteConfirmTarget?.lastName} (${deleteConfirmTarget?.email})? All workouts, meal logs, and metrics will be wiped permanently.`}
+        confirmText="Delete Account"
+        cancelText="Cancel"
+        isDanger
+        iconName="trash-outline"
+        loading={deletingUser}
+        onConfirm={executeDeleteUserAccount}
+        onCancel={() => setDeleteConfirmTarget(null)}
+      />
+
+      {/* ── Subscription Override Confirmation Modal ── */}
+      <ConfirmModal
+        visible={overrideConfirm}
+        title="Confirm Tier Override?"
+        message={`Grant ${overrideTier} subscription access to ${selectedUser?.firstName} ${selectedUser?.lastName}?`}
+        confirmText="Apply Override"
+        cancelText="Cancel"
+        iconName="ribbon-outline"
+        loading={savingOverride}
+        onConfirm={executeApplySubscriptionOverride}
+        onCancel={() => setOverrideConfirm(false)}
+      />
     </View>
   );
 }

@@ -16,7 +16,6 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { sendFeedbackApi } from '@/api/support';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface FaqItem {
   id: string;
@@ -116,12 +115,18 @@ export default function HelpSupportModal({
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [subjectError, setSubjectError] = useState<string | null>(null);
+  const [messageError, setMessageError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
-      setFormError(null);
+      setSubjectError(null);
+      setMessageError(null);
+      setEmailError(null);
+      setSubmitError(null);
     }
   }, [visible, initialTab]);
 
@@ -142,15 +147,29 @@ export default function HelpSupportModal({
   };
 
   const handleSendFeedback = async () => {
-    setFormError(null);
+    setSubjectError(null);
+    setMessageError(null);
+    setEmailError(null);
+    setSubmitError(null);
+
+    let hasError = false;
+
     if (!subject.trim()) {
-      setFormError('Please enter a subject line.');
-      return;
+      setSubjectError('Please enter a subject line.');
+      hasError = true;
     }
+
     if (message.trim().length < 10) {
-      setFormError('Please enter at least 10 characters in your message.');
-      return;
+      setMessageError('Please enter at least 10 characters in your message.');
+      hasError = true;
     }
+
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError('Please enter a valid email address.');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setSubmitting(true);
     try {
@@ -165,10 +184,13 @@ export default function HelpSupportModal({
       setSubject('');
       setMessage('');
       setEmail('');
-      setFormError(null);
+      setSubjectError(null);
+      setMessageError(null);
+      setEmailError(null);
+      setSubmitError(null);
       onClose();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
+      setSubmitError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
     } finally {
       setSubmitting(false);
     }
@@ -344,9 +366,6 @@ export default function HelpSupportModal({
           ) : (
             /* TAB 2: CONTACT & FEEDBACK */
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              {/* Inline Error Banner */}
-              <ModalErrorBanner error={formError} onDismiss={() => setFormError(null)} />
-
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Category
               </Text>
@@ -388,12 +407,21 @@ export default function HelpSupportModal({
                   value={subject}
                   onChangeText={(val) => {
                     setSubject(val);
-                    if (formError) setFormError(null);
+                    if (subjectError) setSubjectError(null);
                   }}
                   placeholder="e.g. Question about calorie calculation"
                   placeholderTextColor={colors.textMuted}
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark ${
+                    subjectError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {subjectError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {subjectError}
+                  </Text>
+                )}
               </View>
 
               {/* Message */}
@@ -405,15 +433,24 @@ export default function HelpSupportModal({
                   value={message}
                   onChangeText={(val) => {
                     setMessage(val);
-                    if (formError) setFormError(null);
+                    if (messageError) setMessageError(null);
                   }}
                   placeholder="Describe your issue or feedback in detail..."
                   placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark min-h-[90px]"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark min-h-[90px] ${
+                    messageError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {messageError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {messageError}
+                  </Text>
+                )}
               </View>
 
               {/* Email (Optional) */}
@@ -423,14 +460,36 @@ export default function HelpSupportModal({
                 </Text>
                 <TextInput
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (emailError) setEmailError(null);
+                  }}
                   placeholder="your.email@example.com"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark ${
+                    emailError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {emailError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {emailError}
+                  </Text>
+                )}
               </View>
+
+              {/* Inline Submit Error Notification */}
+              {submitError && (
+                <View className="flex-row items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/25 mb-3">
+                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                  <Text className="text-xs text-danger dark:text-danger-dark font-medium flex-1">
+                    {submitError}
+                  </Text>
+                </View>
+              )}
 
               {/* Action Buttons */}
               <View className="gap-2.5 mb-4">

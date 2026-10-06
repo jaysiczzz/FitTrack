@@ -3,19 +3,18 @@ import {
   View,
   Text,
   Modal,
-  TextInput,
   TouchableOpacity,
   ActivityIndicator,
   Pressable,
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { changePasswordApi } from '@/api/auth';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import PasswordRequirements from '../ui/PasswordRequirements';
+import Input from '../ui/Input';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 
 interface ResetPasswordModalProps {
@@ -30,20 +29,20 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [showCurrent, setShowCurrent] = useState(false);
-  const [showNew, setShowNew] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+
+  const [currentPasswordError, setCurrentPasswordError] = useState<string | null>(null);
+  const [newPasswordError, setNewPasswordError] = useState<string | null>(null);
+  const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [validationError, setValidationError] = useState<string | null>(null);
 
   const resetForm = () => {
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
-    setShowCurrent(false);
-    setShowNew(false);
-    setShowConfirm(false);
-    setValidationError(null);
+    setCurrentPasswordError(null);
+    setNewPasswordError(null);
+    setConfirmPasswordError(null);
     setLoading(false);
   };
 
@@ -53,29 +52,40 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   };
 
   const handleSubmit = async () => {
-    setValidationError(null);
+    setCurrentPasswordError(null);
+    setNewPasswordError(null);
+    setConfirmPasswordError(null);
+
+    let hasError = false;
 
     if (!currentPassword) {
-      setValidationError('Please enter your current password.');
-      return;
+      setCurrentPasswordError('Please enter your current password.');
+      hasError = true;
     }
+
     if (!newPassword) {
-      setValidationError('Please enter your new password.');
-      return;
+      setNewPasswordError('Please enter your new password.');
+      hasError = true;
+    } else {
+      const pwdCheck = validatePasswordStrength(newPassword);
+      if (!pwdCheck.valid) {
+        setNewPasswordError(pwdCheck.error || 'New password does not meet security requirements.');
+        hasError = true;
+      } else if (newPassword === currentPassword) {
+        setNewPasswordError('New password must be different from current password.');
+        hasError = true;
+      }
     }
-    const pwdCheck = validatePasswordStrength(newPassword);
-    if (!pwdCheck.valid) {
-      setValidationError(pwdCheck.error || 'New password does not meet security requirements.');
-      return;
+
+    if (!confirmPassword) {
+      setConfirmPasswordError('Please confirm your new password.');
+      hasError = true;
+    } else if (newPassword !== confirmPassword) {
+      setConfirmPasswordError('Passwords do not match.');
+      hasError = true;
     }
-    if (newPassword === currentPassword) {
-      setValidationError('New password must be different from current password.');
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      setValidationError('Passwords do not match.');
-      return;
-    }
+
+    if (hasError) return;
 
     setLoading(true);
     try {
@@ -84,7 +94,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
       handleClose();
     } catch (err: any) {
       const errMsg = err?.message || 'Failed to update password. Please check your current password.';
-      setValidationError(errMsg);
+      if (errMsg.toLowerCase().includes('current password')) {
+        setCurrentPasswordError(errMsg);
+      } else {
+        setNewPasswordError(errMsg);
+      }
       showError('Update Failed', errMsg);
     } finally {
       setLoading(false);
@@ -113,112 +127,53 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
           </View>
 
           <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
-            {/* Validation Error Banner */}
-            {validationError ? (
-              <View className="mb-3.5 p-3 rounded-xl bg-danger/10 border border-danger/30 flex-row items-center">
-                <Ionicons name="alert-circle" size={18} color={colors.danger} className="mr-2" />
-                <Text className="text-xs font-semibold text-danger dark:text-danger-dark flex-1">
-                  {validationError}
-                </Text>
-              </View>
-            ) : null}
-
             {/* Current Password */}
-            <View className="mb-3.5">
-              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
-                Current Password
-              </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
-                <TextInput
-                  secureTextEntry={!showCurrent}
-                  value={currentPassword}
-                  onChangeText={(val) => {
-                    setCurrentPassword(val);
-                    if (validationError) setValidationError(null);
-                  }}
-                  placeholder="Enter current password"
-                  placeholderTextColor={colors.textMuted}
-                  className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowCurrent(!showCurrent)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name={showCurrent ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <Input
+              label="Current Password"
+              placeholder="Enter current password"
+              value={currentPassword}
+              onChangeText={(val) => {
+                setCurrentPassword(val);
+                if (currentPasswordError) setCurrentPasswordError(null);
+              }}
+              isPassword
+              error={currentPasswordError || undefined}
+              autoCapitalize="none"
+            />
 
             {/* New Password */}
-            <View className="mb-3.5">
-              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
-                New Password
-              </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
-                <TextInput
-                  secureTextEntry={!showNew}
-                  value={newPassword}
-                  onChangeText={(val) => {
-                    setNewPassword(val);
-                    if (validationError) setValidationError(null);
-                  }}
-                  placeholder="Min 8 chars, uppercase, number, symbol"
-                  placeholderTextColor={colors.textMuted}
-                  className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowNew(!showNew)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name={showNew ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
+            <View className="mb-1">
+              <Input
+                label="New Password"
+                placeholder="Min 8 chars, uppercase, number, symbol"
+                value={newPassword}
+                onChangeText={(val) => {
+                  setNewPassword(val);
+                  if (newPasswordError) setNewPasswordError(null);
+                }}
+                isPassword
+                error={newPasswordError || undefined}
+                autoCapitalize="none"
+              />
               <PasswordRequirements password={newPassword} />
             </View>
 
             {/* Confirm New Password */}
-            <View className="mb-5">
-              <Text className="text-[10px] tracking-wider uppercase font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
-                Confirm New Password
-              </Text>
-              <View className="flex-row items-center bg-input dark:bg-input-dark rounded-2xl border border-input-border dark:border-input-border-dark px-3.5">
-                <TextInput
-                  secureTextEntry={!showConfirm}
-                  value={confirmPassword}
-                  onChangeText={(val) => {
-                    setConfirmPassword(val);
-                    if (validationError) setValidationError(null);
-                  }}
-                  placeholder="Re-enter new password"
-                  placeholderTextColor={colors.textMuted}
-                  className="flex-1 py-3 text-sm text-text-primary dark:text-text-primary-dark"
-                  autoCapitalize="none"
-                />
-                <TouchableOpacity
-                  onPress={() => setShowConfirm(!showConfirm)}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
-                    name={showConfirm ? 'eye-off-outline' : 'eye-outline'}
-                    size={18}
-                    color={colors.textMuted}
-                  />
-                </TouchableOpacity>
-              </View>
-            </View>
+            <Input
+              label="Confirm New Password"
+              placeholder="Re-enter new password"
+              value={confirmPassword}
+              onChangeText={(val) => {
+                setConfirmPassword(val);
+                if (confirmPasswordError) setConfirmPasswordError(null);
+              }}
+              isPassword
+              error={confirmPasswordError || undefined}
+              autoCapitalize="none"
+            />
 
             {/* Action Buttons */}
-            <View className="flex-row items-center gap-2.5 mb-4">
+            <View className="flex-row items-center gap-2.5 mt-2 mb-4">
               <TouchableOpacity
                 onPress={handleClose}
                 disabled={loading}

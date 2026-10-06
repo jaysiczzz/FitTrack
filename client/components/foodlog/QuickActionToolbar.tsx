@@ -35,6 +35,11 @@ export default function QuickActionToolbar({
           <Text className="text-accent dark:text-accent-dark font-bold text-xs text-center">
             Scan Food Photo
           </Text>
+          <View className="bg-accent/25 dark:bg-accent-dark/30 px-1.5 py-0.5 rounded-full border border-accent/40 dark:border-accent-dark/40">
+            <Text className="text-[10px] font-black text-accent dark:text-accent-dark tracking-wide">
+              ✨ AI
+            </Text>
+          </View>
         </TouchableOpacity>
 
         {/* Row 2: Secondary Quick Log Actions */}

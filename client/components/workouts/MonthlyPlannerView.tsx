@@ -10,9 +10,11 @@ import {
   MonthlySchedule,
   CompletedSession,
   getTodayDateString,
+  getDateStringFromTimestamp,
 } from './workoutTypes';
 import { MESOCYCLE_WEEKS, getDayOfWeekFromDate } from './plannerPresets';
 import AssignRoutineModal from './AssignRoutineModal';
+import ConfirmModal from '../ui/ConfirmModal';
 
 interface MonthlyPlannerViewProps {
   routines: WorkoutRoutineTemplate[];
@@ -27,6 +29,7 @@ interface MonthlyPlannerViewProps {
     customNotes?: string
   ) => Promise<void> | void;
   onAutoFillMonthFromSplit: (year: number, month: number) => Promise<void> | void;
+  onClearMonthSchedule?: (year: number, month: number) => Promise<void> | void;
   onUpdateTargetDays: (targetDays: number) => Promise<void> | void;
   onUpdateMesocycleWeek: (weekNumber: number) => Promise<void> | void;
   onStartRoutine: (routine: WorkoutRoutineTemplate) => void;
@@ -59,6 +62,7 @@ export default function MonthlyPlannerView({
   currentMesocycleWeek,
   onUpdateScheduleDay,
   onAutoFillMonthFromSplit,
+  onClearMonthSchedule,
   onUpdateTargetDays,
   onUpdateMesocycleWeek,
   onStartRoutine,
@@ -77,6 +81,8 @@ export default function MonthlyPlannerView({
   const [showMesocycleDetails, setShowMesocycleDetails] = useState(true);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
+  const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
 
   // Month navigation
   const handlePrevMonth = () => {
@@ -110,7 +116,20 @@ export default function MonthlyPlannerView({
   const completedWorkoutsByDate = useMemo(() => {
     const map: Record<string, CompletedSession[]> = {};
     for (const session of workoutHistory) {
-      const d = session.dateStr || session.date?.split('T')[0];
+      let d = session.dateStr;
+      if (!d && session.date && session.date.includes('-')) {
+        d = session.date.split('T')[0];
+      }
+      if (!d && session.completedAt) {
+        d = getDateStringFromTimestamp(session.completedAt);
+      }
+      if (!d && (session as any).createdAt) {
+        d = getDateStringFromTimestamp((session as any).createdAt);
+      }
+      if (!d && (session as any).startedAt) {
+        d = getDateStringFromTimestamp((session as any).startedAt);
+      }
+
       if (d) {
         if (!map[d]) map[d] = [];
         map[d].push(session);
@@ -308,6 +327,27 @@ export default function MonthlyPlannerView({
     }
   };
 
+  // Confirm and execute clearing of the active month's scheduled days
+  const handleConfirmClearMonth = async () => {
+    if (!onClearMonthSchedule) return;
+    setIsClearing(true);
+    try {
+      await onClearMonthSchedule(currentYear, currentMonth);
+      setShowClearConfirmModal(false);
+      showSuccess(
+        'Month Cleared',
+        `Cleared scheduled routines for ${MONTH_NAMES[currentMonth]} ${currentYear}. Completed workouts were kept.`
+      );
+    } catch (err) {
+      showToast({
+        message: 'Could not clear month schedule',
+        type: 'error',
+      });
+    } finally {
+      setIsClearing(false);
+    }
+  };
+
   // Assign routine to selected date
   const handleSelectRoutineForDate = async (routineId: string | null) => {
     if (routineId) {
@@ -342,33 +382,33 @@ export default function MonthlyPlannerView({
       {/* 1. Month Header & Navigator */}
       <SurfaceCard className="mb-4 p-4">
         <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-2 flex-1 min-w-0 pr-2">
             <TouchableOpacity
               onPress={handlePrevMonth}
               activeOpacity={0.7}
-              className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shrink-0"
               accessibilityLabel="Previous month"
             >
               <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
             </TouchableOpacity>
 
-            <View>
-              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+            <View className="flex-1 min-w-0">
+              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
                 {MONTH_NAMES[currentMonth]} {currentYear}
               </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium">
-                Monthly Workout Calendar & Periodization
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold" numberOfLines={1}>
+                Monthly Habit & Consistency Calendar
               </Text>
             </View>
           </View>
 
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-1.5 shrink-0">
             {!isCurrentViewingMonth && (
               <TouchableOpacity
                 onPress={handleJumpToCurrentMonth}
-                className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40"
+                className="px-2.5 py-1.5 min-h-[36px] justify-center items-center rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40"
               >
-                <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
                   This Month
                 </Text>
               </TouchableOpacity>
@@ -377,7 +417,7 @@ export default function MonthlyPlannerView({
             <TouchableOpacity
               onPress={handleNextMonth}
               activeOpacity={0.7}
-              className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shrink-0"
               accessibilityLabel="Next month"
             >
               <Ionicons name="chevron-forward" size={18} color={colors.textPrimary} />
@@ -387,33 +427,30 @@ export default function MonthlyPlannerView({
 
         {/* 2. Monthly Target & Progress Ring Bar */}
         <View className="mt-4 pt-4 border-t border-input-border/60 dark:border-input-border-dark/60">
-          <View className="flex-row items-center justify-between mb-2">
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="trophy" size={15} color={colors.accent} />
-              <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
-                Monthly Consistency Target
-              </Text>
-            </View>
+          <View className="flex-row items-center justify-between gap-2 mb-2">
+            <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider flex-1 min-w-0" numberOfLines={1}>
+              Monthly Target
+            </Text>
 
-            <View className="flex-row items-center gap-1.5">
+            <View className="flex-row items-center gap-1.5 shrink-0">
               <TouchableOpacity
-                onPress={() => onUpdateTargetDays(Math.max(8, monthStats.targetDays - 2))}
+                onPress={() => onUpdateTargetDays(Math.max(1, monthStats.targetDays - 1))}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                className="w-7 h-7 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
                 accessibilityLabel="Decrease target days"
               >
-                <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">-</Text>
+                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">-</Text>
               </TouchableOpacity>
               <Text className="text-xs font-bold text-accent dark:text-accent-dark px-1">
-                {monthStats.targetDays} Days
+                {monthStats.targetDays} {monthStats.targetDays === 1 ? 'Day' : 'Days'}
               </Text>
               <TouchableOpacity
-                onPress={() => onUpdateTargetDays(Math.min(30, monthStats.targetDays + 2))}
+                onPress={() => onUpdateTargetDays(Math.min(31, monthStats.targetDays + 1))}
                 hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
+                className="w-7 h-7 rounded-lg bg-input dark:bg-input-dark items-center justify-center border border-input-border"
                 accessibilityLabel="Increase target days"
               >
-                <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">+</Text>
+                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">+</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -437,152 +474,71 @@ export default function MonthlyPlannerView({
 
             <View className="flex-1 bg-input/60 dark:bg-input-dark/60 p-2 rounded-xl mx-1 items-center">
               <Text className="text-[10px] text-text-muted font-bold uppercase">Scheduled</Text>
-              <Text className="text-sm font-black text-accent dark:text-accent-dark mt-0.5">
+              <Text className="text-sm font-black text-sky-500 dark:text-sky-400 mt-0.5">
                 {monthStats.plannedWorkoutsCount}
               </Text>
             </View>
 
             <View className="flex-1 bg-input/60 dark:bg-input-dark/60 p-2 rounded-xl ml-1.5 items-center">
               <Text className="text-[10px] text-text-muted font-bold uppercase">Rest Days</Text>
-              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark mt-0.5">
+              <Text className="text-sm font-black text-amber-500 dark:text-amber-400 mt-0.5">
                 {monthStats.plannedRestCount}
               </Text>
             </View>
           </View>
         </View>
 
-        {/* 3. One-Tap Auto Fill Month Action */}
-        <View className="mt-3.5 pt-3 border-t border-input-border/40 flex-row items-center justify-between">
-          <View className="flex-1 mr-2">
-            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-              Auto-Fill from Weekly Split
-            </Text>
-            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-              Populate entire month using your current 7-day routine split
-            </Text>
-          </View>
+        {/* 3. Auto Fill & Clear Month Actions */}
+        {(() => {
+          const hasScheduledDaysInMonth =
+            monthStats.plannedWorkoutsCount > 0 || monthStats.plannedRestCount > 0;
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            disabled={isAutoFilling}
-            onPress={handleAutoFillMonth}
-            className="px-3 py-2 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1.5"
-          >
-            <Ionicons name="flash" size={13} color={colors.accentContrast} />
-            <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">
-              {isAutoFilling ? 'Filling...' : 'Auto-Fill'}
-            </Text>
-          </TouchableOpacity>
-        </View>
+          return (
+            <View className="mt-3.5 pt-3 border-t border-input-border/40 flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <View className="flex-1 pr-1">
+                <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark">
+                  1-Tap Month Scheduling
+                </Text>
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-normal">
+                  {hasScheduledDaysInMonth
+                    ? 'Your monthly schedule is active. You can re-apply your weekly split or clear this month to start fresh.'
+                    : "New to monthly planning? Auto-Fill instantly maps your 7-day routine split across every day of the month so you don't have to schedule day-by-day manually."}
+                </Text>
+              </View>
+
+              <View className="flex-row items-center gap-2 self-start sm:self-center">
+                {hasScheduledDaysInMonth && onClearMonthSchedule && (
+                  <TouchableOpacity
+                    activeOpacity={0.8}
+                    disabled={isClearing || isAutoFilling}
+                    onPress={() => setShowClearConfirmModal(true)}
+                    className="px-3 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-danger/40 flex-row items-center justify-center gap-1.5"
+                    accessibilityLabel="Clear month schedule"
+                  >
+                    <Ionicons name="trash-outline" size={14} color={colors.danger} />
+                    <Text className="text-xs font-bold text-danger dark:text-danger-dark">
+                      Clear Month
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  disabled={isAutoFilling || isClearing}
+                  onPress={handleAutoFillMonth}
+                  className="px-3.5 py-2.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center justify-center gap-1.5"
+                >
+                  <Ionicons name="flash" size={14} color={colors.accentContrast} />
+                  <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">
+                    {isAutoFilling ? 'Scheduling...' : 'Auto-Fill Month'}
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          );
+        })()}
       </SurfaceCard>
 
-      {/* 4. Mesocycle Periodization Block */}
-      <SurfaceCard className="mb-4 p-4 border border-accent/30 bg-accent/5 dark:bg-accent-dark/10">
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setShowMesocycleDetails((v) => !v)}
-          className="flex-row items-center justify-between"
-        >
-          <View className="flex-row items-center gap-2">
-            <View className="w-7 h-7 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center">
-              <Ionicons name="layers" size={15} color={colors.accent} />
-            </View>
-            <View>
-              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                4-Week Mesocycle Periodization
-              </Text>
-              <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">
-                Current: {activeMesocycle.title}
-              </Text>
-            </View>
-          </View>
-
-          <Ionicons
-            name={showMesocycleDetails ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.textMuted}
-          />
-        </TouchableOpacity>
-
-        {/* 4 Week Switcher Pills */}
-        <View className="flex-row gap-1.5 mt-3">
-          {MESOCYCLE_WEEKS.map((w) => {
-            const isActive = (currentMesocycleWeek || 1) === w.weekNumber;
-            return (
-              <TouchableOpacity
-                key={w.weekNumber}
-                activeOpacity={0.8}
-                onPress={() => {
-                  onUpdateMesocycleWeek(w.weekNumber);
-                  showSuccess(
-                    'Mesocycle Phase Updated',
-                    `Switched to ${w.title} (${w.intensityLabel})`
-                  );
-                }}
-                className={`flex-1 py-2 rounded-xl items-center justify-center border ${
-                  isActive
-                    ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
-                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-black uppercase ${
-                    isActive ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
-                  }`}
-                >
-                  W{w.weekNumber}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  className={`text-[9px] font-bold ${
-                    isActive ? 'text-white/90' : 'text-text-primary dark:text-text-primary-dark'
-                  }`}
-                >
-                  {w.phase}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Mesocycle Detailed Coaching Guidance */}
-        {showMesocycleDetails && (
-          <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50">
-            <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                {activeMesocycle.subtitle}
-              </Text>
-              <View className="bg-accent/20 px-2 py-0.5 rounded-full">
-                <Text className="text-[10px] font-black text-accent dark:text-accent-dark">
-                  {activeMesocycle.intensityLabel}
-                </Text>
-              </View>
-            </View>
-
-            <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-relaxed">
-              {activeMesocycle.focus}
-            </Text>
-
-            <View className="bg-input/60 dark:bg-input-dark/60 p-2.5 rounded-xl border border-input-border/40 gap-1">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-bold text-text-muted">Target RPE:</Text>
-                <Text className="text-[11px] font-black text-accent dark:text-accent-dark">
-                  {activeMesocycle.targetRPE}
-                </Text>
-              </View>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-bold text-text-muted">Volume Target:</Text>
-                <Text className="text-[11px] font-black text-text-primary dark:text-text-primary-dark">
-                  {activeMesocycle.volumeMultiplier}
-                </Text>
-              </View>
-              <Text className="text-[10px] text-text-muted italic mt-1">
-                💡 Tip: {activeMesocycle.tips}
-              </Text>
-            </View>
-          </View>
-        )}
-      </SurfaceCard>
 
       {/* 5. Month Calendar Grid */}
       <SurfaceCard className="mb-4 p-3">
@@ -639,14 +595,20 @@ export default function MonthlyPlannerView({
                   </Text>
                 </View>
 
-                {/* Status Dot / Indicator */}
-                <View className="flex-row items-center justify-center h-3 w-full">
+                {/* Status Indicator */}
+                <View className="flex-row items-center justify-center h-4 w-full">
                   {cell.hasCompletedWorkout ? (
-                    <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <View className="w-4 h-4 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
+                      <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+                    </View>
                   ) : cell.routine ? (
-                    <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
+                    <View className="w-4 h-4 rounded-full bg-sky-500 dark:bg-sky-400 items-center justify-center shadow-xs">
+                      <Ionicons name="barbell" size={9} color="#FFFFFF" />
+                    </View>
                   ) : cell.isRestDay ? (
-                    <View className="w-1.5 h-1.5 rounded-full bg-teal-400 opacity-60" />
+                    <View className="w-4 h-4 rounded-full bg-amber-500/20 border border-amber-500/40 items-center justify-center">
+                      <Ionicons name="leaf" size={9} color="#f59e0b" />
+                    </View>
                   ) : null}
                 </View>
               </TouchableOpacity>
@@ -657,16 +619,28 @@ export default function MonthlyPlannerView({
         {/* Calendar Legend */}
         <View className="flex-row items-center justify-center gap-4 pt-3 mt-1 border-t border-input-border/40">
           <View className="flex-row items-center gap-1.5">
-            <View className="w-2 h-2 rounded-full bg-emerald-500" />
-            <Text className="text-[10px] font-bold text-text-muted">Completed</Text>
+            <View className="w-4 h-4 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
+              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
+            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Completed
+            </Text>
           </View>
           <View className="flex-row items-center gap-1.5">
-            <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
-            <Text className="text-[10px] font-bold text-text-muted">Scheduled</Text>
+            <View className="w-4 h-4 rounded-full bg-sky-500 dark:bg-sky-400 items-center justify-center shadow-xs">
+              <Ionicons name="barbell" size={9} color="#FFFFFF" />
+            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Scheduled
+            </Text>
           </View>
           <View className="flex-row items-center gap-1.5">
-            <View className="w-2 h-2 rounded-full bg-teal-400 opacity-60" />
-            <Text className="text-[10px] font-bold text-text-muted">Rest Day</Text>
+            <View className="w-4 h-4 rounded-full bg-amber-500/20 border border-amber-500/40 items-center justify-center">
+              <Ionicons name="leaf" size={9} color="#f59e0b" />
+            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Rest Day
+            </Text>
           </View>
         </View>
       </SurfaceCard>
@@ -674,8 +648,8 @@ export default function MonthlyPlannerView({
       {/* 6. Selected Date Schedule Inspector */}
       <SurfaceCard className="mb-4 p-4 border border-input-border dark:border-input-border-dark">
         <View className="flex-row items-center justify-between mb-3">
-          <View>
-            <View className="flex-row items-center gap-1.5">
+          <View className="flex-1 pr-2 min-w-0">
+            <View className="flex-row items-center gap-1.5 flex-wrap">
               <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
                 {selectedDayInfo.formattedFull}
               </Text>
@@ -688,45 +662,138 @@ export default function MonthlyPlannerView({
               )}
             </View>
             <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-              Day Schedule & Completed Logs
+              {selectedDayInfo.completedSessions.length > 0
+                ? `Workout Completed · ${selectedDayInfo.completedSessions.length} session${
+                    selectedDayInfo.completedSessions.length === 1 ? '' : 's'
+                  } logged`
+                : 'Day Schedule & Planner'}
             </Text>
           </View>
 
-          <TouchableOpacity
-            onPress={() => setIsAssignModalOpen(true)}
-            className="px-3 py-1.5 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 flex-row items-center gap-1"
-          >
-            <Ionicons name="pencil" size={12} color={colors.accent} />
-            <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-              {selectedDayInfo.assignedRoutine || selectedDayInfo.isRest ? 'Change' : 'Schedule'}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Completed Past Workout(s) on this date */}
-        {selectedDayInfo.completedSessions.length > 0 && (
-          <View className="bg-emerald-500/10 border border-emerald-500/30 p-3 rounded-2xl mb-3">
-            <View className="flex-row items-center gap-2 mb-1">
-              <Ionicons name="checkmark-circle" size={16} color={colors.accent} />
-              <Text className="text-xs font-black text-accent dark:text-accent-dark">
-                Workout Session Completed!
+          {/* Top-Right Action / Status */}
+          {selectedDayInfo.completedSessions.length > 0 ? (
+            <View className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-xl flex-row items-center gap-1 shrink-0">
+              <Ionicons name="checkmark-circle" size={13} color="#10b981" />
+              <Text className="text-[11px] font-bold text-emerald-500 dark:text-emerald-400">
+                Completed
               </Text>
             </View>
-            {selectedDayInfo.completedSessions.map((session, sIdx) => (
-              <View key={session.id || sIdx} className="mt-1">
-                <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                  {session.title}
-                </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                  {session.duration} · {session.caloriesBurned} kcal · {session.exercisesCount || session.exercises?.length || 0} exercises
-                </Text>
-              </View>
-            ))}
-          </View>
-        )}
+          ) : (
+            <TouchableOpacity
+              onPress={() => setIsAssignModalOpen(true)}
+              className="px-3 py-1.5 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 flex-row items-center gap-1 shrink-0"
+            >
+              <Ionicons name="pencil" size={12} color={colors.accent} />
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                {selectedDayInfo.assignedRoutine || selectedDayInfo.isRest ? 'Change' : 'Schedule'}
+              </Text>
+            </TouchableOpacity>
+          )}
+        </View>
 
-        {/* Scheduled Routine or Rest Status */}
-        {selectedDayInfo.assignedRoutine ? (
+        {/* 1. If user ALREADY COMPLETED workout session(s) on this date */}
+        {selectedDayInfo.completedSessions.length > 0 ? (
+          <View>
+            {selectedDayInfo.completedSessions.map((session, sIdx) => {
+              const durationText =
+                typeof session.duration === 'string' && session.duration.includes('min')
+                  ? session.duration
+                  : `${session.duration || session.durationMinutes || 35} min`;
+              const exCount = session.exercisesCount || session.exercises?.length || 0;
+
+              return (
+                <View
+                  key={session.id || sIdx}
+                  className="bg-emerald-500/10 border border-emerald-500/30 p-3.5 rounded-2xl mb-2.5"
+                >
+                  <View className="flex-row items-center justify-between mb-2">
+                    <View className="flex-row items-center gap-2 flex-1 min-w-0 pr-2">
+                      <View className="w-8 h-8 rounded-xl bg-emerald-500/20 items-center justify-center shrink-0">
+                        <Ionicons name="trophy" size={16} color="#10b981" />
+                      </View>
+                      <View className="flex-1 min-w-0">
+                        <Text
+                          className="text-sm font-black text-text-primary dark:text-text-primary-dark"
+                          numberOfLines={1}
+                        >
+                          {session.title || 'Workout Session'}
+                        </Text>
+                        <Text className="text-[10px] font-bold text-emerald-500 dark:text-emerald-400">
+                          Session Completed & Verified ✓
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+
+                  {/* Metrics Strip */}
+                  <View className="flex-row items-center gap-1.5 py-2 px-2.5 bg-background/60 dark:bg-background-dark/60 rounded-xl mb-2.5 flex-wrap">
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      {durationText}
+                    </Text>
+                    <Text className="text-text-muted text-xs">·</Text>
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      {session.caloriesBurned || 200} kcal
+                    </Text>
+                    <Text className="text-text-muted text-xs">·</Text>
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      {exCount} {exCount === 1 ? 'Exercise' : 'Exercises'}
+                    </Text>
+                    {session.totalSetsCount ? (
+                      <>
+                        <Text className="text-text-muted text-xs">·</Text>
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          {session.totalSetsCount} Sets
+                        </Text>
+                      </>
+                    ) : null}
+                  </View>
+
+                  {/* Completed Exercises Pills / Preview */}
+                  {session.exercises && session.exercises.length > 0 && (
+                    <View className="flex-row flex-wrap gap-1.5">
+                      {session.exercises.slice(0, 4).map((ex, i) => (
+                        <View
+                          key={i}
+                          className="bg-background dark:bg-background-dark border border-input-border/60 px-2 py-1 rounded-lg"
+                        >
+                          <Text className="text-[10px] font-semibold text-text-primary dark:text-text-primary-dark">
+                            {ex.name}
+                            {ex.sets?.length ? ` (${ex.sets.length} sets)` : ''}
+                          </Text>
+                        </View>
+                      ))}
+                      {session.exercises.length > 4 && (
+                        <View className="bg-background dark:bg-background-dark border border-input-border/60 px-2 py-1 rounded-lg">
+                          <Text className="text-[10px] text-text-muted font-bold">
+                            +{session.exercises.length - 4} more
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                  {/* If there was also a scheduled routine assigned to this date */}
+                  {selectedDayInfo.assignedRoutine && (
+                    <View className="mt-2.5 pt-2 border-t border-emerald-500/20 flex-row items-center justify-between">
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                        Scheduled Plan:{' '}
+                        <Text className="font-bold text-text-primary dark:text-text-primary-dark">
+                          {selectedDayInfo.assignedRoutine.title}
+                        </Text>
+                      </Text>
+                      <View className="bg-emerald-500/20 px-2 py-0.5 rounded-md">
+                        <Text className="text-[9px] font-black text-emerald-500 uppercase">
+                          Plan Fulfilled
+                        </Text>
+                      </View>
+                    </View>
+                  )}
+                </View>
+              );
+            })}
+          </View>
+        ) : selectedDayInfo.assignedRoutine ? (
+          /* 2. Scheduled Routine on this date (not yet completed) */
           <View className="bg-input dark:bg-input-dark p-3.5 rounded-2xl border border-input-border dark:border-input-border-dark mb-3">
             <View className="flex-row items-center justify-between mb-1.5">
               <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
@@ -740,7 +807,8 @@ export default function MonthlyPlannerView({
             </View>
 
             <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2.5">
-              {selectedDayInfo.assignedRoutine.exercises.length} Exercises · ~{selectedDayInfo.assignedRoutine.estimatedDurationMinutes} mins
+              {selectedDayInfo.assignedRoutine.exercises.length} Exercises · ~
+              {selectedDayInfo.assignedRoutine.estimatedDurationMinutes} mins
             </Text>
 
             {/* Exercise Pills */}
@@ -787,10 +855,11 @@ export default function MonthlyPlannerView({
             </View>
           </View>
         ) : selectedDayInfo.isRest ? (
-          <View className="bg-emerald-500/10 border border-emerald-500/20 p-3.5 rounded-2xl mb-3 flex-row items-center justify-between">
+          /* 3. Rest Day on this date (not completed) */
+          <View className="bg-amber-500/10 border border-amber-500/30 p-3.5 rounded-2xl mb-3 flex-row items-center justify-between">
             <View className="flex-row items-center gap-3">
-              <View className="w-10 h-10 rounded-2xl bg-emerald-500/20 items-center justify-center">
-                <Ionicons name="leaf-outline" size={20} color={colors.accent} />
+              <View className="w-10 h-10 rounded-2xl bg-amber-500/20 items-center justify-center">
+                <Ionicons name="leaf-outline" size={20} color="#f59e0b" />
               </View>
               <View>
                 <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
@@ -810,6 +879,7 @@ export default function MonthlyPlannerView({
             </TouchableOpacity>
           </View>
         ) : (
+          /* 4. No Routine Scheduled and NOT completed */
           <View className="py-4 items-center justify-center bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-dashed border-input-border dark:border-input-border-dark mb-3">
             <Ionicons name="calendar-outline" size={24} color={colors.textMuted} />
             <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mt-1.5">
@@ -821,14 +891,16 @@ export default function MonthlyPlannerView({
                 className="px-3 py-1.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1"
               >
                 <Ionicons name="add" size={14} color={colors.accentContrast} />
-                <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">Assign Routine</Text>
+                <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">
+                  Assign Routine
+                </Text>
               </TouchableOpacity>
 
               <TouchableOpacity
                 onPress={() => handleSelectRoutineForDate(null)}
                 className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border flex-row items-center gap-1"
               >
-                <Ionicons name="leaf-outline" size={14} color={colors.accent} />
+                <Ionicons name="leaf-outline" size={14} color="#f59e0b" />
                 <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                   Mark Rest
                 </Text>
@@ -838,7 +910,120 @@ export default function MonthlyPlannerView({
         )}
       </SurfaceCard>
 
-      {/* Routine Assignment Modal for Selected Date */}
+      {/* 4. Progressive Workout Phases Block */}
+      <SurfaceCard className="mb-4 p-4 border border-accent/30 bg-accent/5 dark:bg-accent-dark/10">
+        <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => setShowMesocycleDetails((v) => !v)}
+          className="flex-row items-center justify-between"
+        >
+          <View className="flex-row items-center gap-2 flex-1 pr-2 min-w-0">
+            <View className="w-8 h-8 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center shrink-0">
+              <Ionicons name="layers" size={16} color={colors.accent} />
+            </View>
+            <View className="flex-1 min-w-0">
+              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
+                4-Week Progressive Training Phases
+              </Text>
+              <Text className="text-[10px] text-accent dark:text-accent-dark font-bold mt-0.5">
+                Current: {activeMesocycle.title} · {activeMesocycle.intensityLabel}
+              </Text>
+            </View>
+          </View>
+
+          <Ionicons
+            name={showMesocycleDetails ? 'chevron-up' : 'chevron-down'}
+            size={18}
+            color={colors.textMuted}
+          />
+        </TouchableOpacity>
+
+        {/* 4 Week Switcher Pills */}
+        <View className="flex-row gap-1.5 mt-3">
+          {MESOCYCLE_WEEKS.map((w) => {
+            const isActive = (currentMesocycleWeek || 1) === w.weekNumber;
+            return (
+              <TouchableOpacity
+                key={w.weekNumber}
+                activeOpacity={0.8}
+                onPress={() => {
+                  onUpdateMesocycleWeek(w.weekNumber);
+                  showSuccess(
+                    'Training Phase Updated',
+                    `Switched to ${w.title} (${w.intensityLabel})`
+                  );
+                }}
+                className={`flex-1 py-2 rounded-xl items-center justify-center border ${
+                  isActive
+                    ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
+                <Text
+                  className={`text-[10px] font-black uppercase ${
+                    isActive ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  W{w.weekNumber}
+                </Text>
+                <Text
+                  numberOfLines={1}
+                  className={`text-[9px] font-bold ${
+                    isActive ? 'text-white/90' : 'text-text-primary dark:text-text-primary-dark'
+                  }`}
+                >
+                  {w.phase}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
+        {/* Mesocycle Detailed Coaching Guidance */}
+        {showMesocycleDetails && (
+          <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50">
+            {/* Beginner Cycle Explainer */}
+            <View className="mb-2.5 p-2.5 rounded-xl bg-accent/10 border border-accent/25">
+              <Text className="text-[10px] text-text-primary dark:text-text-primary-dark font-medium leading-normal">
+                📘 <Text className="font-bold">What is a 4-Week Progressive Cycle?</Text> It's a structured monthly fitness progression: 3 building weeks where you gradually challenge your muscles, followed by 1 Deload recovery week so joints and tendons recover and you avoid injury.
+              </Text>
+            </View>
+
+            <View className="flex-row items-center justify-between mb-1.5">
+              <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
+                {activeMesocycle.subtitle}
+              </Text>
+              <View className="bg-accent/20 px-2 py-0.5 rounded-full">
+                <Text className="text-[10px] font-black text-accent dark:text-accent-dark">
+                  {activeMesocycle.intensityLabel}
+                </Text>
+              </View>
+            </View>
+
+            <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-relaxed">
+              {activeMesocycle.focus}
+            </Text>
+
+            <View className="bg-input/60 dark:bg-input-dark/60 p-2.5 rounded-xl border border-input-border/40 gap-1">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[11px] font-bold text-text-muted">Target Effort:</Text>
+                <Text className="text-[11px] font-black text-accent dark:text-accent-dark">
+                  {activeMesocycle.targetRPE}
+                </Text>
+              </View>
+              <View className="flex-row items-center justify-between">
+                <Text className="text-[11px] font-bold text-text-muted">Volume Target:</Text>
+                <Text className="text-[11px] font-black text-text-primary dark:text-text-primary-dark">
+                  {activeMesocycle.volumeMultiplier}
+                </Text>
+              </View>
+              <Text className="text-[10px] text-text-muted italic mt-1">
+                💡 Tip: {activeMesocycle.tips}
+              </Text>
+            </View>
+          </View>
+        )}
+      </SurfaceCard>
       <AssignRoutineModal
         visible={isAssignModalOpen}
         day={{
@@ -851,6 +1036,20 @@ export default function MonthlyPlannerView({
         onSelect={handleSelectRoutineForDate}
         onClose={() => setIsAssignModalOpen(false)}
         onCreateNew={onCreateRoutine}
+      />
+
+      {/* Clear Month Confirmation Modal */}
+      <ConfirmModal
+        visible={showClearConfirmModal}
+        title={`Clear ${MONTH_NAMES[currentMonth]} Schedule?`}
+        message={`Are you sure you want to remove all scheduled routines and rest days for ${MONTH_NAMES[currentMonth]} ${currentYear}? Your logged workout history and past completed workouts will NOT be deleted.`}
+        confirmText="Clear Schedule"
+        cancelText="Keep Schedule"
+        isDanger
+        iconName="trash-outline"
+        loading={isClearing}
+        onConfirm={handleConfirmClearMonth}
+        onCancel={() => setShowClearConfirmModal(false)}
       />
     </View>
   );

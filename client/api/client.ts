@@ -162,8 +162,11 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
     endpoint.includes('/api/auth/register') ||
     endpoint.includes('/api/auth/logout') ||
     endpoint.includes('/api/auth/check-email') ||
+    endpoint.includes('/api/auth/send-verification') ||
+    endpoint.includes('/api/auth/verify-email') ||
     endpoint.includes('/api/auth/forgot-password') ||
-    endpoint.includes('/api/auth/reset-password');
+    endpoint.includes('/api/auth/reset-password') ||
+    (endpoint.includes('/api/auth') && !endpoint.includes('/change-password'));
 
   let token = await authStorage.getToken();
 
@@ -210,9 +213,13 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
 
   const url = `${API_URL}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
 
-  // AI generation and photo analysis need a larger timeout window (60s), while normal requests timeout in 12s
-  const isAiOrExternal = endpoint.includes('/api/ai/') || endpoint.includes('openfoodfacts');
-  const defaultTimeout = isAiOrExternal ? 60000 : 12000;
+  // AI generation, external barcode lookups, and email delivery need a larger timeout window (60s), while normal requests timeout in 15s
+  const isLongRunningEndpoint =
+    endpoint.includes('/api/ai/') ||
+    endpoint.includes('openfoodfacts') ||
+    endpoint.includes('/api/auth/send-verification') ||
+    endpoint.includes('/api/auth/forgot-password');
+  const defaultTimeout = isLongRunningEndpoint ? 60000 : 15000;
   const timeoutMs = options.timeout ?? defaultTimeout;
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);

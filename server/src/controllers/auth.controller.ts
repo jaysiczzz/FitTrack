@@ -7,7 +7,7 @@ import { asyncHandler } from '../utils/asyncHandler.utils'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { validateEmailDeliverability, EMAIL_REGEX } from '../utils/emailValidation.utils'
-import { sendPasswordResetEmail } from '../services/email.service'
+import { sendPasswordResetEmail, sendEmailVerificationEmail } from '../services/email.service'
 import { capitalizeWords } from '../utils/formatters.utils'
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
@@ -98,6 +98,23 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
     const existingUser = await userModel.findByEmail(normalizedEmail)
     if (existingUser) {
         return res.status(409).json({ error: 'An account with this email already exists' })
+    }
+
+    // Verify that the email was confirmed via 6-digit OTP within the past 2 hours
+    const verifiedRecord = await prisma.emailVerification.findFirst({
+        where: {
+            email: normalizedEmail,
+            used: true,
+            createdAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+        },
+        orderBy: { createdAt: 'desc' },
+    })
+
+    if (!verifiedRecord && process.env.NODE_ENV !== 'test') {
+        return res.status(400).json({
+            error: 'Please verify your email address before completing registration.',
+            field: 'email',
+        })
     }
 
     const hashedPassword = await hashPassword(password)
@@ -362,6 +379,144 @@ export const checkEmail = asyncHandler(async (req: Request, res: Response) => {
         success: true,
         available: true,
         message: 'Email is valid and available.',
+    })
+})
+
+/**
+ * Sends a 6-digit email verification code for new user registration.
+ */
+export const sendVerification = asyncHandler(async (req: Request, res: Response) => {
+    const { email, firstName } = req.body
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required', field: 'email' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+
+    // 1. Deliverability & DNS MX checks
+    const emailCheck = await validateEmailDeliverability(normalizedEmail)
+    if (!emailCheck.valid) {
+        return res.status(400).json({ error: emailCheck.error, field: 'email' })
+    }
+
+    // 2. Uniqueness check - verify no account already exists
+    const existingUser = await userModel.findByEmail(normalizedEmail)
+    if (existingUser) {
+        return res.status(409).json({
+            error: 'An account with this email already exists. Please log in instead.',
+            field: 'email',
+        })
+    }
+
+    // 3. Cooldown check - prevent spamming code requests within 30 seconds
+    const recentToken = await prisma.emailVerification.findFirst({
+        where: {
+            email: normalizedEmail,
+            createdAt: { gte: new Date(Date.now() - 30 * 1000) },
+        },
+        orderBy: { createdAt: 'desc' },
+    })
+    if (recentToken) {
+        return res.status(429).json({
+            error: 'A verification code was recently sent. Please wait 30 seconds before requesting a new code.',
+        })
+    }
+
+    // 4. Invalidate prior unused codes for this email
+    await prisma.emailVerification.updateMany({
+        where: { email: normalizedEmail, used: false },
+        data: { used: true },
+    })
+
+    // 5. Generate 6-digit numeric OTP code
+    const code = Math.floor(100000 + Math.random() * 900000).toString()
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes validity
+
+    await prisma.emailVerification.create({
+        data: {
+            email: normalizedEmail,
+            code,
+            expiresAt,
+            used: false,
+        },
+    })
+
+    const emailResult = await sendEmailVerificationEmail(normalizedEmail, code, firstName)
+
+    if (!emailResult.success && process.env.NODE_ENV === 'production') {
+        return res.status(503).json({
+            error: 'Unable to send verification email. Please check your email address or try again later.',
+        })
+    }
+
+    res.json({
+        success: true,
+        message: 'A 6-digit verification code has been sent to your email.',
+        email: normalizedEmail,
+        delivered: emailResult.delivered,
+        ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
+    })
+})
+
+/**
+ * Validates the 6-digit code for email verification.
+ */
+export const verifyEmail = asyncHandler(async (req: Request, res: Response) => {
+    const { email, code } = req.body
+
+    if (!email || !code) {
+        return res.status(400).json({ error: 'Email and verification code are required' })
+    }
+
+    const normalizedEmail = email.trim().toLowerCase()
+    const trimmedCode = code.trim()
+
+    const verificationRecord = await prisma.emailVerification.findFirst({
+        where: {
+            email: normalizedEmail,
+            used: false,
+            expiresAt: { gt: new Date() },
+        },
+        orderBy: { createdAt: 'desc' },
+    })
+
+    if (!verificationRecord) {
+        return res.status(400).json({
+            error: 'No active verification code found for this email. Please request a new one.',
+        })
+    }
+
+    if (verificationRecord.attempts >= 5) {
+        await prisma.emailVerification.update({
+            where: { id: verificationRecord.id },
+            data: { used: true },
+        })
+        return res.status(400).json({
+            error: 'Too many incorrect attempts. Please request a new verification code.',
+        })
+    }
+
+    if (verificationRecord.code !== trimmedCode) {
+        await prisma.emailVerification.update({
+            where: { id: verificationRecord.id },
+            data: { attempts: { increment: 1 } },
+        })
+        return res.status(400).json({
+            error: 'Invalid verification code. Please check your code and try again.',
+        })
+    }
+
+    // Mark as used/verified
+    await prisma.emailVerification.update({
+        where: { id: verificationRecord.id },
+        data: { used: true },
+    })
+
+    res.json({
+        success: true,
+        message: 'Email verified successfully.',
+        email: normalizedEmail,
     })
 })
 
