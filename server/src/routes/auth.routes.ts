@@ -8,6 +8,8 @@ import {
   requestPasswordReset,
   resetPasswordWithCode,
   checkEmail,
+  sendVerification,
+  verifyEmail,
 } from '../controllers/auth.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
@@ -19,6 +21,8 @@ import {
   forgotPasswordSchema,
   resetPasswordSchema,
   checkEmailSchema,
+  sendVerificationSchema,
+  verifyEmailSchema,
 } from '../schemas/auth.schema'
 
 const router = Router()
@@ -26,6 +30,8 @@ const router = Router()
 router.post('/login', validate(loginSchema), login)
 router.post('/register', validate(registerSchema), register)
 router.post('/check-email', validate(checkEmailSchema), checkEmail)
+router.post('/send-verification', validate(sendVerificationSchema), sendVerification)
+router.post('/verify-email', validate(verifyEmailSchema), verifyEmail)
 router.post('/refresh', validate(refreshSchema), refresh)
 router.post('/logout', logout)
 router.post('/change-password', authMiddleware, validate(changePasswordSchema), changePassword)

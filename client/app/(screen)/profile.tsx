@@ -6,13 +6,17 @@ import {
   TouchableOpacity,
   Image,
   ActivityIndicator,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile } from '@/api/user';
 import { getWorkoutHistory } from '@/api/workout';
+import { getCheckInHistoryApi } from '@/api/checkin';
+import { getFoodLogHistoryApi } from '@/api/foodlog';
+import { calculateActiveStreak, extractActiveDatesFromHistory, formatDateKey } from '@/utils/streakUtils';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
@@ -66,6 +70,8 @@ export default function Profile() {
   // Athletic metrics
   const [streakCount, setStreakCount] = useState(0);
   const [totalWorkoutsCount, setTotalWorkoutsCount] = useState(0);
+  const [totalMealsCount, setTotalMealsCount] = useState(0);
+  const [hasHitMacro, setHasHitMacro] = useState(false);
 
   const applyUserData = (u: UserData) => {
     setSavedUser(u);
@@ -104,12 +110,17 @@ export default function Profile() {
   const loadAthleticHistory = useCallback(async () => {
     try {
       const userId = authUser?.id;
-      const historyKey = authStorage.getScopedKey(userId, 'workout_history');
+      if (!userId) return;
+
+      // 1. Workout history
+      const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
+      let workoutSessions: any[] = [];
       const cachedHistory = await AsyncStorage.getItem(historyKey);
       if (cachedHistory) {
         try {
           const parsed = JSON.parse(cachedHistory);
           if (Array.isArray(parsed)) {
+            workoutSessions = parsed;
             setTotalWorkoutsCount(parsed.length);
           }
         } catch { }
@@ -117,26 +128,90 @@ export default function Profile() {
 
       const res = await getWorkoutHistory().catch(() => null);
       if (res && Array.isArray(res.sessions)) {
+        workoutSessions = res.sessions;
         setTotalWorkoutsCount(res.sessions.length);
+        AsyncStorage.setItem(historyKey, JSON.stringify(res.sessions)).catch(() => {});
       }
 
-      const today = new Date();
-      let streak = 0;
-      for (let i = 0; i < 30; i++) {
-        const d = new Date(today);
-        d.setDate(d.getDate() - i);
-        const dateKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${dateKey}`);
-        const checkin = await AsyncStorage.getItem(checkinKey);
-        if (checkin) {
-          streak++;
-        } else if (i > 0) {
-          break;
+      // 2. Check-in history
+      let checkIns: any[] = [];
+      try {
+        const checkinRes = await getCheckInHistoryApi(60).catch(() => null);
+        if (checkinRes?.success && Array.isArray(checkinRes.history)) {
+          checkIns = checkinRes.history;
         }
+      } catch {}
+
+      // 3. Nutrition history & Macro status for badges
+      let foodLogs: any[] = [];
+      let mealsCount = 0;
+      let macroAchieved = false;
+
+      const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
+      const cachedFood = await AsyncStorage.getItem(foodKey);
+      if (cachedFood) {
+        try {
+          const parsed = JSON.parse(cachedFood);
+          if (Array.isArray(parsed)) {
+            mealsCount += parsed.length;
+          }
+        } catch { }
       }
-      setStreakCount(streak);
+
+      const foodRes = await getFoodLogHistoryApi().catch(() => null);
+      if (foodRes?.success && Array.isArray(foodRes.history)) {
+        foodLogs = foodRes.history;
+        let remoteMeals = 0;
+        for (const day of foodRes.history) {
+          if (Array.isArray(day.meals)) {
+            remoteMeals += day.meals.length;
+          }
+          if (day.isCompleted || (day.totalProtein > 0 && day.totalCalories > 0)) {
+            macroAchieved = true;
+          }
+        }
+        mealsCount = Math.max(mealsCount, remoteMeals);
+      }
+
+      setTotalMealsCount(mealsCount);
+      setHasHitMacro(macroAchieved);
+
+      // Extract all active dates across history (workout, check-in, nutrition, hydration)
+      const activeDates = extractActiveDatesFromHistory(workoutSessions, checkIns, foodLogs, 2000);
+
+      // Check if at least 1 goal in "Today's Goals" is completed today
+      const today = new Date();
+      const todayKey = formatDateKey(today);
+
+      const hasWorkoutToday = workoutSessions.some((s) => {
+        const ts = s.completedAt || s.dateStr || (s.completed ? s.createdAt : null);
+        return ts && (ts.startsWith(todayKey) || ts === todayKey);
+      });
+
+      const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
+      const cachedCheckin = await AsyncStorage.getItem(checkinKey);
+      const isCheckinToday = Boolean(cachedCheckin) || checkIns.some((c) => c.date === todayKey);
+
+      const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayKey}`);
+      const cachedCompleted = await AsyncStorage.getItem(dayCompletedKey);
+      const isNutritionDoneToday = cachedCompleted === 'true';
+
+      const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      const cachedWater = await AsyncStorage.getItem(waterKey);
+      const isWaterDoneToday = (parseInt(cachedWater || '0', 10) || 0) >= 2000;
+
+      const isAnyGoalDoneToday = Boolean(hasWorkoutToday || isCheckinToday || isNutritionDoneToday || isWaterDoneToday);
+
+      const activeStreak = calculateActiveStreak(activeDates, isAnyGoalDoneToday);
+      setStreakCount(activeStreak);
     } catch { }
   }, [authUser?.id]);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadAthleticHistory();
+    }, [loadAthleticHistory])
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -165,8 +240,26 @@ export default function Profile() {
     };
 
     fetchProfile();
+
+    const subW = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      loadAthleticHistory();
+    });
+    const subWD = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', () => {
+      loadAthleticHistory();
+    });
+    const subC = DeviceEventEmitter.addListener('DAILY_CHECKIN_UPDATED', () => {
+      loadAthleticHistory();
+    });
+    const subF = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
+      loadAthleticHistory();
+    });
+
     return () => {
       isMounted = false;
+      subW.remove();
+      subWD.remove();
+      subC.remove();
+      subF.remove();
     };
   }, [authUser?.id, loadAvatar, loadAthleticHistory]);
 
@@ -395,6 +488,8 @@ export default function Profile() {
           <AthleteBadgesCard
             currentStreak={streakCount}
             totalWorkouts={totalWorkoutsCount}
+            totalMealsLogged={totalMealsCount}
+            hasHitMacroTarget={hasHitMacro}
           />
         </View>
       </ScrollView>

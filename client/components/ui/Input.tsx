@@ -2,9 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import FieldLabel from './FieldLabel';
+
+export { FieldLabel };
 
 interface Props extends TextInputProps {
   label?: string;
+  labelClassName?: string;
   error?: string;
   unit?: string;
   isPassword?: boolean;
@@ -14,6 +18,7 @@ const Input = React.forwardRef<TextInput, Props>(
   (
     {
       label,
+      labelClassName,
       error,
       unit,
       isPassword,
@@ -38,21 +43,23 @@ const Input = React.forwardRef<TextInput, Props>(
     return (
       <View className="w-full mb-3">
         {label ? (
-          <Text className="text-text-muted dark:text-text-muted-dark mb-1.5 text-[10px] tracking-wider uppercase font-bold">
+          <FieldLabel className={labelClassName}>
             {label}
-          </Text>
+          </FieldLabel>
         ) : null}
-        <View className="relative w-full flex-row items-center">
+        <View
+          className={`w-full flex-row items-center bg-input dark:bg-input-dark border rounded-xl min-h-[46px] px-3.5 ${
+            error
+              ? 'border-danger dark:border-danger-dark'
+              : isFocused
+              ? 'border-accent dark:border-accent-dark'
+              : 'border-input-border dark:border-input-border-dark'
+          }`}
+        >
           <TextInput
             ref={ref}
             keyboardAppearance={isDark ? 'dark' : 'light'}
-            className={`flex-1 bg-input dark:bg-input-dark border ${
-              error
-                ? 'border-danger dark:border-danger-dark'
-                : isFocused
-                ? 'border-accent dark:border-accent-dark'
-                : 'border-input-border dark:border-input-border-dark'
-            } pl-3.5 ${isPasswordField || unit ? 'pr-11' : 'pr-3.5'} py-2.5 rounded-xl text-text-primary dark:text-text-primary-dark text-sm min-h-[46px] ${className}`}
+            className={`flex-1 min-w-0 text-text-primary dark:text-text-primary-dark text-sm py-2.5 ${className}`}
             placeholderTextColor={placeholderColor}
             style={style}
             secureTextEntry={shouldBeSecure}
@@ -72,7 +79,7 @@ const Input = React.forwardRef<TextInput, Props>(
               hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               accessibilityRole="button"
-              className="absolute right-3 p-1 items-center justify-center rounded-lg"
+              className="shrink-0 ml-2 p-1 items-center justify-center rounded-lg"
             >
               <Ionicons
                 name={showPassword ? 'eye-off' : 'eye'}
@@ -81,12 +88,13 @@ const Input = React.forwardRef<TextInput, Props>(
               />
             </TouchableOpacity>
           ) : unit ? (
-            <View
-              style={{ pointerEvents: 'none' } as any}
-              className="absolute right-2.5 bg-surface/80 dark:bg-surface-dark/80 px-2 py-0.5 rounded-md border border-input-border/50 dark:border-input-border-dark/50"
+            <Text
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no"
+              className="shrink-0 ml-2 text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase select-none"
             >
-              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase">{unit}</Text>
-            </View>
+              {unit}
+            </Text>
           ) : null}
         </View>
         {error ? (

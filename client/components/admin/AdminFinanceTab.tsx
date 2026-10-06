@@ -8,6 +8,7 @@ import {
   Modal,
 } from 'react-native';
 import { useThemeColors } from '@/constants/colors';
+import { Ionicons } from '@expo/vector-icons';
 import { useToast } from '@/context/ToastContext';
 import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
@@ -60,7 +61,8 @@ export default function AdminFinanceTab({
       );
 
       if (res.success) {
-        showSuccess('Payout Completed', `Recorded payout of $${num.toFixed(2)}.`);
+        const symbol = (revenueData?.platformWallet?.currency || 'PHP').toUpperCase() === 'PHP' ? '₱' : '$';
+        showSuccess('Payout Completed', `Recorded payout of ${symbol}${num.toFixed(2)}.`);
         setShowPayoutModal(false);
         setPayoutAmount('');
         setPayoutDestination('');
@@ -106,19 +108,59 @@ export default function AdminFinanceTab({
               setShowPayoutModal(true);
             }}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            className="bg-accent min-h-[44px] px-3.5 py-2 rounded-lg items-center justify-center"
+            className="bg-accent min-h-[34px] px-3 py-1.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
           >
-            <Text className="text-xs font-bold text-accent-contrast">+ Payout</Text>
+            <Text className="text-xs font-bold text-accent-contrast">Manual Transfer</Text>
           </TouchableOpacity>
         </View>
 
-        <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
-          ${(revenueData.platformWallet?.balance || 0).toFixed(2)}{' '}
-          {revenueData.platformWallet?.currency || 'USD'}
-        </Text>
-        <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-          Available balance for admin payouts & operating funds
-        </Text>
+        {(() => {
+          const rawBal = revenueData.platformWallet?.balance || 0;
+          const currency = (revenueData.platformWallet?.currency || 'PHP').toUpperCase();
+          const isPhp = currency === 'PHP';
+          const phpBal = isPhp ? rawBal : rawBal * 58;
+          const usdBal = isPhp ? rawBal / 58 : rawBal;
+
+          return (
+            <View>
+              <View className="flex-row items-baseline gap-1.5 mb-0.5">
+                <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
+                  ₱{phpBal.toLocaleString(undefined, {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2,
+                  })}
+                </Text>
+                <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                  PHP
+                </Text>
+              </View>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                USD approx: ${usdBal.toLocaleString(undefined, {
+                  minimumFractionDigits: 2,
+                  maximumFractionDigits: 2,
+                })} USD
+              </Text>
+            </View>
+          );
+        })()}
+
+        {/* Real-World Gateway Settlement Info */}
+        <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50 gap-1.5">
+          <View className="flex-row items-center justify-between">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2 h-2 rounded-full bg-emerald-500" />
+              <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+                Auto-Deposit: Rolling 2 Business Days
+              </Text>
+            </View>
+            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+              Stripe & PayMongo
+            </Text>
+          </View>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+            Customer card & e-wallet payments settle automatically into your linked business bank account.
+          </Text>
+        </View>
       </SurfaceCard>
 
       {/* Recent Ledger Transactions */}
@@ -178,21 +220,26 @@ export default function AdminFinanceTab({
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
             <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
-              <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
-                  Process Admin Payout
-                </Text>
+              <View className="flex-row items-center justify-between mb-2">
+                <View>
+                  <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                    Manual Fund Transfer
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                    Auto-settlement is active. Record a manual withdrawal:
+                  </Text>
+                </View>
                 <ModalCloseButton onClose={() => setShowPayoutModal(false)} />
               </View>
 
               <View className="gap-3 mb-4">
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Payout Amount ($ USD)
+                    Payout Amount ({((revenueData?.platformWallet?.currency || 'PHP').toUpperCase() === 'PHP') ? '₱ PHP' : '$ USD'})
                   </Text>
                   <TextInput
                     className="bg-surface-card dark:bg-surface-card-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
-                    placeholder="e.g. 50.00"
+                    placeholder="e.g. 500.00"
                     placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     value={payoutAmount}

@@ -230,9 +230,6 @@ export default function EWalletModal({
           </View>
 
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
-            {/* Inline Error Banner */}
-            <ModalErrorBanner error={walletError} onDismiss={() => setWalletError(null)} />
-
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">
               <View className="flex-row items-center justify-between w-full mb-1">
@@ -501,6 +498,19 @@ export default function EWalletModal({
                     <Text className="text-[9px] text-text-muted dark:text-text-muted-dark mt-0.5">
                       Rate: 1 USD = ₱{USD_PHP_EXCHANGE_RATE.toFixed(2)} PHP (Direct ledger credit)
                     </Text>
+                  </View>
+                )}
+
+                {/* Inline Error Notification */}
+                {walletError && (
+                  <View className="flex-row items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/25 mb-3">
+                    <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                    <Text className="text-xs text-danger dark:text-danger-dark font-medium flex-1">
+                      {walletError}
+                    </Text>
+                    <TouchableOpacity onPress={() => setWalletError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close" size={14} color={colors.danger} />
+                    </TouchableOpacity>
                   </View>
                 )}
 

@@ -10,6 +10,7 @@ import {
   generateAIMealSuggestions,
   chatWithAICoach,
   streamAICoach,
+  autocompleteExerciseWithAI,
   ChatMessage,
 } from '../services/ai.service'
 
@@ -301,6 +302,16 @@ export const clearChatHistory = asyncHandler(async (req: AuthRequest, res: Respo
   })
 
   res.json({ success: true, message: 'Chat history cleared successfully' })
+})
+
+export const autocompleteExercise = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const { name } = req.body
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Exercise name is required' })
+  }
+
+  const result = await autocompleteExerciseWithAI(name.trim())
+  res.json({ success: true, data: result })
 })
 
 

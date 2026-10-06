@@ -83,7 +83,7 @@ export default function MealCategoryCard({
               className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
               accessibilityLabel={`Scan ${title}`}
             >
-              <Ionicons name="camera" size={17} color={colors.textPrimary} />
+              <Ionicons name="camera" size={15} color={colors.accent} />
             </TouchableOpacity>
           ) : null}
 

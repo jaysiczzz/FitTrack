@@ -15,7 +15,6 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 
 interface LogWeightModalProps {
   visible: boolean;
@@ -46,7 +45,7 @@ export default function LogWeightModal({
   onSaveWeight,
 }: LogWeightModalProps) {
   const { colors } = useThemeColors();
-  const { showWarning } = useToast();
+  const { showWarning, showError } = useToast();
   const [unit] = useWeightUnit();
   const isLbs = unit === 'LBS';
   const unitLabel = unit.toLowerCase();
@@ -56,7 +55,8 @@ export default function LogWeightModal({
   const [dateMode, setDateMode] = useState<'today' | 'yesterday' | 'custom'>('today');
   const [notes, setNotes] = useState<string>('');
   const [saving, setSaving] = useState(false);
-  const [logWeightError, setLogWeightError] = useState<string | null>(null);
+  const [weightError, setWeightError] = useState<string | null>(null);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   useEffect(() => {
     if (visible) {
@@ -67,12 +67,13 @@ export default function LogWeightModal({
       setSelectedDate(getLocalDateString());
       setDateMode('today');
       setNotes('');
-      setLogWeightError(null);
+      setWeightError(null);
+      setDateError(null);
     }
   }, [visible, currentWeight, unit, isLbs]);
 
   const handleAdjust = (delta: number) => {
-    setLogWeightError(null);
+    setWeightError(null);
     const minW = isLbs ? 45 : 20;
     const maxW = isLbs ? 880 : 350;
     const fallback = isLbs ? 154 : 70;
@@ -82,7 +83,7 @@ export default function LogWeightModal({
   };
 
   const handleSelectDateMode = (mode: 'today' | 'yesterday' | 'custom') => {
-    setLogWeightError(null);
+    setDateError(null);
     setDateMode(mode);
     if (mode === 'today') {
       setSelectedDate(getLocalDateString());
@@ -92,17 +93,18 @@ export default function LogWeightModal({
   };
 
   const handleSubmit = async () => {
-    setLogWeightError(null);
+    setWeightError(null);
+    setDateError(null);
     const wNum = parseFloat(weightInput);
     const minW = isLbs ? 45 : 20;
     const maxW = isLbs ? 880 : 400;
     if (isNaN(wNum) || wNum < minW || wNum > maxW) {
-      setLogWeightError(`Please enter a valid body weight between ${minW} and ${maxW} ${unitLabel}.`);
+      setWeightError(`Please enter a valid body weight between ${minW} and ${maxW} ${unitLabel}.`);
       return;
     }
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(selectedDate)) {
-      setLogWeightError('Date must be in YYYY-MM-DD format.');
+      setDateError('Date must be in YYYY-MM-DD format.');
       return;
     }
 
@@ -110,10 +112,11 @@ export default function LogWeightModal({
     try {
       const weightInKg = isLbs ? convertToKg(wNum, 'LBS') : wNum;
       await onSaveWeight(Number(weightInKg.toFixed(1)), selectedDate, notes.trim() || undefined);
-      setLogWeightError(null);
+      setWeightError(null);
+      setDateError(null);
       onClose();
     } catch (err: any) {
-      setLogWeightError(err?.message || 'Could not save weigh-in. Please check your connection and try again.');
+      showError('Save Failed', err?.message || 'Could not save weigh-in. Please check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -139,13 +142,6 @@ export default function LogWeightModal({
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
-
-          {/* Inline Error Banner */}
-          <ModalErrorBanner
-            error={logWeightError}
-            onDismiss={() => setLogWeightError(null)}
-            className="mt-3 mb-0"
-          />
 
           <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
             {/* Date Selection Mode */}
@@ -225,11 +221,19 @@ export default function LogWeightModal({
                   </Text>
                   <TextInput
                     value={selectedDate}
-                    onChangeText={setSelectedDate}
+                    onChangeText={(val) => {
+                      setSelectedDate(val);
+                      if (dateError) setDateError(null);
+                    }}
                     placeholder="2026-09-25"
                     placeholderTextColor={colors.textMuted}
                     className="text-xs text-text-primary dark:text-text-primary-dark font-bold py-1"
                   />
+                  {dateError && (
+                    <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-semibold">
+                      {dateError}
+                    </Text>
+                  )}
                 </View>
               )}
             </View>
@@ -240,10 +244,13 @@ export default function LogWeightModal({
                 Body Weight
               </Text>
 
-              <View className="flex-row items-baseline justify-center mb-3">
+              <View className="flex-row items-baseline justify-center mb-1">
                 <TextInput
                   value={weightInput}
-                  onChangeText={setWeightInput}
+                  onChangeText={(val) => {
+                    setWeightInput(val);
+                    if (weightError) setWeightError(null);
+                  }}
                   keyboardType="decimal-pad"
                   className="text-4xl font-black text-text-primary dark:text-text-primary-dark text-center min-w-[120px]"
                   selectTextOnFocus
@@ -252,6 +259,12 @@ export default function LogWeightModal({
                   {unitLabel}
                 </Text>
               </View>
+
+              {weightError && (
+                <Text className="text-[11px] text-rose-500 dark:text-rose-400 font-semibold text-center mb-2.5">
+                  {weightError}
+                </Text>
+              )}
 
               {/* Stepper Buttons Row */}
               <View className="flex-row items-center justify-center gap-2">

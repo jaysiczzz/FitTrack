@@ -1,7 +1,13 @@
 import nodemailer from 'nodemailer'
 
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true,
+  pool: true,
+  maxConnections: 3,
+  maxMessages: 100,
+  rateLimit: 5,
   auth: {
     user: process.env.SMTP_USER || 'fittrack.app.help@gmail.com',
     pass: process.env.SMTP_PASS, // 16-character Google App Password
@@ -130,4 +136,76 @@ export function sendEmailVerificationEmail(
     footerNote: 'If you did not try to create a FitTrack account, you can safely ignore this email.',
     plainText: `Your FitTrack email verification code is: ${code}. It expires in 15 minutes.`,
   })
+}
+
+/**
+ * Sends an email update to a user when their support ticket status changes or is resolved.
+ */
+export async function sendTicketResolutionEmail(opts: {
+  toEmail: string
+  userName?: string
+  ticketId: string
+  subject: string
+  status: string
+  adminNotes?: string
+}): Promise<boolean> {
+  const { toEmail, userName, ticketId, subject, status, adminNotes } = opts
+  const isResolved = status === 'RESOLVED'
+  const statusLabel = isResolved ? 'Resolved' : 'In Progress'
+  const statusColor = isResolved ? '#10B981' : '#F59E0B'
+
+  const htmlContent = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 520px; margin: 0 auto; padding: 32px 24px; border: 1px solid #e5e7eb; border-radius: 16px; background-color: #ffffff; color: #1f2937;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <h1 style="color: #10B981; margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.5px;">FitTrack Support</h1>
+        <p style="color: #6b7280; font-size: 14px; margin-top: 4px;">Support Request Update</p>
+      </div>
+
+      <p style="font-size: 16px; line-height: 1.5; color: #111827; font-weight: 500;">
+        Hello${userName ? ` ${userName}` : ''},
+      </p>
+
+      <p style="font-size: 15px; line-height: 1.6; color: #4b5563;">
+        Your inquiry regarding <strong>"${subject}"</strong> has been updated by our team.
+      </p>
+
+      <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 12px; padding: 18px; margin: 20px 0;">
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 6px;">
+          Ticket Status
+        </div>
+        <div style="font-size: 16px; font-weight: 700; color: ${statusColor}; margin-bottom: 12px;">
+          ● ${statusLabel}
+        </div>
+        ${adminNotes ? `
+        <div style="font-size: 12px; font-weight: 600; text-transform: uppercase; color: #6b7280; margin-bottom: 4px;">
+          Admin Response / Notes:
+        </div>
+        <div style="font-size: 14px; color: #374151; line-height: 1.5; white-space: pre-line;">
+          ${adminNotes}
+        </div>` : ''}
+      </div>
+
+      <p style="font-size: 13px; line-height: 1.5; color: #6b7280;">
+        If you have any further questions, feel free to reply directly to this email.
+      </p>
+    </div>
+  `
+
+  if (!process.env.SMTP_PASS) {
+    console.log(`[DEV MODE] Simulated Support Ticket Resolution Email to ${toEmail} for Ticket #${ticketId}`)
+    return true
+  }
+
+  try {
+    await transporter.sendMail({
+      from: '"FitTrack Support" <fittrack.app.help@gmail.com>',
+      to: toEmail,
+      subject: `[FitTrack Support] Ticket #${ticketId.slice(0, 8)}: ${statusLabel}`,
+      html: htmlContent,
+    })
+    return true
+  } catch (err) {
+    console.error('Failed to send ticket status email:', err)
+    return false
+  }
 }

@@ -63,11 +63,11 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     symbol: '₱',
     interval: null,
     features: [
-      'Basic workout & set logging',
-      '50+ exercise guides with video demos',
-      'Standard food & water logging',
+      'Full 80+ exercise library with animated GIFs & form cues',
+      'Unlimited workout logging, set tracker & rest timers',
+      'Standard food, calories, and water logger',
       'Daily readiness check-in & streaks',
-      'Community athlete stories',
+      'Community stories & achievement milestones',
     ],
   },
   {
@@ -82,12 +82,12 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     symbol: '₱',
     interval: 'month',
     features: [
-      'Everything in Free tier',
-      'Unlimited AI Fitness Coach (Google Gemini 2.0 Flash)',
-      'AI Multimodal Camera Food Scanner & Macro Analysis',
-      'Daily, weekly, and monthly workout routine planner',
-      'Detailed Personal Record (PR) badges and trophies',
-      'Cloud synchronization & offline resilience',
+      'Everything in Free tier (full exercise library & GIFs)',
+      'Unlimited AI Multimodal Camera Food Scanner & Macro Analysis',
+      'Unlimited 24/7 AI Personal Coach (Google Gemini 2.0 Flash)',
+      'Daily, weekly, and monthly custom workout routine planner',
+      'Detailed Personal Record (PR) badges & 1RM progression charts',
+      'Priority cloud synchronization and offline data resilience',
     ],
   },
   {
@@ -103,28 +103,10 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     interval: 'year',
     features: [
       'All Pro Monthly features included',
-      'Save 33% compared to monthly (₱333/mo)',
-      'Priority customer service & ticket support',
-      'Advanced 1RM and volume analytics',
-      'Early access to all upcoming features',
-    ],
-  },
-  {
-    id: 'LIFETIME_FOUNDER',
-    tier: 'LIFETIME_FOUNDER',
-    name: 'Lifetime Founder',
-    badge: 'Limited Pass',
-    price: 9999,
-    priceUSD: 199.99,
-    pricePHP: 9999,
-    currency: 'PHP',
-    symbol: '₱',
-    interval: 'lifetime',
-    features: [
-      'Permanent lifetime Pro access with zero recurring fees',
-      'Exclusive Gold Founder athlete profile badge',
-      'Direct developer feedback channel',
-      'All future premium fitness models included forever',
+      'Save 33% compared to monthly (₱333/mo · 2 months free)',
+      'Unlimited AI Food Scanner & Gemini 2.0 AI Coach',
+      'Custom routines, advanced analytics & PR trophies',
+      'Priority customer support & ticket resolution',
     ],
   },
 ];
@@ -376,9 +358,6 @@ export default function SubscriptionModal({
           </View>
 
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
-            {/* Inline Error Banner */}
-            <ModalErrorBanner error={subError} onDismiss={() => setSubError(null)} />
-
             {/* Currency Selector */}
             <View className="flex-row items-center justify-between p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
               <View>
@@ -577,6 +556,107 @@ export default function SubscriptionModal({
               </View>
             </View>
 
+            {/* Side-by-Side Free vs Pro Comparison Matrix */}
+            <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark">
+                  Exact Feature Comparison
+                </Text>
+                <View className="flex-row items-center gap-3 pr-1">
+                  <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark w-14 text-center">
+                    FREE
+                  </Text>
+                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark w-16 text-center">
+                    PRO
+                  </Text>
+                </View>
+              </View>
+
+              <View className="gap-1.5">
+                {[
+                  {
+                    feature: '80+ Exercise Library & Guides',
+                    free: 'Full Access',
+                    pro: 'Full Access',
+                    proHighlight: false,
+                  },
+                  {
+                    feature: 'Workout & Set Logging',
+                    free: 'Unlimited',
+                    pro: 'Unlimited',
+                    proHighlight: false,
+                  },
+                  {
+                    feature: 'Food, Calorie & Water Log',
+                    free: 'Full Access',
+                    pro: 'Full Access',
+                    proHighlight: false,
+                  },
+                  {
+                    feature: 'AI Camera Food Scanner',
+                    free: '3 Scans/Day',
+                    pro: 'Unlimited',
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'AI Coach (Gemini 2.0)',
+                    free: 'Standard',
+                    pro: 'Priority 24/7',
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'Monthly Routine Auto-Fill',
+                    free: 'Manual',
+                    pro: '1-Tap Auto',
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'Periodization & Phase Cues',
+                    free: 'Standard',
+                    pro: 'Full Access',
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'Cloud Sync & Data Backup',
+                    free: 'Standard',
+                    pro: 'Priority Sync',
+                    proHighlight: true,
+                  },
+                ].map((row, idx) => (
+                  <View
+                    key={idx}
+                    className="flex-row items-center justify-between py-1 border-b border-input-border/30 dark:border-input-border-dark/30"
+                  >
+                    <Text className="text-[11px] font-medium text-text-primary dark:text-text-primary-dark flex-1 pr-2">
+                      {row.feature}
+                    </Text>
+                    <View className="flex-row items-center gap-3 pr-1">
+                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark w-14 text-center">
+                        {row.free}
+                      </Text>
+                      <View
+                        className={`w-16 py-0.5 rounded items-center justify-center ${
+                          row.proHighlight
+                            ? 'bg-accent/15 border border-accent/30'
+                            : 'bg-input dark:bg-input-dark'
+                        }`}
+                      >
+                        <Text
+                          className={`text-[10px] font-bold ${
+                            row.proHighlight
+                              ? 'text-accent dark:text-accent-dark'
+                              : 'text-text-primary dark:text-text-primary-dark'
+                          }`}
+                        >
+                          {row.pro}
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                ))}
+              </View>
+            </View>
+
             {/* Payment Method Selector */}
             <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark mb-2">
               Select Payment Method
@@ -742,7 +822,7 @@ export default function SubscriptionModal({
 
                 {/* Expiry and CVC Row */}
                 <View className="flex-row gap-2 mb-2">
-                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
+                  <View className="flex-1 min-w-0 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
                     <TextInput
                       value={cardExpiry}
                       onChangeText={(val) => setCardExpiry(formatCardExpiry(val))}
@@ -756,7 +836,7 @@ export default function SubscriptionModal({
                       <Ionicons name="checkmark" size={12} color="#10B981" />
                     )}
                   </View>
-                  <View className="flex-1 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
+                  <View className="flex-1 min-w-0 flex-row items-center bg-surface dark:bg-surface-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark">
                     <TextInput
                       value={cardCvc}
                       onChangeText={(val) => setCardCvc(formatCardCvc(val))}
@@ -799,6 +879,19 @@ export default function SubscriptionModal({
                     ⚠️ Insufficient balance. Please switch to GCash, Maya, Card, or top up your e-wallet.
                   </Text>
                 )}
+              </View>
+            )}
+
+            {/* Inline Error Notification */}
+            {subError && (
+              <View className="flex-row items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/25 mb-3">
+                <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                <Text className="text-xs text-danger dark:text-danger-dark font-medium flex-1">
+                  {subError}
+                </Text>
+                <TouchableOpacity onPress={() => setSubError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close" size={14} color={colors.danger} />
+                </TouchableOpacity>
               </View>
             )}
 

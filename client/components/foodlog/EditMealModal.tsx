@@ -296,9 +296,9 @@ export default function EditMealModal({
               badge="Manual"
               initialExpanded={false}
             >
-              <View className="flex-row gap-2 pt-1 pb-1">
+              <View className="flex-row flex-wrap gap-2 pt-1 pb-1">
                 {/* Calories */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-bold uppercase">
                     Calories
                   </Text>
@@ -315,7 +315,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Protein */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-accent dark:text-accent-dark font-bold uppercase">
                     Protein
                   </Text>
@@ -332,7 +332,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Carbs */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-info dark:text-info-dark font-bold uppercase">
                     Carbs
                   </Text>
@@ -349,7 +349,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Fat */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-tertiary dark:text-tertiary-dark font-bold uppercase">
                     Fats
                   </Text>

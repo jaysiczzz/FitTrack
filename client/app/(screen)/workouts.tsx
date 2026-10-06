@@ -341,6 +341,19 @@ export default function Workouts() {
     fetchTodaySession();
     fetchHistoryCount();
     fetchScheduledRoutine();
+
+    const subComplete = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      fetchHistoryCount();
+    });
+    const subDelete = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', () => {
+      fetchTodaySession();
+      fetchHistoryCount();
+    });
+
+    return () => {
+      subComplete.remove();
+      subDelete.remove();
+    };
   }, [user?.id]);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {

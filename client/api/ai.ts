@@ -227,3 +227,25 @@ export const clearChatHistoryApi = async (): Promise<{ success: boolean; message
   });
 };
 
+export interface AutocompleteExerciseResult {
+  primaryMuscle: string;
+  secondaryMuscles: string[];
+  category: string;
+  type: string;
+  difficulty: string;
+  equipment: string[];
+  instructions: string[];
+  formTips: string[];
+  commonMistakes: string[];
+  breathingTechnique: string;
+}
+
+export const autocompleteExerciseApi = async (
+  name: string
+): Promise<{ success: boolean; data: AutocompleteExerciseResult }> => {
+  return apiRequest('/api/ai/autocomplete-exercise', {
+    method: 'POST',
+    body: { name },
+  });
+};
+

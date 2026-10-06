@@ -40,6 +40,7 @@ interface AiScanModalProps {
   onAddMealItem: (item: FoodLogItem | FoodLogItem[]) => void;
   initialMealType?: MealType;
   initialMode?: 'photo' | 'text';
+  onUpgradePress?: () => void;
 }
 
 export default function AiScanModal({
@@ -48,14 +49,13 @@ export default function AiScanModal({
   onAddMealItem,
   initialMealType,
   initialMode = 'photo',
+  onUpgradePress,
 }: AiScanModalProps) {
   const { colors } = useThemeColors();
   const { showWarning, showError, showSuccess } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'photo' | 'text'>(initialMode);
   const [selectedMeal, setSelectedMeal] = useState<MealType>(initialMealType || getSmartMealType());
   const [photoNotes, setPhotoNotes] = useState('');
-  const [textDescription, setTextDescription] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [imageBase64, setImageBase64] = useState<string | null>(null);
   const [imageMimeType, setImageMimeType] = useState<string>('image/jpeg');
@@ -88,7 +88,6 @@ export default function AiScanModal({
   React.useEffect(() => {
     if (visible) {
       setSelectedMeal(initialMealType || getSmartMealType());
-      setActiveTab(initialMode);
 
       getCurrentSubscriptionApi()
         .then((res) => {
@@ -104,11 +103,10 @@ export default function AiScanModal({
         if (val) setDailyScanCount(parseInt(val, 10) || 0);
       });
     }
-  }, [visible, initialMealType, initialMode, user?.id]);
+  }, [visible, initialMealType, user?.id]);
 
   const resetState = () => {
     setPhotoNotes('');
-    setTextDescription('');
     setSelectedImage(null);
     setImageBase64(null);
     setImageMimeType('image/jpeg');
@@ -211,19 +209,15 @@ export default function AiScanModal({
     if (!isPro && dailyScanCount >= FREE_DAILY_SCAN_LIMIT) {
       showWarning(
         'Daily Free AI Limit Reached',
-        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro in Settings for unlimited AI Vision scans!`
+        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro for unlimited instant photo macro scanning!`
       );
+      if (onUpgradePress) {
+        onUpgradePress();
+      }
       return;
     }
 
-    const isPhotoMode = activeTab === 'photo';
-
-    if (activeTab === 'text' && !textDescription.trim()) {
-      showWarning('Description Needed', 'Please describe what you ate so we can analyze its nutrition.');
-      return;
-    }
-
-    if (activeTab === 'photo' && !imageBase64 && !photoNotes.trim()) {
+    if (!imageBase64 && !photoNotes.trim()) {
       showWarning('No Image', 'Please take or pick a photo of your meal or food package first.');
       return;
     }
@@ -241,9 +235,9 @@ export default function AiScanModal({
 
     try {
       const res = await analyzeMeal({
-        description: isPhotoMode ? (photoNotes.trim() || undefined) : textDescription.trim(),
-        imageBase64: isPhotoMode ? (imageBase64 || undefined) : undefined,
-        mimeType: isPhotoMode && imageBase64 ? (imageMimeType || 'image/jpeg') : undefined,
+        description: photoNotes.trim() || undefined,
+        imageBase64: imageBase64 || undefined,
+        mimeType: imageBase64 ? (imageMimeType || 'image/jpeg') : undefined,
       });
 
       if (res.success && res.data && res.data.isFood !== false) {
@@ -341,7 +335,7 @@ export default function AiScanModal({
     const newItem: FoodLogItem = {
       id: Date.now().toString(),
       mealType: selectedMeal,
-      title: analysisResult.foodName || (activeTab === 'photo' ? 'Scanned Meal' : 'Logged Meal'),
+      title: analysisResult.foodName || 'Scanned Meal',
       subtitle: analysisResult.servingSize || '1 serving',
       calories: Number(analysisResult.calories) || 0,
       protein: Number(analysisResult.protein) || 0,
@@ -350,7 +344,7 @@ export default function AiScanModal({
       goalBadge: smartBadge.badge,
       goalBadgeColor: smartBadge.color,
       healthNotes: analysisResult.healthNotes,
-      imageUri: activeTab === 'photo' ? (selectedImage || undefined) : undefined,
+      imageUri: selectedImage || undefined,
     };
 
     onAddMealItem(newItem);
@@ -365,14 +359,10 @@ export default function AiScanModal({
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-1 pr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
-                {activeTab === 'photo'
-                  ? 'AI Photo Scanner'
-                  : 'Describe Your Meal'}
+                AI Photo Scanner
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-                {activeTab === 'photo'
-                  ? 'Snap a plate photo or nutrition label for instant nutrient breakdown'
-                  : 'Type what you ate in plain English for instant macro estimates'}
+                Snap a plate photo or nutrition label for instant nutrient breakdown
               </Text>
             </View>
             <ModalCloseButton onClose={handleClose} />
@@ -390,72 +380,21 @@ export default function AiScanModal({
                 {isPro ? 'FitTrack Pro Active' : 'Free Tier'}
               </Text>
             </View>
-            <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
-              {isPro
-                ? '⚡ Unlimited AI Vision Scans'
-                : `${Math.max(0, FREE_DAILY_SCAN_LIMIT - dailyScanCount)} of ${FREE_DAILY_SCAN_LIMIT} scans left today`}
-            </Text>
-          </View>
-
-          {/* 2-Mode Switcher Tabs */}
-          <View className="flex-row bg-input dark:bg-input-dark rounded-xl p-1 mb-3.5 border border-input-border dark:border-input-border-dark">
-            {/* Photo Scanner */}
-            <TouchableOpacity
-              onPress={() => {
-                setActiveTab('photo');
-                setScanError(null);
-                setAnalysisResult(null);
-                setBaseMacros(null);
-                setPortionMultiplier(1.0);
-              }}
-              className={`flex-1 py-2 rounded-lg items-center flex-row justify-center gap-1 ${
-                activeTab === 'photo' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
-              }`}
-            >
-              <Ionicons
-                name="camera"
-                size={14}
-                color={activeTab === 'photo' ? colors.accent : colors.textMuted}
-              />
-              <Text
-                className={`text-xs font-bold ${
-                  activeTab === 'photo'
-                    ? 'text-accent dark:text-accent-dark'
-                    : 'text-text-muted dark:text-text-muted-dark'
-                }`}
-              >
-                Photo
+            <View className="flex-row items-center gap-2">
+              <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+                {isPro
+                  ? '⚡ Unlimited AI Vision Scans'
+                  : `${Math.max(0, FREE_DAILY_SCAN_LIMIT - dailyScanCount)} of ${FREE_DAILY_SCAN_LIMIT} scans left`}
               </Text>
-            </TouchableOpacity>
-
-            {/* Text Description */}
-            <TouchableOpacity
-              onPress={() => {
-                setActiveTab('text');
-                setScanError(null);
-                setAnalysisResult(null);
-                setBaseMacros(null);
-                setPortionMultiplier(1.0);
-              }}
-              className={`flex-1 py-2 rounded-lg items-center flex-row justify-center gap-1 ${
-                activeTab === 'text' ? 'bg-surface dark:bg-surface-dark shadow-xs' : ''
-              }`}
-            >
-              <Ionicons
-                name="create"
-                size={14}
-                color={activeTab === 'text' ? colors.accent : colors.textMuted}
-              />
-              <Text
-                className={`text-xs font-bold ${
-                  activeTab === 'text'
-                    ? 'text-accent dark:text-accent-dark'
-                    : 'text-text-muted dark:text-text-muted-dark'
-                }`}
-              >
-                Describe
-              </Text>
-            </TouchableOpacity>
+              {!isPro && onUpgradePress && (
+                <TouchableOpacity
+                  onPress={onUpgradePress}
+                  className="bg-accent/15 px-2 py-0.5 rounded-full border border-accent/30"
+                >
+                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">Upgrade</Text>
+                </TouchableOpacity>
+              )}
+            </View>
           </View>
 
           <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
@@ -505,94 +444,74 @@ export default function AiScanModal({
               })}
             </View>
 
-            {/* TAB 1: Photo Mode Content */}
-            {activeTab === 'photo' && (
-              <View className="mb-3.5">
-                {selectedImage ? (
-                  <View className="relative rounded-2xl overflow-hidden mb-3 border border-input-border dark:border-input-border-dark">
-                    <Image source={{ uri: selectedImage }} className="w-full h-48 bg-black/10" resizeMode="cover" />
-                    <View className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-full flex-row items-center">
-                      <Text className="text-emerald-400 text-[10px] font-bold mr-1">●</Text>
-                      <Text className="text-white text-[10px] font-bold">Photo Ready</Text>
-                    </View>
+            {/* Photo Scanner Section */}
+            <View className="mb-3.5">
+              {selectedImage ? (
+                <View className="relative rounded-2xl overflow-hidden mb-3 border border-input-border dark:border-input-border-dark">
+                  <Image source={{ uri: selectedImage }} className="w-full h-48 bg-black/10" resizeMode="cover" />
+                  <View className="absolute top-2 left-2 bg-black/70 px-2.5 py-1 rounded-full flex-row items-center">
+                    <Text className="text-emerald-400 text-[10px] font-bold mr-1">●</Text>
+                    <Text className="text-white text-[10px] font-bold">Photo Ready</Text>
+                  </View>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setSelectedImage(null);
+                      setImageBase64(null);
+                      setScanError(null);
+                      setAnalysisResult(null);
+                      setBaseMacros(null);
+                    }}
+                    className="absolute top-2 right-2 bg-black/70 px-3 py-1.5 rounded-full"
+                  >
+                    <Text className="text-white text-xs font-bold">Retake / Clear</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-6 mb-3 border border-dashed border-input-border dark:border-input-border-dark items-center justify-center">
+                  <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-1 text-center">
+                    Snap Food Photo or Nutrition Facts
+                  </Text>
+                  <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px] leading-4">
+                    Take a clear top-down photo of your meal or the FDA Nutrition Facts label on the back of any package.
+                  </Text>
+
+                  <View className="flex-row gap-2.5">
                     <TouchableOpacity
-                      onPress={() => {
-                        setSelectedImage(null);
-                        setImageBase64(null);
-                        setScanError(null);
-                        setAnalysisResult(null);
-                        setBaseMacros(null);
-                      }}
-                      className="absolute top-2 right-2 bg-black/70 px-3 py-1.5 rounded-full"
+                      onPress={handleTakePhoto}
+                      activeOpacity={0.8}
+                      className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
                     >
-                      <Text className="text-white text-xs font-bold">Retake / Clear</Text>
+                      <Ionicons name="camera" size={14} color="#FFFFFF" />
+                      <Text className="text-white font-bold text-xs">
+                        Open Camera
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={handlePickFromGallery}
+                      activeOpacity={0.8}
+                      className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                    >
+                      <Ionicons name="images" size={14} color={colors.textPrimary} />
+                      <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
+                        Photo Library
+                      </Text>
                     </TouchableOpacity>
                   </View>
-                ) : (
-                  <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-6 mb-3 border border-dashed border-input-border dark:border-input-border-dark items-center justify-center">
-                    <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-sm mb-1 text-center">
-                      Snap Food Photo or Nutrition Facts
-                    </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px] leading-4">
-                      Take a clear top-down photo of your meal or the FDA Nutrition Facts label on the back of any package.
-                    </Text>
+                </View>
+              )}
 
-                    <View className="flex-row gap-2.5">
-                      <TouchableOpacity
-                        onPress={handleTakePhoto}
-                        activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
-                      >
-                        <Ionicons name="camera" size={14} color="#FFFFFF" />
-                        <Text className="text-white font-bold text-xs">
-                          Open Camera
-                        </Text>
-                      </TouchableOpacity>
-
-                      <TouchableOpacity
-                        onPress={handlePickFromGallery}
-                        activeOpacity={0.8}
-                        className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
-                      >
-                        <Ionicons name="images" size={14} color={colors.textPrimary} />
-                        <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
-                          Photo Library
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                )}
-
-                <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-1">
-                  Optional notes or portion details:
-                </Text>
-                <TextInput
-                  className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
-                  placeholder="e.g. 1.5 cups, extra avocado, low sodium"
-                  placeholderTextColor={colors.textMuted}
-                  value={photoNotes}
-                  onChangeText={setPhotoNotes}
-                />
-              </View>
-            )}
-
-            {/* TAB 2: Text Description Mode */}
-            {activeTab === 'text' && (
-              <View className="mb-3.5">
-                <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-1.5">
-                  Describe what you ate or drank:
-                </Text>
-                <TextInput
-                  className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm min-h-[90px]"
-                  placeholder="e.g. 200g grilled salmon with 1 cup cooked brown rice and steamed broccoli"
-                  placeholderTextColor={colors.textMuted}
-                  value={textDescription}
-                  onChangeText={setTextDescription}
-                  multiline
-                  textAlignVertical="top"
-                />
-              </View>
-            )}
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs mb-1">
+                Optional notes or portion details:
+              </Text>
+              <TextInput
+                className="bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark p-3 rounded-xl border border-input-border dark:border-input-border-dark text-sm"
+                placeholder="e.g. 1.5 cups, extra avocado, low sodium"
+                placeholderTextColor={colors.textMuted}
+                value={photoNotes}
+                onChangeText={setPhotoNotes}
+              />
+            </View>
 
             {/* Non-food / Scan Error Banner */}
             {scanError && (
@@ -606,30 +525,28 @@ export default function AiScanModal({
                 <Text className="text-text-primary dark:text-text-primary-dark text-xs leading-4 mb-3">
                   {scanError}
                 </Text>
-                {activeTab === 'photo' && (
-                  <View className="flex-row gap-2">
-                    <TouchableOpacity
-                      onPress={handleTakePhoto}
-                      activeOpacity={0.8}
-                      className="flex-1 bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
-                    >
-                      <Ionicons name="camera" size={14} color="#EF4444" />
-                      <Text className="text-rose-500 dark:text-rose-400 font-bold text-xs">
-                        Retake Photo
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={handlePickFromGallery}
-                      activeOpacity={0.8}
-                      className="flex-1 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
-                    >
-                      <Ionicons name="images" size={14} color={colors.textPrimary} />
-                      <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                        Choose Another
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+                <View className="flex-row gap-2">
+                  <TouchableOpacity
+                    onPress={handleTakePhoto}
+                    activeOpacity={0.8}
+                    className="flex-1 bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+                  >
+                    <Ionicons name="camera" size={14} color="#EF4444" />
+                    <Text className="text-rose-500 dark:text-rose-400 font-bold text-xs">
+                      Retake Photo
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handlePickFromGallery}
+                    activeOpacity={0.8}
+                    className="flex-1 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark py-2.5 rounded-xl flex-row items-center justify-center gap-1.5"
+                  >
+                    <Ionicons name="images" size={14} color={colors.textPrimary} />
+                    <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                      Choose Another
+                    </Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             )}
 
@@ -654,7 +571,7 @@ export default function AiScanModal({
                   </>
                 ) : (
                   <Text className="text-white font-bold text-sm">
-                    Analyze Nutrition
+                    Analyze Meal Photo
                   </Text>
                 )}
               </TouchableOpacity>

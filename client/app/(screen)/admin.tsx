@@ -6,7 +6,7 @@ import {
   TouchableOpacity,
   RefreshControl,
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/context/AuthContext';
@@ -51,11 +51,16 @@ const TABS: { key: AdminTab; label: string; icon: keyof typeof Ionicons.glyphMap
 
 export default function AdminScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ tab?: AdminTab }>();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { colors } = useThemeColors();
   const { showError } = useToast();
 
-  const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [activeTab, setActiveTab] = useState<AdminTab>(
+    params.tab && ['overview', 'users', 'finance', 'exercises', 'support'].includes(params.tab)
+      ? params.tab
+      : 'overview'
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   // 1. Stats State
@@ -135,9 +140,32 @@ export default function AdminScreen() {
     }
   }, [activeTab, isCurrentUserAdmin, userSearch, userRoleFilter, selectedMuscle, ticketFilter]);
 
+  // Sync active tab if param changes after mount
+  useEffect(() => {
+    if (params.tab && ['overview', 'users', 'finance', 'exercises', 'support'].includes(params.tab)) {
+      setActiveTab(params.tab as AdminTab);
+    }
+  }, [params.tab]);
+
   useEffect(() => {
     loadTabContent();
   }, [loadTabContent]);
+
+  // Support Desk real-time auto-refresh polling (every 15s when activeTab === 'support')
+  useEffect(() => {
+    if (activeTab !== 'support' || !isCurrentUserAdmin) return;
+    const interval = setInterval(() => {
+      const filter = ticketFilter === 'ALL' ? undefined : ticketFilter;
+      getAdminTicketsApi(filter)
+        .then((res) => {
+          if (res.success) setTickets(res.tickets);
+        })
+        .catch((err) => {
+          console.warn('[Admin] Auto-refresh tickets error:', err?.message);
+        });
+    }, 15000);
+    return () => clearInterval(interval);
+  }, [activeTab, isCurrentUserAdmin, ticketFilter]);
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -161,27 +189,32 @@ export default function AdminScreen() {
             <Ionicons name="arrow-back" size={20} color={colors.textPrimary} />
           </TouchableOpacity>
           <View>
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
-                Admin Control Center
-              </Text>
-              <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
-                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase tracking-wider">
-                  Admin
-                </Text>
-              </View>
-            </View>
+            <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+              Admin Control Center
+            </Text>
             <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-              Live Database Synchronization
+              Platform administration & metrics
             </Text>
           </View>
         </View>
 
-        {/* Live Status indicator */}
-        <View className="flex-row items-center gap-1.5 bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5 py-1 rounded-full">
-          <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
-          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">Live DB</Text>
-        </View>
+        {/* Refresh button */}
+        <TouchableOpacity
+          onPress={() => {
+            triggerHapticFeedback();
+            onRefresh();
+          }}
+          disabled={refreshing}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+          accessibilityLabel="Refresh data"
+        >
+          <Ionicons
+            name="refresh-outline"
+            size={16}
+            color={refreshing ? colors.accent : colors.textMuted}
+          />
+        </TouchableOpacity>
       </View>
 
       {/* ── Segmented Navigation Tabs ── */}

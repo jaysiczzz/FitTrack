@@ -6,9 +6,10 @@ import PasswordRequirements from '@/components/ui/PasswordRequirements';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
 import { checkEmailApi } from '@/api/auth';
 import { capitalizeWords } from '@/utils/formatters';
+import { useRegistration } from '@/context/RegistrationContext';
 
 interface Props {
-  onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => void;
+  onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void> | void;
   loading?: boolean;
   onError?: (error: string) => void;
   onClearError?: () => void;
@@ -17,10 +18,11 @@ interface Props {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearError }) => {
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const { data: savedData } = useRegistration();
+  const [firstName, setFirstName] = useState(savedData?.firstName || '');
+  const [lastName, setLastName] = useState(savedData?.lastName || '');
+  const [email, setEmail] = useState(savedData?.email || '');
+  const [password, setPassword] = useState(savedData?.password || '');
 
   const [firstNameError, setFirstNameError] = useState('');
   const [lastNameError, setLastNameError] = useState('');
@@ -95,7 +97,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
     setCheckingEmail(true);
     try {
       await checkEmailApi(trimmedEmail);
-      onSubmit({
+      await onSubmit({
         firstName: capitalizeWords(firstName),
         lastName: capitalizeWords(lastName),
         email: trimmedEmail,

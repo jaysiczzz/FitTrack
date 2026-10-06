@@ -42,6 +42,7 @@ export default function CalendarScreen() {
           {/* The Unified Activity Calendar */}
           <UnifiedFitnessCalendar
             initialFilter="all"
+            hideHeader={true}
             onSwitchToTodayWorkout={() => router.push('/(screen)/workouts' as any)}
             onSwitchToTodayNutrition={() => router.push('/(screen)/foodlog' as any)}
           />

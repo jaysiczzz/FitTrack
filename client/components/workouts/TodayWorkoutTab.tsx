@@ -12,6 +12,7 @@ import SurfaceCard from '@/components/ui/SurfaceCard';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
+import { useWeightUnit, convertFromKg } from '@/constants/units';
 
 export interface TodayExerciseItem {
   key: string;
@@ -111,6 +112,8 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [weightUnit] = useWeightUnit();
+  const unitLabel = weightUnit.toLowerCase();
 
   const handleToggleSetWithRest = (exercise: TodayExerciseItem, setId: string) => {
     const targetSet = exercise.sets.find((s) => s.id === setId);
@@ -161,7 +164,8 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
     if (!match) return null;
     if (match.record) return match.record;
     if (match.weight && match.weight > 0) {
-      return `PR: ${match.weight}kg × ${match.reps || 0} reps`;
+      const displayWeight = convertFromKg(match.weight, weightUnit);
+      return `PR: ${displayWeight}${unitLabel} × ${match.reps || 0} reps`;
     }
     if (match.reps && match.reps > 0) {
       return `PR: ${match.reps} reps`;
@@ -648,7 +652,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
               const recordText =
                 pr.record ||
                 (pr.weight && pr.weight > 0
-                  ? `${pr.weight}kg × ${pr.reps || 0} reps`
+                  ? `${convertFromKg(pr.weight, weightUnit)}${unitLabel} × ${pr.reps || 0} reps`
                   : `${pr.reps || 0} reps`);
               return (
                 <View

@@ -355,20 +355,26 @@ export default function FoodHistoryTab({
   return (
     <View className="mb-6">
       {/* 1. Range Selection Filter Tabs */}
-      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3.5 border border-input-border dark:border-input-border-dark">
+      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-4 border border-input-border dark:border-input-border-dark">
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('15days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === '15days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={selectedRange === '15days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '15days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -379,18 +385,24 @@ export default function FoodHistoryTab({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('7days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === '7days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={selectedRange === '7days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '7days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -401,18 +413,24 @@ export default function FoodHistoryTab({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('all');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
             selectedRange === 'all' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="infinite-outline"
+            size={15}
+            color={selectedRange === 'all' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === 'all' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'

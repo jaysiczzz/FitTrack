@@ -954,12 +954,38 @@ export interface ScaledNutrition {
 }
 
 /**
+ * Detects whether a food or drink item is liquid/beverage
+ */
+export function isLiquidFood(food?: FoodCatalogItem | null): boolean {
+  if (!food) return false;
+  const unit = (food.servingUnit || '').toLowerCase();
+  const size = (food.servingSize || '').toLowerCase();
+  const name = (food.name || '').toLowerCase();
+  const cat = (food.category || '').toLowerCase();
+
+  if (unit === 'ml' || unit === 'l' || unit === 'fl oz' || unit === 'cup' || unit === 'glass' || unit === 'bottle' || unit === 'shake') {
+    return true;
+  }
+  if (size.includes('ml') || size.includes('liter') || size.includes('fl oz')) {
+    return true;
+  }
+  const liquidKeywords = [
+    'drink', 'water', 'milk', 'shake', 'smoothie', 'juice', 'tea',
+    'coffee', 'latte', 'beverage', 'soup', 'broth', 'soda', 'coke', 'pepsi'
+  ];
+  if (liquidKeywords.some((k) => name.includes(k) || food.keywords?.some((kw) => kw.toLowerCase().includes(k)))) {
+    return true;
+  }
+  return false;
+}
+
+/**
  * Dynamically scales food calories, macronutrients, and micronutrients based on amount and unit
  */
 export function scaleFoodMacros(
   food: FoodCatalogItem,
   amount: number,
-  mode: 'grams' | 'servings'
+  mode: 'grams' | 'servings' | 'ml'
 ): ScaledNutrition {
   const safeAmount = Math.max(0.1, Number(amount) || 1);
   const ratio = mode === 'servings' ? safeAmount : safeAmount / (food.servingWeightG || 100);

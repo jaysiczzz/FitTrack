@@ -10,6 +10,7 @@ import DailyCheckInCard from '@/components/dashboard/DailyCheckInCard';
 import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
 import StatCard from '@/components/dashboard/StatCard';
 import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
+import WeeklyNutritionChartCard from '@/components/dashboard/WeeklyNutritionChartCard';
 import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
 import CommunityStoriesCard from '@/components/dashboard/CommunityStoriesCard';
@@ -18,8 +19,9 @@ import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
 
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
+import { getCheckInHistoryApi } from '@/api/checkin';
 import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
-import { getDailyFoodLogApi, autoSyncFoodAndWater } from '@/api/foodlog';
+import { getDailyFoodLogApi, getFoodLogHistoryApi, autoSyncFoodAndWater } from '@/api/foodlog';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useToast } from '@/context/ToastContext';
@@ -27,61 +29,7 @@ import { useThemeColors } from '@/constants/colors';
 import { screenCache } from '@/utils/screenCache';
 import { useResponsive } from '@/hooks/useResponsive';
 import { capitalizeWords } from '@/utils/formatters';
-
-function calculateWorkoutStreak(
-  sessions: ApiWorkoutSession[],
-  isTodayCompleted: boolean = false
-): number {
-  const formatDateKey = (d: Date): string => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const completedDays = new Set<string>();
-
-  for (const s of sessions) {
-    const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
-    if (timestamp) {
-      const d = new Date(timestamp);
-      if (!isNaN(d.getTime())) {
-        completedDays.add(formatDateKey(d));
-      }
-    }
-  }
-
-  const today = new Date();
-  const todayKey = formatDateKey(today);
-
-  if (isTodayCompleted) {
-    completedDays.add(todayKey);
-  }
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayKey = formatDateKey(yesterday);
-
-  // If neither today nor yesterday has a completed session, streak is broken
-  let anchorDate: Date | null = null;
-  if (completedDays.has(todayKey)) {
-    anchorDate = new Date(today);
-  } else if (completedDays.has(yesterdayKey)) {
-    anchorDate = new Date(yesterday);
-  } else {
-    return 0;
-  }
-
-  let streak = 0;
-  const cursor = new Date(anchorDate);
-
-  while (completedDays.has(formatDateKey(cursor))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}
+import { calculateActiveStreak, formatDateKey } from '@/utils/streakUtils';
 
 export default function Dashboard() {
   const { colors } = useThemeColors();
@@ -119,7 +67,7 @@ export default function Dashboard() {
   // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
   const [workoutsThisWeek, setWorkoutsThisWeek] = useState(0);
-  const targetWorkoutsThisWeek = 5;
+  const [targetWorkoutsThisWeek, setTargetWorkoutsThisWeek] = useState(4);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
   const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
@@ -211,12 +159,52 @@ export default function Dashboard() {
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
   };
 
+  const historicalActiveDatesRef = useRef<Set<string>>(new Set());
+
+  // Calculates active streak based on Today's Goals (at least 1 goal completed = active day)
+  const syncTodayStreak = (overrides?: {
+    workoutDone?: boolean;
+    checkinDone?: boolean;
+    nutritionDone?: boolean;
+    waterAmount?: number;
+  }) => {
+    const isWorkout = overrides?.workoutDone !== undefined ? overrides.workoutDone : workoutSessionDone;
+    const isCheckin = overrides?.checkinDone !== undefined ? overrides.checkinDone : isCheckedIn;
+    const isNutr = overrides?.nutritionDone !== undefined ? overrides.nutritionDone : isNutritionDone;
+    const currentWater = overrides?.waterAmount !== undefined ? overrides.waterAmount : (waterMlRef.current || waterMl);
+    const isHydra = currentWater >= targetWater;
+
+    const isTodayGoalCompleted = Boolean(isWorkout || isCheckin || isNutr || isHydra);
+    const computedStreak = calculateActiveStreak(historicalActiveDatesRef.current, isTodayGoalCompleted);
+    setCurrentStreak(computedStreak);
+
+    if (userId) {
+      const streakKey = authStorage.getScopedKey(userId, 'fittrack_today_streak_cache');
+      AsyncStorage.setItem(streakKey, String(computedStreak)).catch(() => {});
+    }
+
+    return computedStreak;
+  };
+
   const loadDailyCheckIn = async () => {
     try {
       const todayKey = getTodayDateKey();
       const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
       const checkin = await AsyncStorage.getItem(checkinKey);
-      setIsCheckedIn(!!checkin);
+      const isChecked = Boolean(checkin);
+      setIsCheckedIn(isChecked);
+
+      // Populate historical active dates with check-ins
+      try {
+        const checkinHistoryRes = await getCheckInHistoryApi(60);
+        if (checkinHistoryRes?.success && Array.isArray(checkinHistoryRes.history)) {
+          checkinHistoryRes.history.forEach((c) => {
+            if (c.date) historicalActiveDatesRef.current.add(c.date);
+          });
+        }
+      } catch {}
+
+      syncTodayStreak({ checkinDone: isChecked });
     } catch (e) {
       console.log('Error checking daily checkin:', e);
     }
@@ -340,7 +328,20 @@ export default function Dashboard() {
         } catch (e) {
           // Offline fallback
         }
+
+        try {
+          const foodHistoryRes = await getFoodLogHistoryApi();
+          if (foodHistoryRes?.success && Array.isArray(foodHistoryRes.history)) {
+            foodHistoryRes.history.forEach((day) => {
+              if (day.isCompleted || (day.totalCalories > 0 && day.meals && day.meals.length > 0) || (day.waterMl && day.waterMl >= targetWater)) {
+                if (day.date) historicalActiveDatesRef.current.add(day.date);
+              }
+            });
+          }
+        } catch {}
       }
+
+      syncTodayStreak({ nutritionDone: isCompleted, waterAmount: finalWater });
     } catch (err) {
       console.log('Error calculating food progress:', err);
     }
@@ -350,7 +351,8 @@ export default function Dashboard() {
     try {
       const todayKey = getTodayDateKey();
       const cachedExercisesKey = authStorage.getScopedKey(userId, `fittrack_today_exercises_${todayKey}`);
-      const cachedHistoryKey = authStorage.getScopedKey(userId, 'fittrack_workout_history');
+      const cachedHistoryKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
+      const legacyHistoryKey = authStorage.getScopedKey(userId, 'fittrack_workout_history');
 
       // 1. Immediately populate from local cache if available
       try {
@@ -358,6 +360,9 @@ export default function Dashboard() {
           AsyncStorage.getItem(cachedExercisesKey),
           AsyncStorage.getItem(cachedHistoryKey),
         ]);
+
+        // Clean up legacy cache key if present
+        AsyncStorage.removeItem(legacyHistoryKey).catch(() => {});
 
         if (cachedExercisesRaw) {
           const parsed = JSON.parse(cachedExercisesRaw);
@@ -378,7 +383,7 @@ export default function Dashboard() {
 
         if (cachedHistoryRaw) {
           const sessions: ApiWorkoutSession[] = JSON.parse(cachedHistoryRaw);
-          if (Array.isArray(sessions) && sessions.length > 0) {
+          if (Array.isArray(sessions)) {
             const now = new Date();
             const startOfWeek = new Date(now);
             startOfWeek.setDate(now.getDate() - now.getDay());
@@ -392,7 +397,35 @@ export default function Dashboard() {
             });
 
             setWorkoutsThisWeek(completedThisWeek.length);
-            setCurrentStreak(calculateWorkoutStreak(sessions, false));
+
+            sessions.forEach((s) => {
+              const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+              if (timestamp) {
+                const d = new Date(timestamp);
+                const key = formatDateKey(d);
+                if (key) historicalActiveDatesRef.current.add(key);
+              }
+            });
+          }
+        }
+
+        const streakKey = authStorage.getScopedKey(userId, 'fittrack_today_streak_cache');
+        const cachedStreakRaw = await AsyncStorage.getItem(streakKey);
+        if (cachedStreakRaw !== null) {
+          const parsed = parseInt(cachedStreakRaw, 10);
+          if (!isNaN(parsed)) setCurrentStreak(parsed);
+        }
+
+        // Dynamically compute weekly workouts target from weeklySplit
+        const splitKey = authStorage.getScopedKey(userId, 'workout_planner_split');
+        const savedSplit = await AsyncStorage.getItem(splitKey);
+        if (savedSplit) {
+          const parsed = JSON.parse(savedSplit);
+          if (parsed && typeof parsed === 'object') {
+            const activeDays = Object.values(parsed).filter(Boolean).length;
+            if (activeDays > 0) {
+              setTargetWorkoutsThisWeek(activeDays);
+            }
           }
         }
       } catch (cacheErr) {
@@ -404,9 +437,8 @@ export default function Dashboard() {
       try {
         const historyRes = await getWorkoutHistory();
         sessions = historyRes.sessions || [];
-        if (sessions.length > 0) {
-          AsyncStorage.setItem(cachedHistoryKey, JSON.stringify(sessions)).catch(() => {});
-        }
+        // Persist fresh history cache unconditionally (including empty array on session deletions)
+        AsyncStorage.setItem(cachedHistoryKey, JSON.stringify(sessions)).catch(() => {});
       } catch (e) {
         // Offline
       }
@@ -426,7 +458,7 @@ export default function Dashboard() {
         // Offline
       }
 
-      const isExplicitlyCompleted = Boolean(todayCompletedSession || todayRes?.session?.completed);
+      const isExplicitlyCompleted = Boolean(todayCompletedSession);
 
       if (todayCompletedSession) {
         setTodayCompletedWorkoutStats({
@@ -434,14 +466,18 @@ export default function Dashboard() {
           caloriesBurned: todayCompletedSession.caloriesBurned || 240,
         });
         setActiveMinutesToday(todayCompletedSession.duration || 35);
-      } else if (todayRes?.session?.exercises) {
+      } else {
         setTodayCompletedWorkoutStats(null);
-        const completedSetsCount = todayRes.session.exercises.reduce(
-          (acc: number, ex: ApiWorkoutExercise) =>
-            acc + (ex.sets ? ex.sets.filter((s) => s.done).length : 0),
-          0
-        );
-        setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
+        if (todayRes?.session?.exercises && todayRes.session.exercises.length > 0) {
+          const completedSetsCount = todayRes.session.exercises.reduce(
+            (acc: number, ex: ApiWorkoutExercise) =>
+              acc + (ex.sets ? ex.sets.filter((s) => s.done).length : 0),
+            0
+          );
+          setActiveMinutesToday(completedSetsCount * 4); // ~4 min per completed set
+        } else {
+          setActiveMinutesToday(0);
+        }
       }
 
       if (todayRes?.session?.exercises && !todayCompletedSession) {
@@ -454,27 +490,38 @@ export default function Dashboard() {
           };
         });
         setTodayExercises(formatted);
+      } else if (!todayCompletedSession) {
+        setTodayExercises([]);
       }
 
       setWorkoutSessionDone(isExplicitlyCompleted);
 
-      // 3. Weekly count & Streak
-      if (sessions.length > 0) {
-        const now = new Date();
-        const startOfWeek = new Date(now);
-        startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
-        startOfWeek.setHours(0, 0, 0, 0);
+      // 3. Weekly count & Streak (always update, even when sessions is empty)
+      const now = new Date();
+      const startOfWeek = new Date(now);
+      startOfWeek.setDate(now.getDate() - now.getDay()); // Sunday as start of week
+      startOfWeek.setHours(0, 0, 0, 0);
 
-        const completedThisWeek = sessions.filter((s) => {
-          const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
-          if (!timestamp) return false;
-          const compDate = new Date(timestamp);
-          return compDate >= startOfWeek;
-        });
+      const completedThisWeek = sessions.filter((s) => {
+        const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+        if (!timestamp) return false;
+        const compDate = new Date(timestamp);
+        return compDate >= startOfWeek;
+      });
 
-        setWorkoutsThisWeek(completedThisWeek.length);
-        setCurrentStreak(calculateWorkoutStreak(sessions, isExplicitlyCompleted));
-      }
+      setWorkoutsThisWeek(completedThisWeek.length);
+
+      // Add workout session dates to historical active dates
+      sessions.forEach((s) => {
+        const timestamp = s.completedAt || (s.completed ? s.createdAt : null);
+        if (timestamp) {
+          const d = new Date(timestamp);
+          const key = formatDateKey(d);
+          if (key) historicalActiveDatesRef.current.add(key);
+        }
+      });
+
+      syncTodayStreak({ workoutDone: isExplicitlyCompleted });
     } catch (err) {
       console.log('Error calculating workout progress:', err);
     }
@@ -508,17 +555,26 @@ export default function Dashboard() {
     const subW = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
       loadWorkoutProgress();
     });
+    const subWD = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', () => {
+      loadWorkoutProgress();
+    });
     const subC = DeviceEventEmitter.addListener('DAILY_CHECKIN_UPDATED', (evt?: { isCheckedIn?: boolean }) => {
       if (typeof evt?.isCheckedIn === 'boolean') {
         setIsCheckedIn(evt.isCheckedIn);
+        syncTodayStreak({ checkinDone: evt.isCheckedIn });
       } else {
         loadDailyCheckIn();
       }
     });
+    const subS = DeviceEventEmitter.addListener('WORKOUT_SPLIT_UPDATED', () => {
+      loadWorkoutProgress();
+    });
     return () => {
       sub.remove();
       subW.remove();
+      subWD.remove();
       subC.remove();
+      subS.remove();
     };
   }, [userId]);
 
@@ -544,6 +600,7 @@ export default function Dashboard() {
     const newTotal = Math.min(targetWater, current + amount);
     waterMlRef.current = newTotal;
     setWaterMl(newTotal);
+    syncTodayStreak({ waterAmount: newTotal });
 
     try {
       const todayKey = getTodayDateKey();
@@ -703,6 +760,7 @@ export default function Dashboard() {
               <DailyCheckInCard
                 onCheckInCompleted={() => {
                   setIsCheckedIn(true);
+                  syncTodayStreak({ checkinDone: true });
                 }}
               />
 
@@ -764,6 +822,18 @@ export default function Dashboard() {
                   />
                 </View>
               </View>
+
+              {/* 7-Day Calorie & Macro Trend Weekly Chart */}
+              <WeeklyNutritionChartCard
+                currentDayCalories={caloriesLogged}
+                currentDayProtein={proteinLogged}
+                currentDayCarbs={carbsLogged}
+                currentDayFat={fatLogged}
+                targetCalories={targetCalories}
+                targetProtein={targetProtein}
+                targetCarbs={targetCarbs}
+                targetFat={targetFat}
+              />
 
               {/* Interactive Daily Goals Checklist */}
               <DailyGoalsCard

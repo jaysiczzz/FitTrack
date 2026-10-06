@@ -7,7 +7,6 @@ import {
   ActivityIndicator,
   Modal,
   TextInput,
-  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -15,6 +14,7 @@ import { useToast } from '@/context/ToastContext';
 import { triggerHapticFeedback } from '@/utils/haptics';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
+import ConfirmModal from '@/components/ui/ConfirmModal';
 import FilterChip from '@/components/ui/FilterChip';
 import {
   AdminSupportTicket,
@@ -45,6 +45,8 @@ export default function AdminTicketsTab({
   const [selectedTicket, setSelectedTicket] = useState<AdminSupportTicket | null>(null);
   const [adminTicketNotes, setAdminTicketNotes] = useState('');
   const [updatingTicket, setUpdatingTicket] = useState(false);
+  const [ticketToDelete, setTicketToDelete] = useState<AdminSupportTicket | null>(null);
+  const [deletingTicket, setDeletingTicket] = useState(false);
 
   const handleUpdateTicketStatus = async (status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED') => {
     if (!selectedTicket) return;
@@ -68,31 +70,23 @@ export default function AdminTicketsTab({
     }
   };
 
-  const handleDeleteTicket = (ticketId: string) => {
-    Alert.alert(
-      'Delete Ticket',
-      'Remove this support ticket permanently?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              triggerHapticFeedback();
-              const res = await deleteAdminTicketApi(ticketId);
-              if (res.success) {
-                showSuccess('Ticket Removed', 'Ticket deleted from support queue.');
-                setSelectedTicket(null);
-                onReloadTickets();
-              }
-            } catch (err: any) {
-              showError('Delete Failed', err?.message || 'Could not delete ticket.');
-            }
-          },
-        },
-      ]
-    );
+  const handleConfirmDeleteTicket = async () => {
+    if (!ticketToDelete) return;
+    try {
+      setDeletingTicket(true);
+      triggerHapticFeedback();
+      const res = await deleteAdminTicketApi(ticketToDelete.id);
+      if (res.success) {
+        showSuccess('Ticket Removed', 'Ticket deleted from support queue.');
+        setTicketToDelete(null);
+        setSelectedTicket(null);
+        onReloadTickets();
+      }
+    } catch (err: any) {
+      showError('Delete Failed', err?.message || 'Could not delete ticket.');
+    } finally {
+      setDeletingTicket(false);
+    }
   };
 
   return (
@@ -203,7 +197,7 @@ export default function AdminTicketsTab({
       {/* ── Review Support Ticket Modal ── */}
       {selectedTicket && (
         <Modal
-          visible={!!selectedTicket}
+          visible={Boolean(selectedTicket) && !ticketToDelete}
           transparent
           animationType="fade"
           onRequestClose={() => setSelectedTicket(null)}
@@ -283,7 +277,7 @@ export default function AdminTicketsTab({
                 </View>
 
                 <TouchableOpacity
-                  onPress={() => handleDeleteTicket(selectedTicket.id)}
+                  onPress={() => setTicketToDelete(selectedTicket)}
                   className="min-h-[48px] py-3 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-1"
                 >
                   <Text className="text-xs font-bold text-danger dark:text-danger-dark">Delete Ticket</Text>
@@ -293,6 +287,19 @@ export default function AdminTicketsTab({
           </View>
         </Modal>
       )}
+
+      {/* Delete Ticket Confirmation Modal */}
+      <ConfirmModal
+        visible={Boolean(ticketToDelete)}
+        title="Delete Support Ticket"
+        message={`Are you sure you want to permanently remove this support ticket from the queue? This cannot be undone.`}
+        confirmText="Delete Ticket"
+        cancelText="Cancel"
+        isDanger
+        loading={deletingTicket}
+        onConfirm={handleConfirmDeleteTicket}
+        onCancel={() => setTicketToDelete(null)}
+      />
     </View>
   );
 }
