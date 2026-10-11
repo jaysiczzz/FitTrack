@@ -15,20 +15,17 @@ import SurfaceCard from '@/components/ui/SurfaceCard';
 import ModalCloseButton from '@/components/ui/ModalCloseButton';
 import FilterChip from '@/components/ui/FilterChip';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import { AdminUserItem, updateUserRoleApi, deleteUserApi } from '@/api/admin';
+import {
+  AdminUserItem,
+  updateUserRoleApi,
+  deleteUserApi,
+  toggleUserSuspensionApi,
+} from '@/api/admin';
 import {
   adminOverrideSubscriptionApi,
   SubscriptionTierType,
 } from '@/api/subscription';
-import { capitalizeWords } from '@/utils/formatters';
-
-const formatGoal = (goal?: string) => {
-  if (!goal) return 'General Fitness';
-  if (goal === 'MUSCLE_GAIN') return 'Muscle Gain';
-  if (goal === 'WEIGHT_LOSS') return 'Weight Loss';
-  if (goal === 'MAINTENANCE') return 'Maintenance';
-  return capitalizeWords(goal.replace(/_/g, ' ').toLowerCase());
-};
+import { capitalizeWords, formatGoalLabel } from '@/utils/formatters';
 
 interface AdminUsersTabProps {
   users: AdminUserItem[];
@@ -39,6 +36,8 @@ interface AdminUsersTabProps {
   onSearchSubmit: () => void;
   roleFilter: 'ALL' | 'USER' | 'ADMIN';
   onRoleFilterChange: (role: 'ALL' | 'USER' | 'ADMIN') => void;
+  tierFilter?: 'ALL' | 'PRO' | 'FREE';
+  onTierFilterChange?: (tier: 'ALL' | 'PRO' | 'FREE') => void;
   onReloadUsers: () => void;
 }
 
@@ -51,6 +50,8 @@ export default function AdminUsersTab({
   onSearchSubmit,
   roleFilter,
   onRoleFilterChange,
+  tierFilter = 'ALL',
+  onTierFilterChange,
   onReloadUsers,
 }: AdminUsersTabProps) {
   const { colors } = useThemeColors();
@@ -142,6 +143,49 @@ export default function AdminUsersTab({
     }
   };
 
+  const [suspendConfirmTarget, setSuspendConfirmTarget] = useState<AdminUserItem | null>(null);
+  const [suspensionReason, setSuspensionReason] = useState('');
+  const [updatingSuspension, setUpdatingSuspension] = useState(false);
+
+  const handleToggleSuspension = (targetUser: AdminUserItem) => {
+    triggerHapticFeedback();
+    setSuspensionReason(targetUser.suspendedReason || '');
+    setSuspendConfirmTarget(targetUser);
+  };
+
+  const handleConfirmSuspension = async () => {
+    if (!suspendConfirmTarget) return;
+    try {
+      setUpdatingSuspension(true);
+      triggerHapticFeedback();
+      const willSuspend = !suspendConfirmTarget.isSuspended;
+      const res = await toggleUserSuspensionApi(
+        suspendConfirmTarget.id,
+        willSuspend,
+        suspensionReason.trim() || undefined
+      );
+      if (res.success) {
+        showSuccess(
+          willSuspend ? 'Account Suspended' : 'Suspension Lifted',
+          res.message
+        );
+        if (selectedUser?.id === suspendConfirmTarget.id) {
+          setSelectedUser({
+            ...selectedUser,
+            isSuspended: willSuspend,
+            suspendedReason: willSuspend ? (suspensionReason.trim() || 'Account suspended by administrator') : null,
+          });
+        }
+        setSuspendConfirmTarget(null);
+        onReloadUsers();
+      }
+    } catch (err: any) {
+      showError('Action Failed', err?.message || 'Could not update suspension status.');
+    } finally {
+      setUpdatingSuspension(false);
+    }
+  };
+
   return (
     <View className="gap-3">
       {/* Search Bar */}
@@ -166,19 +210,47 @@ export default function AdminUsersTab({
         )}
       </View>
 
-      {/* Role Filter Chips */}
-      <View className="flex-row flex-wrap gap-2">
-        {(['ALL', 'USER', 'ADMIN'] as const).map((filter) => (
-          <FilterChip
-            key={filter}
-            label={filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes Only' : 'Admins Only'}
-            selected={roleFilter === filter}
-            onPress={() => {
-              triggerHapticFeedback();
-              onRoleFilterChange(filter);
-            }}
-          />
-        ))}
+      {/* Role & Tier Filter Chips */}
+      <View className="gap-2">
+        <View className="flex-row items-center gap-2">
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
+            Role:
+          </Text>
+          <View className="flex-row flex-1 flex-wrap gap-1.5">
+            {(['ALL', 'USER', 'ADMIN'] as const).map((filter) => (
+              <FilterChip
+                key={filter}
+                label={filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes' : 'Admins'}
+                selected={roleFilter === filter}
+                onPress={() => {
+                  triggerHapticFeedback();
+                  onRoleFilterChange(filter);
+                }}
+              />
+            ))}
+          </View>
+        </View>
+
+        {onTierFilterChange ? (
+          <View className="flex-row items-center gap-2">
+            <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
+              Plan:
+            </Text>
+            <View className="flex-row flex-1 flex-wrap gap-1.5">
+              {(['ALL', 'PRO', 'FREE'] as const).map((tFilter) => (
+                <FilterChip
+                  key={tFilter}
+                  label={tFilter === 'ALL' ? 'All Plans' : tFilter === 'PRO' ? 'Pro Tier' : 'Free Tier'}
+                  selected={tierFilter === tFilter}
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    onTierFilterChange(tFilter);
+                  }}
+                />
+              ))}
+            </View>
+          </View>
+        ) : null}
       </View>
 
       {/* User List */}
@@ -205,7 +277,7 @@ export default function AdminUsersTab({
             <SurfaceCard key={item.id} className="p-3.5">
               <View className="flex-row items-start justify-between">
                 <View className="flex-1">
-                  <View className="flex-row items-center gap-2 mb-1">
+                  <View className="flex-row items-center gap-2 mb-1 flex-wrap">
                     <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
                       {capitalizeWords(item.firstName)} {capitalizeWords(item.lastName)}
                     </Text>
@@ -218,11 +290,20 @@ export default function AdminUsersTab({
                         <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">ATHLETE</Text>
                       </View>
                     )}
-                    {isPro && (
+                    {isPro ? (
                       <View className="bg-success/15 border border-success/30 px-2 py-0.5 rounded-full">
                         <Text className="text-[10px] font-bold text-success dark:text-success-dark">PRO</Text>
                       </View>
+                    ) : (
+                      <View className="bg-input/60 dark:bg-input-dark/60 border border-input-border/60 px-2 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark">FREE</Text>
+                      </View>
                     )}
+                    {item.isSuspended ? (
+                      <View className="bg-danger/15 border border-danger/30 px-2 py-0.5 rounded-full">
+                        <Text className="text-[10px] font-bold text-danger dark:text-danger-dark">SUSPENDED</Text>
+                      </View>
+                    ) : null}
                   </View>
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark">
                     {item.email}
@@ -230,12 +311,14 @@ export default function AdminUsersTab({
                   <View className="flex-row items-center gap-1.5 mt-1.5 flex-wrap">
                     <View className="bg-input/80 dark:bg-input-dark/80 px-2 py-0.5 rounded-md border border-input-border/50">
                       <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
-                        Goal: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{formatGoal(item.goal)}</Text>
+                        Goal: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{formatGoalLabel(item.goal)}</Text>
                       </Text>
                     </View>
-                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                      🏋️ {item._count?.workoutSessions || 0} sessions · 🥗 {item._count?.dailyFoodLogs || 0} meal days
-                    </Text>
+                    {item.createdAt ? (
+                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                        Joined {new Date(item.createdAt).toLocaleDateString()}
+                      </Text>
+                    ) : null}
                   </View>
                 </View>
 
@@ -295,18 +378,36 @@ export default function AdminUsersTab({
                   </View>
                   <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded">
                     <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
-                      Goal: {formatGoal(selectedUser.goal)}
+                      Goal: {formatGoalLabel(selectedUser.goal)}
                     </Text>
                   </View>
+                  {selectedUser.isSuspended ? (
+                    <View className="bg-danger/15 border border-danger/30 px-2 py-0.5 rounded">
+                      <Text className="text-[10px] font-bold text-danger dark:text-danger-dark">
+                        STATUS: SUSPENDED
+                      </Text>
+                    </View>
+                  ) : null}
                 </View>
 
-                <View className="mt-2.5 pt-2 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row justify-between">
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    Total Workouts: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.workoutSessions || 0}</Text>
+                {/* Account Activity Detail */}
+                <View className="mt-2.5 pt-2.5 border-t border-input-border/40 dark:border-input-border-dark/40">
+                  <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
+                    Activity & Engagement
                   </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    Meal Days: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.dailyFoodLogs || 0}</Text>
-                  </Text>
+                  <View className="flex-row justify-between">
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                      Workouts Completed: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.workoutSessions || 0}</Text>
+                    </Text>
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                      Nutrition Log Days: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.dailyFoodLogs || 0}</Text>
+                    </Text>
+                  </View>
+                  {selectedUser.isSuspended && selectedUser.suspendedReason ? (
+                    <Text className="text-[11px] text-danger font-medium mt-1.5">
+                      Reason: {selectedUser.suspendedReason}
+                    </Text>
+                  ) : null}
                 </View>
               </View>
 
@@ -333,7 +434,28 @@ export default function AdminUsersTab({
                   </Text>
                 </TouchableOpacity>
 
-                {/* 2. Override Subscription */}
+                {/* 2. Suspend / Lift Suspension */}
+                <TouchableOpacity
+                  onPress={() => handleToggleSuspension(selectedUser)}
+                  disabled={updatingSuspension}
+                  className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
+                    selectedUser.isSuspended
+                      ? 'bg-success/15 border-success/30'
+                      : 'bg-warning/15 border-warning/30'
+                  }`}
+                >
+                  <Text
+                    className={`text-xs font-bold ${
+                      selectedUser.isSuspended
+                        ? 'text-success dark:text-success-dark'
+                        : 'text-warning dark:text-warning-dark'
+                    }`}
+                  >
+                    {selectedUser.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
+                  </Text>
+                </TouchableOpacity>
+
+                {/* 3. Override Subscription */}
                 <TouchableOpacity
                   onPress={() => {
                     setShowOverrideModal(true);
@@ -345,7 +467,7 @@ export default function AdminUsersTab({
                   </Text>
                 </TouchableOpacity>
 
-                {/* 3. Delete Account */}
+                {/* 4. Delete Account */}
                 <TouchableOpacity
                   onPress={() => handleDeleteUserAccount(selectedUser)}
                   className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-2"
@@ -428,6 +550,75 @@ export default function AdminUsersTab({
                   <Text className="text-xs font-bold text-accent-contrast">Apply Tier Override</Text>
                 )}
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+      )}
+
+      {/* ── Suspension Modal ── */}
+      {suspendConfirmTarget && (
+        <Modal
+          visible={Boolean(suspendConfirmTarget)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setSuspendConfirmTarget(null)}
+        >
+          <View className="flex-1 bg-black/60 items-center justify-center p-4">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                  {suspendConfirmTarget.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
+                </Text>
+                <ModalCloseButton onClose={() => setSuspendConfirmTarget(null)} />
+              </View>
+
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-3">
+                {suspendConfirmTarget.isSuspended
+                  ? `Restore full platform access for ${suspendConfirmTarget.firstName} (${suspendConfirmTarget.email})?`
+                  : `Revoke platform access for ${suspendConfirmTarget.firstName} (${suspendConfirmTarget.email}). They will be blocked from logging in or using the app.`}
+              </Text>
+
+              {!suspendConfirmTarget.isSuspended && (
+                <View className="mb-4">
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Reason (shown upon login)
+                  </Text>
+                  <TextInput
+                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark min-h-[60px]"
+                    placeholder="e.g. Terms of Service violation, abusive behavior..."
+                    placeholderTextColor={colors.textMuted}
+                    value={suspensionReason}
+                    onChangeText={setSuspensionReason}
+                    multiline
+                    numberOfLines={2}
+                    textAlignVertical="top"
+                  />
+                </View>
+              )}
+
+              <View className="flex-row gap-2 mt-2">
+                <TouchableOpacity
+                  onPress={() => setSuspendConfirmTarget(null)}
+                  className="flex-1 min-h-[44px] py-2.5 rounded-xl border border-input-border dark:border-input-border-dark items-center justify-center"
+                >
+                  <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleConfirmSuspension}
+                  disabled={updatingSuspension}
+                  className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center ${
+                    suspendConfirmTarget.isSuspended ? 'bg-success' : 'bg-danger'
+                  }`}
+                >
+                  {updatingSuspension ? (
+                    <ActivityIndicator size="small" color="#fff" />
+                  ) : (
+                    <Text className="text-xs font-bold text-white">
+                      {suspendConfirmTarget.isSuspended ? 'Unban User' : 'Suspend User'}
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>

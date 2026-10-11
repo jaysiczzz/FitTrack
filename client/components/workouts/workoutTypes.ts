@@ -155,13 +155,8 @@ export interface MonthCalendarDay {
   isPartOfStreak?: boolean;
 }
 
-export const getTodayDateString = (): string => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { getTodayDateString, formatDateHeading } from '@/utils/formatters';
+export { getTodayDateString, formatDateHeading };
 
 export const getDateStringFromTimestamp = (isoString?: string | null): string => {
   if (!isoString) return '';
@@ -171,32 +166,6 @@ export const getDateStringFromTimestamp = (isoString?: string | null): string =>
   const month = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${year}-${month}-${day}`;
-};
-
-export const formatDateHeading = (dateStr: string): string => {
-  const todayStr = getTodayDateString();
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const dateObj = new Date(year, month - 1, day);
-
-  const yesterdayObj = new Date();
-  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
-  const yYear = yesterdayObj.getFullYear();
-  const yMonth = String(yesterdayObj.getMonth() + 1).padStart(2, '0');
-  const yDay = String(yesterdayObj.getDate()).padStart(2, '0');
-  const calcYesterdayStr = `${yYear}-${yMonth}-${yDay}`;
-
-  if (dateStr === todayStr) {
-    return `Today (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-  }
-  if (dateStr === calcYesterdayStr) {
-    return `Yesterday (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-  }
-
-  return dateObj.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
-  });
 };
 
 export const formatRawWorkoutSession = (s: any): CompletedSession => {
@@ -257,68 +226,3 @@ export const formatRawWorkoutSession = (s: any): CompletedSession => {
     exercises,
   };
 };
-
-export function calculateWorkoutStreak(
-  sessions: any[],
-  isTodayCompleted: boolean = false
-): number {
-  if (!sessions || (!Array.isArray(sessions) && !isTodayCompleted)) {
-    return 0;
-  }
-
-  const formatDateKey = (d: Date): string => {
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  };
-
-  const completedDays = new Set<string>();
-
-  if (Array.isArray(sessions)) {
-    for (const s of sessions) {
-      const timestamp = s.completedAt || s.dateStr || (s.completed ? s.createdAt : null);
-      if (timestamp) {
-        if (typeof timestamp === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(timestamp)) {
-          completedDays.add(timestamp);
-        } else {
-          const d = new Date(timestamp);
-          if (!isNaN(d.getTime())) {
-            completedDays.add(formatDateKey(d));
-          }
-        }
-      }
-    }
-  }
-
-  const today = new Date();
-  const todayKey = formatDateKey(today);
-
-  if (isTodayCompleted) {
-    completedDays.add(todayKey);
-  }
-
-  const yesterday = new Date(today);
-  yesterday.setDate(today.getDate() - 1);
-  const yesterdayKey = formatDateKey(yesterday);
-
-  // If neither today nor yesterday has a completed session, streak is broken
-  let anchorDate: Date | null = null;
-  if (completedDays.has(todayKey)) {
-    anchorDate = new Date(today);
-  } else if (completedDays.has(yesterdayKey)) {
-    anchorDate = new Date(yesterday);
-  } else {
-    return 0;
-  }
-
-  let streak = 0;
-  const cursor = new Date(anchorDate);
-
-  while (completedDays.has(formatDateKey(cursor))) {
-    streak++;
-    cursor.setDate(cursor.getDate() - 1);
-  }
-
-  return streak;
-}

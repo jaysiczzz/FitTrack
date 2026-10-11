@@ -48,3 +48,24 @@ All code removals, refactors, extractions, and copy sanitizations performed duri
 - `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
 - Screen rendering: Unused imports/functions/state removed; active UI and behaviors preserved.
 
+---
+
+## [Batch 3] - 2026-10-12
+### Refactored & Consolidated
+- `client/utils/formatters.ts` (RED-001, RED-005, RED-010): Centralized `getTodayDateString`, `formatDateHeading`, canonical `formatGoalLabel`, and `calculateBmi`.
+- `client/components/foodlog/foodLogTypes.ts` (RED-001): Re-exported `getTodayDateString` and `formatDateHeading` from `@/utils/formatters` avoiding code duplication while maintaining backwards-compatible imports.
+- `client/components/workouts/workoutTypes.ts` (RED-001, RED-002): Re-exported date formatters; removed redundant/dead `calculateWorkoutStreak` function (superseded by `client/utils/streakUtils.ts`).
+- `client/utils/passwordValidation.ts` (RED-004): Exported canonical `EMAIL_REGEX`.
+- `client/components/auth/LoginForm.tsx` & `RegisterForm.tsx` (RED-004): Replaced duplicated inline email regexes with imported `EMAIL_REGEX`.
+- `client/components/admin/AdminUsersTab.tsx` (RED-005): Replaced duplicate inline `formatGoal` with canonical `formatGoalLabel`.
+- `client/components/foodlog/MealCategoryCard.tsx` (RED-006): Replaced duplicate `MEAL_CATEGORY_ICONS` map with canonical `MEAL_GLYPHS` from `foodLogTypes.ts`.
+- `client/components/workouts/CreateRoutineModal.tsx`, `SplitPresetModal.tsx`, `AssignRoutineModal.tsx` (RED-008): Replaced duplicated custom touchable close buttons with shared `<ModalCloseButton />`.
+- `client/components/auth/OnboardingMetricsStep.tsx` & `OnboardingPlanStep.tsx` (RED-009, RED-010): Consolidated Mifflin-St Jeor BMR/TDEE math and macronutrient splitting to canonical `calculatePersonalizedTargets`; consolidated BMI calculation to `calculateBmi`.
+- `client/app/(screen)/profile.tsx` (RED-010): Consolidated inline BMI calculation and classification to `calculateBmi`.
+- `client/components/workouts/ExerciseVideoModal.tsx` (RED-011): Standardized URL opening from React Native `Linking` to `expo-linking`.
+- `client/app/(screen)/dashboard.tsx` (RED-012): Replaced raw `AsyncStorage.getItem('user')` call with typed, error-handled `authStorage.getUser()`.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Screen rendering: Date headings, goal formatting, onboarding targets, BMI vitals, and modal close buttons operating uniformly.
+

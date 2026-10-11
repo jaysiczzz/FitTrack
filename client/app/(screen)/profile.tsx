@@ -24,7 +24,7 @@ import ChangeProfilePhotoModal from '@/components/profile/ChangeProfilePhotoModa
 import LogWeightModal from '@/components/profile/LogWeightModal';
 import { saveWeightLogApi } from '@/api/weight';
 import UnifiedFitnessCalendar from '@/components/calendar/UnifiedFitnessCalendar';
-import { capitalizeWords } from '@/utils/formatters';
+import { capitalizeWords, calculateBmi } from '@/utils/formatters';
 import { screenCache } from '@/utils/screenCache';
 import { isTemporaryBlobUrl } from '@/utils/imageUtils';
 import { authStorage } from '@/utils/authStorage';
@@ -251,15 +251,13 @@ export default function Profile() {
   }, [authUser?.id, loadAvatar, loadAthleticHistory]);
 
   const bmi = useMemo(() => {
-    const h = parseFloat(height) / 100;
+    const h = parseFloat(height);
     const w = parseFloat(weight);
     if (!h || !w || h <= 0 || w <= 0) return null;
-    const value = w / (h * h);
-    const category =
-      value < 18.5 ? 'Underweight' : value < 25 ? 'Normal' : value < 30 ? 'Overweight' : 'Obese';
+    const res = calculateBmi(w, h);
     return {
-      value: value.toFixed(1),
-      category,
+      value: res.bmi.toFixed(1),
+      category: res.category,
     };
   }, [height, weight]);
 

@@ -3,10 +3,11 @@ import { View, TextInput } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import PasswordRequirements from '@/components/ui/PasswordRequirements';
-import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { validatePasswordStrength, EMAIL_REGEX } from '@/utils/passwordValidation';
 import { checkEmailApi } from '@/api/auth';
 import { capitalizeWords } from '@/utils/formatters';
 import { useRegistration } from '@/context/RegistrationContext';
+import { useResponsive } from '@/hooks/useResponsive';
 
 interface Props {
   onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void> | void;
@@ -15,10 +16,10 @@ interface Props {
   onClearError?: () => void;
 }
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
 const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearError }) => {
   const { data: savedData } = useRegistration();
+  const { width } = useResponsive();
+  const isNarrow = width < 380;
   const [firstName, setFirstName] = useState(savedData?.firstName || '');
   const [lastName, setLastName] = useState(savedData?.lastName || '');
   const [email, setEmail] = useState(savedData?.email || '');
@@ -112,8 +113,8 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
 
   return (
     <View className="w-full">
-      <View className="flex-row gap-2.5 w-full">
-        <View className="flex-1">
+      <View className={`w-full ${isNarrow ? 'flex-col' : 'flex-row gap-2.5'}`}>
+        <View className={isNarrow ? 'w-full' : 'flex-1'}>
           <Input
             className="w-full"
             label="First Name"
@@ -133,7 +134,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
             blurOnSubmit={false}
           />
         </View>
-        <View className="flex-1">
+        <View className={isNarrow ? 'w-full' : 'flex-1'}>
           <Input
             className="w-full"
             ref={lastNameRef}

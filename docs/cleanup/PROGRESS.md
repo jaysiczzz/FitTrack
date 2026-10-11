@@ -2,7 +2,7 @@
 
 - **Target**: `client/` folder of FitTrack
 - **Branch**: `feat/audited-app-improvements`
-- **Current Status**: Phase 4 Completed (Awaiting execution approval)
+- **Current Status**: Phase 5 Execution - Batch 3 Completed (Batches 1, 2, 3 Done)
 
 ## Completed Phases
 - [x] **Phase 1: Discovery & Baseline**
@@ -24,12 +24,15 @@
 - [x] **Phase 4: Removal & Remediation Plan**
   - Remediation plan written to `docs/cleanup/06-removal-plan.md`
   - 131 findings grouped into 7 safe, isolated batches with rollback commands and verification steps
+- [x] **Phase 5 Execution - Batch 1 (Unused Leaf Components & Dead Barrels)**: Committed `b073dd4`
+- [x] **Phase 5 Execution - Batch 2 (Unused Functions, Dead State, Unused Imports)**: Committed `3b44e69`
+- [x] **Phase 5 Execution - Batch 3 (Redundant Code Consolidation)**: RED-001 to RED-012
 
 ## Phases In Progress
-- None (Waiting for user approval to begin Phase 5 Batch 1 execution)
+- [ ] **Phase 5 Execution - Batch 4 (Unused Styles, Theme Tokens & Dead Assets)**
 
 ## Pending Phases
-- [ ] **Phase 5+: Execution & Changelog** (`CHANGELOG.md`) - Batches 1 to 7
+- [ ] **Phase 5 Execution - Batches 4 to 7**
 - [ ] **Final: Summary Report** (`99-report.md`)
 
 ## Last File Reviewed

@@ -1,5 +1,6 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, Linking, Platform } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';

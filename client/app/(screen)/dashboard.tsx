@@ -100,11 +100,10 @@ export default function Dashboard() {
         if (user.firstName) setUserName(capitalizeWords(user.firstName));
         if (user.goal) setUserGoal(user.goal);
       } else {
-        const uStr = await AsyncStorage.getItem('user');
-        if (uStr) {
-          const parsed = JSON.parse(uStr);
-          if (parsed.firstName) setUserName(capitalizeWords(parsed.firstName));
-          if (parsed.goal) setUserGoal(parsed.goal);
+        const cachedUser = await authStorage.getUser();
+        if (cachedUser) {
+          if (cachedUser.firstName) setUserName(capitalizeWords(cachedUser.firstName));
+          if (cachedUser.goal) setUserGoal(cachedUser.goal);
         }
       }
     } catch (err) {

@@ -2,6 +2,8 @@ import React, { useRef, useMemo } from 'react';
 import { View, Text, TextInput } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { calculateBmi } from '@/utils/formatters';
+import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 
 interface OnboardingMetricsStepProps {
   height: string;
@@ -46,46 +48,33 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       return null;
     }
 
-    const heightInMeters = h / 100;
-    const bmi = w / (heightInMeters * heightInMeters);
-
+    const { bmi: bmiVal, category } = calculateBmi(w, h);
     let bmiCategory = 'Healthy Weight';
     let bmiColor = 'text-accent dark:text-accent-dark';
-    if (bmi < 18.5) {
+    if (category === 'Underweight') {
       bmiCategory = 'Underweight';
-      bmiColor = 'text-amber-500 dark:text-amber-400';
-    } else if (bmi >= 25 && bmi < 30) {
+      bmiColor = 'text-warning dark:text-warning-dark';
+    } else if (category === 'Overweight') {
       bmiCategory = 'Overweight';
-      bmiColor = 'text-amber-500 dark:text-amber-400';
-    } else if (bmi >= 30) {
+      bmiColor = 'text-warning dark:text-warning-dark';
+    } else if (category === 'Obese') {
       bmiCategory = 'High BMI';
-      bmiColor = 'text-red-500 dark:text-red-400';
+      bmiColor = 'text-danger dark:text-danger-dark';
     }
 
-    // Mifflin-St Jeor formula baseline estimation
-    const bmr = 10 * w + 6.25 * h - 5 * a + 5;
-    const tdee = Math.round(bmr * 1.35); // Moderate activity baseline
-
-    let targetCalories = tdee;
-    if (goal === 'MUSCLE_GAIN') {
-      targetCalories = tdee + 300;
-    } else if (goal === 'WEIGHT_LOSS') {
-      targetCalories = Math.max(1400, tdee - 450);
-    }
-
-    // Macro estimates
-    const proteinGrams = Math.round(w * (goal === 'MUSCLE_GAIN' ? 2.0 : 1.8));
-    const fatGrams = Math.round((targetCalories * 0.25) / 9);
-    const carbGrams = Math.round((targetCalories - (proteinGrams * 4 + fatGrams * 9)) / 4);
+    const targets = calculatePersonalizedTargets(
+      { weight: w, height: h, age: a, goal },
+      (goal as any) || 'MUSCLE_GAIN'
+    );
 
     return {
-      bmi: bmi.toFixed(1),
+      bmi: bmiVal.toFixed(1),
       bmiCategory,
       bmiColor,
-      targetCalories,
-      proteinGrams,
-      carbGrams,
-      fatGrams,
+      targetCalories: targets.calories,
+      proteinGrams: targets.protein,
+      carbGrams: targets.carbs,
+      fatGrams: targets.fat,
     };
   }, [height, weight, age, goal]);
 

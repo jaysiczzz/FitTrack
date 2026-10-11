@@ -4,6 +4,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import ForgotPasswordLink from '@/components/auth/ForgotPasswordLink';
 import ForgotPasswordModal from '@/components/auth/ForgotPasswordModal';
+import { EMAIL_REGEX } from '@/utils/passwordValidation';
 
 interface Props {
   onSubmit: (data: { email: string; password: string }) => void;
@@ -12,8 +13,6 @@ interface Props {
   onError?: (error: string) => void;
   onClearError?: () => void;
 }
-
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 const LoginForm: React.FC<Props> = ({
   onSubmit,

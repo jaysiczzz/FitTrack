@@ -3,6 +3,7 @@ import { Modal, View, Text, TouchableOpacity, ScrollView, TouchableWithoutFeedba
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { WorkoutRoutineTemplate, DayOfWeek } from './workoutTypes';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface AssignRoutineModalProps {
   visible: boolean;
@@ -43,15 +44,7 @@ export default function AssignRoutineModal({
                     Select a routine or set as a rest day
                   </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={onClose}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  accessibilityRole="button"
-                  accessibilityLabel="Close schedule assignment"
-                  className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark items-center justify-center active:opacity-70"
-                >
-                  <Ionicons name="close" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
+                <ModalCloseButton onClose={onClose} />
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
