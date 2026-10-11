@@ -15,6 +15,7 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface LogWeightModalProps {
   visible: boolean;
@@ -116,7 +117,7 @@ export default function LogWeightModal({
       setDateError(null);
       onClose();
     } catch (err: any) {
-      showError('Save Failed', err?.message || 'Could not save weigh-in. Please check your connection and try again.');
+      showError('Save Failed', getFriendlyErrorMessage(err, 'Could not save weigh-in. Please check your connection and try again.'));
     } finally {
       setSaving(false);
     }

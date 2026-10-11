@@ -16,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import { THEME_STORAGE_KEY } from '@/constants/storageKeys';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import ResetPasswordModal from '@/components/settings/ResetPasswordModal';
 import HelpSupportModal from '@/components/settings/HelpSupportModal';
 import PrivacyPolicyModal from '@/components/settings/PrivacyPolicyModal';
@@ -227,12 +228,12 @@ export default function Settings() {
     try {
       const sent = await sendTestNotification();
       if (sent) {
-        showSuccess('Test Notification Sent', 'Check your device notification tray!');
+        showSuccess('Sample Reminder Sent', 'Check your device notification tray!');
       } else {
         showWarning('Permissions Needed', 'Enable notification permissions above first.');
       }
     } catch {
-      showError('Test Failed', 'Could not dispatch test notification.');
+      showError('Notification Error', 'Could not dispatch sample notification.');
     } finally {
       setTestingNotification(false);
     }
@@ -264,7 +265,7 @@ export default function Settings() {
         }
       }, 150);
     } catch (err: any) {
-      showError('Action Failed', err?.message || 'Could not delete your account. Please try again.');
+      showError('Action Failed', getFriendlyErrorMessage(err, 'Could not delete your account. Please try again.'));
       setIsDeletingAccount(false);
     }
   };

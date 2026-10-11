@@ -6,6 +6,8 @@ import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
+import SubscriptionModal from '../subscription/SubscriptionModal';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface AiWorkoutGeneratorModalProps {
   visible: boolean;
@@ -36,6 +38,7 @@ export default function AiWorkoutGeneratorModal({
   const [workoutPlan, setWorkoutPlan] = useState<AIWorkoutPlan | null>(null);
   const [addingToWorkout, setAddingToWorkout] = useState(false);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
   const handleGenerate = async (areaToUse?: string) => {
     const area = areaToUse || selectedArea;
@@ -51,7 +54,7 @@ export default function AiWorkoutGeneratorModal({
       }
     } catch (err: any) {
       console.log('AI Workout Generation Error:', err?.message);
-      setGeneratorError(err?.message || 'Unable to generate workout right now. Please check your connection and try again.');
+      setGeneratorError(getFriendlyErrorMessage(err, 'Unable to generate workout right now. Please check your connection and try again.'));
     } finally {
       setLoading(false);
     }
@@ -95,7 +98,7 @@ export default function AiWorkoutGeneratorModal({
               },
             }),
           ]}
-          className="bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark rounded-t-3xl p-5 max-h-[88%]"
+          className="bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark rounded-t-3xl p-5 pb-8 max-h-[88%]"
         >
           {/* Header */}
           <View className="flex-row justify-between items-center mb-3">
@@ -121,6 +124,19 @@ export default function AiWorkoutGeneratorModal({
             onDismiss={() => setGeneratorError(null)}
           />
 
+          {generatorError && (generatorError.includes('free AI') || generatorError.includes('MONTHLY_ROUTINE_LIMIT_REACHED') || generatorError.includes('limit of 5')) ? (
+            <TouchableOpacity
+              onPress={() => setShowSubscriptionModal(true)}
+              activeOpacity={0.8}
+              className="mb-3 py-2.5 px-3 bg-accent/15 dark:bg-accent-dark/20 border border-accent dark:border-accent-dark rounded-xl flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="sparkles" size={15} color={colors.accent} />
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                Upgrade to FitTrack Pro for 30 Routines / Month
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+
           {/* Target Focus Chip Selector */}
           <View className="mb-3">
             <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-2">
@@ -135,7 +151,8 @@ export default function AiWorkoutGeneratorModal({
                     onPress={() => handleSelectArea(area)}
                     disabled={loading || addingToWorkout}
                     activeOpacity={0.7}
-                    className={`px-3 py-1.5 rounded-full border ${
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    className={`min-h-[38px] px-3.5 py-1.5 rounded-full border justify-center items-center ${
                       isActive
                         ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -144,7 +161,7 @@ export default function AiWorkoutGeneratorModal({
                     <Text
                       className={`text-xs font-semibold ${
                         isActive
-                          ? 'text-white font-bold'
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark font-bold'
                           : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
@@ -233,9 +250,10 @@ export default function AiWorkoutGeneratorModal({
               </Text>
               <TouchableOpacity
                 onPress={() => handleGenerate()}
-                className="mt-3 px-5 py-3 bg-accent dark:bg-accent-dark rounded-2xl"
+                activeOpacity={0.8}
+                className="mt-3 px-5 py-3 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
               >
-                <Text className="text-white font-bold text-xs">
+                <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
                   Generate Routine
                 </Text>
               </TouchableOpacity>
@@ -249,7 +267,7 @@ export default function AiWorkoutGeneratorModal({
                 onPress={() => handleGenerate()}
                 disabled={addingToWorkout}
                 activeOpacity={0.7}
-                className="h-11 px-4 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center"
+                className="h-11 min-h-[44px] px-4 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center"
               >
                 <Text className="font-semibold text-xs text-text-primary dark:text-text-primary-dark">
                   Regenerate
@@ -260,12 +278,12 @@ export default function AiWorkoutGeneratorModal({
                 onPress={handleCommitToWorkout}
                 disabled={addingToWorkout}
                 activeOpacity={0.85}
-                className="flex-1 h-11 bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
+                className="flex-1 h-11 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
               >
                 {addingToWorkout ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
                 ) : (
-                  <Text className="font-bold text-xs text-white">
+                  <Text className="font-bold text-xs text-accent-contrast dark:text-accent-contrast-dark">
                     Add to Today's Workout
                   </Text>
                 )}
@@ -274,6 +292,10 @@ export default function AiWorkoutGeneratorModal({
           ) : null}
         </View>
       </View>
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+      />
     </Modal>
   );
 }

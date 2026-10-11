@@ -110,4 +110,22 @@ All code removals, refactors, extractions, and copy sanitizations performed duri
 - `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
 - Runtime behavior: Verified email intents, hydration targets, and storage key reads operate without regression.
 
+---
+
+## [Batch 7] - 2026-10-12
+### Sanitized & Friendly Error Mapping
+- `client/utils/errorMapper.ts` (JRG-001, JRG-002, JRG-003): Created central error mapper `getFriendlyErrorMessage` parsing Network/Abort errors, timeout events, HTTP status codes (400, 401, 403, 404, 409, 429, 500, 502, 503), stripping backend URLs, and delivering human-friendly feedback.
+- `client/api/client.ts` (JRG-001, JRG-002): Sanitized client fetch handler so AbortError and network drops do not leak the raw backend API Render URL or port; normalized 500 responses into friendly copy.
+- `client/app/_layout.tsx` (JRG-004): Gated root `ErrorBoundary` so stack traces and technical errors are only rendered in development (`__DEV__`), providing user-friendly recovery instructions in production.
+- `client/components/settings/PrivacyPolicyModal.tsx` (JRG-005, JRG-006, JRG-007, JRG-008): Replaced cryptographic/backend implementation jargon (`bcrypt`, `cryptographic salt`, `JWT`, `SecureStore/Keychain`) with plain, reassuring user privacy copy.
+- `client/components/subscription/SubscriptionModal.tsx` & `EWalletModal.tsx` (JRG-009, JRG-010, JRG-011): Replaced payment gateway jargon (`Stripe Live API`, `Card (Stripe)`) with polished customer payment terminology (`Credit or Debit Card`, `Secure Direct Checkout`).
+- `client/app/(screen)/settings.tsx` (JRG-012): Replaced developer-facing test notification copy with user-friendly sample reminder text.
+- `client/app/(screen)/ai-coach.tsx`, `FoodLibraryTab.tsx`, `TodayWorkoutTab.tsx`, `CommunityStoriesCard.tsx`, `ExerciseVisual.tsx` (JRG-013, JRG-014, JRG-015, JRG-016): Reworded developer placeholders, fallback states, and empty labels with polished copy.
+- Routed unhandled raw catch blocks through `getFriendlyErrorMessage` across auth screens, modals, and tab forms (`(auth)/index.tsx`, `verify.tsx`, `onboarding.tsx`, `RegisterForm.tsx`, `ForgotPasswordModal.tsx`, `EditProfileModal.tsx`, `LogWeightModal.tsx`, `ChangeProfilePhotoModal.tsx`, `ResetPasswordModal.tsx`, `AiWorkoutGeneratorModal.tsx`, `AiSuggestionModal.tsx`, `HelpSupportModal.tsx`, `AiScanModal.tsx`, `TestimonialModal.tsx`).
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- UI inspection: Raw technical jargon eliminated across user-facing modals, policy screens, and error alert banners.
+
+
 

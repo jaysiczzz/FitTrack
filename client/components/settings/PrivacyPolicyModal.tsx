@@ -35,7 +35,7 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
                 🔒 Security & Encryption
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                FitTrack protects your credentials with industry-standard bcrypt hashing and short-lived JWT access tokens with rotating refresh tokens. Sensitive authentication tokens are stored in your device's hardware-backed SecureStore.
+                FitTrack protects your credentials with industry-standard encryption and secure token authentication. Sensitive credentials and session data are stored securely on your device using encrypted hardware-backed storage.
               </Text>
             </View>
 

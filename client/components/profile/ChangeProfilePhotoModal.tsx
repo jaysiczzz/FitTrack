@@ -16,6 +16,7 @@ import { useToast } from '@/context/ToastContext';
 import { hapticFeedback } from '@/utils/haptics';
 import { updateUserProfile } from '@/api/user';
 import { convertBlobToDataUrl, sanitizeAvatarUrl } from '@/utils/imageUtils';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import PhotoCropEditorModal from './PhotoCropEditorModal';
 
 interface ChangeProfilePhotoModalProps {
@@ -58,7 +59,7 @@ export default function ChangeProfilePhotoModal({
         setShowCropEditor(true);
       }
     } catch (err: any) {
-      showError('Photo Selection Failed', err?.message || 'Could not select photo');
+      showError('Photo Selection Failed', getFriendlyErrorMessage(err, 'Could not select photo.'));
     }
   };
 
@@ -81,7 +82,7 @@ export default function ChangeProfilePhotoModal({
         setShowCropEditor(true);
       }
     } catch (err: any) {
-      showError('Camera Failed', err?.message || 'Could not take photo');
+      showError('Camera Failed', getFriendlyErrorMessage(err, 'Could not take photo.'));
     }
   };
 

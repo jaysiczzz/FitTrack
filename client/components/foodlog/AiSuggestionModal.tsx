@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { FoodLogItem } from './foodLogTypes';
+import { FoodLogItem, MealType } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
@@ -8,6 +8,9 @@ import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import InModalToast from '../ui/InModalToast';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+
+export type SuggestionMealSlot = 'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 interface AiSuggestionModalProps {
   visible: boolean;
@@ -16,7 +19,16 @@ interface AiSuggestionModalProps {
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
   remainingCalories: number;
   remainingProtein: number;
+  initialMealType?: SuggestionMealSlot;
 }
+
+const MEAL_SLOTS: { id: SuggestionMealSlot; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { id: 'all', label: 'Whole Day', icon: 'sparkles' },
+  { id: 'breakfast', label: 'Breakfast', icon: 'sunny-outline' },
+  { id: 'lunch', label: 'Lunch', icon: 'restaurant-outline' },
+  { id: 'dinner', label: 'Dinner', icon: 'moon-outline' },
+  { id: 'snack', label: 'Snacks', icon: 'cafe-outline' },
+];
 
 export default function AiSuggestionModal({
   visible,
@@ -25,13 +37,15 @@ export default function AiSuggestionModal({
   goal,
   remainingCalories,
   remainingProtein,
+  initialMealType = 'all',
 }: AiSuggestionModalProps) {
   const { colors } = useThemeColors();
   const { showWarning, showError } = useToast();
   const [loading, setLoading] = useState(false);
-  const [recommendations, setRecommendations] = useState<MealSuggestion[]>([]);
+  const [cachedSlots, setCachedSlots] = useState<Partial<Record<SuggestionMealSlot, MealSuggestion[]>>>({});
   const [loggedMealTitles, setLoggedMealTitles] = useState<string[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<SuggestionMealSlot>(initialMealType || 'all');
   const [inModalToast, setInModalToast] = useState<{
     message: string;
     description?: string;
@@ -40,26 +54,33 @@ export default function AiSuggestionModal({
 
   const isMuscleGain = goal === 'MUSCLE_GAIN';
 
-  const generateRecommendations = async () => {
+  const currentRecommendations = cachedSlots[selectedSlot] || [];
+  const hasGeneratedForCurrentSlot = currentRecommendations.length > 0;
+
+  const generateRecommendations = async (slotOverride?: SuggestionMealSlot) => {
+    const activeSlot = slotOverride || selectedSlot;
     setLoading(true);
-    setLoggedMealTitles([]);
     setInModalToast(null);
     setSuggestionError(null);
     try {
       const res = await getAIMealSuggestions({
         goal: isMuscleGain ? 'MUSCLE_GAIN' : 'WEIGHT_LOSS',
-        remainingCalories: remainingCalories || 2000,
-        remainingProtein: remainingProtein || 120,
+        remainingCalories: typeof remainingCalories === 'number' ? remainingCalories : 2000,
+        remainingProtein: typeof remainingProtein === 'number' ? remainingProtein : 120,
+        mealType: activeSlot,
       });
 
       if (res.success && res.suggestions && res.suggestions.length > 0) {
-        setRecommendations(res.suggestions);
+        setCachedSlots((prev) => ({
+          ...prev,
+          [activeSlot]: res.suggestions,
+        }));
       } else {
         setSuggestionError('No meal recommendations returned. Please try again.');
       }
     } catch (err: any) {
       console.log('AI Suggest Error:', err?.message);
-      setSuggestionError(err?.message || 'Unable to load meal recommendations right now. Please check your connection and try again.');
+      setSuggestionError(getFriendlyErrorMessage(err, 'Unable to load meal recommendations right now. Please check your connection and try again.'));
     } finally {
       setLoading(false);
     }
@@ -67,10 +88,22 @@ export default function AiSuggestionModal({
 
   React.useEffect(() => {
     if (visible) {
+      const slot = initialMealType || 'all';
+      setSelectedSlot(slot);
+      setCachedSlots({});
       setLoggedMealTitles([]);
-      generateRecommendations();
+      setSuggestionError(null);
+      setInModalToast(null);
+      // Deliberately DO NOT auto-generate upon opening modal to save API tokens and ask user first!
     }
-  }, [visible, goal]);
+  }, [visible, initialMealType, goal]);
+
+  const handleSelectSlot = (slot: SuggestionMealSlot) => {
+    if (loading || slot === selectedSlot) return;
+    setSelectedSlot(slot);
+    setSuggestionError(null);
+    // User can freely switch target meal time without consuming tokens.
+  };
 
   const createFoodItem = (rec: MealSuggestion, idx: number = 0): FoodLogItem => {
     const ingredientsDesc =
@@ -78,9 +111,15 @@ export default function AiSuggestionModal({
         ? rec.ingredients.join(' · ')
         : `${rec.prepTime} prep`;
 
+    const mappedCategory = (rec.category?.toLowerCase() || 'snack') as MealType;
+    const finalMealType: MealType =
+      selectedSlot !== 'all'
+        ? (selectedSlot as MealType)
+        : (['breakfast', 'lunch', 'dinner', 'snack'].includes(mappedCategory) ? mappedCategory : 'snack');
+
     return {
       id: `${Date.now()}_${idx}_${Math.random().toString(36).substring(2, 6)}`,
-      mealType: rec.category,
+      mealType: finalMealType,
       title: rec.title,
       subtitle: ingredientsDesc,
       calories: rec.calories,
@@ -98,15 +137,16 @@ export default function AiSuggestionModal({
     const item = createFoodItem(rec);
     onSelectSuggestion(item);
     setLoggedMealTitles((prev) => [...prev, rec.title]);
+    const targetLabel = (selectedSlot !== 'all' ? selectedSlot : rec.category).toUpperCase();
     setInModalToast({
       message: `Added ${rec.title}`,
-      description: `${rec.calories} kcal · ${rec.protein}g Protein to ${rec.category.toUpperCase()}`,
+      description: `${rec.calories} kcal · ${rec.protein}g Protein to ${targetLabel}`,
       icon: rec.icon || '✓',
     });
   };
 
   const handleLogAll = () => {
-    const unlogged = recommendations.filter((r) => !loggedMealTitles.includes(r.title));
+    const unlogged = currentRecommendations.filter((r) => !loggedMealTitles.includes(r.title));
     if (unlogged.length === 0) return;
 
     const itemsToAdd = unlogged.map((rec, idx) => createFoodItem(rec, idx));
@@ -156,51 +196,103 @@ export default function AiSuggestionModal({
             onDismiss={() => setSuggestionError(null)}
           />
 
+          {/* Meal Timing / Category Scope Filter Pills */}
+          <View className="mb-3">
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingHorizontal: 2 }}
+            >
+              {MEAL_SLOTS.map((slot) => {
+                const isSelected = selectedSlot === slot.id;
+                return (
+                  <TouchableOpacity
+                    key={slot.id}
+                    onPress={() => handleSelectSlot(slot.id)}
+                    disabled={loading}
+                    activeOpacity={0.7}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: isSelected }}
+                    className={`flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all ${
+                      isSelected
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
+                        : 'bg-input/80 dark:bg-input-dark/80 border-input-border dark:border-input-border-dark opacity-90'
+                    }`}
+                  >
+                    <Ionicons
+                      name={slot.icon}
+                      size={13}
+                      color={isSelected ? '#ffffff' : colors.accent}
+                    />
+                    <Text
+                      className={`text-xs font-bold ${
+                        isSelected
+                          ? 'text-white'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {slot.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+
           {/* Budget Snapshot Banner */}
           <View className="bg-input/60 dark:bg-input-dark/60 rounded-2xl p-3 mb-3.5 border border-input-border dark:border-input-border-dark flex-row justify-between items-center">
             <View className="flex-1 mr-2">
               <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase">
-                Remaining Today:
+                {remainingCalories <= 0 ? 'Daily Budget Status:' : 'Remaining Today:'}
               </Text>
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-                {remainingCalories} kcal left · {remainingProtein}g protein
+                {remainingCalories <= 0
+                  ? 'Goal Reached 🎉 · Light/Zero-cal picks'
+                  : `${remainingCalories.toLocaleString()} kcal left · ${remainingProtein}g protein`}
               </Text>
             </View>
             <View className="flex-row items-center gap-1.5">
-              {recommendations.length > 1 && !loading && (
+              {currentRecommendations.length > 1 && !loading && remainingCalories > 0 && (
                 <TouchableOpacity
                   onPress={handleLogAll}
-                  disabled={recommendations.every((r) => loggedMealTitles.includes(r.title))}
+                  disabled={currentRecommendations.every((r) => loggedMealTitles.includes(r.title))}
                   className={`px-3 py-1.5 rounded-xl border ${
-                    recommendations.every((r) => loggedMealTitles.includes(r.title))
+                    currentRecommendations.every((r) => loggedMealTitles.includes(r.title))
                       ? 'bg-emerald-500/10 border-emerald-500/20'
                       : 'bg-accent/15 dark:bg-accent-dark/20 border-accent/30'
                   }`}
                 >
                   <Text
                     className={`font-bold text-xs ${
-                      recommendations.every((r) => loggedMealTitles.includes(r.title))
+                      currentRecommendations.every((r) => loggedMealTitles.includes(r.title))
                         ? 'text-emerald-500 dark:text-emerald-400'
                         : 'text-accent dark:text-accent-dark'
                     }`}
                   >
-                    {recommendations.every((r) => loggedMealTitles.includes(r.title))
+                    {currentRecommendations.every((r) => loggedMealTitles.includes(r.title))
                       ? '✓ All Added'
-                      : `+ Log All (${recommendations.filter((r) => !loggedMealTitles.includes(r.title)).length})`}
+                      : `+ Log All (${currentRecommendations.filter((r) => !loggedMealTitles.includes(r.title)).length})`}
                   </Text>
                 </TouchableOpacity>
               )}
-              <TouchableOpacity
-                onPress={generateRecommendations}
-                disabled={loading}
-                className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl border border-accent/30 items-center justify-center"
-              >
-                {loading ? (
-                  <ActivityIndicator size="small" color={colors.accent} />
-                ) : (
-                  <Ionicons name="refresh" size={14} color={colors.accent} />
-                )}
-              </TouchableOpacity>
+              {hasGeneratedForCurrentSlot && (
+                <TouchableOpacity
+                  onPress={() => generateRecommendations(selectedSlot)}
+                  disabled={loading}
+                  className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl border border-accent/30 flex-row items-center gap-1"
+                >
+                  {loading ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <>
+                      <Ionicons name="refresh" size={13} color={colors.accent} />
+                      <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                        Regenerate
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              )}
             </View>
           </View>
 
@@ -208,12 +300,48 @@ export default function AiSuggestionModal({
             <View className="py-12 items-center justify-center">
               <ActivityIndicator size="large" color={colors.accent} />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
-                Crafting personalized meal suggestions for you...
+                Crafting personalized {selectedSlot !== 'all' ? `${selectedSlot} ` : ''}meal suggestions for you...
               </Text>
+            </View>
+          ) : !hasGeneratedForCurrentSlot ? (
+            /* Pre-generation Ask / Confirmation Card - Saves tokens! */
+            <View className="bg-input/40 dark:bg-input-dark/40 rounded-3xl p-6 border border-input-border dark:border-input-border-dark items-center my-3">
+              <View className="w-16 h-16 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-3.5">
+                <Ionicons name="sparkles" size={30} color={colors.accent} />
+              </View>
+
+              <Text className="text-text-primary dark:text-text-primary-dark font-black text-lg text-center mb-1.5">
+                {selectedSlot === 'all'
+                  ? 'Generate Meal Suggestions'
+                  : `Generate ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)} Ideas`}
+              </Text>
+
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center leading-5 mb-5 px-3">
+                {remainingCalories <= 0
+                  ? "You have reached today's calorie budget. FitTrack AI will generate 3 ultra-light, zero-calorie digestive & hydration recovery suggestions."
+                  : selectedSlot === 'all'
+                  ? `FitTrack AI will craft 3 balanced, macro-aligned meal options designed to fit your remaining ${remainingCalories.toLocaleString()} kcal and ${remainingProtein}g protein goal.`
+                  : `FitTrack AI will curate 3 delicious, tailored ${selectedSlot} options that stay strictly within your remaining ${remainingCalories.toLocaleString()} kcal daily budget.`}
+              </Text>
+
+              <TouchableOpacity
+                onPress={() => generateRecommendations(selectedSlot)}
+                activeOpacity={0.8}
+                className="w-full bg-accent dark:bg-accent-dark py-3.5 px-5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
+              >
+                <Ionicons name="sparkles" size={16} color="#ffffff" />
+                <Text className="text-white font-extrabold text-sm">
+                  {remainingCalories <= 0
+                    ? '✨ Generate Light Recovery Ideas'
+                    : selectedSlot === 'all'
+                    ? '✨ Generate Whole Day Ideas'
+                    : `✨ Generate ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)} Suggestions`}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
             <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
-              {recommendations.map((rec, idx) => (
+              {currentRecommendations.map((rec, idx) => (
                 <View
                   key={`${rec.title}-${idx}`}
                   className="bg-input/50 dark:bg-input-dark/50 rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark"
@@ -226,15 +354,36 @@ export default function AiSuggestionModal({
                           {rec.title}
                         </Text>
                         <Text className="text-text-muted dark:text-text-muted-dark text-[11px]">
-                          {rec.prepTime} · Ideal for {rec.category.toUpperCase()}
+                          {rec.prepTime} · Ideal for {(selectedSlot !== 'all' ? selectedSlot : rec.category).toUpperCase()}
                         </Text>
                       </View>
                     </View>
-                    <View className="bg-surface dark:bg-surface-dark px-2.5 py-1 rounded-xl border border-input-border dark:border-input-border-dark items-end">
-                      <Text className="text-accent dark:text-accent-dark font-extrabold text-sm">
-                        {rec.calories}
-                      </Text>
-                      <Text className="text-text-muted dark:text-text-muted-dark text-[9px]">kcal</Text>
+                    <View className="flex-row items-center gap-1.5">
+                      {remainingCalories > 0 && rec.calories <= remainingCalories ? (
+                        <View className="px-2 py-0.5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25">
+                          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                            Fits Budget ✓
+                          </Text>
+                        </View>
+                      ) : remainingCalories > 0 && rec.calories > remainingCalories ? (
+                        <View className="px-2 py-0.5 rounded-md bg-amber-500/10 dark:bg-amber-500/15 border border-amber-500/25">
+                          <Text className="text-[10px] font-bold text-amber-500">
+                            +{rec.calories - remainingCalories} kcal over
+                          </Text>
+                        </View>
+                      ) : (
+                        <View className="px-2 py-0.5 rounded-md bg-accent/10 dark:bg-accent-dark/15 border border-accent/25">
+                          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                            Ultra-Light
+                          </Text>
+                        </View>
+                      )}
+                      <View className="bg-surface dark:bg-surface-dark px-2.5 py-1 rounded-xl border border-input-border dark:border-input-border-dark items-end">
+                        <Text className="text-accent dark:text-accent-dark font-extrabold text-sm">
+                          {rec.calories}
+                        </Text>
+                        <Text className="text-text-muted dark:text-text-muted-dark text-[9px]">kcal</Text>
+                      </View>
                     </View>
                   </View>
 
@@ -304,6 +453,21 @@ export default function AiSuggestionModal({
                   </View>
                 </View>
               ))}
+
+              {/* Bottom Regenerate Action */}
+              <View className="items-center py-2 pb-4">
+                <TouchableOpacity
+                  onPress={() => generateRecommendations(selectedSlot)}
+                  disabled={loading}
+                  activeOpacity={0.7}
+                  className="flex-row items-center gap-1.5 px-4 py-2 rounded-xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark"
+                >
+                  <Ionicons name="refresh" size={13} color={colors.accent} />
+                  <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                    Want different ideas? Regenerate {selectedSlot === 'all' ? 'Meals' : selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)}
+                  </Text>
+                </TouchableOpacity>
+              </View>
             </ScrollView>
           )}
 

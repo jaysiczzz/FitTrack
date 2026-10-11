@@ -14,11 +14,15 @@ import {
   DeviceEventEmitter,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { convertBlobToDataUrl } from '@/utils/imageUtils';
+import { triggerHapticFeedback } from '@/utils/haptics';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import {
   getTestimonialsApi,
   getMyTestimonialApi,
@@ -71,11 +75,77 @@ export default function TestimonialModal({
   const [highlightBadge, setHighlightBadge] = useState<string>('');
   const [weightChangeKg, setWeightChangeKg] = useState<string>('');
   const [durationWeeks, setDurationWeeks] = useState<string>('');
+  const [beforeImageUrl, setBeforeImageUrl] = useState<string>('');
+  const [afterImageUrl, setAfterImageUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasExistingReview, setHasExistingReview] = useState<boolean>(false);
   const [myReviews, setMyReviews] = useState<TestimonialItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isComposing, setIsComposing] = useState<boolean>(false);
+  const [publishImmediately, setPublishImmediately] = useState<boolean>(false);
+  const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string; author: string } | null>(null);
+
+  // Form Validation State
+  const [formErrors, setFormErrors] = useState<{
+    content?: string;
+    weightChangeKg?: string;
+    durationWeeks?: string;
+    highlightBadge?: string;
+  }>({});
+
+  const clearError = (field: 'content' | 'weightChangeKg' | 'durationWeeks' | 'highlightBadge') => {
+    if (formErrors[field]) {
+      setFormErrors((prev) => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const validateForm = (): boolean => {
+    const errors: {
+      content?: string;
+      weightChangeKg?: string;
+      durationWeeks?: string;
+      highlightBadge?: string;
+    } = {};
+
+    const trimmedContent = content.trim();
+    if (!trimmedContent) {
+      errors.content = 'Please share a few words about your journey.';
+    } else if (trimmedContent.length < 8) {
+      errors.content = 'Story must be at least 8 characters long.';
+    } else if (trimmedContent.length > 500) {
+      errors.content = 'Story cannot exceed 500 characters.';
+    }
+
+    const trimmedWeight = weightChangeKg.trim();
+    if (trimmedWeight) {
+      const parsedWeight = parseFloat(trimmedWeight);
+      if (isNaN(parsedWeight)) {
+        errors.weightChangeKg = 'Enter a valid number (e.g. -5.0 or +3.5).';
+      } else if (parsedWeight < -100 || parsedWeight > 100) {
+        errors.weightChangeKg = 'Weight change must be between -100 and +100 kg.';
+      }
+    }
+
+    const trimmedWeeks = durationWeeks.trim();
+    if (trimmedWeeks) {
+      const parsedWeeks = Number(trimmedWeeks);
+      if (!/^\d+$/.test(trimmedWeeks) || isNaN(parsedWeeks)) {
+        errors.durationWeeks = 'Enter a whole number of weeks (e.g. 12).';
+      } else if (parsedWeeks < 1 || parsedWeeks > 520) {
+        errors.durationWeeks = 'Duration must be between 1 and 520 weeks.';
+      }
+    }
+
+    const trimmedBadge = highlightBadge.trim();
+    if (trimmedBadge && trimmedBadge.length > 60) {
+      errors.highlightBadge = 'Badge title cannot exceed 60 characters.';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const isAdmin = user?.role === 'ADMIN';
 
   // Load persistent votes from AsyncStorage
   const loadStoredVotes = useCallback(async () => {
@@ -129,7 +199,10 @@ export default function TestimonialModal({
     setHighlightBadge('');
     setWeightChangeKg('');
     setDurationWeeks('');
+    setBeforeImageUrl('');
+    setAfterImageUrl('');
     setRating(5);
+    setFormErrors({});
     setIsComposing(true);
     setActiveTab('write');
   }, []);
@@ -141,6 +214,9 @@ export default function TestimonialModal({
     setHighlightBadge(rev.highlightBadge || '');
     setWeightChangeKg(rev.weightChangeKg != null ? String(rev.weightChangeKg) : '');
     setDurationWeeks(rev.durationWeeks != null ? String(rev.durationWeeks) : '');
+    setBeforeImageUrl(rev.beforeImageUrl || '');
+    setAfterImageUrl(rev.afterImageUrl || '');
+    setFormErrors({});
     setIsComposing(true);
     setActiveTab('write');
   }, []);
@@ -240,6 +316,35 @@ export default function TestimonialModal({
     }
   };
 
+  const handlePickImage = async (type: 'before' | 'after') => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!permissionResult.granted) {
+        showError('Permission Required', 'Please allow access to your photo library in device settings.');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [4, 3],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        const pickedUri = result.assets[0].uri;
+        const persistentUri = await convertBlobToDataUrl(pickedUri);
+        if (type === 'before') {
+          setBeforeImageUrl(persistentUri);
+        } else {
+          setAfterImageUrl(persistentUri);
+        }
+      }
+    } catch {
+      showError('Error', 'Failed to pick photo from gallery.');
+    }
+  };
+
   const handleAutoFill = () => {
     const goal = user?.goal;
     const isWeightLoss = goal === 'WEIGHT_LOSS';
@@ -260,16 +365,13 @@ export default function TestimonialModal({
       if (!durationWeeks) setDurationWeeks('12');
     }
     setRating(5);
+    setFormErrors({});
     showSuccess('Auto-Filled!', 'Generated a starter template tailored to your journey.');
   };
 
   const handleSubmit = async () => {
-    if (!content.trim()) {
-      showError('Required Field', 'Please share a few words about your journey.');
-      return;
-    }
-    if (content.trim().length < 8) {
-      showError('Too Short', 'Please enter at least 8 characters in your testimony.');
+    if (!validateForm()) {
+      showError('Validation Error', 'Please check the highlighted fields below.');
       return;
     }
 
@@ -287,6 +389,9 @@ export default function TestimonialModal({
         weightChangeKg: !isNaN(parsedWeight as number) ? parsedWeight : undefined,
         durationWeeks: !isNaN(parsedWeeks as number) ? parsedWeeks : undefined,
         avatarUrl: user?.avatarUrl || undefined,
+        beforeImageUrl: beforeImageUrl.trim() || undefined,
+        afterImageUrl: afterImageUrl.trim() || undefined,
+        publishImmediately: isAdmin ? publishImmediately : false,
       });
 
       DeviceEventEmitter.emit('testimonials:updated');
@@ -298,7 +403,7 @@ export default function TestimonialModal({
       setEditingId(null);
       setActiveTab('feed');
     } catch (err: any) {
-      showError('Submission Error', err?.message || 'Failed to submit testimony. Please try again.');
+      showError('Submission Error', getFriendlyErrorMessage(err, 'Failed to submit testimony. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -315,7 +420,7 @@ export default function TestimonialModal({
       fetchFeed();
       await fetchMyReview();
     } catch (err: any) {
-      showError('Error', err?.message || 'Failed to delete testimony.');
+      showError('Error', getFriendlyErrorMessage(err, 'Failed to delete testimony. Please try again.'));
     } finally {
       setIsSubmitting(false);
     }
@@ -424,10 +529,10 @@ export default function TestimonialModal({
           {activeTab === 'feed' ? (
             <View className="flex-1">
               {/* Rating Summary Card */}
-              <View className="p-3.5 rounded-2xl bg-accent/10 border border-accent/20 mb-3 flex-row items-center justify-between">
+              <View className="p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark mb-3 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
-                  <View className="items-center justify-center bg-accent/20 rounded-xl px-2.5 py-1.5">
-                    <Text className="text-xl font-black text-accent dark:text-accent-mint">
+                  <View className="items-center justify-center bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-xl px-2.5 py-1.5 shadow-2xs">
+                    <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark">
                       {averageRating.toFixed(1)}
                     </Text>
                   </View>
@@ -447,22 +552,6 @@ export default function TestimonialModal({
                     </Text>
                   </View>
                 </View>
-
-                <TouchableOpacity
-                  onPress={() => {
-                    setActiveTab('write');
-                    if (hasExistingReview) {
-                      setIsComposing(false);
-                    } else {
-                      setIsComposing(true);
-                    }
-                  }}
-                  className="bg-accent px-3 py-1.5 rounded-xl shadow-sm"
-                >
-                  <Text className="text-[11px] font-bold text-white">
-                    {hasExistingReview ? 'My Stories' : '+ Share Story'}
-                  </Text>
-                </TouchableOpacity>
               </View>
 
               {/* Goal Filter Chips & Sort Selector */}
@@ -652,6 +741,58 @@ export default function TestimonialModal({
                             ) : null}
                           </View>
 
+                          {/* Before & After Photo Preview */}
+                          {(item.beforeImageUrl || item.afterImageUrl) ? (
+                            <View className="flex-row items-center gap-2 mb-3">
+                              {item.beforeImageUrl ? (
+                                <TouchableOpacity
+                                  activeOpacity={0.85}
+                                  onPress={() =>
+                                    setPreviewPhoto({
+                                      uri: item.beforeImageUrl!,
+                                      label: 'Before Transformation',
+                                      author: item.authorName,
+                                    })
+                                  }
+                                  className="flex-1 h-28 rounded-xl overflow-hidden border border-input-border dark:border-input-border-dark relative bg-input dark:bg-input-dark"
+                                >
+                                  <Image
+                                    source={{ uri: item.beforeImageUrl }}
+                                    className="w-full h-full"
+                                    resizeMode="cover"
+                                  />
+                                  <View className="absolute bottom-1.5 left-1.5 bg-black/75 px-2 py-0.5 rounded-md flex-row items-center gap-1">
+                                    <Ionicons name="expand-outline" size={10} color="#FFFFFF" />
+                                    <Text className="text-[9px] font-black text-white uppercase">Before</Text>
+                                  </View>
+                                </TouchableOpacity>
+                              ) : null}
+                              {item.afterImageUrl ? (
+                                <TouchableOpacity
+                                  activeOpacity={0.85}
+                                  onPress={() =>
+                                    setPreviewPhoto({
+                                      uri: item.afterImageUrl!,
+                                      label: 'After Transformation',
+                                      author: item.authorName,
+                                    })
+                                  }
+                                  className="flex-1 h-28 rounded-xl overflow-hidden border border-accent/40 relative bg-input dark:bg-input-dark"
+                                >
+                                  <Image
+                                    source={{ uri: item.afterImageUrl }}
+                                    className="w-full h-full"
+                                    resizeMode="cover"
+                                  />
+                                  <View className="absolute bottom-1.5 left-1.5 bg-accent px-2 py-0.5 rounded-md flex-row items-center gap-1">
+                                    <Ionicons name="expand-outline" size={10} color="#FFFFFF" />
+                                    <Text className="text-[9px] font-black text-white uppercase">After</Text>
+                                  </View>
+                                </TouchableOpacity>
+                              ) : null}
+                            </View>
+                          ) : null}
+
                           {/* Quote Content */}
                           <Text className="text-xs text-text-primary dark:text-text-primary-dark leading-relaxed mb-3 italic">
                             "{item.content}"
@@ -699,9 +840,9 @@ export default function TestimonialModal({
               className="flex-1"
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
-              contentContainerStyle={{ paddingBottom: 60 }}
+              contentContainerStyle={{ paddingBottom: 24 }}
             >
-              <View className="pb-8">
+              <View>
                 {/* List of user's stories (when user has stories and not actively composing) */}
                 {myReviews.length > 0 && !isComposing ? (
                   <View>
@@ -749,6 +890,27 @@ export default function TestimonialModal({
                             <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark ml-1">
                               Story #{index + 1}
                             </Text>
+                            {item.status === 'PENDING_APPROVAL' && (
+                              <View className="px-1.5 py-0.5 rounded-md bg-amber-500/15 border border-amber-500/30">
+                                <Text className="text-[9px] font-bold text-amber-600 dark:text-amber-400">
+                                  ⏳ Pending Admin Review
+                                </Text>
+                              </View>
+                            )}
+                            {item.status === 'APPROVED' && (
+                              <View className="px-1.5 py-0.5 rounded-md bg-emerald-500/15 border border-emerald-500/30">
+                                <Text className="text-[9px] font-bold text-emerald-600 dark:text-emerald-400">
+                                  ✓ Published
+                                </Text>
+                              </View>
+                            )}
+                            {item.status === 'REJECTED' && (
+                              <View className="px-1.5 py-0.5 rounded-md bg-rose-500/15 border border-rose-500/30">
+                                <Text className="text-[9px] font-bold text-rose-600 dark:text-rose-400">
+                                  ✕ Changes Requested
+                                </Text>
+                              </View>
+                            )}
                           </View>
 
                           {/* Top-Right "Edit Story" Button */}
@@ -773,6 +935,50 @@ export default function TestimonialModal({
                                 {item.highlightBadge}
                               </Text>
                             </View>
+                          </View>
+                        ) : null}
+
+                        {/* Before & After Photos Preview in My Stories */}
+                        {(item.beforeImageUrl || item.afterImageUrl) ? (
+                          <View className="flex-row items-center gap-2 mb-2.5">
+                            {item.beforeImageUrl ? (
+                              <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() =>
+                                  setPreviewPhoto({
+                                    uri: item.beforeImageUrl!,
+                                    label: 'Before Transformation',
+                                    author: user?.firstName || 'My',
+                                  })
+                                }
+                                className="flex-1 h-20 rounded-xl overflow-hidden border border-input-border dark:border-input-border-dark relative bg-surface dark:bg-surface-dark"
+                              >
+                                <Image source={{ uri: item.beforeImageUrl }} className="w-full h-full" resizeMode="cover" />
+                                <View className="absolute bottom-1 left-1 bg-black/70 px-1.5 py-0.5 rounded flex-row items-center gap-0.5">
+                                  <Ionicons name="expand-outline" size={8} color="#FFFFFF" />
+                                  <Text className="text-[8px] font-bold text-white uppercase">Before</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ) : null}
+                            {item.afterImageUrl ? (
+                              <TouchableOpacity
+                                activeOpacity={0.85}
+                                onPress={() =>
+                                  setPreviewPhoto({
+                                    uri: item.afterImageUrl!,
+                                    label: 'After Transformation',
+                                    author: user?.firstName || 'My',
+                                  })
+                                }
+                                className="flex-1 h-20 rounded-xl overflow-hidden border border-accent/40 relative bg-surface dark:bg-surface-dark"
+                              >
+                                <Image source={{ uri: item.afterImageUrl }} className="w-full h-full" resizeMode="cover" />
+                                <View className="absolute bottom-1 left-1 bg-accent px-1.5 py-0.5 rounded flex-row items-center gap-0.5">
+                                  <Ionicons name="expand-outline" size={8} color="#FFFFFF" />
+                                  <Text className="text-[8px] font-bold text-white uppercase">After</Text>
+                                </View>
+                              </TouchableOpacity>
+                            ) : null}
                           </View>
                         ) : null}
 
@@ -906,12 +1112,27 @@ export default function TestimonialModal({
                         </Text>
                         <TextInput
                           value={weightChangeKg}
-                          onChangeText={setWeightChangeKg}
+                          onChangeText={(val) => {
+                            setWeightChangeKg(val);
+                            clearError('weightChangeKg');
+                          }}
                           placeholder="e.g. -6.5 or +3.0"
                           placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                           keyboardType="numeric"
-                          className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
+                          className={`p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border ${
+                            formErrors.weightChangeKg
+                              ? 'border-danger dark:border-danger-dark'
+                              : 'border-input-border dark:border-input-border-dark'
+                          }`}
                         />
+                        {formErrors.weightChangeKg ? (
+                          <View className="flex-row items-center gap-1 mt-1.5 ml-1">
+                            <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                            <Text className="text-[10px] font-semibold text-danger dark:text-danger-dark flex-1">
+                              {formErrors.weightChangeKg}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                       <View className="flex-1">
                         <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
@@ -919,22 +1140,46 @@ export default function TestimonialModal({
                         </Text>
                         <TextInput
                           value={durationWeeks}
-                          onChangeText={setDurationWeeks}
+                          onChangeText={(val) => {
+                            setDurationWeeks(val);
+                            clearError('durationWeeks');
+                          }}
                           placeholder="e.g. 12"
                           placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                           keyboardType="number-pad"
-                          className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark"
+                          className={`p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border ${
+                            formErrors.durationWeeks
+                              ? 'border-danger dark:border-danger-dark'
+                              : 'border-input-border dark:border-input-border-dark'
+                          }`}
                         />
+                        {formErrors.durationWeeks ? (
+                          <View className="flex-row items-center gap-1 mt-1.5 ml-1">
+                            <Ionicons name="alert-circle" size={12} color={colors.danger} />
+                            <Text className="text-[10px] font-semibold text-danger dark:text-danger-dark flex-1">
+                              {formErrors.durationWeeks}
+                            </Text>
+                          </View>
+                        ) : null}
                       </View>
                     </View>
 
                     {/* Testimony Input */}
                     <View className="mb-4">
                       <View className="flex-row items-center justify-between mb-1.5">
-                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                          Your Transformation or Review
-                        </Text>
-                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                        <View className="flex-row items-center gap-1">
+                          <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                            Your Transformation or Review
+                          </Text>
+                          <Text className="text-danger dark:text-danger-dark text-xs font-bold">*</Text>
+                        </View>
+                        <Text
+                          className={`text-[10px] font-medium ${
+                            content.length > 500
+                              ? 'text-danger dark:text-danger-dark font-bold'
+                              : 'text-text-muted dark:text-text-muted-dark'
+                          }`}
+                        >
                           {content.length}/500
                         </Text>
                       </View>
@@ -942,33 +1187,79 @@ export default function TestimonialModal({
                         multiline
                         numberOfLines={4}
                         value={content}
-                        onChangeText={setContent}
+                        onChangeText={(val) => {
+                          setContent(val);
+                          clearError('content');
+                        }}
                         placeholder="Tell us what you accomplished with FitTrack, how the AI coach helped, or your favorite feature..."
                         placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
                         textAlignVertical="top"
-                        className="p-3.5 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark min-h-[110px]"
+                        className={`p-3.5 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border min-h-[110px] ${
+                          formErrors.content
+                            ? 'border-danger dark:border-danger-dark'
+                            : 'border-input-border dark:border-input-border-dark'
+                        }`}
                       />
+                      {formErrors.content ? (
+                        <View className="flex-row items-center gap-1 mt-1.5 ml-1">
+                          <Ionicons name="alert-circle" size={13} color={colors.danger} />
+                          <Text className="text-[11px] font-semibold text-danger dark:text-danger-dark flex-1">
+                            {formErrors.content}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
 
                     {/* Achievement Badge (Optional) */}
                     <View className="mb-5">
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1.5">
-                        Milestone or Achievement Badge (Optional)
-                      </Text>
+                      <View className="flex-row items-center justify-between mb-1.5">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          Milestone or Achievement Badge (Optional)
+                        </Text>
+                        {highlightBadge.length > 0 && (
+                          <Text
+                            className={`text-[10px] ${
+                              highlightBadge.length > 60
+                                ? 'text-danger dark:text-danger-dark font-bold'
+                                : 'text-text-muted dark:text-text-muted-dark'
+                            }`}
+                          >
+                            {highlightBadge.length}/60
+                          </Text>
+                        )}
+                      </View>
                       <TextInput
                         value={highlightBadge}
-                        onChangeText={setHighlightBadge}
+                        onChangeText={(val) => {
+                          setHighlightBadge(val);
+                          clearError('highlightBadge');
+                        }}
                         placeholder="e.g. 🏆 +15kg Bench PR or 🔥 -5kg in 8 Weeks"
                         placeholderTextColor={isDark ? '#64748B' : '#94A3B8'}
-                        className="p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2.5"
+                        className={`p-3 rounded-2xl bg-input dark:bg-input-dark text-text-primary dark:text-text-primary-dark text-xs border mb-2.5 ${
+                          formErrors.highlightBadge
+                            ? 'border-danger dark:border-danger-dark'
+                            : 'border-input-border dark:border-input-border-dark'
+                        }`}
                       />
+                      {formErrors.highlightBadge ? (
+                        <View className="flex-row items-center gap-1 mb-2 ml-1">
+                          <Ionicons name="alert-circle" size={13} color={colors.danger} />
+                          <Text className="text-[11px] font-semibold text-danger dark:text-danger-dark flex-1">
+                            {formErrors.highlightBadge}
+                          </Text>
+                        </View>
+                      ) : null}
 
                       {/* Preset quick suggestions */}
                       <View className="flex-row flex-wrap gap-1.5">
                         {PRESET_BADGES.map((badge) => (
                           <TouchableOpacity
                             key={badge}
-                            onPress={() => setHighlightBadge(badge)}
+                            onPress={() => {
+                              setHighlightBadge(badge);
+                              clearError('highlightBadge');
+                            }}
                             className="px-2.5 py-1 rounded-full bg-input dark:bg-input-dark border border-input-border/70 dark:border-input-border-dark/70"
                           >
                             <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
@@ -979,7 +1270,136 @@ export default function TestimonialModal({
                       </View>
                     </View>
 
+                    {/* Before & After Transformation Photos (Optional) */}
+                    <View className="mb-5 p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark">
+                      <View className="flex-row items-center justify-between mb-1">
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          Before & After Photos (Optional)
+                        </Text>
+                        <Text className="text-[10px] text-accent dark:text-accent-mint font-semibold">
+                          Community Verified
+                        </Text>
+                      </View>
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mb-3">
+                        Upload photos from your gallery. Photos are reviewed by admins before publishing to keep our community safe.
+                      </Text>
+
+                      <View className="flex-row gap-3">
+                        {/* Before Photo Card */}
+                        <View className="flex-1">
+                          <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1.5">
+                            Before Photo
+                          </Text>
+                          {beforeImageUrl.trim() ? (
+                            <View className="h-28 rounded-xl overflow-hidden border border-input-border dark:border-input-border-dark relative bg-surface dark:bg-surface-dark">
+                              <Image source={{ uri: beforeImageUrl.trim() }} className="w-full h-full" resizeMode="cover" />
+                              <View className="absolute bottom-1.5 left-1.5 bg-black/70 px-1.5 py-0.5 rounded">
+                                <Text className="text-[8px] font-bold text-white uppercase">Before</Text>
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => setBeforeImageUrl('')}
+                                activeOpacity={0.8}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 items-center justify-center"
+                              >
+                                <Ionicons name="close" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => handlePickImage('before')}
+                              activeOpacity={0.7}
+                              className="h-28 rounded-xl border border-dashed border-input-border dark:border-input-border-dark items-center justify-center bg-surface dark:bg-surface-dark px-2 gap-1.5"
+                            >
+                              <View className="w-8 h-8 rounded-full bg-accent/10 dark:bg-accent-dark/20 items-center justify-center">
+                                <Ionicons name="image-outline" size={16} color={colors.accent} />
+                              </View>
+                              <Text className="text-[10px] font-bold text-accent dark:text-accent-mint text-center">
+                                Choose Photo
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+
+                        {/* After Photo Card */}
+                        <View className="flex-1">
+                          <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-1.5">
+                            After Photo
+                          </Text>
+                          {afterImageUrl.trim() ? (
+                            <View className="h-28 rounded-xl overflow-hidden border border-accent/40 relative bg-surface dark:bg-surface-dark">
+                              <Image source={{ uri: afterImageUrl.trim() }} className="w-full h-full" resizeMode="cover" />
+                              <View className="absolute bottom-1.5 left-1.5 bg-accent px-1.5 py-0.5 rounded">
+                                <Text className="text-[8px] font-bold text-white uppercase">After</Text>
+                              </View>
+                              <TouchableOpacity
+                                onPress={() => setAfterImageUrl('')}
+                                activeOpacity={0.8}
+                                className="absolute top-1.5 right-1.5 w-6 h-6 rounded-full bg-black/70 items-center justify-center"
+                              >
+                                <Ionicons name="close" size={14} color="#FFFFFF" />
+                              </TouchableOpacity>
+                            </View>
+                          ) : (
+                            <TouchableOpacity
+                              onPress={() => handlePickImage('after')}
+                              activeOpacity={0.7}
+                              className="h-28 rounded-xl border border-dashed border-accent/40 items-center justify-center bg-accent/5 dark:bg-accent-dark/10 px-2 gap-1.5"
+                            >
+                              <View className="w-8 h-8 rounded-full bg-accent/20 dark:bg-accent-dark/30 items-center justify-center">
+                                <Ionicons name="sparkles" size={16} color={colors.accent} />
+                              </View>
+                              <Text className="text-[10px] font-bold text-accent dark:text-accent-mint text-center">
+                                Choose Photo
+                              </Text>
+                            </TouchableOpacity>
+                          )}
+                        </View>
+                      </View>
+                    </View>
+
                     {/* Submit Button */}
+                    {/* Admin Publish Option (Only for Admins) */}
+                    {isAdmin && (
+                      <View className="mb-3 p-3 rounded-xl bg-accent/10 border border-accent/25">
+                        <View className="flex-row items-center justify-between">
+                          <View className="flex-1 mr-2">
+                            <Text className="text-xs font-bold text-accent dark:text-accent-mint">
+                              ⚡ Admin Moderation Routing
+                            </Text>
+                            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                              {publishImmediately
+                                ? 'Will publish directly to Community Feed.'
+                                : 'Will route to Story Moderation queue for review.'}
+                            </Text>
+                          </View>
+                          <TouchableOpacity
+                            onPress={() => {
+                              triggerHapticFeedback();
+                              setPublishImmediately((prev) => !prev);
+                            }}
+                            className={`px-2.5 py-1.5 rounded-lg border flex-row items-center gap-1.5 ${
+                              publishImmediately
+                                ? 'bg-accent border-accent'
+                                : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
+                            }`}
+                          >
+                            <Ionicons
+                              name={publishImmediately ? 'checkmark-circle' : 'time-outline'}
+                              size={13}
+                              color={publishImmediately ? '#FFFFFF' : colors.textMuted}
+                            />
+                            <Text
+                              className={`text-[10px] font-bold ${
+                                publishImmediately ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                              }`}
+                            >
+                              {publishImmediately ? 'Publish Live' : 'Queue for Review'}
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
                     <TouchableOpacity
                       onPress={handleSubmit}
                       disabled={isSubmitting}
@@ -990,7 +1410,11 @@ export default function TestimonialModal({
                         <ActivityIndicator size="small" color="#FFFFFF" />
                       ) : (
                         <Text className="text-xs font-bold text-white">
-                          {editingId ? 'Update This Story' : 'Publish Story'}
+                          {editingId
+                            ? 'Update This Story'
+                            : isAdmin && !publishImmediately
+                            ? 'Submit for Moderation Review'
+                            : 'Publish Story'}
                         </Text>
                       )}
                     </TouchableOpacity>
@@ -1016,6 +1440,43 @@ export default function TestimonialModal({
           )}
         </View>
       </KeyboardAvoidingView>
+
+      {/* Full-Screen Photo Zoom / Lightbox Modal */}
+      {previewPhoto && (
+        <Modal
+          visible={Boolean(previewPhoto)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewPhoto(null)}
+        >
+          <View className="flex-1 bg-black/95 items-center justify-center p-4">
+            <View className="w-full max-w-lg flex-row items-center justify-between mb-3 px-1">
+              <View>
+                <Text className="text-white font-extrabold text-sm">
+                  {previewPhoto.author}'s Transformation
+                </Text>
+                <Text className="text-white/70 text-xs">
+                  {previewPhoto.label}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setPreviewPhoto(null)}
+                className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
+              >
+                <Ionicons name="close" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="w-full max-w-lg h-4/5 rounded-2xl overflow-hidden bg-black/40 items-center justify-center">
+              <Image
+                source={{ uri: previewPhoto.uri }}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </Modal>
   );
 }

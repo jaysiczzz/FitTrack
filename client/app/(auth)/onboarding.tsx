@@ -14,6 +14,7 @@ import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { capitalizeWords } from '@/utils/formatters';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
@@ -141,7 +142,7 @@ export default function OnboardingScreen() {
       setRegisteredPayload({ token: res.token, user: res.user, refreshToken: res.refreshToken });
       clear();
     } catch (err: any) {
-      setServerError(err.message || 'Registration failed. Please try again.');
+      setServerError(getFriendlyErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }

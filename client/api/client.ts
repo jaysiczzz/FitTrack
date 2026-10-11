@@ -259,10 +259,10 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
 
     if (err?.name === 'AbortError' || controller.signal.aborted) {
       console.warn(`[API Connection] Request timed out for ${url}`);
-      throw new Error(`Request to ${API_URL} timed out. Please check your connection.`);
+      throw new Error('The connection timed out. Please check your internet connection and try again.');
     }
     console.warn(`[API Connection] Could not reach ${url}:`, err?.message || err);
-    throw new Error(`Unable to connect to server at ${API_URL}. Please check your connection or server status.`);
+    throw new Error('Unable to connect. Please check your internet connection and try again.');
   } finally {
     clearTimeout(timeoutId);
   }
@@ -286,7 +286,14 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    const errorMessage = data?.error || data?.message || `Request failed with status ${response.status}`;
+    let errorMessage = data?.error || data?.message;
+    if (!errorMessage) {
+      if (response.status >= 500) {
+        errorMessage = 'Our servers are experiencing issues. Please try again shortly.';
+      } else {
+        errorMessage = 'Something went wrong. Please try again.';
+      }
+    }
     throw new Error(errorMessage);
   }
 

@@ -40,7 +40,9 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
         Something went wrong
       </Text>
       <Text className="text-sm font-baloo text-text-muted dark:text-text-muted-dark text-center mb-6 max-w-sm">
-        {error?.message || 'An unexpected issue occurred while rendering this view.'}
+        {__DEV__
+          ? error?.message || 'An unexpected issue occurred while rendering this view.'
+          : 'An unexpected issue occurred. Please restart the app or try again.'}
       </Text>
       <TouchableOpacity
         onPress={retry}

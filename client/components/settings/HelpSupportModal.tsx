@@ -18,6 +18,7 @@ import { sendFeedbackApi } from '@/api/support';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import { SUPPORT_EMAIL } from '@/constants/appConfig';
 import { DEFAULT_WATER_TARGET_ML } from '@/constants/fitnessDefaults';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface FaqItem {
   id: string;
@@ -220,7 +221,7 @@ export default function HelpSupportModal({
       setSubmitError(null);
       onClose();
     } catch (err: any) {
-      setSubmitError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
+      setSubmitError(getFriendlyErrorMessage(err, 'Failed to submit feedback. Please check your connection and try again.'));
     } finally {
       setSubmitting(false);
     }

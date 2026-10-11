@@ -16,6 +16,7 @@ import ModalCloseButton from '../ui/ModalCloseButton';
 import PasswordRequirements from '../ui/PasswordRequirements';
 import Input from '../ui/Input';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface ResetPasswordModalProps {
   visible: boolean;
@@ -93,7 +94,7 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
       showSuccess('Password Updated', 'Your password has been changed successfully.');
       handleClose();
     } catch (err: any) {
-      const errMsg = err?.message || 'Failed to update password. Please check your current password.';
+      const errMsg = getFriendlyErrorMessage(err, 'Failed to update password. Please check your current password.');
       if (errMsg.toLowerCase().includes('current password')) {
         setCurrentPasswordError(errMsg);
       } else {

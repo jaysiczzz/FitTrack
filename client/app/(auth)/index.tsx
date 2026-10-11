@@ -10,6 +10,7 @@ import { loginUser, sendVerificationCodeApi } from '@/api/auth';
 import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export default function AuthIndex() {
   const { isLandscape } = useResponsive();
@@ -53,7 +54,7 @@ export default function AuthIndex() {
       const res = await loginUser(data);
       await login(res.token, res.user, res.refreshToken);
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.');
+      setError(getFriendlyErrorMessage(err, 'Login failed. Please try again.'));
     } finally {
       setLoading(false);
     }

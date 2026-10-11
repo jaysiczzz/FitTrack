@@ -17,6 +17,7 @@ import { useRegistration } from '@/context/RegistrationContext';
 import { sendVerificationCodeApi, verifyEmailCodeApi } from '@/api/auth';
 import Button from '@/components/ui/Button';
 import { useResponsive } from '@/hooks/useResponsive';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export default function VerifyEmailScreen() {
   const { colors } = useThemeColors();
@@ -85,7 +86,7 @@ export default function VerifyEmailScreen() {
       setVerified(true);
       router.replace('/(auth)/onboarding');
     } catch (err: any) {
-      setError(err.message || 'Invalid or expired verification code. Please check and try again.');
+      setError(getFriendlyErrorMessage(err, 'Invalid or expired verification code. Please check and try again.'));
     } finally {
       setLoading(false);
     }
@@ -113,7 +114,7 @@ export default function VerifyEmailScreen() {
       setCode('');
       inputRef.current?.focus();
     } catch (err: any) {
-      setError(err.message || 'Failed to resend code. Please try again in a moment.');
+      setError(getFriendlyErrorMessage(err, 'Failed to resend code. Please try again in a moment.'));
     } finally {
       setResending(false);
     }

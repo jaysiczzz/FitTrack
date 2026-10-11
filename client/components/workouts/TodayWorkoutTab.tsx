@@ -9,10 +9,12 @@ import { getPersonalRecordsApi, getExerciseDetails } from '@/api/workout';
 import { useToast } from '@/context/ToastContext';
 import ProgressBar from '@/components/ui/ProgressBar';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+import { CardSkeleton } from '@/components/ui/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
 import { useWeightUnit, convertFromKg } from '@/constants/units';
+import ConfirmModal from '../ui/ConfirmModal';
 
 export interface TodayExerciseItem {
   key: string;
@@ -108,10 +110,13 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   const { startRestTimer } = useWorkoutTimer();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
   const [, setLoadingPrs] = useState(false);
+  const [showAllPrs, setShowAllPrs] = useState(false);
 
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
   const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [showRestConfirm, setShowRestConfirm] = useState(false);
+  const [pendingRestAction, setPendingRestAction] = useState<'library' | 'ai' | null>(null);
   const [weightUnit] = useWeightUnit();
   const unitLabel = weightUnit.toLowerCase();
 
@@ -292,54 +297,56 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {/* Header & Add Workout Button Row */}
       <View className="flex-row items-center justify-between mb-3.5">
         <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-          Today's Routine ({exercises.length})
+          {isRestDay && exercises.length === 0 ? "Today's Schedule (Rest Day)" : `Today's Routine (${exercises.length})`}
         </Text>
 
-        <View className="flex-row items-center gap-2">
-          {onOpenAiGenerator && (
-            <TouchableOpacity
-              onPress={onOpenAiGenerator}
-              activeOpacity={0.8}
-              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
-            >
-              <Ionicons name="sparkles" size={12} color={colors.accent} />
-              <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-                AI Routine
-              </Text>
-            </TouchableOpacity>
-          )}
+        {!(isRestDay && exercises.length === 0) && (
+          <View className="flex-row items-center gap-2">
+            {onOpenAiGenerator && (
+              <TouchableOpacity
+                onPress={onOpenAiGenerator}
+                activeOpacity={0.8}
+                className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
+              >
+                <Ionicons name="sparkles" size={12} color={colors.accent} />
+                <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                  AI Routine
+                </Text>
+              </TouchableOpacity>
+            )}
 
-          {/* Only show Rest timer when exercises are actively loaded */}
-          {exercises.length > 0 && (
+            {/* Only show Rest timer when exercises are actively loaded */}
+            {exercises.length > 0 && (
+              <TouchableOpacity
+                onPress={() => {
+                  if (onStartRestTimer) {
+                    onStartRestTimer(90, 'Manual Rest Timer');
+                  } else {
+                    startRestTimer(90, 'Manual Rest Timer');
+                  }
+                }}
+                activeOpacity={0.8}
+                className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
+              >
+                <Ionicons name="timer-outline" size={13} color={colors.accent} />
+                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                  Rest
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <TouchableOpacity
-              onPress={() => {
-                if (onStartRestTimer) {
-                  onStartRestTimer(90, 'Manual Rest Timer');
-                } else {
-                  startRestTimer(90, 'Manual Rest Timer');
-                }
-              }}
+              onPress={onNavigateToLibrary}
               activeOpacity={0.8}
-              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1"
+              className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1"
             >
-              <Ionicons name="timer-outline" size={13} color={colors.accent} />
+              <Ionicons name="add" size={13} color={colors.textPrimary} />
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                Rest
+                Add
               </Text>
             </TouchableOpacity>
-          )}
-
-          <TouchableOpacity
-            onPress={onNavigateToLibrary}
-            activeOpacity={0.8}
-            className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1"
-          >
-            <Ionicons name="add" size={13} color={colors.textPrimary} />
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-              Add
-            </Text>
-          </TouchableOpacity>
-        </View>
+          </View>
+        )}
       </View>
 
       {/* Exercises List / Loading Skeleton / Empty State */}
@@ -348,24 +355,16 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           <SurfaceCard className="p-6 items-center justify-center mb-3">
             <ActivityIndicator size="small" color={colors.accent} />
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
-              Loading Today's Workout...
+              Preparing your workout...
             </Text>
             <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
               Fetching your exercises and logged sets
             </Text>
           </SurfaceCard>
 
-          {/* Skeleton Placeholder Cards */}
-          {[1, 2].map((k) => (
-            <SurfaceCard key={k} className="mb-3 p-4 opacity-50">
-              <View className="flex-row justify-between items-center mb-3">
-                <View className="w-36 h-4 rounded-md bg-input dark:bg-input-dark" />
-                <View className="w-12 h-4 rounded-md bg-input dark:bg-input-dark" />
-              </View>
-              <View className="w-full h-8 rounded-xl bg-input dark:bg-input-dark mb-2" />
-              <View className="w-full h-8 rounded-xl bg-input dark:bg-input-dark" />
-            </SurfaceCard>
-          ))}
+          {/* Pulsing Skeleton Cards */}
+          <CardSkeleton lines={3} className="mb-3" />
+          <CardSkeleton lines={3} className="mb-3" />
         </View>
       ) : exercises.length > 0 ? (
         exercises.map((item) => (
@@ -420,85 +419,97 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 <TouchableOpacity
                   activeOpacity={0.8}
                   onPress={onLoadScheduledRoutine}
-                  className="bg-accent dark:bg-accent-dark py-2.5 rounded-xl items-center flex-row justify-center gap-1.5 shadow-sm"
+                  accessibilityRole="button"
+                  accessibilityLabel="Load Planned Workout"
+                  className="bg-accent dark:bg-accent-dark min-h-[48px] py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-sm active:opacity-90"
                 >
-                  <Ionicons name="flash" size={15} color={colors.accentContrast} />
-                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black uppercase tracking-wider">
+                  <Ionicons name="flash" size={16} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-baloo-bold uppercase tracking-wider">
                     Load Planned Workout
                   </Text>
                 </TouchableOpacity>
               )}
 
               <View className="flex-row items-center justify-center gap-4 mt-3 pt-2.5 border-t border-accent/20">
-                <TouchableOpacity onPress={onNavigateToLibrary} className="flex-row items-center gap-1">
-                  <Ionicons name="barbell-outline" size={12} color={colors.accent} />
-                  <Text className="text-xs font-semibold text-accent dark:text-accent-dark">Browse Library</Text>
+                <TouchableOpacity
+                  onPress={onNavigateToLibrary}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  className="flex-row items-center gap-1 min-h-[44px]"
+                >
+                  <Ionicons name="barbell-outline" size={14} color={colors.accent} />
+                  <Text className="text-xs font-baloo-semibold text-accent dark:text-accent-dark">Browse Library</Text>
                 </TouchableOpacity>
                 <Text className="text-text-muted text-xs">•</Text>
                 {onNavigateToPlanner && (
-                  <TouchableOpacity onPress={onNavigateToPlanner} className="flex-row items-center gap-1">
-                    <Ionicons name="calendar-outline" size={12} color={colors.textMuted} />
-                    <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">Edit in Planner</Text>
+                  <TouchableOpacity
+                    onPress={onNavigateToPlanner}
+                    accessibilityRole="button"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="flex-row items-center gap-1 min-h-[44px]"
+                  >
+                    <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                    <Text className="text-xs font-baloo-semibold text-text-muted dark:text-text-muted-dark">Edit in Planner</Text>
                   </TouchableOpacity>
                 )}
               </View>
             </SurfaceCard>
           ) : isRestDay ? (
             /* Dedicated Rest Day Card */
-            <SurfaceCard className="mb-3.5 p-6 border border-emerald-500/30 bg-emerald-500/5 dark:bg-emerald-500/10 items-center">
-              <View className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mb-3">
-                <Ionicons name="battery-charging-outline" size={28} color="#10B981" />
+            <SurfaceCard className="mb-3.5 p-6 border border-accent/30 bg-accent/5 dark:bg-accent-dark/10 items-center">
+              <View className="w-14 h-14 rounded-2xl bg-accent/15 border border-accent/30 items-center justify-center mb-3">
+                <Ionicons name="battery-charging-outline" size={28} color={colors.accent} />
               </View>
               <View className="flex-row items-center gap-1.5 mb-1">
-                <View className="w-2 h-2 rounded-full bg-emerald-500" />
-                <Text className="text-[11px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
+                <Text className="text-[11px] font-baloo-bold text-accent dark:text-accent-dark uppercase tracking-wider">
                   Scheduled Rest Day
                 </Text>
               </View>
-              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1 text-center">
+              <Text className="text-base font-baloo-bold text-text-primary dark:text-text-primary-dark mb-1 text-center">
                 Rest & Active Recovery
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center leading-5 max-w-[280px] mb-4">
                 Your split has today scheduled for muscle repair, mobility, and recharging. Prioritize sleep, hydration, and nutrition!
               </Text>
-              <View className="flex-row items-center justify-center gap-2">
-                {onOpenAiGenerator && (
-                  <TouchableOpacity
-                    onPress={onOpenAiGenerator}
-                    className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
-                  >
-                    <Ionicons name="sparkles" size={13} color={colors.accent} />
-                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                      AI Routine
-                    </Text>
-                  </TouchableOpacity>
-                )}
-                <TouchableOpacity
-                  onPress={onNavigateToLibrary}
-                  className="px-3.5 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
-                >
-                  <Ionicons name="barbell-outline" size={13} color={colors.accent} />
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Library
-                  </Text>
-                </TouchableOpacity>
+              <View className="flex-row items-center justify-center gap-2.5">
                 {onNavigateToPlanner && (
                   <TouchableOpacity
                     onPress={onNavigateToPlanner}
-                    className="px-3 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                    accessibilityRole="button"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    className="px-4 py-2.5 min-h-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-2 active:opacity-70"
                   >
-                    <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                    <Ionicons name="calendar-outline" size={15} color={colors.textPrimary} />
+                    <Text className="text-xs font-baloo-bold text-text-primary dark:text-text-primary-dark">
+                      Split Planner
+                    </Text>
                   </TouchableOpacity>
                 )}
+
+                <TouchableOpacity
+                  onPress={() => {
+                    setPendingRestAction('library');
+                    setShowRestConfirm(true);
+                  }}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  className="px-4 py-2.5 min-h-[44px] rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 flex-row items-center gap-1.5 active:opacity-70"
+                >
+                  <Ionicons name="barbell-outline" size={15} color={colors.accent} />
+                  <Text className="text-xs font-baloo-bold text-accent dark:text-accent-dark">
+                    Train Today Anyway
+                  </Text>
+                </TouchableOpacity>
               </View>
             </SurfaceCard>
           ) : (
             /* Default Empty State */
             <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
-              <View className="w-12 h-12 rounded-full bg-input dark:bg-input-dark items-center justify-center mb-3">
+              <View className="w-14 h-14 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
                 <Ionicons name="barbell" size={26} color={colors.textMuted} />
               </View>
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base mb-1">
+              <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-base mb-1">
                 No exercises scheduled yet
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
@@ -507,17 +518,21 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
               <View className="flex-row flex-wrap justify-center gap-2">
                 <TouchableOpacity
                   onPress={onNavigateToLibrary}
-                  className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
+                  accessibilityRole="button"
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  className="bg-accent dark:bg-accent-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-90"
                 >
-                  <Ionicons name="barbell" size={14} color={colors.accentContrast} />
-                  <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
+                  <Ionicons name="barbell" size={15} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                     Library
                   </Text>
                 </TouchableOpacity>
                 {onOpenAiGenerator && (
                   <TouchableOpacity
                     onPress={onOpenAiGenerator}
-                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1.5"
+                    accessibilityRole="button"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
                   >
                     <Ionicons name="sparkles" size={13} color={colors.accent} />
                     <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
@@ -528,7 +543,9 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 {onNavigateToPlanner && (
                   <TouchableOpacity
                     onPress={onNavigateToPlanner}
-                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-3.5 py-2 rounded-xl flex-row items-center gap-1"
+                    accessibilityRole="button"
+                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
                   >
                     <Ionicons name="calendar-outline" size={14} color={colors.accent} />
                     <Text className="text-accent dark:text-accent-dark font-bold text-xs">
@@ -633,21 +650,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       {personalRecords.length > 0 && (
         <SurfaceCard className="mb-3">
           <View className="flex-row items-center justify-between mb-3">
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="trophy" size={16} color={colors.warning} />
+            <View className="flex-row items-center gap-2">
+              <View className="w-7 h-7 rounded-lg bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/30 dark:border-accent-dark/40">
+                <Ionicons name="trophy" size={14} color={colors.accent} />
+              </View>
               <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
                 Personal Records ({personalRecords.length})
               </Text>
             </View>
-            <View className="rounded-full bg-amber-500/10 px-2 py-0.5 border border-amber-500/20">
-              <Text className="text-[10px] font-semibold text-amber-500">
+            <View className="rounded-full bg-accent/10 dark:bg-accent-dark/15 px-2.5 py-0.5 border border-accent/25 dark:border-accent-dark/30">
+              <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
                 All-Time Best
               </Text>
             </View>
           </View>
 
           <View className="flex-row flex-wrap gap-2">
-            {personalRecords.map((pr, idx) => {
+            {(showAllPrs ? personalRecords : personalRecords.slice(0, 4)).map((pr, idx) => {
               const name = pr.exerciseName || pr.name || `Exercise ${idx + 1}`;
               const recordText =
                 pr.record ||
@@ -659,22 +678,41 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                   key={`${name}-${idx}`}
                   className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark w-[48%]"
                 >
-                  <View className="flex-1 mr-1">
+                  <View className="flex-1 mr-1.5">
                     <Text
                       numberOfLines={1}
                       className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mb-0.5"
                     >
                       {name}
                     </Text>
-                    <Text className="text-[11px] font-bold text-amber-500 dark:text-amber-400">
+                    <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
                       {recordText}
                     </Text>
                   </View>
-                  <Ionicons name="ribbon-outline" size={16} color={colors.warning} />
+                  <View className="w-6 h-6 rounded-md bg-accent/10 dark:bg-accent-dark/15 items-center justify-center">
+                    <Ionicons name="ribbon-outline" size={13} color={colors.accent} />
+                  </View>
                 </View>
               );
             })}
           </View>
+
+          {personalRecords.length > 4 && (
+            <TouchableOpacity
+              onPress={() => setShowAllPrs(!showAllPrs)}
+              activeOpacity={0.8}
+              className="w-full mt-3 py-2 items-center justify-center rounded-xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark flex-row gap-1"
+            >
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                {showAllPrs ? 'Show Less' : `Show All PRs (${personalRecords.length})`}
+              </Text>
+              <Ionicons
+                name={showAllPrs ? 'chevron-up' : 'chevron-down'}
+                size={14}
+                color={colors.accent}
+              />
+            </TouchableOpacity>
+          )}
         </SurfaceCard>
       )}
 
@@ -739,6 +777,30 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             onUpdateExercisePreset(activeWorkoutKey, customized);
           }
           setShowDetailsModal(false);
+        }}
+      />
+
+      {/* Rest Day Override Confirmation Modal */}
+      <ConfirmModal
+        visible={showRestConfirm}
+        title="Scheduled Rest Day"
+        message="Today is your designated rest day for muscular recovery, tissue repair, and injury prevention. Are you sure you want to add exercises and train today?"
+        iconName="battery-charging-outline"
+        confirmText="Yes, Train Today"
+        cancelText="Keep Resting"
+        onConfirm={() => {
+          const action = pendingRestAction;
+          setShowRestConfirm(false);
+          setPendingRestAction(null);
+          if (action === 'ai' && onOpenAiGenerator) {
+            onOpenAiGenerator();
+          } else {
+            onNavigateToLibrary();
+          }
+        }}
+        onCancel={() => {
+          setShowRestConfirm(false);
+          setPendingRestAction(null);
         }}
       />
 

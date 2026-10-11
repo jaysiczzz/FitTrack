@@ -23,6 +23,7 @@ import { updateUserProfile } from '@/api/user';
 import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { hapticFeedback } from '@/utils/haptics';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -185,7 +186,7 @@ export default function EditProfileModal({
       showSuccess('Profile Saved', 'Personal information updated successfully.');
       onClose();
     } catch (err: any) {
-      showError('Save Failed', err?.message || 'Could not update profile');
+      showError('Save Failed', getFriendlyErrorMessage(err, 'Could not update profile. Please try again.'));
     } finally {
       setSaving(false);
     }
@@ -337,17 +338,12 @@ export default function EditProfileModal({
                       hapticFeedback.light();
                       setGoal('muscle');
                     }}
-                    className={`flex-1 min-h-[44px] py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-2 ${
+                    className={`flex-1 min-h-[44px] py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
                       goal === 'muscle'
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    <Ionicons
-                      name="barbell"
-                      size={16}
-                      color={goal === 'muscle' ? colors.accent : colors.textMuted}
-                    />
                     <Text
                       className={`text-xs font-bold ${
                         goal === 'muscle'
@@ -375,17 +371,12 @@ export default function EditProfileModal({
                       hapticFeedback.light();
                       setGoal('loss');
                     }}
-                    className={`flex-1 min-h-[44px] py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-2 ${
+                    className={`flex-1 min-h-[44px] py-2.5 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
                       goal === 'loss'
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                     }`}
                   >
-                    <Ionicons
-                      name="flame"
-                      size={16}
-                      color={goal === 'loss' ? colors.accent : colors.textMuted}
-                    />
                     <Text
                       className={`text-xs font-bold ${
                         goal === 'loss'

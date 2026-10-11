@@ -33,6 +33,7 @@ import { useToast } from '../../context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import NutritionFactsModal from './NutritionFactsModal';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface AiScanModalProps {
   visible: boolean;
@@ -84,6 +85,7 @@ export default function AiScanModal({
   const [isPro, setIsPro] = useState(false);
   const [dailyScanCount, setDailyScanCount] = useState(0);
   const FREE_DAILY_SCAN_LIMIT = 3;
+  const PRO_DAILY_SCAN_LIMIT = 30;
 
   React.useEffect(() => {
     if (visible) {
@@ -209,11 +211,19 @@ export default function AiScanModal({
     if (!isPro && dailyScanCount >= FREE_DAILY_SCAN_LIMIT) {
       showWarning(
         'Daily Free AI Limit Reached',
-        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro for unlimited instant photo macro scanning!`
+        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro for 30 scans per day!`
       );
       if (onUpgradePress) {
         onUpgradePress();
       }
+      return;
+    }
+
+    if (isPro && dailyScanCount >= PRO_DAILY_SCAN_LIMIT) {
+      showWarning(
+        'Daily Pro Limit Reached',
+        `You have reached your daily limit of ${PRO_DAILY_SCAN_LIMIT} AI food scans. Your quota will refresh at midnight.`
+      );
       return;
     }
 
@@ -241,13 +251,11 @@ export default function AiScanModal({
       });
 
       if (res.success && res.data && res.data.isFood !== false) {
-        if (!isPro) {
-          const nextCount = dailyScanCount + 1;
-          setDailyScanCount(nextCount);
-          const todayStr = getTodayDateString();
-          const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
-          AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
-        }
+        const nextCount = dailyScanCount + 1;
+        setDailyScanCount(nextCount);
+        const todayStr = getTodayDateString();
+        const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
+        AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
 
         setAnalysisResult(res.data);
         setBaseMacros({
@@ -272,9 +280,10 @@ export default function AiScanModal({
         showError('Image is Not Food', errorMsg);
       }
     } catch (err: any) {
-      const errMsg =
-        err?.message ||
-        'Unable to analyze your meal right now. Please try again with a clearer photo or description.';
+      const errMsg = getFriendlyErrorMessage(
+        err,
+        'Unable to analyze your meal right now. Please try again with a clearer photo or description.'
+      );
       setScanError(errMsg);
       const isNotFood =
         errMsg.toLowerCase().includes('not food') ||
@@ -369,29 +378,31 @@ export default function AiScanModal({
           </View>
 
           {/* Subscription Quota / Pro Perk Banner */}
-          <View className="mb-3 px-3.5 py-2 rounded-xl flex-row items-center justify-between border bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark">
+          <View className="mb-3 px-3.5 py-2.5 rounded-xl flex-row items-center justify-between border bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-1.5">
               <Ionicons
                 name={isPro ? 'sparkles' : 'flash'}
                 size={14}
-                color={isPro ? '#F59E0B' : '#10B981'}
+                color={colors.accent}
               />
-              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+              <Text className="text-xs font-baloo-bold text-text-primary dark:text-text-primary-dark">
                 {isPro ? 'FitTrack Pro Active' : 'Free Tier'}
               </Text>
             </View>
             <View className="flex-row items-center gap-2">
               <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
                 {isPro
-                  ? '⚡ Unlimited AI Vision Scans'
+                  ? `${Math.max(0, PRO_DAILY_SCAN_LIMIT - dailyScanCount)} of ${PRO_DAILY_SCAN_LIMIT} scans left today`
                   : `${Math.max(0, FREE_DAILY_SCAN_LIMIT - dailyScanCount)} of ${FREE_DAILY_SCAN_LIMIT} scans left`}
               </Text>
               {!isPro && onUpgradePress && (
                 <TouchableOpacity
                   onPress={onUpgradePress}
-                  className="bg-accent/15 px-2 py-0.5 rounded-full border border-accent/30"
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  className="bg-accent/15 px-2.5 py-1 min-h-[36px] justify-center items-center rounded-full border border-accent/30"
                 >
-                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">Upgrade</Text>
+                  <Text className="text-[10px] font-baloo-bold text-accent dark:text-accent-dark">Upgrade</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -400,11 +411,11 @@ export default function AiScanModal({
           <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
             {/* Meal Category Selector */}
             <View className="flex-row justify-between items-center mb-1.5">
-              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-bold uppercase">
+              <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-baloo-bold uppercase">
                 Meal Category:
               </Text>
-              <View className="bg-emerald-500/10 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full">
-                <Text className="text-emerald-500 dark:text-emerald-400 text-[10px] font-extrabold">
+              <View className="bg-accent/10 dark:bg-accent-dark/20 px-2 py-0.5 rounded-full border border-accent/20">
+                <Text className="text-accent dark:text-accent-dark text-[10px] font-baloo-bold">
                   Auto-selected by time
                 </Text>
               </View>
@@ -418,7 +429,10 @@ export default function AiScanModal({
                     key={m}
                     onPress={() => setSelectedMeal(m)}
                     activeOpacity={0.8}
-                    className={`flex-1 py-1.5 px-1 rounded-xl items-center justify-center border ${
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected: isSelected }}
+                    accessibilityLabel={MEAL_LABELS[m]}
+                    className={`flex-1 min-h-[44px] py-1.5 px-1 rounded-xl items-center justify-center border active:opacity-75 ${
                       isSelected
                         ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -427,14 +441,14 @@ export default function AiScanModal({
                     <Ionicons
                       name={MEAL_GLYPHS[m]}
                       size={14}
-                      color={isSelected ? '#FFFFFF' : colors.textMuted}
+                      color={isSelected ? colors.accentContrast : colors.textMuted}
                       style={{ marginBottom: 2 }}
                     />
                     <Text
-                      className={`text-[10px] font-bold capitalize ${
+                      className={`text-[10px] capitalize ${
                         isSelected
-                          ? 'text-white font-black'
-                          : 'text-text-primary dark:text-text-primary-dark'
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold'
+                          : 'text-text-primary dark:text-text-primary-dark font-baloo-medium'
                       }`}
                     >
                       {MEAL_LABELS[m]}
@@ -479,10 +493,13 @@ export default function AiScanModal({
                     <TouchableOpacity
                       onPress={handleTakePhoto}
                       activeOpacity={0.8}
-                      className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                      accessibilityRole="button"
+                      accessibilityLabel="Open camera to photograph meal"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      className="bg-accent dark:bg-accent-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-2 shadow-xs active:opacity-90"
                     >
-                      <Ionicons name="camera" size={14} color="#FFFFFF" />
-                      <Text className="text-white font-bold text-xs">
+                      <Ionicons name="camera" size={16} color={colors.accentContrast} />
+                      <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                         Open Camera
                       </Text>
                     </TouchableOpacity>
@@ -490,10 +507,13 @@ export default function AiScanModal({
                     <TouchableOpacity
                       onPress={handlePickFromGallery}
                       activeOpacity={0.8}
-                      className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+                      accessibilityRole="button"
+                      accessibilityLabel="Choose photo from library"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-2 shadow-xs active:opacity-80"
                     >
-                      <Ionicons name="images" size={14} color={colors.textPrimary} />
-                      <Text className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs">
+                      <Ionicons name="images" size={16} color={colors.textPrimary} />
+                      <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-xs">
                         Photo Library
                       </Text>
                     </TouchableOpacity>

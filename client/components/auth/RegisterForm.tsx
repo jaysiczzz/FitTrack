@@ -8,6 +8,7 @@ import { checkEmailApi } from '@/api/auth';
 import { capitalizeWords } from '@/utils/formatters';
 import { useRegistration } from '@/context/RegistrationContext';
 import { useResponsive } from '@/hooks/useResponsive';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface Props {
   onSubmit: (data: { firstName: string; lastName: string; email: string; password: string }) => Promise<void> | void;
@@ -105,7 +106,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
         password,
       });
     } catch (err: any) {
-      setEmailError(err.message || 'An account with this email already exists. Please log in.');
+      setEmailError(getFriendlyErrorMessage(err, 'An account with this email already exists. Please log in.'));
     } finally {
       setCheckingEmail(false);
     }

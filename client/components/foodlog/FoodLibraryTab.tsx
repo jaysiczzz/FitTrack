@@ -537,7 +537,7 @@ export default function FoodLibraryTab({
             <View className="py-12 items-center">
               <ActivityIndicator size="small" color={colors.accent} />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
-                Searching food database...
+                Searching foods...
               </Text>
             </View>
           ) : displayedFoods.length === 0 ? (
