@@ -3,6 +3,7 @@ import { apiRequest } from './client';
 import { FoodLogItem } from '../components/foodlog/foodLogTypes';
 import { FoodCatalogItem } from '../data/commonFoods';
 import { authStorage } from '../utils/authStorage';
+import { APP_CONFIG } from '../constants/appConfig';
 
 export interface ApiFoodMeal {
   id: string;
@@ -305,7 +306,7 @@ export const fetchOpenFoodFactsProducts = async (
     }
 
     // 2b. Direct Open Food Facts query fallback (openfoodfacts.net)
-    const offUrl = `https://world.openfoodfacts.net/cgi/search.pl?search_terms=${encodeURIComponent(
+    const offUrl = `${APP_CONFIG.openFoodFactsSearchUrl}?search_terms=${encodeURIComponent(
       searchTerm
     )}&search_simple=1&action=process&json=1&page_size=25`;
 

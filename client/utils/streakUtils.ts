@@ -1,3 +1,5 @@
+import { DEFAULT_WATER_TARGET_ML } from '@/constants/fitnessDefaults';
+
 /**
  * Utility functions for calculating active consistency streaks based on "Today's Goals".
  * A day qualifies as an active streak day if at least one daily goal was completed:
@@ -19,7 +21,7 @@ export function extractActiveDatesFromHistory(
   workoutSessions?: any[],
   checkIns?: any[],
   foodLogs?: any[],
-  targetWaterMl: number = 2500
+  targetWaterMl: number = DEFAULT_WATER_TARGET_ML
 ): Set<string> {
   const dates = new Set<string>();
 

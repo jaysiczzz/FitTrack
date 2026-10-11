@@ -5,6 +5,7 @@ import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
 import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import { ONBOARDING_CHECKLIST_DELAYS } from '@/constants/appConfig';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -48,13 +49,13 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   useEffect(() => {
     if (error) return;
 
-    const t1 = setTimeout(() => setActiveCheckIndex(1), 600);
-    const t2 = setTimeout(() => setActiveCheckIndex(2), 1300);
-    const t3 = setTimeout(() => setActiveCheckIndex(3), 2000);
+    const t1 = setTimeout(() => setActiveCheckIndex(1), ONBOARDING_CHECKLIST_DELAYS.STEP_1_MS);
+    const t2 = setTimeout(() => setActiveCheckIndex(2), ONBOARDING_CHECKLIST_DELAYS.STEP_2_MS);
+    const t3 = setTimeout(() => setActiveCheckIndex(3), ONBOARDING_CHECKLIST_DELAYS.STEP_3_MS);
     const t4 = setTimeout(() => {
       setActiveCheckIndex(4);
       setAnimationDone(true);
-    }, 2700);
+    }, ONBOARDING_CHECKLIST_DELAYS.COMPLETE_MS);
 
     return () => {
       clearTimeout(t1);

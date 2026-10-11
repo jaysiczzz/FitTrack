@@ -17,6 +17,7 @@ import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { initWebAriaFix } from "@/utils/webAriaFix";
+import { THEME_STORAGE_KEY } from "@/constants/storageKeys";
 import "../global.css";
 
 initWebAriaFix();
@@ -38,15 +39,17 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
       <Text className="text-xl font-baloo-bold text-text-primary dark:text-text-primary-dark text-center mb-2">
         Something went wrong
       </Text>
-      <Text className="text-sm font-baloo-normal text-text-muted dark:text-text-muted-dark text-center mb-6 max-w-sm">
+      <Text className="text-sm font-baloo text-text-muted dark:text-text-muted-dark text-center mb-6 max-w-sm">
         {error?.message || 'An unexpected issue occurred while rendering this view.'}
       </Text>
       <TouchableOpacity
         onPress={retry}
         activeOpacity={0.8}
-        className="px-6 py-3 rounded-xl bg-accent items-center justify-center min-h-[44px]"
+        accessibilityRole="button"
+        accessibilityLabel="Try again"
+        className="px-6 py-3 rounded-2xl bg-accent dark:bg-accent-dark items-center justify-center min-h-[48px]"
       >
-        <Text className="text-base font-baloo-bold text-white">Try Again</Text>
+        <Text className="text-base font-baloo-bold text-accent-contrast dark:text-accent-contrast-dark">Try Again</Text>
       </TouchableOpacity>
     </View>
   );
@@ -62,7 +65,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    AsyncStorage.getItem('fittrack_app_theme')
+    AsyncStorage.getItem(THEME_STORAGE_KEY)
       .then((savedTheme) => {
         if (savedTheme === 'dark' || savedTheme === 'light') {
           if (savedTheme !== colorScheme) {

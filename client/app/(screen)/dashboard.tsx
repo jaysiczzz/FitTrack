@@ -30,6 +30,11 @@ import { screenCache } from '@/utils/screenCache';
 import { useResponsive } from '@/hooks/useResponsive';
 import { capitalizeWords } from '@/utils/formatters';
 import { calculateActiveStreak, formatDateKey } from '@/utils/streakUtils';
+import {
+  DEFAULT_WATER_TARGET_ML,
+  MIN_WATER_TARGET_ML,
+  WATER_INCREMENT_SMALL_ML,
+} from '@/constants/fitnessDefaults';
 
 export default function Dashboard() {
   const { colors } = useThemeColors();
@@ -83,8 +88,11 @@ export default function Dashboard() {
   const targetCarbs = personalizedTargets.carbs;
   const targetFat = personalizedTargets.fat;
   const targetWater = user?.weight
-    ? Math.max(2000, Math.round((user.weight * 35) / 250) * 250)
-    : 2500;
+    ? Math.max(
+        MIN_WATER_TARGET_ML,
+        Math.round((user.weight * 35) / WATER_INCREMENT_SMALL_ML) * WATER_INCREMENT_SMALL_ML
+      )
+    : DEFAULT_WATER_TARGET_ML;
 
   // Time-aware greeting
   const getGreeting = () => {

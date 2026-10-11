@@ -92,4 +92,22 @@ All code removals, refactors, extractions, and copy sanitizations performed duri
 - `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
 - Expo config: Verified valid JSON syntax and clean bundle structure.
 
+---
+
+## [Batch 6] - 2026-10-12
+### Extracted & Centralized
+- `client/constants/appConfig.ts` (HRD-004, HRD-005, HRD-016): Created centralized configuration module defining `SUPPORT_EMAIL`, `APP_CONFIG` (timeouts, versions, external endpoints), and `ONBOARDING_CHECKLIST_DELAYS`.
+- `client/constants/fitnessDefaults.ts` (HRD-007, HRD-008): Created centralized fitness defaults module defining `DEFAULT_WATER_TARGET_ML`, `MIN_WATER_TARGET_ML`, `WATER_INCREMENT_SMALL_ML`, `DEFAULT_MACRO_TARGETS`, and `CALORIE_MULTIPLIERS`.
+- `client/constants/storageKeys.ts` (HRD-017): Created centralized storage keys module defining `STORAGE_KEYS` and `THEME_STORAGE_KEY`.
+- `client/config.ts` (HRD-001, HRD-002): Documented Render backend fallback URL and referenced `DEFAULT_DEV_PORT` from `APP_CONFIG`.
+- `client/api/foodlog.ts` (HRD-003): Replaced hardcoded Open Food Facts URL with `APP_CONFIG.openFoodFactsSearchUrl`.
+- `client/components/settings/HelpSupportModal.tsx` & `PrivacyPolicyModal.tsx` (HRD-004, HRD-009): Replaced hardcoded support email literals with `SUPPORT_EMAIL`; synced FAQ hydration answer with `DEFAULT_WATER_TARGET_ML` (2,500 ml).
+- `client/components/auth/OnboardingPlanStep.tsx` (HRD-005): Replaced hardcoded timeout numbers with `ONBOARDING_CHECKLIST_DELAYS`.
+- `client/app/_layout.tsx` & `client/app/(screen)/settings.tsx` (HRD-017): Standardized bare theme storage string on `THEME_STORAGE_KEY`.
+- `client/app/(screen)/dashboard.tsx`, `foodlog.tsx`, `WaterTrackerCard.tsx`, `streakUtils.ts` (HRD-008): Replaced hardcoded water math constants with central fitness defaults.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Runtime behavior: Verified email intents, hydration targets, and storage key reads operate without regression.
+
 

@@ -15,6 +15,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+import { THEME_STORAGE_KEY } from '@/constants/storageKeys';
 import ResetPasswordModal from '@/components/settings/ResetPasswordModal';
 import HelpSupportModal from '@/components/settings/HelpSupportModal';
 import PrivacyPolicyModal from '@/components/settings/PrivacyPolicyModal';
@@ -72,7 +73,7 @@ export default function Settings() {
     hapticFeedback.light();
     setIsDarkLocal(isDark);
     const newTheme = isDark ? 'dark' : 'light';
-    AsyncStorage.setItem('fittrack_app_theme', newTheme).catch(() => {});
+    AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
     setTimeout(() => {
       setColorScheme(newTheme);
     }, 40);
@@ -280,7 +281,13 @@ export default function Settings() {
           {/* Back Button & Header */}
           <View className="flex-row items-center mb-1">
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(screen)/profile');
+                }
+              }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
               accessibilityLabel="Go back"

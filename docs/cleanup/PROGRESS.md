@@ -28,13 +28,13 @@
 - [x] **Phase 5 Execution - Batch 2 (Unused Functions, Dead State, Unused Imports)**: Committed `3b44e69`
 - [x] **Phase 5 Execution - Batch 3 (Redundant Code Consolidation)**: Committed `de6424f`
 - [x] **Phase 5 Execution - Batch 4 (Unused Styles, Theme Tokens & Dead Assets)**: Committed `097feaa`
-- [x] **Phase 5 Execution - Batch 5 (Unused Dependencies & App Config Cleanup)**: DEP-001, DEP-002, UNU-CFG-001
+- [x] **Phase 5 Execution - Batch 5 (Unused Dependencies & App Config Cleanup)**: Committed `3e7519a`
+- [x] **Phase 5 Execution - Batch 6 (Hardcoded & Static Data Extraction)**: HRD-001 through HRD-017
 
 ## Phases In Progress
-- [ ] **Phase 5 Execution - Batch 6 (Hardcoded & Static Data Extraction)**
+- [ ] **Phase 5 Execution - Batch 7 (UI Jargon Cleanup & Central Error Sanitizer)**
 
 ## Pending Phases
-- [ ] **Phase 5 Execution - Batches 6 to 7**
 - [ ] **Final: Summary Report** (`99-report.md`)
 
 ## Last File Reviewed

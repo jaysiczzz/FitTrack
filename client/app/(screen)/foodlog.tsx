@@ -30,6 +30,11 @@ import { CardSkeleton } from '@/components/ui/Skeleton';
 import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
 import { screenCache } from '@/utils/screenCache';
 import { useThemeColors } from '@/constants/colors';
+import {
+  DEFAULT_WATER_TARGET_ML,
+  MIN_WATER_TARGET_ML,
+  WATER_INCREMENT_SMALL_ML,
+} from '@/constants/fitnessDefaults';
 
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
@@ -293,8 +298,11 @@ export default function FoodLog() {
 
   // Target hydration based on bodyweight (35ml / kg), clamped to min 2000ml, rounded to nearest 250ml
   const targetWaterMl = user?.weight
-    ? Math.max(2000, Math.round((user.weight * 35) / 250) * 250)
-    : 2500;
+    ? Math.max(
+        MIN_WATER_TARGET_ML,
+        Math.round((user.weight * 35) / WATER_INCREMENT_SMALL_ML) * WATER_INCREMENT_SMALL_ML
+      )
+    : DEFAULT_WATER_TARGET_ML;
 
   const handleAddWaterDelta = (delta: number) => {
     const current = waterMlRef.current;

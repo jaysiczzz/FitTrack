@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, ScrollView, Pressable } from 'react-native';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import { SUPPORT_EMAIL } from '@/constants/appConfig';
 
 interface PrivacyPolicyModalProps {
   visible: boolean;
@@ -88,7 +89,7 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
                 For privacy inquiries or account data requests, contact us at:
               </Text>
               <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                fittrack.app.help@gmail.com
+                {SUPPORT_EMAIL}
               </Text>
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-2">
                 FitTrack Version 1.0.5 · Last updated September 2026
