@@ -5,7 +5,6 @@ import {
   Text,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -20,10 +19,10 @@ import { calculateActiveStreak, extractActiveDatesFromHistory, formatDateKey } f
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
-import WeightProgressCard from '@/components/profile/WeightProgressCard';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import ChangeProfilePhotoModal from '@/components/profile/ChangeProfilePhotoModal';
-import AthleteBadgesCard from '@/components/profile/AthleteBadgesCard';
+import LogWeightModal from '@/components/profile/LogWeightModal';
+import { saveWeightLogApi } from '@/api/weight';
 import UnifiedFitnessCalendar from '@/components/calendar/UnifiedFitnessCalendar';
 import { capitalizeWords } from '@/utils/formatters';
 import { screenCache } from '@/utils/screenCache';
@@ -42,6 +41,10 @@ interface UserData {
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
   avatarUrl?: string | null;
+  subscription?: {
+    tier: string;
+    status: string;
+  } | null;
 }
 
 export default function Profile() {
@@ -50,13 +53,26 @@ export default function Profile() {
   const { colors } = useThemeColors();
 
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(!screenCache.profileLoaded);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
 
   // Modal states
   const [showEditInfoModal, setShowEditInfoModal] = useState(false);
   const [showPhotoModal, setShowPhotoModal] = useState(false);
   const [showChangeProfileOption, setShowChangeProfileOption] = useState(false);
+  const [showLogWeightModal, setShowLogWeightModal] = useState(false);
+
+  const handleSaveWeight = async (newWeight: number, date: string, notes?: string) => {
+    try {
+      await saveWeightLogApi({ weight: newWeight, date, notes });
+      setWeight(String(newWeight));
+      if (updateUser) {
+        updateUser({ weight: newWeight });
+      }
+      setShowLogWeightModal(false);
+    } catch (e: any) {
+      console.warn('Error saving weight:', e);
+    }
+  };
 
   // Form states
   const [firstName, setFirstName] = useState('');
@@ -64,14 +80,10 @@ export default function Profile() {
   const [email, setEmail] = useState('');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
-  const [age, setAge] = useState('');
   const [goal, setGoal] = useState<'muscle' | 'loss'>('muscle');
 
   // Athletic metrics
   const [streakCount, setStreakCount] = useState(0);
-  const [totalWorkoutsCount, setTotalWorkoutsCount] = useState(0);
-  const [totalMealsCount, setTotalMealsCount] = useState(0);
-  const [hasHitMacro, setHasHitMacro] = useState(false);
 
   const applyUserData = (u: UserData) => {
     setSavedUser(u);
@@ -80,7 +92,6 @@ export default function Profile() {
     if (u.email) setEmail(u.email);
     if (u.height !== undefined) setHeight(String(u.height));
     if (u.weight !== undefined) setWeight(String(u.weight));
-    if (u.age !== undefined) setAge(String(u.age));
     if (u.goal) {
       setGoal(u.goal === 'MUSCLE_GAIN' ? 'muscle' : 'loss');
     }
@@ -121,7 +132,6 @@ export default function Profile() {
           const parsed = JSON.parse(cachedHistory);
           if (Array.isArray(parsed)) {
             workoutSessions = parsed;
-            setTotalWorkoutsCount(parsed.length);
           }
         } catch { }
       }
@@ -129,7 +139,6 @@ export default function Profile() {
       const res = await getWorkoutHistory().catch(() => null);
       if (res && Array.isArray(res.sessions)) {
         workoutSessions = res.sessions;
-        setTotalWorkoutsCount(res.sessions.length);
         AsyncStorage.setItem(historyKey, JSON.stringify(res.sessions)).catch(() => {});
       }
 
@@ -142,39 +151,21 @@ export default function Profile() {
         }
       } catch {}
 
-      // 3. Nutrition history & Macro status for badges
+      // 3. Nutrition history & Macro status for streak
       let foodLogs: any[] = [];
-      let mealsCount = 0;
-      let macroAchieved = false;
 
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const cachedFood = await AsyncStorage.getItem(foodKey);
       if (cachedFood) {
         try {
           const parsed = JSON.parse(cachedFood);
-          if (Array.isArray(parsed)) {
-            mealsCount += parsed.length;
-          }
         } catch { }
       }
 
       const foodRes = await getFoodLogHistoryApi().catch(() => null);
       if (foodRes?.success && Array.isArray(foodRes.history)) {
         foodLogs = foodRes.history;
-        let remoteMeals = 0;
-        for (const day of foodRes.history) {
-          if (Array.isArray(day.meals)) {
-            remoteMeals += day.meals.length;
-          }
-          if (day.isCompleted || (day.totalProtein > 0 && day.totalCalories > 0)) {
-            macroAchieved = true;
-          }
-        }
-        mealsCount = Math.max(mealsCount, remoteMeals);
       }
-
-      setTotalMealsCount(mealsCount);
-      setHasHitMacro(macroAchieved);
 
       // Extract all active dates across history (workout, check-in, nutrition, hydration)
       const activeDates = extractActiveDatesFromHistory(workoutSessions, checkIns, foodLogs, 2000);
@@ -223,9 +214,6 @@ export default function Profile() {
 
     const fetchProfile = async () => {
       try {
-        if (!screenCache.profileLoaded) {
-          setLoading(true);
-        }
         const res = await getUserProfile();
         if (res.user && isMounted) {
           applyUserData(res.user);
@@ -235,7 +223,6 @@ export default function Profile() {
         console.log('Error fetching user profile:', err);
       } finally {
         screenCache.setProfileLoaded(true);
-        if (isMounted) setLoading(false);
       }
     };
 
@@ -287,6 +274,14 @@ export default function Profile() {
     return (f + l).toUpperCase();
   }, [firstName, lastName]);
 
+  const isPro = useMemo(() => {
+    return Boolean(
+      savedUser?.subscription?.tier &&
+      savedUser.subscription.tier !== 'FREE' &&
+      savedUser.subscription.status === 'ACTIVE'
+    );
+  }, [savedUser?.subscription]);
+
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
@@ -330,7 +325,7 @@ export default function Profile() {
                   {avatarUrl && !isTemporaryBlobUrl(avatarUrl) ? (
                     <Image
                       source={{ uri: avatarUrl }}
-                      className="w-24 h-24 rounded-full border-2 border-accent dark:border-accent-dark bg-input dark:bg-input-dark"
+                      className="w-24 h-24 rounded-full border-2 border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark shadow-sm"
                       resizeMode="cover"
                       onError={() => {
                         setAvatarUrl(null);
@@ -339,7 +334,7 @@ export default function Profile() {
                       }}
                     />
                   ) : (
-                    <View className="w-24 h-24 rounded-full bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark items-center justify-center">
+                    <View className="w-24 h-24 rounded-full bg-accent/15 dark:bg-accent-dark/20 border-2 border-input-border dark:border-input-border-dark items-center justify-center shadow-sm">
                       <Text className="text-accent dark:text-accent-dark font-black text-3xl">
                         {initials}
                       </Text>
@@ -368,7 +363,7 @@ export default function Profile() {
                       shadowRadius: 4,
                       elevation: 6,
                     }}
-                    className="px-2.5 py-1 bg-surface dark:bg-surface-dark border border-accent/40 rounded-full flex-row items-center justify-center gap-1"
+                    className="px-2.5 py-1 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-full flex-row items-center justify-center gap-1"
                   >
                     <Ionicons name="camera" size={11} color={colors.accent} />
                     <Text
@@ -393,15 +388,22 @@ export default function Profile() {
               ) : null}
 
               {/* Badges & Actions Row */}
-              <View className="flex-row items-center gap-2 mt-3">
-                <View className="bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full flex-row items-center gap-1.5">
-                  <Ionicons
-                    name={goal === 'muscle' ? 'barbell' : 'flame'}
-                    size={12}
-                    color={colors.accent}
-                  />
-                  <Text className="text-accent dark:text-accent-dark text-[11px] font-black uppercase tracking-wider">
-                    {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
+              <View className="flex-row items-center gap-2 mt-3 flex-wrap justify-center">
+                {isPro && (
+                  <View className="bg-amber-500/15 dark:bg-amber-400/20 border border-amber-500/40 dark:border-amber-400/40 px-2.5 py-1 rounded-lg flex-row items-center gap-1">
+                    <Ionicons name="sparkles" size={11} color="#f59e0b" />
+                    <Text className="text-amber-600 dark:text-amber-400 text-[11px] font-black tracking-wider uppercase">
+                      PRO ATHLETE
+                    </Text>
+                  </View>
+                )}
+
+                <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2.5 py-1 rounded-lg">
+                  <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium tracking-wide">
+                    Goal:{' '}
+                    <Text className="text-text-primary dark:text-text-primary-dark font-bold">
+                      {goal === 'muscle' ? 'Muscle Gain' : 'Weight Loss'}
+                    </Text>
                   </Text>
                 </View>
 
@@ -430,14 +432,27 @@ export default function Profile() {
                 </Text>
               </View>
 
-              <View className="items-center flex-1 border-r border-input-border/60 dark:border-input-border-dark/60">
-                <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-0.5">
-                  WEIGHT
-                </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  setShowLogWeightModal(true);
+                }}
+                activeOpacity={0.7}
+                className="items-center flex-1 border-r border-input-border/60 dark:border-input-border-dark/60"
+              >
+                <View className="flex-row items-center gap-0.5 mb-0.5">
+                  <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
+                    WEIGHT
+                  </Text>
+                  <Ionicons name="pencil" size={9} color={colors.accent} />
+                </View>
                 <Text className="text-text-primary dark:text-text-primary-dark text-base font-black">
                   {weight ? `${weight} kg` : '—'}
                 </Text>
-              </View>
+                <Text className="text-[9px] font-semibold text-accent dark:text-accent-dark">
+                  Log entry
+                </Text>
+              </TouchableOpacity>
 
               <View className="items-center flex-1 border-r border-input-border/60 dark:border-input-border-dark/60">
                 <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark mb-0.5">
@@ -470,11 +485,6 @@ export default function Profile() {
             </View>
           </SurfaceCard>
 
-          {/* Weight & Body Progress Card */}
-          <WeightProgressCard
-            onWeightUpdated={(newW) => setWeight(String(newW))}
-          />
-
           {/* Unified Activity & Consistency Calendar */}
           <View className="mb-3">
             <UnifiedFitnessCalendar
@@ -483,14 +493,6 @@ export default function Profile() {
               onSwitchToTodayNutrition={() => router.push('/(screen)/foodlog' as any)}
             />
           </View>
-
-          {/* Athlete Achievements & Milestones */}
-          <AthleteBadgesCard
-            currentStreak={streakCount}
-            totalWorkouts={totalWorkoutsCount}
-            totalMealsLogged={totalMealsCount}
-            hasHitMacroTarget={hasHitMacro}
-          />
         </View>
       </ScrollView>
 
@@ -511,6 +513,14 @@ export default function Profile() {
         onProfileUpdated={(updated) => {
           applyUserData(updated);
         }}
+      />
+
+      {/* Log Weight Modal */}
+      <LogWeightModal
+        visible={showLogWeightModal}
+        onClose={() => setShowLogWeightModal(false)}
+        currentWeight={weight ? parseFloat(weight) : 70}
+        onSaveWeight={handleSaveWeight}
       />
     </SafeAreaView>
   );

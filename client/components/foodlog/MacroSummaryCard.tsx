@@ -2,7 +2,6 @@ import React from 'react';
 import { View, Text } from 'react-native';
 import { MacroTargets } from './foodLogTypes';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
 interface MacroSummaryCardProps {
@@ -34,21 +33,14 @@ export default function MacroSummaryCard({
 
   return (
     <SurfaceCard className="mb-3">
-      {/* Card Header & Goal Tag */}
+      {/* Card Header */}
       <View className="flex-row justify-between items-center mb-3">
-        <View className="flex-1 mr-2">
+        <View className="flex-1">
           <Text className="text-text-primary dark:text-text-primary-dark font-bold text-base">
             Daily Nutrition Budget
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-            Calibrated for your personal targets
-          </Text>
-        </View>
-        <View
-          className="px-3 py-1 rounded-full border border-emerald-500/30 bg-emerald-500/15"
-        >
-          <Text className="text-[10px] font-bold uppercase tracking-wider text-accent dark:text-accent-dark">
-            {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'}
+            Calibrated for {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'} ({targets.calories.toLocaleString()} kcal)
           </Text>
         </View>
       </View>

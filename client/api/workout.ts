@@ -172,19 +172,6 @@ export const getWorkoutHistory = () => apiRequest('/api/workouts/history');
 
 export const getPersonalRecordsApi = () => apiRequest('/api/workouts/personal-records');
 
-export const createCustomExerciseApi = (data: {
-  name: string;
-  category?: string;
-  type?: string;
-  difficulty?: string;
-  primaryMuscle?: string;
-  instructions?: string[];
-  defaultSets?: { weight?: number; reps?: number }[];
-}) => apiRequest('/api/workouts/custom', { method: 'POST', body: data });
-
-export const deleteCustomExerciseApi = (exerciseId: string) =>
-  apiRequest(`/api/workouts/custom/${exerciseId}`, { method: 'DELETE' });
-
 export const deleteWorkoutSessionApi = (sessionId: string) =>
   apiRequest(`/api/workouts/sessions/${sessionId}`, { method: 'DELETE' });
 

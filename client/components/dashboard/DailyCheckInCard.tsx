@@ -6,7 +6,6 @@ import {
   TextInput,
   ActivityIndicator,
   DeviceEventEmitter,
-  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,9 +18,7 @@ import {
   getTodayCheckInApi,
   saveCheckInApi,
   getCheckInStreakApi,
-  getCheckInHistoryApi,
   deleteTodayCheckInApi,
-  CheckInRecord,
   CheckInStreakStats,
 } from '../../api/checkin';
 
@@ -72,13 +69,13 @@ export const MOODS: MoodOption[] = [
 ];
 
 const MOTIVATION_QUOTES = [
-  { quote: 'The only bad workout is the one that didn’t happen.', author: 'Fitness Wisdom' },
+  { quote: 'The resistance you fight physically in the gym builds the character you need in life.', author: 'Arnold Schwarzenegger' },
   { quote: 'Small daily improvements over time lead to stunning results.', author: 'Robin Sharma' },
-  { quote: 'Discipline is doing what needs to be done, even if you don’t feel like it.', author: 'Unknown' },
-  { quote: 'Your body can stand almost anything. It’s your mind you have to convince.', author: 'Coach Pro' },
-  { quote: 'Action creates motivation, not the other way around.', author: 'FitTrack AI' },
-  { quote: 'Consistency isn’t about being perfect. It’s about not giving up.', author: 'Daily Habit' },
-  { quote: 'Energy flows where focus goes. Lock in on today’s goals.', author: 'FitTrack Wisdom' },
+  { quote: 'Discipline is choosing between what you want now and what you want most.', author: 'Abraham Lincoln' },
+  { quote: 'You do not rise to the level of your goals. You fall to the level of your systems.', author: 'James Clear' },
+  { quote: 'Don’t count the days, make the days count.', author: 'Muhammad Ali' },
+  { quote: 'Only the disciplined ones in life are truly free.', author: 'Eliud Kipchoge' },
+  { quote: 'What stands in the way becomes the way.', author: 'Marcus Aurelius' },
 ];
 
 interface DailyCheckInCardProps {
@@ -93,21 +90,23 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [isCheckedIn, setIsCheckedIn] = useState(false);
-  const [quoteIndex, setQuoteIndex] = useState(0);
+  const quoteIndex = useMemo(() => {
+    const now = new Date();
+    const dayOfYear = Math.floor((now.getTime() - new Date(now.getFullYear(), 0, 0).getTime()) / (1000 * 60 * 60 * 24));
+    return Math.abs(dayOfYear) % MOTIVATION_QUOTES.length;
+  }, []);
   const [notes, setNotes] = useState('');
   const [showNotesInput, setShowNotesInput] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [isSavingMood, setIsSavingMood] = useState(false);
 
-  // Streak & History state
+  // Streak state
   const [streakStats, setStreakStats] = useState<CheckInStreakStats>({
     currentStreak: 0,
     bestStreak: 0,
     totalCheckIns: 0,
     todayCheckedIn: false,
   });
-  const [recentHistory, setRecentHistory] = useState<CheckInRecord[]>([]);
-  const [showHistoryTimeline, setShowHistoryTimeline] = useState(false);
 
   const getTodayDateKey = () => {
     const d = new Date();
@@ -146,10 +145,9 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
     // 2. Fetch fresh data from backend
     try {
-      const [todayRes, streakRes, historyRes] = await Promise.all([
+      const [todayRes, streakRes] = await Promise.all([
         getTodayCheckInApi(todayKey).catch(() => null),
         getCheckInStreakApi(todayKey).catch(() => null),
-        getCheckInHistoryApi(7, todayKey).catch(() => null),
       ]);
 
       if (todayRes?.success && todayRes.checkIn) {
@@ -182,10 +180,6 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         setStreakStats(newStreak);
         const streakKey = authStorage.getScopedKey(userId, 'daily_checkin_streak_cache');
         await AsyncStorage.setItem(streakKey, JSON.stringify(newStreak));
-      }
-
-      if (historyRes?.success && Array.isArray(historyRes.history)) {
-        setRecentHistory(historyRes.history);
       }
     } catch (err) {
       console.log('Error synchronizing check-in with server:', err);
@@ -238,12 +232,6 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         const streakKey = authStorage.getScopedKey(userId, 'daily_checkin_streak_cache');
         await AsyncStorage.setItem(streakKey, JSON.stringify(res.streak));
       }
-
-      // Refresh recent history
-      const hist = await getCheckInHistoryApi(7, todayKey).catch(() => null);
-      if (hist?.success && Array.isArray(hist.history)) {
-        setRecentHistory(hist.history);
-      }
     } catch (err: any) {
       console.log('Error saving check-in to backend:', err);
     } finally {
@@ -292,6 +280,12 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         notes: notes.trim() || undefined,
       });
 
+      DeviceEventEmitter.emit('DAILY_CHECKIN_UPDATED', {
+        date: todayKey,
+        notes: notes.trim(),
+        isCheckedIn: true,
+      });
+
       showSuccess('Reflection Saved', 'Your morning check-in note was updated.');
       setShowNotesInput(false);
     } catch (err) {
@@ -333,41 +327,8 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
     }
   };
 
-  const handleNextQuote = () => {
-    setQuoteIndex((prev) => (prev + 1) % MOTIVATION_QUOTES.length);
-  };
-
   const currentQuote = MOTIVATION_QUOTES[quoteIndex];
   const selectedMood = MOODS.find((m) => m.id === selectedMoodId);
-
-  // Compute 7-day mini timeline items
-  const past7DaysSlots = useMemo(() => {
-    const slots = [];
-    const d = new Date();
-    for (let i = 6; i >= 0; i--) {
-      const temp = new Date(d);
-      temp.setDate(d.getDate() - i);
-      const dateStr = `${temp.getFullYear()}-${String(temp.getMonth() + 1).padStart(2, '0')}-${String(temp.getDate()).padStart(2, '0')}`;
-      const dayName = temp.toLocaleDateString('en-US', { weekday: 'narrow' }); // e.g. M, T, W
-      const matched = recentHistory.find((h) => h.date === dateStr);
-      const isTodaySlot = i === 0;
-
-      // If today is checked in locally but not yet in recentHistory array
-      let moodObj = matched ? MOODS.find((m) => m.id === matched.moodId) : null;
-      if (isTodaySlot && isCheckedIn && selectedMood) {
-        moodObj = selectedMood;
-      }
-
-      slots.push({
-        dateStr,
-        dayName,
-        isTodaySlot,
-        hasCheckIn: Boolean(moodObj),
-        mood: moodObj,
-      });
-    }
-    return slots;
-  }, [recentHistory, isCheckedIn, selectedMood]);
 
   return (
     <SurfaceCard className="mb-3">
@@ -386,16 +347,12 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 </Text>
               </View>
             ) : (
-              <View className="bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full flex-row items-center">
-                <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">
-                  ⚡ Check In
-                </Text>
-              </View>
+              <></>
             )}
           </View>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             {isCheckedIn && selectedMood
-              ? `Logged: ${selectedMood.label} · Readiness Calibrated`
+              ? `Today's Energy: ${selectedMood.label}`
               : 'How is your energy and readiness today?'}
           </Text>
         </View>
@@ -410,67 +367,12 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             >
               <Ionicons name="checkmark" size={12} color="#10B981" style={{ marginRight: 4 }} />
               <Text className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider">
-                Logged • Edit
+                Edit
               </Text>
             </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              onPress={() => setShowHistoryTimeline(!showHistoryTimeline)}
-              activeOpacity={0.7}
-              className="px-2 py-1 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center"
-            >
-              <Ionicons
-                name={showHistoryTimeline ? 'chevron-up' : 'calendar-outline'}
-                size={12}
-                color={colors.textMuted}
-                style={{ marginRight: 3 }}
-              />
-              <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
-                {showHistoryTimeline ? 'Hide' : '7-Day'}
-              </Text>
-            </TouchableOpacity>
-          )}
+          ) : null}
         </View>
       </View>
-
-      {/* 7-Day Readiness Timeline Mini-Drawer */}
-      {showHistoryTimeline && (
-        <View className="mb-3 p-2.5 bg-input/60 dark:bg-input-dark/60 rounded-xl border border-input-border/70 dark:border-input-border-dark/70">
-          <View className="flex-row justify-between items-center mb-1.5 px-0.5">
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-text-muted dark:text-text-muted-dark">
-              Last 7 Days Readiness
-            </Text>
-            <Text className="text-[10px] font-semibold text-accent dark:text-accent-dark">
-              {streakStats.totalCheckIns} Total Check-Ins
-            </Text>
-          </View>
-          <View className="flex-row justify-between gap-1">
-            {past7DaysSlots.map((slot, idx) => (
-              <View
-                key={idx}
-                className={`flex-1 py-1.5 px-0.5 rounded-lg items-center border ${
-                  slot.isTodaySlot
-                    ? 'bg-accent/15 border-accent dark:border-accent-dark'
-                    : slot.hasCheckIn
-                    ? 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
-                    : 'bg-transparent border-dashed border-input-border/60 dark:border-input-border-dark/60'
-                }`}
-              >
-                <Text
-                  className={`text-[9px] font-bold mb-1 ${
-                    slot.isTodaySlot ? 'text-accent dark:text-accent-dark' : 'text-text-muted dark:text-text-muted-dark'
-                  }`}
-                >
-                  {slot.dayName}
-                </Text>
-                <Text className="text-sm">
-                  {slot.mood ? slot.mood.emoji : '○'}
-                </Text>
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Mood Selector Buttons */}
       {!isCheckedIn ? (
@@ -504,10 +406,6 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
               );
             })}
           </View>
-
-          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] text-center">
-            Tap your energy to align today’s training & recovery advice.
-          </Text>
         </View>
       ) : selectedMood ? (
         /* Checked-In Active Recommendation Box */
@@ -525,7 +423,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             <View className="flex-1">
               <View className="flex-row items-center justify-between">
                 <Text className="text-text-primary dark:text-text-primary-dark font-black text-xs">
-                  Coach Focus: {selectedMood.label}
+                  Today's Focus: {selectedMood.label}
                 </Text>
                 <TouchableOpacity
                   onPress={handleResetCheckIn}
@@ -609,8 +507,8 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       ) : null}
 
       {/* Motivational Fitness Quote */}
-      <View className="pt-2 border-t border-input-border dark:border-input-border-dark flex-row items-center justify-between">
-        <View className="flex-1 mr-2">
+      <View className="pt-2 border-t border-input-border dark:border-input-border-dark flex-row items-center">
+        <View className="flex-1">
           <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
             “{currentQuote.quote}”
           </Text>
@@ -618,15 +516,6 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             — {currentQuote.author}
           </Text>
         </View>
-
-        <TouchableOpacity
-          onPress={handleNextQuote}
-          activeOpacity={0.7}
-          className="w-7 h-7 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:bg-surface"
-          accessibilityLabel="Next quote"
-        >
-          <Ionicons name="refresh" size={14} color={colors.textMuted} />
-        </TouchableOpacity>
       </View>
     </SurfaceCard>
   );

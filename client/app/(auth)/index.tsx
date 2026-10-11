@@ -1,20 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, ScrollView, KeyboardAvoidingView, Keyboard, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '@/constants/colors';
 import { loginUser, sendVerificationCodeApi } from '@/api/auth';
 import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
 
 export default function AuthIndex() {
-  const { colors } = useThemeColors();
   const { isLandscape } = useResponsive();
   const { data: registrationData, setData } = useRegistration();
   const [active, setActive] = useState<'login' | 'register'>(registrationData ? 'register' : 'login');
@@ -82,7 +79,10 @@ export default function AuthIndex() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView className="flex-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{

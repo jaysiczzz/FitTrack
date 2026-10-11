@@ -1,5 +1,4 @@
 import { LibraryExercise } from '../components/workouts/workoutTypes';
-import { getDifficultyPreset } from '../components/workouts/workoutPresets';
 
 export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
   {

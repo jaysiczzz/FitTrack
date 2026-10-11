@@ -3,7 +3,6 @@ import { Modal, View, Text, TouchableOpacity, ScrollView, TouchableWithoutFeedba
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { WorkoutRoutineTemplate, DayOfWeek } from './workoutTypes';
-import SurfaceCard from '../ui/SurfaceCard';
 
 interface AssignRoutineModalProps {
   visible: boolean;
@@ -33,7 +32,7 @@ export default function AssignRoutineModal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View className="flex-1 bg-black/60 justify-end">
           <TouchableWithoutFeedback>
-            <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 max-h-[85%] border-t border-input-border dark:border-input-border-dark">
+            <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 pb-8 max-h-[85%] border-t border-input-border dark:border-input-border-dark">
               {/* Header */}
               <View className="flex-row justify-between items-center mb-4">
                 <View>
@@ -46,7 +45,10 @@ export default function AssignRoutineModal({
                 </View>
                 <TouchableOpacity
                   onPress={onClose}
-                  className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  accessibilityRole="button"
+                  accessibilityLabel="Close schedule assignment"
+                  className="w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark items-center justify-center active:opacity-70"
                 >
                   <Ionicons name="close" size={18} color={colors.textMuted} />
                 </TouchableOpacity>
@@ -134,12 +136,12 @@ export default function AssignRoutineModal({
                 {/* Option to create custom routine */}
                 {onCreateNew ? (
                   <TouchableOpacity
-                    activeOpacity={0.8}
+                    activeOpacity={0.75}
                     onPress={() => {
                       onClose();
                       onCreateNew();
                     }}
-                    className="p-3.5 rounded-2xl mt-1 border border-dashed border-accent/60 dark:border-accent-dark/60 items-center flex-row justify-center gap-1.5"
+                    className="min-h-[44px] p-3.5 rounded-2xl mt-1 border border-dashed border-accent/60 dark:border-accent-dark/60 items-center flex-row justify-center gap-1.5 active:opacity-75"
                   >
                     <Ionicons name="add-circle-outline" size={18} color={colors.accent} />
                     <Text className="text-xs font-bold text-accent dark:text-accent-dark">

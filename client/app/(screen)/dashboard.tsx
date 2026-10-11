@@ -1,7 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
-import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
@@ -12,15 +11,16 @@ import StatCard from '@/components/dashboard/StatCard';
 import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
 import WeeklyNutritionChartCard from '@/components/dashboard/WeeklyNutritionChartCard';
 import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
-import AiInsightsCard from '@/components/dashboard/AiInsightsCard';
 import CommunityStoriesCard from '@/components/dashboard/CommunityStoriesCard';
 import TestimonialModal from '@/components/settings/TestimonialModal';
-import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
+import { CardSkeleton, StatCardSkeleton } from '@/components/ui/Skeleton';
+import { WorkoutRoutineTemplate, WeeklySplit } from '@/components/workouts/workoutTypes';
+import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
+import { mergeWithDefaultTemplates } from '@/components/workouts/WorkoutPlannerTab';
 
-import { getAIInsights, AIInsight } from '@/api/ai';
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
 import { getCheckInHistoryApi } from '@/api/checkin';
-import { FoodLogItem } from '@/components/foodlog/foodLogTypes';
+import { FoodLogItem, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import { getDailyFoodLogApi, getFoodLogHistoryApi, autoSyncFoodAndWater } from '@/api/foodlog';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -33,17 +33,16 @@ import { calculateActiveStreak, formatDateKey } from '@/utils/streakUtils';
 
 export default function Dashboard() {
   const { colors } = useThemeColors();
-  const { isTablet, isLandscape } = useResponsive();
+  const { isTablet } = useResponsive();
   const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id;
-  const { showSuccess, showToast } = useToast();
+  const { showToast } = useToast();
 
   const [userName, setUserName] = useState('Athlete');
   const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [refreshing, setRefreshing] = useState(false);
   const [initialLoading, setInitialLoading] = useState(!screenCache.dashboardLoaded);
-  const [loadingAi, setLoadingAi] = useState(false);
 
   // Check-In state
   const [isCheckedIn, setIsCheckedIn] = useState(false);
@@ -67,66 +66,25 @@ export default function Dashboard() {
   // Workout Progress States
   const [activeMinutesToday, setActiveMinutesToday] = useState(0);
   const [workoutsThisWeek, setWorkoutsThisWeek] = useState(0);
-  const [targetWorkoutsThisWeek, setTargetWorkoutsThisWeek] = useState(4);
   const [currentStreak, setCurrentStreak] = useState(0);
   const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
   const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
   const [todayCompletedWorkoutStats, setTodayCompletedWorkoutStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
+  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
+  const [isTodayRestDay, setIsTodayRestDay] = useState(false);
 
-  // Dynamic targets based on goal
-  const targetCalories = userGoal === 'MUSCLE_GAIN' ? 2400 : 1900;
-  const targetProtein = userGoal === 'MUSCLE_GAIN' ? 160 : 145;
-  const targetCarbs = userGoal === 'MUSCLE_GAIN' ? 260 : 180;
-  const targetFat = userGoal === 'MUSCLE_GAIN' ? 75 : 55;
-  const targetWater = 2000;
+  // Dynamic targets based on goal and user personalized body metrics
+  const personalizedTargets = useMemo(() => {
+    return calculatePersonalizedTargets(user, userGoal);
+  }, [user?.weight, user?.height, user?.age, user?.goal, userGoal]);
 
-  // AI Insights State - Local Dynamic vs Gemini Deep AI
-  const [geminiInsights, setGeminiInsights] = useState<AIInsight[] | null>(null);
-  const [insightMode, setInsightMode] = useState<'local' | 'gemini'>('local');
-
-  // Real-time dynamic coaching tips calculated instantly from live sets, macros, and hydration
-  const dynamicLocalInsights = useMemo<AIInsight[]>(() => {
-    return generateDynamicCoachingInsights({
-      caloriesLogged,
-      proteinLogged,
-      carbsLogged,
-      fatLogged,
-      targetCalories,
-      targetProtein,
-      targetCarbs,
-      targetFat,
-      waterMl,
-      targetWater,
-      userGoal,
-      todayExercises,
-      workoutSessionDone,
-      todayCompletedWorkoutStats,
-      currentStreak,
-      userName,
-    });
-  }, [
-    caloriesLogged,
-    proteinLogged,
-    carbsLogged,
-    fatLogged,
-    targetCalories,
-    targetProtein,
-    targetCarbs,
-    targetFat,
-    waterMl,
-    targetWater,
-    userGoal,
-    todayExercises,
-    workoutSessionDone,
-    todayCompletedWorkoutStats,
-    currentStreak,
-    userName,
-  ]);
-
-  const activeInsights =
-    insightMode === 'gemini' && geminiInsights && geminiInsights.length > 0
-      ? geminiInsights
-      : dynamicLocalInsights;
+  const targetCalories = personalizedTargets.calories;
+  const targetProtein = personalizedTargets.protein;
+  const targetCarbs = personalizedTargets.carbs;
+  const targetFat = personalizedTargets.fat;
+  const targetWater = user?.weight
+    ? Math.max(2000, Math.round((user.weight * 35) / 250) * 250)
+    : 2500;
 
   // Time-aware greeting
   const getGreeting = () => {
@@ -250,6 +208,18 @@ export default function Dashboard() {
       let items = localItems;
       let finalWater = localWater;
 
+      // If today is completed and active items are cleaned, read sealed today meals for metrics display
+      if (isCompleted && items.length === 0) {
+        const historyDayKey = authStorage.getScopedKey(userId, `food_log_${todayKey}`);
+        const archivedSaved = await AsyncStorage.getItem(historyDayKey);
+        if (archivedSaved) {
+          try {
+            const parsedArchived = JSON.parse(archivedSaved);
+            if (Array.isArray(parsedArchived)) items = parsedArchived;
+          } catch {}
+        }
+      }
+
       // Update state immediately from local cache so the dashboard renders with 0ms delay
       const computeAndSetMacros = (currentItems: FoodLogItem[], water: number, completed: boolean) => {
         let totalCals = 0;
@@ -286,29 +256,34 @@ export default function Dashboard() {
             }
 
             if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
-              if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
-                items = cloudRes.data.meals.map((m: any) => ({
-                  id: m.id,
-                  mealType: m.mealType,
-                  title: m.title,
-                  subtitle: m.subtitle || undefined,
-                  calories: m.calories,
-                  protein: m.protein,
-                  carbs: m.carbs,
-                  fat: m.fat,
-                  goalBadge: m.goalBadge || undefined,
-                  goalBadgeColor: m.goalBadgeColor || undefined,
-                  icon: m.icon || undefined,
-                  healthNotes: m.healthNotes || undefined,
-                  imageUri: m.imageUri || undefined,
-                  loggedAt: m.loggedAt || undefined,
-                }));
+              const mappedCloudMeals = cloudRes.data.meals.map((m: any) => ({
+                id: m.id,
+                mealType: m.mealType,
+                title: m.title,
+                subtitle: m.subtitle || undefined,
+                calories: m.calories,
+                protein: m.protein,
+                carbs: m.carbs,
+                fat: m.fat,
+                goalBadge: m.goalBadge || undefined,
+                goalBadgeColor: m.goalBadgeColor || undefined,
+                icon: m.icon || undefined,
+                healthNotes: m.healthNotes || undefined,
+                imageUri: m.imageUri || undefined,
+                loggedAt: m.loggedAt || undefined,
+              }));
+
+              if (isCompleted) {
+                // If day is completed, use meals for dashboard metrics but keep active foodKey clean
+                items = mappedCloudMeals;
+              } else if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                items = mappedCloudMeals;
                 await AsyncStorage.setItem(foodKey, JSON.stringify(items));
                 dashboardItemsRef.current = items;
               } else if (localItems.length > cloudRes.data.meals.length) {
                 autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
               }
-            } else if (localItems.length > 0) {
+            } else if (!isCompleted && localItems.length > 0) {
               autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
             }
 
@@ -416,18 +391,41 @@ export default function Dashboard() {
           if (!isNaN(parsed)) setCurrentStreak(parsed);
         }
 
-        // Dynamically compute weekly workouts target from weeklySplit
+        // Dynamically compute weekly workouts target and today's scheduled routine from weeklySplit
         const splitKey = authStorage.getScopedKey(userId, 'workout_planner_split');
-        const savedSplit = await AsyncStorage.getItem(splitKey);
+        const templatesKey = authStorage.getScopedKey(userId, 'workout_planner_templates');
+        const [savedSplit, savedTemplates] = await Promise.all([
+          AsyncStorage.getItem(splitKey),
+          AsyncStorage.getItem(templatesKey),
+        ]);
+
+        let split: WeeklySplit = DEFAULT_WEEKLY_SPLIT;
         if (savedSplit) {
-          const parsed = JSON.parse(savedSplit);
-          if (parsed && typeof parsed === 'object') {
-            const activeDays = Object.values(parsed).filter(Boolean).length;
-            if (activeDays > 0) {
-              setTargetWorkoutsThisWeek(activeDays);
+          try {
+            const parsed = JSON.parse(savedSplit);
+            if (parsed && typeof parsed === 'object') {
+              split = parsed;
             }
-          }
+          } catch {}
         }
+
+        let templates: WorkoutRoutineTemplate[] = DEFAULT_ROUTINE_TEMPLATES;
+        if (savedTemplates) {
+          try {
+            const parsed = JSON.parse(savedTemplates);
+            if (Array.isArray(parsed) && parsed.length > 0) {
+              templates = mergeWithDefaultTemplates(parsed);
+            }
+          } catch {}
+        }
+
+        const todayDay = getTodayDayOfWeek();
+        const routineId = split[todayDay];
+        const matchedRoutine = templates.find((r) => r.id === routineId) || null;
+        const isRest = !matchedRoutine && (routineId === null || routineId === undefined);
+
+        setTodayScheduledRoutine(matchedRoutine);
+        setIsTodayRestDay(isRest);
       } catch (cacheErr) {
         console.log('Error reading local workout cache:', cacheErr);
       }
@@ -648,41 +646,43 @@ export default function Dashboard() {
     }
   };
 
-  const refreshAIInsights = async () => {
-    setLoadingAi(true);
-    try {
-      const res = await getAIInsights();
-      if (res.success && res.insights?.length) {
-        setGeminiInsights(res.insights);
-        setInsightMode('gemini');
-        showSuccess('Gemini Deep AI Active', 'Generated comprehensive performance predictions.');
-      } else {
-        showToast({
-          message: 'Real-time Tips Active',
-          description: 'Calculated personalized coaching from your logged stats.',
-          type: 'info',
-        });
-      }
-    } catch (err: any) {
-      console.log('AI Insights Error:', err.message);
-      showToast({
-        message: 'Live Tips Active',
-        description: 'Unable to reach Gemini API. Showing real-time coaching tips.',
-        type: 'warning',
-      });
-    } finally {
-      setLoadingAi(false);
-    }
-  };
-
   const completedExercisesCount = todayExercises.filter((e) => e.isCompleted).length;
+
+  // Daily workout metric calculations for StatCard
+  const workoutStatValue = workoutSessionDone
+    ? `${activeMinutesToday || todayCompletedWorkoutStats?.duration || 35} min`
+    : activeMinutesToday > 0
+    ? `${activeMinutesToday} min`
+    : isTodayRestDay
+    ? 'Rest Day'
+    : todayScheduledRoutine
+    ? `${todayScheduledRoutine.estimatedDurationMinutes || 45} min`
+    : todayExercises.length > 0
+    ? `${todayExercises.length} planned`
+    : 'Rest Day';
+
+  const workoutStatSubtitle = workoutSessionDone
+    ? (todayCompletedWorkoutStats?.caloriesBurned
+        ? `${todayCompletedWorkoutStats.caloriesBurned} kcal burned`
+        : 'Session completed')
+    : activeMinutesToday > 0
+    ? `${completedExercisesCount}/${todayExercises.length} exercises done`
+    : isTodayRestDay
+    ? 'Active recovery'
+    : todayScheduledRoutine
+    ? `${todayScheduledRoutine.targetMuscleGroup || 'Split'} · Ready`
+    : todayExercises.length > 0
+    ? 'Ready to start'
+    : workoutsThisWeek > 0
+    ? `${workoutsThisWeek} workouts this week`
+    : 'Active recovery';
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         ref={scrollRef}
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -695,22 +695,22 @@ export default function Dashboard() {
         <View className="w-full max-w-5xl self-center mx-auto">
           {/* Header Greeting */}
           <View className="flex-row items-center justify-between mb-4">
-            <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight">
-              {getGreeting()}, {userName}
-            </Text>
+            <View className="flex-1 mr-2">
+              <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight">
+                {getGreeting()}, {userName} 
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium mt-0.5">
+                {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
+              </Text>
+            </View>
 
             <TouchableOpacity
               onPress={() => router.push('/(screen)/calendar' as any)}
               activeOpacity={0.8}
-              className="flex-row items-center gap-1.5 px-3.5 py-2.5 min-h-[44px] rounded-2xl border bg-accent/10 dark:bg-accent-dark/15 border-accent/30 dark:border-accent-dark/30"
+              className="flex-row items-center gap-1.5 px-3.5 py-2 min-h-[40px] rounded-2xl bg-surface dark:bg-surface-dark border-0 shadow-sm shadow-slate-200/70 dark:shadow-none"
               accessibilityLabel="Activity Calendar"
             >
-              <Ionicons
-                name="calendar"
-                size={15}
-                color={colors.accent}
-              />
-              <Text className="text-xs font-black text-accent dark:text-accent-dark">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                 Calendar
               </Text>
             </TouchableOpacity>
@@ -718,41 +718,19 @@ export default function Dashboard() {
 
           {initialLoading ? (
             <View className="my-2">
-              <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
-                <ActivityIndicator size="small" color={colors.accent} />
-                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
-                  Syncing Fitness Dashboard...
-                </Text>
-                <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
-                  Updating your calories, hydration & workouts
-                </Text>
-              </View>
+              <CardSkeleton className="mb-3" />
 
               {/* Skeleton placeholder stats */}
               <View className="flex-row gap-2.5 mb-2.5">
-                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-                </View>
-                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-                </View>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
               </View>
               <View className="flex-row gap-2.5 mb-3">
-                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-                </View>
-                <View className="flex-1 h-24 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-3.5 opacity-60 justify-center">
-                  <View className="w-12 h-3 rounded bg-input dark:bg-input-dark mb-2" />
-                  <View className="w-20 h-5 rounded bg-input dark:bg-input-dark mb-1" />
-                  <View className="w-24 h-2.5 rounded bg-input dark:bg-input-dark" />
-                </View>
+                <StatCardSkeleton />
+                <StatCardSkeleton />
               </View>
+
+              <CardSkeleton className="mb-3" />
             </View>
           ) : (
             <>
@@ -768,7 +746,7 @@ export default function Dashboard() {
               <View className="flex-col md:flex-row gap-2.5 mb-3">
                 <View className="flex-row flex-1 gap-2.5">
                   <StatCard
-                    iconName="flame"
+                    iconName="restaurant"
                     title="Calories"
                     value={`${caloriesLogged.toLocaleString()} kcal`}
                     subtitle={`Goal: ${targetCalories.toLocaleString()} kcal`}
@@ -785,13 +763,13 @@ export default function Dashboard() {
                 <View className="flex-row flex-1 gap-2.5">
                   <StatCard
                     iconName="barbell"
-                    title="Workouts"
-                    value={`${workoutsThisWeek} / ${targetWorkoutsThisWeek}`}
-                    subtitle={workoutsThisWeek > 0 ? `${workoutsThisWeek} sessions logged` : 'Start a routine'}
+                    title="Workout"
+                    value={workoutStatValue}
+                    subtitle={workoutStatSubtitle}
                     onPress={() => router.push('/(screen)/workouts' as any)}
                   />
                   <StatCard
-                    iconName="sparkles"
+                    iconName="flame"
                     title="Streak"
                     value={`${currentStreak} ${currentStreak === 1 ? 'day' : 'days'}`}
                     subtitle={currentStreak > 0 ? 'Active streak' : 'Check in daily'}
@@ -806,6 +784,8 @@ export default function Dashboard() {
                     exercises={todayExercises}
                     isSessionCompleted={workoutSessionDone}
                     completedStats={todayCompletedWorkoutStats}
+                    scheduledRoutine={todayScheduledRoutine}
+                    isRestDay={isTodayRestDay}
                   />
                 </View>
 
@@ -823,7 +803,7 @@ export default function Dashboard() {
                 </View>
               </View>
 
-              {/* 7-Day Calorie & Macro Trend Weekly Chart */}
+              {/* 7-Day Nutrition & Workout Trends Weekly Chart */}
               <WeeklyNutritionChartCard
                 currentDayCalories={caloriesLogged}
                 currentDayProtein={proteinLogged}
@@ -833,6 +813,10 @@ export default function Dashboard() {
                 targetProtein={targetProtein}
                 targetCarbs={targetCarbs}
                 targetFat={targetFat}
+                activeMinutesToday={activeMinutesToday}
+                workoutSessionDone={workoutSessionDone}
+                todayCompletedWorkoutStats={todayCompletedWorkoutStats}
+                targetWorkoutMinutes={45}
               />
 
               {/* Interactive Daily Goals Checklist */}
@@ -849,18 +833,8 @@ export default function Dashboard() {
                 targetWaterMl={targetWater}
                 onQuickAddWater={handleQuickAddWater}
                 onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-              />
-
-              {/* AI Insights & Predictions */}
-              <AiInsightsCard
-                insights={activeInsights}
-                loading={loadingAi}
-                mode={insightMode === 'gemini' && geminiInsights?.length ? 'gemini' : 'local'}
-                hasGeminiInsights={Boolean(geminiInsights && geminiInsights.length > 0)}
-                onRefresh={refreshAIInsights}
-                onToggleMode={() => {
-                  setInsightMode((prev) => (prev === 'gemini' ? 'local' : 'gemini'));
-                }}
+                scheduledRoutine={todayScheduledRoutine}
+                isRestDay={isTodayRestDay}
               />
 
               {/* Community Athlete Stories & Testimonials */}

@@ -3,8 +3,9 @@ import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+
+import { WorkoutRoutineTemplate } from '@/components/workouts/workoutTypes';
 
 export interface DailyGoalItem {
   id: string;
@@ -29,6 +30,8 @@ interface DailyGoalsCardProps {
   targetWaterMl?: number;
   onQuickAddWater: (amountMl: number) => void;
   onCheckInPress?: () => void;
+  scheduledRoutine?: WorkoutRoutineTemplate | null;
+  isRestDay?: boolean;
 }
 
 export default function DailyGoalsCard({
@@ -44,13 +47,73 @@ export default function DailyGoalsCard({
   targetWaterMl = 2500,
   onQuickAddWater,
   onCheckInPress,
+  scheduledRoutine,
+  isRestDay = false,
 }: DailyGoalsCardProps) {
   const router = useRouter();
-  
 
   const isNutritionDoneResolved = Boolean(isNutritionDone);
   const isWorkoutDoneResolved = Boolean(workoutSessionDone);
   const isHydrationDone = waterMl >= targetWaterMl;
+
+  // Resolve workout goal representation from weekly split
+  let workoutTitle = 'Daily Workout Session';
+  let workoutSubtitle = 'No exercises started yet';
+  let workoutCompleted = isWorkoutDoneResolved;
+  let workoutProgressText = isWorkoutDoneResolved ? 'Done ✓' : `${activeMinutes} min`;
+  let workoutActionLabel: string | undefined = isWorkoutDoneResolved ? 'History' : 'Workouts';
+
+  if (isRestDay) {
+    workoutTitle = 'Rest & Recovery Day';
+    if (isWorkoutDoneResolved) {
+      workoutSubtitle = `Rest day · Workout completed! 🏆 (${activeMinutes || 35} min)`;
+      workoutCompleted = true;
+      workoutProgressText = 'Done 🏆';
+      workoutActionLabel = 'History';
+    } else {
+      workoutSubtitle = 'Scheduled rest day in your weekly split · Time to recover';
+      workoutCompleted = true;
+      workoutProgressText = 'Rest ✓';
+      workoutActionLabel = 'Workouts';
+    }
+  } else if (scheduledRoutine) {
+    workoutTitle = scheduledRoutine.title;
+    if (isWorkoutDoneResolved) {
+      workoutSubtitle = `Session completed for today 🏆 · ${activeMinutes || scheduledRoutine.estimatedDurationMinutes || 35} min`;
+      workoutCompleted = true;
+      workoutProgressText = 'Done ✓';
+      workoutActionLabel = 'History';
+    } else if (totalExercisesCount > 0) {
+      workoutSubtitle = `${completedExercisesCount}/${totalExercisesCount} exercises checked (In Progress)`;
+      workoutCompleted = false;
+      workoutProgressText = `${activeMinutes} min`;
+      workoutActionLabel = 'Resume';
+    } else {
+      const exCount = scheduledRoutine.exercises?.length || 4;
+      const targetMuscle = scheduledRoutine.targetMuscleGroup ? `Target: ${scheduledRoutine.targetMuscleGroup}` : 'Weekly Split';
+      workoutSubtitle = `${exCount} exercises planned · ${targetMuscle}`;
+      workoutCompleted = false;
+      workoutProgressText = `${scheduledRoutine.estimatedDurationMinutes || 45} min`;
+      workoutActionLabel = 'Start';
+    }
+  } else {
+    if (isWorkoutDoneResolved) {
+      workoutSubtitle = 'Session completed for today 🏆';
+      workoutCompleted = true;
+      workoutProgressText = 'Done ✓';
+      workoutActionLabel = 'History';
+    } else if (totalExercisesCount > 0) {
+      workoutSubtitle = `${completedExercisesCount}/${totalExercisesCount} exercises checked (In Progress)`;
+      workoutCompleted = false;
+      workoutProgressText = `${activeMinutes} min`;
+      workoutActionLabel = 'Resume';
+    } else {
+      workoutSubtitle = 'No exercises started yet';
+      workoutCompleted = false;
+      workoutProgressText = `${activeMinutes} min`;
+      workoutActionLabel = 'Workouts';
+    }
+  }
 
   const goals: DailyGoalItem[] = [
     {
@@ -58,7 +121,7 @@ export default function DailyGoalsCard({
       title: 'Daily Readiness Check-In',
       subtitle: isCheckedIn ? 'Completed morning readiness check' : 'Log your mood and energy above',
       isCompleted: isCheckedIn,
-      progressText: isCheckedIn ? '1/1 Done' : 'Pending',
+      progressText: isCheckedIn ? 'Done ✓' : 'Pending',
       actionLabel: isCheckedIn ? undefined : (onCheckInPress ? 'Check In' : undefined),
       onAction: onCheckInPress,
     },
@@ -75,15 +138,11 @@ export default function DailyGoalsCard({
     },
     {
       id: 'workout',
-      title: 'Daily Workout Session',
-      subtitle: isWorkoutDoneResolved
-        ? 'Session completed for today 🏆'
-        : totalExercisesCount > 0
-        ? `${completedExercisesCount}/${totalExercisesCount} exercises checked (In Progress)`
-        : 'No exercises started yet',
-      isCompleted: isWorkoutDoneResolved,
-      progressText: isWorkoutDoneResolved ? 'Done ✓' : `${activeMinutes} min`,
-      actionLabel: isWorkoutDoneResolved ? 'History' : 'Workouts',
+      title: workoutTitle,
+      subtitle: workoutSubtitle,
+      isCompleted: workoutCompleted,
+      progressText: workoutProgressText,
+      actionLabel: workoutActionLabel,
       onAction: () => router.push('/(screen)/workouts' as any),
     },
     {
@@ -152,6 +211,9 @@ export default function DailyGoalsCard({
         {goals.map((goal) => (
           <View
             key={goal.id}
+            accessibilityRole="checkbox"
+            accessibilityState={{ checked: goal.isCompleted }}
+            accessibilityLabel={`${goal.title}: ${goal.isCompleted ? 'Completed' : 'Pending'}`}
             className={`flex-row items-center p-3 rounded-2xl border ${
               goal.isCompleted
                 ? 'bg-emerald-500/5 dark:bg-emerald-500/10 border-emerald-500/20'
@@ -173,7 +235,7 @@ export default function DailyGoalsCard({
             <View className="flex-1 pr-2">
               <Text
                 className={`text-xs font-bold leading-tight ${
-                  goal.isCompleted
+                  goal.isCompleted && !(goal.id === 'workout' && isRestDay && !workoutSessionDone)
                     ? 'text-text-muted dark:text-text-muted-dark line-through'
                     : 'text-text-primary dark:text-text-primary-dark'
                 }`}
@@ -186,39 +248,28 @@ export default function DailyGoalsCard({
             </View>
 
             {/* Action / Progress Badge */}
-            {goal.actionLabel && goal.onAction ? (
+            {goal.isCompleted ? (
+              <View className="px-2.5 py-1 rounded-full border bg-emerald-500/15 border-emerald-500/30">
+                <Text className="text-[10px] font-bold uppercase tracking-wide text-accent dark:text-accent-dark">
+                  {goal.progressText || 'Done ✓'}
+                </Text>
+              </View>
+            ) : goal.actionLabel && goal.onAction ? (
               <TouchableOpacity
                 onPress={goal.onAction}
                 activeOpacity={0.8}
-                className={`px-3 py-1.5 rounded-xl border ${
-                  goal.isCompleted
-                    ? 'bg-transparent border-input-border dark:border-input-border-dark'
-                    : 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
-                }`}
+                accessibilityRole="button"
+                accessibilityLabel={`${goal.actionLabel} for ${goal.title}`}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                className="min-h-[38px] px-3.5 py-1.5 items-center justify-center rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark active:opacity-75"
               >
-                <Text
-                  className={`text-[11px] font-bold ${
-                    goal.isCompleted
-                      ? 'text-text-muted dark:text-text-muted-dark'
-                      : 'text-white'
-                  }`}
-                >
-                  {goal.isCompleted ? 'Done' : goal.actionLabel}
+                <Text className="text-xs font-bold text-accent-contrast dark:text-accent-contrast-dark">
+                  {goal.actionLabel}
                 </Text>
               </TouchableOpacity>
             ) : (
-              <View
-                className={`px-2.5 py-1 rounded-full border ${
-                  goal.isCompleted
-                    ? 'bg-emerald-500/15 border-emerald-500/30'
-                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-bold uppercase tracking-wide ${
-                    goal.isCompleted ? 'text-accent dark:text-accent-dark' : 'text-text-muted dark:text-text-muted-dark'
-                  }`}
-                >
+              <View className="px-2.5 py-1 rounded-full border bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark">
+                <Text className="text-[10px] font-bold uppercase tracking-wide text-text-muted dark:text-text-muted-dark">
                   {goal.progressText}
                 </Text>
               </View>

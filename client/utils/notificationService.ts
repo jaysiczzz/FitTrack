@@ -6,7 +6,6 @@ import {
   getNotificationSettingsApi,
   updateNotificationSettingsApi,
   resetNotificationSettingsApi,
-  ApiNotificationSettings,
 } from '../api/notifications';
 
 export interface NotificationSettings {

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter, ActivityIndicator } from 'react-native';
+import { ScrollView, View, Text, TouchableOpacity, Pressable, DeviceEventEmitter, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect, useRouter } from 'expo-router';
+import { useFocusEffect } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
@@ -18,11 +18,15 @@ import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import EditMealModal from '@/components/foodlog/EditMealModal';
 import RemoveFoodModal from '@/components/foodlog/RemoveFoodModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import AiInsightsCard from '@/components/ai/AiInsightsCard';
+import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
+import { getAIInsights, AIInsight } from '@/api/ai';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
-import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, MEAL_ICONS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import { FoodLogItem, MacroTargets, MealType, getTodayDateString, MEAL_LABELS, getSmartFoodBadge, calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
 import Button from '@/components/ui/Button';
+import { CardSkeleton } from '@/components/ui/Skeleton';
 import { saveDailyFoodLogApi, getDailyFoodLogApi, autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
 import { screenCache } from '@/utils/screenCache';
 import { useThemeColors } from '@/constants/colors';
@@ -30,7 +34,6 @@ import { useThemeColors } from '@/constants/colors';
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
-  const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
   const userId = user?.id;
@@ -44,6 +47,11 @@ export default function FoodLog() {
   const [isDayCompleted, setIsDayCompleted] = useState(false);
   const [loading, setLoading] = useState(!screenCache.foodLogLoaded);
 
+  // AI Nutrition Insights State - Local Dynamic vs Gemini Deep AI
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [geminiInsights, setGeminiInsights] = useState<AIInsight[] | null>(null);
+  const [insightMode, setInsightMode] = useState<'local' | 'gemini'>('local');
+
   const isLoadingRef = useRef(false);
   const waterMlRef = useRef(0);
   const itemsRef = useRef<FoodLogItem[]>([]);
@@ -53,10 +61,14 @@ export default function FoodLog() {
   const [scanInitialMode, setScanInitialMode] = useState<'photo' | 'text'>('photo');
   const [scanTargetMeal, setScanTargetMeal] = useState<MealType | undefined>(undefined);
   const [showAiSuggestModal, setShowAiSuggestModal] = useState(false);
+  const [aiSuggestTargetMeal, setAiSuggestTargetMeal] = useState<MealType | 'all'>('all');
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<FoodLogItem | null>(null);
   const [itemToEdit, setItemToEdit] = useState<FoodLogItem | null>(null);
   const [showCompleteConfirm, setShowCompleteConfirm] = useState(false);
+  const [showReopenModal, setShowReopenModal] = useState(false);
+  const [archivedTodayMeals, setArchivedTodayMeals] = useState<FoodLogItem[]>([]);
+  const [archivedTodayWater, setArchivedTodayWater] = useState<number>(0);
 
   // Targets computed dynamically based on user body stats & goal
   const targets: MacroTargets = useMemo(() => {
@@ -122,9 +134,26 @@ export default function FoodLog() {
       // 2. Fetch authenticated user's actual database log for today
       if (userId) {
         const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+        const archivedKey = authStorage.getScopedKey(userId, `food_log_archived_${todayStr}`);
+        const archivedWaterKey = authStorage.getScopedKey(userId, `water_log_archived_${todayStr}`);
         const cachedCompleted = await AsyncStorage.getItem(dayCompletedKey);
         let resolvedCompleted = cachedCompleted === 'true';
         setIsDayCompleted(resolvedCompleted);
+
+        // Load cached archived meals if exists
+        const cachedArchived = await AsyncStorage.getItem(archivedKey);
+        if (cachedArchived) {
+          try {
+            const parsedArchived = JSON.parse(cachedArchived);
+            if (Array.isArray(parsedArchived)) {
+              setArchivedTodayMeals(parsedArchived);
+            }
+          } catch {}
+        }
+        const cachedArchivedWater = await AsyncStorage.getItem(archivedWaterKey);
+        if (cachedArchivedWater !== null) {
+          setArchivedTodayWater(parseInt(cachedArchivedWater, 10) || 0);
+        }
 
         try {
           const cloudRes = await getDailyFoodLogApi(todayStr);
@@ -135,10 +164,10 @@ export default function FoodLog() {
               await AsyncStorage.setItem(dayCompletedKey, resolvedCompleted ? 'true' : 'false');
             }
 
-            let resolvedItems = localItems;
-            if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
-              if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
-                resolvedItems = cloudRes.data.meals.map((m: any) => {
+            if (resolvedCompleted) {
+              // Day is completed: preserve archived meals from cloud for reopening, keep active items cleaned
+              if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
+                const cloudArchivedMeals = cloudRes.data.meals.map((m: any) => {
                   const badgeInfo = (m.goalBadge && m.goalBadgeColor)
                     ? { badge: m.goalBadge, color: m.goalBadgeColor }
                     : getSmartFoodBadge(m);
@@ -159,27 +188,65 @@ export default function FoodLog() {
                     loggedAt: m.loggedAt || undefined,
                   };
                 });
-                setItems(resolvedItems);
-                itemsRef.current = resolvedItems;
-                await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
-              } else if (localItems.length > cloudRes.data.meals.length) {
+                setArchivedTodayMeals(cloudArchivedMeals);
+                await AsyncStorage.setItem(archivedKey, JSON.stringify(cloudArchivedMeals));
+              }
+              const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
+              setArchivedTodayWater(cloudWater);
+              await AsyncStorage.setItem(archivedWaterKey, cloudWater.toString());
+
+              // Active Today list remains clean
+              setItems([]);
+              itemsRef.current = [];
+              await AsyncStorage.setItem(foodKey, JSON.stringify([]));
+            } else {
+              // Day is still in progress: regular sync
+              let resolvedItems = localItems;
+              if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
+                if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                  resolvedItems = cloudRes.data.meals.map((m: any) => {
+                    const badgeInfo = (m.goalBadge && m.goalBadgeColor)
+                      ? { badge: m.goalBadge, color: m.goalBadgeColor }
+                      : getSmartFoodBadge(m);
+                    return {
+                      id: m.id,
+                      mealType: m.mealType as MealType,
+                      title: m.title,
+                      subtitle: m.subtitle || undefined,
+                      calories: m.calories,
+                      protein: m.protein,
+                      carbs: m.carbs,
+                      fat: m.fat,
+                      goalBadge: badgeInfo.badge,
+                      goalBadgeColor: badgeInfo.color,
+                      icon: m.icon || undefined,
+                      healthNotes: m.healthNotes || undefined,
+                      imageUri: m.imageUri || undefined,
+                      loggedAt: m.loggedAt || undefined,
+                    };
+                  });
+                  setItems(resolvedItems);
+                  itemsRef.current = resolvedItems;
+                  await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
+                } else if (localItems.length > cloudRes.data.meals.length) {
+                  autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
+                }
+              } else if (localItems.length > 0) {
                 autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
               }
-            } else if (localItems.length > 0) {
-              autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
-            }
 
-            const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
-            let resolvedWater = localWater;
-            if (!hasLocalWater) {
-              resolvedWater = cloudWater;
-              setWaterMl(resolvedWater);
-              waterMlRef.current = resolvedWater;
-              await AsyncStorage.setItem(waterKey, resolvedWater.toString());
-            } else {
-              resolvedWater = localWater;
-              if (localWater !== cloudWater) {
-                autoSyncFoodAndWater(userId, todayStr, resolvedItems, localWater);
+              const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
+              let resolvedWater = localWater;
+              if (!hasLocalWater) {
+                resolvedWater = cloudWater;
+                setWaterMl(resolvedWater);
+                waterMlRef.current = resolvedWater;
+                await AsyncStorage.setItem(waterKey, resolvedWater.toString());
+              } else {
+                resolvedWater = localWater;
+                if (localWater !== cloudWater) {
+                  autoSyncFoodAndWater(userId, todayStr, resolvedItems, localWater);
+                }
               }
             }
           }
@@ -255,11 +322,6 @@ export default function FoodLog() {
 
     DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', waterMl: clamped });
     autoSyncFoodAndWater(userId, todayStr, itemsRef.current, clamped);
-  };
-
-  const saveWater = (newWater: number) => {
-    const current = waterMlRef.current;
-    handleAddWaterDelta(newWater - current);
   };
 
   // Add Item handler (supports single item or batch array)
@@ -393,7 +455,14 @@ export default function FoodLog() {
     const historyWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
     const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
     const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+    const archivedKey = authStorage.getScopedKey(userId, `food_log_archived_${todayStr}`);
+    const archivedWaterKey = authStorage.getScopedKey(userId, `water_log_archived_${todayStr}`);
 
+    // Clean active items & store archived snapshot
+    setArchivedTodayMeals(currentItems);
+    setArchivedTodayWater(currentWater);
+    setItems([]);
+    itemsRef.current = [];
     setIsDayCompleted(true);
 
     showToast({
@@ -410,6 +479,9 @@ export default function FoodLog() {
       await Promise.all([
         AsyncStorage.setItem(historyDateKey, JSON.stringify(currentItems)),
         AsyncStorage.setItem(historyWaterKey, currentWater.toString()),
+        AsyncStorage.setItem(archivedKey, JSON.stringify(currentItems)),
+        AsyncStorage.setItem(archivedWaterKey, currentWater.toString()),
+        AsyncStorage.setItem(foodKey, JSON.stringify([])),
         AsyncStorage.setItem(dayCompletedKey, 'true'),
         (async () => {
           const rawDates = await AsyncStorage.getItem(historyDatesKey);
@@ -440,27 +512,117 @@ export default function FoodLog() {
     }
   };
 
-  const handleReopenDay = async () => {
+  const handleReopenWithMeals = async () => {
+    setShowReopenModal(false);
     const todayStr = getTodayDateString();
     const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+    const archivedKey = authStorage.getScopedKey(userId, `food_log_archived_${todayStr}`);
+    const archivedWaterKey = authStorage.getScopedKey(userId, `water_log_archived_${todayStr}`);
+
+    let mealsToRestore = archivedTodayMeals;
+    let waterToRestore = archivedTodayWater;
+
+    if (mealsToRestore.length === 0) {
+      const savedArchived = await AsyncStorage.getItem(archivedKey);
+      if (savedArchived) {
+        try {
+          const parsed = JSON.parse(savedArchived);
+          if (Array.isArray(parsed)) mealsToRestore = parsed;
+        } catch {}
+      }
+      if (mealsToRestore.length === 0) {
+        const historyKey = authStorage.getScopedKey(userId, `food_log_${todayStr}`);
+        const savedHistory = await AsyncStorage.getItem(historyKey);
+        if (savedHistory) {
+          try {
+            const parsed = JSON.parse(savedHistory);
+            if (Array.isArray(parsed)) mealsToRestore = parsed;
+          } catch {}
+        }
+      }
+    }
+
+    if (waterToRestore === 0) {
+      const savedArchivedWater = await AsyncStorage.getItem(archivedWaterKey);
+      if (savedArchivedWater) {
+        waterToRestore = parseInt(savedArchivedWater, 10) || 0;
+      }
+    }
+
+    setItems(mealsToRestore);
+    itemsRef.current = mealsToRestore;
+    if (waterToRestore > 0) {
+      setWaterMl(waterToRestore);
+      waterMlRef.current = waterToRestore;
+    }
     setIsDayCompleted(false);
+
     try {
-      await AsyncStorage.setItem(dayCompletedKey, 'false');
-      await saveDailyFoodLogApi({
-        date: todayStr,
-        items: itemsRef.current,
-        waterMl: waterMlRef.current,
-        isCompleted: false,
-      });
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
+      await Promise.all([
+        AsyncStorage.setItem(foodKey, JSON.stringify(mealsToRestore)),
+        AsyncStorage.setItem(waterKey, waterToRestore.toString()),
+        AsyncStorage.setItem(dayCompletedKey, 'false'),
+        saveDailyFoodLogApi({
+          date: todayStr,
+          items: mealsToRestore,
+          waterMl: waterToRestore,
+          isCompleted: false,
+        }),
+      ]);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', waterMl: waterToRestore });
       showToast({
         message: 'Day Reopened',
-        description: 'You can continue logging meals and tracking macros for today.',
+        description: `Restored ${mealsToRestore.length} previous meals to your log.`,
         type: 'info',
         iconName: 'create-outline',
       });
     } catch (e) {
-      console.log('Error reopening day:', e);
+      console.log('Error reopening day with meals:', e);
+    }
+  };
+
+  const handleReopenStartFresh = async () => {
+    setShowReopenModal(false);
+    const todayStr = getTodayDateString();
+    const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+    const historyDateKey = authStorage.getScopedKey(userId, `food_log_${todayStr}`);
+    const historyWaterKey = authStorage.getScopedKey(userId, `water_log_${todayStr}`);
+    const archivedKey = authStorage.getScopedKey(userId, `food_log_archived_${todayStr}`);
+    const archivedWaterKey = authStorage.getScopedKey(userId, `water_log_archived_${todayStr}`);
+
+    setItems([]);
+    itemsRef.current = [];
+    setArchivedTodayMeals([]);
+    setWaterMl(0);
+    waterMlRef.current = 0;
+    setArchivedTodayWater(0);
+    setIsDayCompleted(false);
+
+    try {
+      await Promise.all([
+        AsyncStorage.setItem(foodKey, JSON.stringify([])),
+        AsyncStorage.setItem(waterKey, '0'),
+        AsyncStorage.setItem(historyDateKey, JSON.stringify([])),
+        AsyncStorage.setItem(historyWaterKey, '0'),
+        AsyncStorage.setItem(archivedKey, JSON.stringify([])),
+        AsyncStorage.setItem(archivedWaterKey, '0'),
+        AsyncStorage.setItem(dayCompletedKey, 'false'),
+        saveDailyFoodLogApi({
+          date: todayStr,
+          items: [],
+          waterMl: 0,
+          isCompleted: false,
+        }),
+      ]);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', waterMl: 0 });
+      showToast({
+        message: 'Day Reopened Fresh',
+        description: 'Previous meals cleared. Ready for fresh logging.',
+        type: 'info',
+        iconName: 'sparkles-outline',
+      });
+    } catch (e) {
+      console.log('Error reopening day fresh:', e);
     }
   };
 
@@ -470,8 +632,82 @@ export default function FoodLog() {
   const loggedCarbs = items.reduce((sum, item) => sum + (item.carbs || 0), 0);
   const loggedFat = items.reduce((sum, item) => sum + (item.fat || 0), 0);
 
+  const sealedCalories = useMemo(() => {
+    if (items.length > 0) return loggedCalories;
+    return archivedTodayMeals.reduce((sum, item) => sum + (item.calories || 0), 0);
+  }, [items, loggedCalories, archivedTodayMeals]);
+
+  const sealedProtein = useMemo(() => {
+    if (items.length > 0) return loggedProtein;
+    return archivedTodayMeals.reduce((sum, item) => sum + (item.protein || 0), 0);
+  }, [items, loggedProtein, archivedTodayMeals]);
+
+  const sealedCarbs = useMemo(() => {
+    if (items.length > 0) return loggedCarbs;
+    return archivedTodayMeals.reduce((sum, item) => sum + (item.carbs || 0), 0);
+  }, [items, loggedCarbs, archivedTodayMeals]);
+
+  const sealedFat = useMemo(() => {
+    if (items.length > 0) return loggedFat;
+    return archivedTodayMeals.reduce((sum, item) => sum + (item.fat || 0), 0);
+  }, [items, loggedFat, archivedTodayMeals]);
+
   const remainingCalories = Math.max(0, targets.calories - loggedCalories);
   const remainingProtein = Math.max(0, targets.protein - loggedProtein);
+
+  // Dynamic local coaching tips for nutrition & hydration
+  const dynamicNutritionInsights = useMemo<AIInsight[]>(() => {
+    const all = generateDynamicCoachingInsights({
+      caloriesLogged: loggedCalories,
+      proteinLogged: loggedProtein,
+      carbsLogged: loggedCarbs,
+      fatLogged: loggedFat,
+      targetCalories: targets.calories,
+      targetProtein: targets.protein,
+      targetCarbs: targets.carbs,
+      targetFat: targets.fat,
+      waterMl,
+      targetWater: targetWaterMl,
+      userGoal: goal,
+      todayExercises: [],
+      workoutSessionDone: false,
+      todayCompletedWorkoutStats: null,
+      currentStreak: 0,
+      userName: user?.name || 'Athlete',
+    });
+    // all[1] is nutrition insight, all[2] is hydration insight
+    return all.slice(1).filter(Boolean);
+  }, [
+    loggedCalories,
+    loggedProtein,
+    loggedCarbs,
+    loggedFat,
+    targets,
+    waterMl,
+    targetWaterMl,
+    goal,
+    user?.name,
+  ]);
+
+  const nutritionGeminiInsights = useMemo(() => {
+    if (!geminiInsights || geminiInsights.length === 0) return [];
+    const nutritionKeywords = ['nutrition', 'macro', 'calorie', 'protein', 'carb', 'fat', 'diet', 'meal', 'water', 'hydrat'];
+    const matches = geminiInsights.filter((item) =>
+      nutritionKeywords.some(
+        (kw) =>
+          item.title.toLowerCase().includes(kw) ||
+          item.lines.some((l) => l.toLowerCase().includes(kw))
+      )
+    );
+    return matches.length > 0 ? matches : geminiInsights.slice(1);
+  }, [geminiInsights]);
+
+  const activeNutritionInsights = useMemo(() => {
+    if (insightMode === 'gemini' && nutritionGeminiInsights.length > 0) {
+      return nutritionGeminiInsights;
+    }
+    return dynamicNutritionInsights;
+  }, [insightMode, nutritionGeminiInsights, dynamicNutritionInsights]);
 
   // Grouped by Meal Category
   const breakfastItems = items.filter((i) => i.mealType === 'breakfast');
@@ -492,7 +728,7 @@ export default function FoodLog() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}>
         <View className="w-full max-w-5xl self-center mx-auto">
           {/* Streamlined Screen Header */}
           <View className="mb-3.5">
@@ -538,10 +774,10 @@ export default function FoodLog() {
               {/* 1. Daily Macro & Calorie Budget Summary Card */}
               <MacroSummaryCard
                 targets={targets}
-                loggedCalories={loggedCalories}
-                loggedProtein={loggedProtein}
-                loggedCarbs={loggedCarbs}
-                loggedFat={loggedFat}
+                loggedCalories={isDayCompleted ? sealedCalories : loggedCalories}
+                loggedProtein={isDayCompleted ? sealedProtein : loggedProtein}
+                loggedCarbs={isDayCompleted ? sealedCarbs : loggedCarbs}
+                loggedFat={isDayCompleted ? sealedFat : loggedFat}
                 goal={goal}
               />
 
@@ -553,7 +789,10 @@ export default function FoodLog() {
                   </Text>
 
                   <TouchableOpacity
-                    onPress={() => setShowAiSuggestModal(true)}
+                    onPress={() => {
+                      setAiSuggestTargetMeal('all');
+                      setShowAiSuggestModal(true);
+                    }}
                     activeOpacity={0.8}
                     className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
                   >
@@ -565,14 +804,9 @@ export default function FoodLog() {
                 </View>
 
                 {loading && items.length === 0 ? (
-                  <View className="p-6 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
-                    <ActivityIndicator size="small" color={colors.accent} />
-                    <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm mt-3 mb-1">
-                      Loading Today's Meals...
-                    </Text>
-                    <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center">
-                      Fetching your logged food and hydration
-                    </Text>
+                  <View className="my-2 gap-y-3">
+                    <CardSkeleton lines={3} />
+                    <CardSkeleton lines={3} />
                   </View>
                 ) : (
                   <View className="flex-col md:flex-row md:flex-wrap md:justify-between">
@@ -635,37 +869,47 @@ export default function FoodLog() {
                 )}
               </View>
 
-
-              {/* 4. Hydration Water Tracker */}
+              {/* 3. Hydration Water Tracker */}
               <WaterTrackerCard
                 waterMl={waterMl}
                 targetMl={targetWaterMl}
                 onAddWater={handleAddWaterDelta}
               />
 
-              {/* 5. Daily Summary Completion Control */}
+              {/* 4. AI Nutrition Insights */}
+              <AiInsightsCard
+                category="nutrition"
+                insights={activeNutritionInsights}
+                loading={loadingAi}
+              />
+
+
+              {/* 6. Daily Summary Completion Control */}
               <View className="mt-2 mb-4">
                 {isDayCompleted ? (
-                  <View className="p-4 rounded-2xl bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/30 flex-row items-center justify-between">
+                  <View className="p-4 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center">
+                      <View className="w-8 h-8 rounded-full bg-accent/20 items-center justify-center">
                         <Ionicons name="checkmark-circle" size={20} color={colors.accent} />
                       </View>
                       <View className="flex-1">
-                        <Text className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                        <Text className="text-xs font-baloo-bold text-accent dark:text-accent-dark">
                           Daily Intake Completed 🎉
                         </Text>
                         <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                          {loggedCalories} kcal · {loggedProtein}g Protein sealed into History
+                          {sealedCalories} kcal · {sealedProtein}g Protein sealed into History
                         </Text>
                       </View>
                     </View>
                     <TouchableOpacity
-                      onPress={handleReopenDay}
+                      onPress={() => setShowReopenModal(true)}
                       activeOpacity={0.7}
-                      className="px-3 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                      accessibilityRole="button"
+                      accessibilityLabel="Reopen today's food log"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-60"
                     >
-                      <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
+                      <Text className="text-xs font-baloo-bold text-text-primary dark:text-text-primary-dark">
                         Reopen Day
                       </Text>
                     </TouchableOpacity>
@@ -713,6 +957,7 @@ export default function FoodLog() {
         goal={goal}
         remainingCalories={remainingCalories}
         remainingProtein={remainingProtein}
+        initialMealType={aiSuggestTargetMeal}
       />
 
       {/* Edit Meal / Portion Adjustment Modal */}
@@ -748,6 +993,95 @@ export default function FoodLog() {
         }}
         onCancel={() => setShowCompleteConfirm(false)}
       />
+
+      {/* Reopen Day Choice Modal (Relog Previous Meals vs Start Fresh) */}
+      <Modal
+        visible={showReopenModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowReopenModal(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/70 justify-end md:justify-center p-0 md:p-6"
+          onPress={() => setShowReopenModal(false)}
+        >
+          <Pressable
+            className="w-full max-w-[480px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
+            onPress={(e) => e.stopPropagation()}
+          >
+            {/* Action Sheet Drag Indicator (Phone only) */}
+            <View className="w-12 h-1.5 bg-input-border dark:bg-input-border-dark rounded-full mb-5 md:hidden" />
+
+            {/* Header Icon */}
+            <View className="w-14 h-14 rounded-2xl bg-accent/15 items-center justify-center mb-3.5">
+              <Ionicons name="refresh" size={28} color={colors.accent} />
+            </View>
+
+            <Text className="text-xl font-baloo-bold text-text-primary dark:text-text-primary-dark text-center mb-1.5">
+              Reopen Today's Log
+            </Text>
+
+            <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center leading-relaxed mb-6 px-3">
+              How would you like to continue tracking today's food log? You can restore your previously logged meals or start completely fresh.
+            </Text>
+
+            {/* Option 1: Relog Previous Meals */}
+            <TouchableOpacity
+              onPress={handleReopenWithMeals}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Relog previous meals"
+              className="w-full p-4 mb-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
+            >
+              <View className="w-11 h-11 rounded-xl bg-accent/20 items-center justify-center">
+                <Ionicons name="receipt-outline" size={22} color={colors.accent} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
+                  Relog Previous Meals
+                </Text>
+                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
+                  Restore {archivedTodayMeals.length} previous items ({sealedCalories} kcal) to edit or add more meals.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Option 2: Start Fresh */}
+            <TouchableOpacity
+              onPress={handleReopenStartFresh}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Start fresh food log"
+              className="w-full p-4 mb-4 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
+            >
+              <View className="w-11 h-11 rounded-xl bg-orange-500/20 items-center justify-center">
+                <Ionicons name="sparkles-outline" size={22} color="#f97316" />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
+                  Start Fresh
+                </Text>
+                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
+                  Clear today's logged meals and start tracking from a clean 0 kcal slate.
+                </Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </TouchableOpacity>
+
+            {/* Cancel Button */}
+            <TouchableOpacity
+              onPress={() => setShowReopenModal(false)}
+              activeOpacity={0.7}
+              className="w-full py-3 items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark active:opacity-60"
+            >
+              <Text className="text-xs font-baloo-bold text-text-muted dark:text-text-muted-dark">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

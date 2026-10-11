@@ -1,7 +1,5 @@
 import React from 'react';
 import { View, Text, Modal, ScrollView, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface PrivacyPolicyModalProps {
@@ -54,7 +52,7 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
                 ✨ AI Vision & Multimodal Processing
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                When you use our AI features (AI Camera Food Scanner, 24/7 AI Coach, and AI Workout Generator), images and prompts are processed securely in real-time via Google Gemini API solely to generate your macro analysis, training cues, or workout plans. Your media and chat prompts are never retained for advertising or used for public machine learning model training.
+                When you use our AI features (AI Camera Food Scanner, AI Coach, and AI Workout Routine Generator), images and prompts are processed via Google's Gemini API to calculate macronutrients, generate workouts, and provide coaching guidance. FitTrack never sells your media or chat logs to third-party advertisers. Data submitted to Google AI services is handled in accordance with Google's API Terms of Service.
               </Text>
             </View>
 
