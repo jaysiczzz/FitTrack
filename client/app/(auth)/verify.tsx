@@ -31,7 +31,6 @@ export default function VerifyEmailScreen() {
   const [loading, setLoading] = useState(false);
   const [resending, setResending] = useState(false);
   const [cooldown, setCooldown] = useState(60);
-  const [devCode, setDevCode] = useState<string | null>(null);
 
   const inputRef = useRef<TextInput>(null);
 
@@ -100,14 +99,10 @@ export default function VerifyEmailScreen() {
       setSuccessMsg('');
       setResending(true);
 
-      const res = await sendVerificationCodeApi({
+      await sendVerificationCodeApi({
         email: data.email,
         firstName: data.firstName,
       });
-
-      if (res.devCode) {
-        setDevCode(res.devCode);
-      }
 
       setSuccessMsg('New verification code sent! Check your inbox.');
       setCooldown(60);
@@ -259,14 +254,6 @@ export default function VerifyEmailScreen() {
               </View>
             ) : null}
 
-            {/* Dev Mode Code Helper (visible in non-production environments) */}
-            {devCode ? (
-              <View className="bg-surface dark:bg-surface-dark border border-dashed border-accent/40 rounded-xl p-3 mb-4 items-center">
-                <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
-                  [DEV CODE]: {devCode}
-                </Text>
-              </View>
-            ) : null}
 
             {/* Verify CTA Button */}
             <Button
