@@ -69,3 +69,16 @@ All code removals, refactors, extractions, and copy sanitizations performed duri
 - `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
 - Screen rendering: Date headings, goal formatting, onboarding targets, BMI vitals, and modal close buttons operating uniformly.
 
+---
+
+## [Batch 4] - 2026-10-12
+### Removed & Refactored
+- `client/assets/icon.svg` (AST-001): Deleted unused vector icon asset (`app.json` strictly bundles `./assets/icon.png`).
+- `client/constants/colors.ts` (UNU-STY-001): Pruned unreferenced `COLORS.secondary` color tokens (`blue`, `purple`, `orange`, `mint`).
+- `client/components/ui/FilterChip.tsx` (UNU-STY-002): Applied previously unapplied `roundedClass` variable to container `className` so the `rounded` prop (`full` vs `xl`) functions properly.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Asset bundles: `app.json` verified to reference only `icon.png` and `adaptive-icon.png`.
+
+

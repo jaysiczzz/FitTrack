@@ -72,13 +72,7 @@ export const COLORS = {
     light: '#64748B',
     dark: '#94A3B8',
   },
-  secondary: {
-    blue: '#38BDF8',
-    purple: '#A855F7',
-    orange: '#F97316',
-    mint: '#34D399',
-  },
-} as const;
+};
 
 import { useColorScheme } from 'nativewind';
 

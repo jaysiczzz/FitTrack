@@ -40,7 +40,7 @@ export default function FilterChip({
         accessibilityRole="button"
         accessibilityState={{ selected }}
         hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-        className={`min-h-[32px] px-3 py-1.5 justify-center items-center rounded-xl border ${
+        className={`min-h-[32px] px-3 py-1.5 justify-center items-center ${roundedClass} border ${
           selected
             ? activeBorderClass
             : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'

@@ -26,13 +26,14 @@
   - 131 findings grouped into 7 safe, isolated batches with rollback commands and verification steps
 - [x] **Phase 5 Execution - Batch 1 (Unused Leaf Components & Dead Barrels)**: Committed `b073dd4`
 - [x] **Phase 5 Execution - Batch 2 (Unused Functions, Dead State, Unused Imports)**: Committed `3b44e69`
-- [x] **Phase 5 Execution - Batch 3 (Redundant Code Consolidation)**: RED-001 to RED-012
+- [x] **Phase 5 Execution - Batch 3 (Redundant Code Consolidation)**: Committed `de6424f`
+- [x] **Phase 5 Execution - Batch 4 (Unused Styles, Theme Tokens & Dead Assets)**: AST-001, UNU-STY-001, UNU-STY-002
 
 ## Phases In Progress
-- [ ] **Phase 5 Execution - Batch 4 (Unused Styles, Theme Tokens & Dead Assets)**
+- [ ] **Phase 5 Execution - Batch 5 (Unused Dependencies & App Config Cleanup)**
 
 ## Pending Phases
-- [ ] **Phase 5 Execution - Batches 4 to 7**
+- [ ] **Phase 5 Execution - Batches 5 to 7**
 - [ ] **Final: Summary Report** (`99-report.md`)
 
 ## Last File Reviewed
