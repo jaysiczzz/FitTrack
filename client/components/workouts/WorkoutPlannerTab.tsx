@@ -28,6 +28,30 @@ import AssignRoutineModal from './AssignRoutineModal';
 import CreateRoutineModal from './CreateRoutineModal';
 import SplitPresetModal from './SplitPresetModal';
 import MonthlyPlannerView from './MonthlyPlannerView';
+
+export const mergeWithDefaultTemplates = (templates: any[]): WorkoutRoutineTemplate[] => {
+  if (!Array.isArray(templates) || templates.length === 0) {
+    return DEFAULT_ROUTINE_TEMPLATES;
+  }
+  const normalized = templates.map((t) => ({
+    ...t,
+    title: t.title || t.name || 'Custom Routine',
+    exercises: t.exercises || [],
+  }));
+
+  const defaultMap = new Map(DEFAULT_ROUTINE_TEMPLATES.map((d) => [d.id, d]));
+  const customRoutines: WorkoutRoutineTemplate[] = [];
+
+  for (const item of normalized) {
+    if (defaultMap.has(item.id)) {
+      defaultMap.set(item.id, { ...defaultMap.get(item.id)!, ...item });
+    } else {
+      customRoutines.push(item);
+    }
+  }
+
+  return [...Array.from(defaultMap.values()), ...customRoutines];
+};
 import {
   getWorkoutPlanApi,
   updateWorkoutPlanApi,
@@ -106,7 +130,7 @@ export default function WorkoutPlannerTab({
         try {
           const parsed = JSON.parse(savedTemplates);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setRoutines(parsed);
+            setRoutines(mergeWithDefaultTemplates(parsed));
           }
         } catch {}
       }
@@ -164,8 +188,9 @@ export default function WorkoutPlannerTab({
         if (cloudPlanRes?.success && cloudPlanRes.plan) {
           const plan = cloudPlanRes.plan;
           if (plan.routineTemplates && Array.isArray(plan.routineTemplates) && plan.routineTemplates.length > 0) {
-            setRoutines(plan.routineTemplates);
-            AsyncStorage.setItem(templatesKey, JSON.stringify(plan.routineTemplates)).catch(() => {});
+            const merged = mergeWithDefaultTemplates(plan.routineTemplates);
+            setRoutines(merged);
+            AsyncStorage.setItem(templatesKey, JSON.stringify(merged)).catch(() => {});
           }
           if (plan.weeklySplit && typeof plan.weeklySplit === 'object') {
             setWeeklySplit(plan.weeklySplit as WeeklySplit);
@@ -413,7 +438,7 @@ export default function WorkoutPlannerTab({
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'weekly' }}
           onPress={() => handleSwitchMode('weekly')}
-          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             viewMode === 'weekly'
               ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
               : ''
@@ -440,7 +465,7 @@ export default function WorkoutPlannerTab({
           accessibilityRole="tab"
           accessibilityState={{ selected: viewMode === 'monthly' }}
           onPress={() => handleSwitchMode('monthly')}
-          className={`flex-1 py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             viewMode === 'monthly'
               ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
               : ''
@@ -479,9 +504,10 @@ export default function WorkoutPlannerTab({
               </View>
               <TouchableOpacity
                 onPress={() => setShowPresetModal(true)}
-                className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-1.5 rounded-xl flex-row items-center gap-1"
+                activeOpacity={0.75}
+                className="bg-accent/15 dark:bg-accent-dark/25 min-h-[44px] px-3 py-2 rounded-xl flex-row items-center gap-1.5 active:opacity-75"
               >
-                <Ionicons name="options-outline" size={13} color={colors.accent} />
+                <Ionicons name="options-outline" size={14} color={colors.accent} />
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                   Split Presets
                 </Text>
@@ -579,7 +605,8 @@ export default function WorkoutPlannerTab({
             </View>
             <TouchableOpacity
               onPress={() => setShowCreateModal(true)}
-              className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl flex-row items-center gap-1"
+              activeOpacity={0.85}
+              className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 active:opacity-85 shadow-xs"
             >
               <Ionicons name="add" size={16} color={colors.accentContrast} />
               <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">New Routine</Text>
@@ -613,7 +640,7 @@ export default function WorkoutPlannerTab({
                   <TouchableOpacity
                     onPress={() => handleDeleteRoutine(routine.id)}
                     hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="min-h-[44px] min-w-[44px] items-center justify-center"
+                    className="min-h-[44px] min-w-[44px] items-center justify-center active:opacity-70"
                     accessibilityLabel="Delete routine"
                   >
                     <Ionicons name="trash-outline" size={16} color={colors.danger} />
@@ -652,9 +679,9 @@ export default function WorkoutPlannerTab({
 
               {/* Action Button: Start Routine Now */}
               <TouchableOpacity
-                activeOpacity={0.8}
+                activeOpacity={0.75}
                 onPress={() => onStartRoutine(routine)}
-                className="py-2.5 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 flex-row items-center justify-center gap-1.5"
+                className="min-h-[44px] py-2.5 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 flex-row items-center justify-center gap-1.5 active:opacity-75"
               >
                 <Ionicons name="barbell-outline" size={15} color={colors.accent} />
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">

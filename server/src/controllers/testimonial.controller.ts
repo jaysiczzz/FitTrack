@@ -17,6 +17,7 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
 
   const whereClause: any = {
     isFeatured: true,
+    status: 'APPROVED',
   }
 
   if (goal && (goal === 'MUSCLE_GAIN' || goal === 'WEIGHT_LOSS')) {
@@ -62,6 +63,9 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
         weightChangeKg: true,
         durationWeeks: true,
         verifiedAthlete: true,
+        beforeImageUrl: true,
+        afterImageUrl: true,
+        status: true,
         createdAt: true,
       },
     }),
@@ -106,6 +110,9 @@ export const getTestimonials = asyncHandler(async (req: AuthRequest, res: Respon
       weightChangeKg: t.weightChangeKg,
       durationWeeks: t.durationWeeks,
       verifiedAthlete: t.verifiedAthlete,
+      beforeImageUrl: t.beforeImageUrl,
+      afterImageUrl: t.afterImageUrl,
+      status: t.status,
       createdAt: t.createdAt,
       hasVoted: votedSet.has(t.id),
     }
@@ -184,14 +191,25 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { firstName: true, lastName: true, goal: true, avatarUrl: true },
+    select: { firstName: true, lastName: true, goal: true, avatarUrl: true, role: true },
   })
 
   if (!user) {
     return res.status(404).json({ error: 'User not found' })
   }
 
-  const { id, rating, content, highlightBadge, goal, weightChangeKg, durationWeeks } = req.body
+  const {
+    id,
+    rating,
+    content,
+    highlightBadge,
+    goal,
+    weightChangeKg,
+    durationWeeks,
+    beforeImageUrl,
+    afterImageUrl,
+    publishImmediately,
+  } = req.body
 
   const first = capitalizeWords(user.firstName) || 'Athlete'
   const last = capitalizeWords(user.lastName)
@@ -209,6 +227,15 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
   ])
   const verifiedAthlete = workoutCount > 0 || checkInCount > 0
 
+  const hasImages = Boolean(
+    (beforeImageUrl && String(beforeImageUrl).trim()) ||
+    (afterImageUrl && String(afterImageUrl).trim())
+  )
+  const isAdmin = user.role === 'ADMIN'
+  const shouldPublish = isAdmin && Boolean(publishImmediately)
+  const moderationStatus = shouldPublish ? 'APPROVED' : 'PENDING_APPROVAL'
+  const isFeatured = shouldPublish
+
   let saved
   if (id) {
     saved = await prisma.testimonial.update({
@@ -222,8 +249,11 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
         goal: resolvedGoal,
         weightChangeKg: weightChangeKg !== undefined ? Number(weightChangeKg) : null,
         durationWeeks: durationWeeks !== undefined ? Number(durationWeeks) : null,
+        beforeImageUrl: beforeImageUrl ? String(beforeImageUrl).trim() : null,
+        afterImageUrl: afterImageUrl ? String(afterImageUrl).trim() : null,
+        status: moderationStatus,
         verifiedAthlete,
-        isFeatured: true,
+        isFeatured,
       },
     })
   } else {
@@ -238,18 +268,23 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
         goal: resolvedGoal,
         weightChangeKg: weightChangeKg !== undefined ? Number(weightChangeKg) : null,
         durationWeeks: durationWeeks !== undefined ? Number(durationWeeks) : null,
+        beforeImageUrl: beforeImageUrl ? String(beforeImageUrl).trim() : null,
+        afterImageUrl: afterImageUrl ? String(afterImageUrl).trim() : null,
+        status: moderationStatus,
         verifiedAthlete,
-        isFeatured: true,
-        helpfulCount: 0, // Starts at 0 honest appreciations
+        isFeatured,
+        helpfulCount: 0,
       },
     })
   }
 
+  const successMessage = moderationStatus === 'PENDING_APPROVAL'
+    ? 'Your transformation story has been submitted for admin verification. Once approved, it will be published in the community feed!'
+    : (id ? 'Your transformation story has been updated successfully!' : 'Thank you! Your transformation story has been published.')
+
   res.status(200).json({
     success: true,
-    message: id
-      ? 'Your testimonial has been updated successfully!'
-      : 'Thank you! Your transformation story has been shared with the community.',
+    message: successMessage,
     testimonial: saved,
   })
 })
@@ -373,5 +408,64 @@ export const deleteMyTestimonial = asyncHandler(async (req: AuthRequest, res: Re
   res.json({
     success: true,
     message: 'Your testimonial has been removed.',
+  })
+})
+
+/**
+ * GET /api/testimonials/admin/all
+ * Lists all testimonials for admin moderation.
+ */
+export const getAdminTestimonials = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Access denied: Admin role required' })
+  }
+
+  const testimonials = await prisma.testimonial.findMany({
+    orderBy: { createdAt: 'desc' },
+    include: {
+      user: {
+        select: {
+          firstName: true,
+          lastName: true,
+          email: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  })
+
+  res.json({
+    success: true,
+    testimonials,
+  })
+})
+
+/**
+ * PATCH /api/testimonials/admin/:id
+ * Approves, rejects, or toggles featured status of a testimonial.
+ */
+export const moderateTestimonial = asyncHandler(async (req: AuthRequest, res: Response) => {
+  if (req.user?.role !== 'ADMIN') {
+    return res.status(403).json({ error: 'Access denied: Admin role required' })
+  }
+
+  const id = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+  const { status, isFeatured } = req.body
+
+  const autoFeatured = status === 'APPROVED' ? true : status === 'REJECTED' ? false : undefined
+  const finalFeatured = isFeatured !== undefined ? Boolean(isFeatured) : autoFeatured
+
+  const updated = await prisma.testimonial.update({
+    where: { id: String(id) },
+    data: {
+      ...(status ? { status } : {}),
+      ...(finalFeatured !== undefined ? { isFeatured: finalFeatured } : {}),
+    },
+  })
+
+  res.json({
+    success: true,
+    message: `Testimonial updated to ${status || 'moderated'}`,
+    testimonial: updated,
   })
 })

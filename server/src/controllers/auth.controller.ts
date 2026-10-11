@@ -39,6 +39,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
         })
     }
 
+    if (user.isSuspended) {
+        return res.status(403).json({
+            error: user.suspendedReason || 'Your account has been suspended by an administrator.',
+            isSuspended: true,
+        })
+    }
+
     const accessToken = signAccessToken({ id: user.id, role: user.role })
     const refreshToken = await createRefreshToken(user.id)
 

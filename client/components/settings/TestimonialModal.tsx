@@ -453,7 +453,6 @@ export default function TestimonialModal({
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="sparkles" size={18} color={colors.accent} />
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                   Athlete Stories & Reviews
                 </Text>

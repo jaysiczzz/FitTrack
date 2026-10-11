@@ -172,16 +172,10 @@ export default function FloatingNavBar() {
                   }}
                   className="flex-1 items-center justify-center min-h-[48px] py-1.5"
                 >
-                  <View
-                    className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
-                      isActive
-                        ? 'bg-accent/15 dark:bg-accent/20'
-                        : 'bg-transparent'
-                    }`}
-                  >
+                  <View className="w-10 h-7 items-center justify-center mb-0.5">
                     <Ionicons
                       name={isActive ? item.activeIcon : item.inactiveIcon}
-                      size={20}
+                      size={21}
                       color={isActive ? colors.accent : colors.textMuted}
                     />
                   </View>
@@ -189,8 +183,8 @@ export default function FloatingNavBar() {
                   <Text
                     className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent font-bold'
-                        : 'text-text-muted font-medium'
+                        ? 'text-accent dark:text-accent-dark font-bold'
+                        : 'text-text-muted dark:text-text-muted-dark font-medium'
                     }`}
                     numberOfLines={1}
                   >
@@ -211,14 +205,14 @@ export default function FloatingNavBar() {
                 hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
               >
                 <View
-                  className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark relative"
+                  className="w-14 h-14 rounded-full bg-accent dark:bg-accent-dark items-center justify-center border-4 border-surface dark:border-surface-dark relative"
                   style={styles.centerButton}
                 >
-                  <Ionicons name="camera" size={24} color={colors.accentContrast} />
+                  <Ionicons name="camera" size={24} color="#FFFFFF" />
                 </View>
 
                 <Text
-                  className="text-[10px] text-center tracking-tight font-bold text-accent dark:text-accent-dark mt-0.5"
+                  className="text-[10px] text-center tracking-tight font-medium text-text-muted dark:text-text-muted-dark mt-0.5"
                   numberOfLines={1}
                 >
                   AI Scan
@@ -244,16 +238,10 @@ export default function FloatingNavBar() {
                   }}
                   className="flex-1 items-center justify-center min-h-[48px] py-1.5"
                 >
-                  <View
-                    className={`w-11 h-7 rounded-full overflow-hidden items-center justify-center mb-0.5 ${
-                      isActive
-                        ? 'bg-accent/15 dark:bg-accent/20'
-                        : 'bg-transparent'
-                    }`}
-                  >
+                  <View className="w-10 h-7 items-center justify-center mb-0.5">
                     <Ionicons
                       name={isActive ? item.activeIcon : item.inactiveIcon}
-                      size={20}
+                      size={21}
                       color={isActive ? colors.accent : colors.textMuted}
                     />
                   </View>
@@ -261,8 +249,8 @@ export default function FloatingNavBar() {
                   <Text
                     className={`text-[11px] text-center tracking-tight leading-3 ${
                       isActive
-                        ? 'text-accent font-bold'
-                        : 'text-text-muted font-medium'
+                        ? 'text-accent dark:text-accent-dark font-bold'
+                        : 'text-text-muted dark:text-text-muted-dark font-medium'
                     }`}
                     numberOfLines={1}
                   >

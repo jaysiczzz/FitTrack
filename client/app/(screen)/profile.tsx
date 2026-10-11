@@ -29,6 +29,7 @@ import { screenCache } from '@/utils/screenCache';
 import { isTemporaryBlobUrl } from '@/utils/imageUtils';
 import { authStorage } from '@/utils/authStorage';
 import { hapticFeedback } from '@/utils/haptics';
+import { useHeightUnit, useWeightUnit, formatHeightDisplay, formatWeightDisplay } from '@/constants/units';
 
 interface UserData {
   id?: string;
@@ -54,6 +55,8 @@ export default function Profile() {
 
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [heightUnit] = useHeightUnit();
+  const [weightUnit] = useWeightUnit();
 
   // Modal states
   const [showEditInfoModal, setShowEditInfoModal] = useState(false);
@@ -323,7 +326,7 @@ export default function Profile() {
                   {avatarUrl && !isTemporaryBlobUrl(avatarUrl) ? (
                     <Image
                       source={{ uri: avatarUrl }}
-                      className="w-24 h-24 rounded-full border-2 border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark shadow-sm"
+                      className="w-24 h-24 rounded-full"
                       resizeMode="cover"
                       onError={() => {
                         setAvatarUrl(null);
@@ -426,7 +429,7 @@ export default function Profile() {
                   HEIGHT
                 </Text>
                 <Text className="text-text-primary dark:text-text-primary-dark text-base font-black">
-                  {height ? `${height} cm` : '—'}
+                  {height ? formatHeightDisplay(parseFloat(height), heightUnit) : '—'}
                 </Text>
               </View>
 
@@ -445,7 +448,7 @@ export default function Profile() {
                   <Ionicons name="pencil" size={9} color={colors.accent} />
                 </View>
                 <Text className="text-text-primary dark:text-text-primary-dark text-base font-black">
-                  {weight ? `${weight} kg` : '—'}
+                  {weight ? formatWeightDisplay(parseFloat(weight), weightUnit) : '—'}
                 </Text>
                 <Text className="text-[9px] font-semibold text-accent dark:text-accent-dark">
                   Log entry

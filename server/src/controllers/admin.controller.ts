@@ -217,6 +217,8 @@ export const getAdminUsers = asyncHandler(async (req: AuthRequest, res: Response
       firstName: true,
       lastName: true,
       role: true,
+      isSuspended: true,
+      suspendedReason: true,
       height: true,
       weight: true,
       targetWeight: true,
@@ -288,6 +290,45 @@ export const updateUserRole = asyncHandler(async (req: AuthRequest, res: Respons
   res.json({
     success: true,
     message: `User role successfully updated to ${role}`,
+    user: updatedUser,
+  })
+})
+
+/**
+ * PATCH /api/admin/users/:id/suspend
+ * Suspend or unsuspend user account
+ */
+export const toggleUserSuspension = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id
+  const { isSuspended, reason } = req.body
+
+  if (!userId) return res.status(400).json({ error: 'User ID is required' })
+
+  // Prevent admin from suspending their own active session
+  if (req.user?.id === userId) {
+    return res.status(400).json({ error: 'Admins cannot suspend their own account.' })
+  }
+
+  const updatedUser = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      isSuspended: Boolean(isSuspended),
+      suspendedReason: isSuspended ? (reason?.trim() || 'Account suspended by administrator') : null,
+    },
+    select: {
+      id: true,
+      email: true,
+      firstName: true,
+      lastName: true,
+      role: true,
+      isSuspended: true,
+      suspendedReason: true,
+    },
+  })
+
+  res.json({
+    success: true,
+    message: isSuspended ? 'User account has been suspended' : 'User account suspension lifted',
     user: updatedUser,
   })
 })

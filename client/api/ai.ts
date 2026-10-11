@@ -123,6 +123,7 @@ export const getAIMealSuggestions = async (payload: {
   goal: string;
   remainingCalories: number;
   remainingProtein: number;
+  mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'all';
 }): Promise<{ success: boolean; suggestions: MealSuggestion[] }> => {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
@@ -140,7 +141,14 @@ export interface ChatMessage {
 
 export const chatWithCoachApi = async (
   messages: { role: 'user' | 'model'; content: string }[]
-): Promise<{ success: boolean; message: string }> => {
+): Promise<{
+  success: boolean;
+  message: string;
+  isPro?: boolean;
+  remainingMessages?: number | null;
+  dailyLimit?: number;
+  error?: string;
+}> => {
   return apiRequest('/api/ai/chat', {
     method: 'POST',
     body: { messages },
@@ -215,7 +223,13 @@ export const streamChatWithCoachApi = async (
 };
 
 
-export const getChatHistoryApi = async (): Promise<{ success: boolean; messages: ChatMessage[] }> => {
+export const getChatHistoryApi = async (): Promise<{
+  success: boolean;
+  messages: ChatMessage[];
+  isPro?: boolean;
+  remainingMessages?: number | null;
+  dailyLimit?: number;
+}> => {
   return apiRequest('/api/ai/chat/history', {
     method: 'GET',
   });

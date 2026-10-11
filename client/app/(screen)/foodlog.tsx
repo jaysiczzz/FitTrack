@@ -18,7 +18,7 @@ import FoodHistoryTab from '@/components/foodlog/FoodHistoryTab';
 import EditMealModal from '@/components/foodlog/EditMealModal';
 import RemoveFoodModal from '@/components/foodlog/RemoveFoodModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
-import AiInsightsCard from '@/components/ai/AiInsightsCard';
+import AiInsightsCard from '@/components/foodlog/AiInsightsCard';
 import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
 import { getAIInsights, AIInsight } from '@/api/ai';
 import { useToast } from '@/context/ToastContext';

@@ -129,7 +129,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     key={tab.key}
                     activeOpacity={0.8}
                     onPress={() => setActiveTab(tab.key as DetailsTab)}
-                    className={`mr-2 px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5 ${
+                    className={`mr-2 px-3 py-1.5 min-h-[38px] rounded-xl border flex-row items-center gap-1.5 ${
                       active
                         ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -216,23 +216,27 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     const label = tier.charAt(0).toUpperCase() + tier.slice(1);
                     const activeColor =
                       tier === 'beginner'
-                        ? 'bg-accent text-white'
+                        ? 'bg-accent dark:bg-accent-dark'
                         : tier === 'advanced'
-                        ? 'bg-danger text-white'
-                        : 'bg-warning text-white';
+                        ? 'bg-danger dark:bg-danger-dark'
+                        : 'bg-warning dark:bg-warning-dark';
+                    const activeTextColor =
+                      tier === 'beginner'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                        : 'text-white';
 
                     return (
                       <TouchableOpacity
                         key={tier}
                         activeOpacity={0.8}
                         onPress={() => setActiveTier(tier)}
-                        className={`flex-1 py-1.5 rounded-lg items-center justify-center ${
+                        className={`flex-1 py-1.5 min-h-[38px] rounded-lg items-center justify-center ${
                           active ? activeColor : ''
                         }`}
                       >
                         <Text
                           className={`text-xs font-extrabold ${
-                            active ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                            active ? activeTextColor : 'text-text-muted dark:text-text-muted-dark'
                           }`}
                         >
                           {label}
@@ -332,12 +336,13 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
           </ScrollView>
 
           {/* Bottom Action */}
-          <View className="p-4 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
+          <View className="p-4 pb-8 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
             <TouchableOpacity
               onPress={handleApplyPreset}
-              className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center"
+              activeOpacity={0.8}
+              className="bg-accent dark:bg-accent-dark py-3.5 min-h-[48px] rounded-2xl items-center justify-center shadow-sm"
             >
-              <Text className="text-white font-bold text-sm">
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-sm">
                 {mode === 'update'
                    ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
                   : `Add (${activeTier.toUpperCase()}) to Today's Workout`}

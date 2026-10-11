@@ -39,16 +39,16 @@ export default function FloatingAiCoachButton() {
           styles.buttonContainer,
           Platform.select({
             web: {
-              boxShadow: '0 6px 22px rgba(16, 185, 129, 0.45)',
+              boxShadow: '0 6px 20px rgba(0, 0, 0, 0.15)',
             } as any,
             default: {
-              elevation: 9,
+              elevation: 8,
             },
           }),
         ]}
-        className="w-13 h-13 rounded-full bg-accent dark:bg-accent-dark border-2 border-surface dark:border-surface-dark items-center justify-center shadow-lg"
+        className="w-[50px] h-[50px] rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center shadow-lg"
       >
-        <Ionicons name="sparkles" size={22} color={colors.accentContrast} />
+        <Ionicons name="chatbubble-ellipses" size={22} color={colors.accent} />
       </TouchableOpacity>
     </View>
   );

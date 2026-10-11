@@ -1,14 +1,13 @@
 import React from 'react';
-import { View, Text, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '@/constants/colors';
+import { useColorScheme } from 'nativewind';
 
 export interface StatCardProps {
   title: string;
   value: string;
   subtitle?: string;
   iconName?: keyof typeof Ionicons.glyphMap;
-  
   onPress?: () => void;
 }
 
@@ -17,34 +16,39 @@ export default function StatCard({
   value,
   subtitle,
   iconName,
-  
   onPress,
 }: StatCardProps) {
-  
+  const { colorScheme } = useColorScheme();
+  const isDark = colorScheme === 'dark';
   const Container = onPress ? TouchableOpacity : View;
 
   const getBadgeConfig = () => {
     switch (iconName) {
+      case 'restaurant':
+        return {
+          container: 'bg-warning/15 border-warning/30',
+          iconColor: isDark ? '#FBBF24' : '#B45309',
+        };
       case 'flame':
         return {
-          container: 'bg-orange-500/15 border-orange-500/30',
-          iconColor: '#FB923C',
+          container: 'bg-rose-500/15 border-rose-500/30',
+          iconColor: isDark ? '#F87171' : '#EF4444',
         };
       case 'water':
         return {
-          container: 'bg-sky-500/15 border-sky-500/30',
-          iconColor: '#38BDF8',
+          container: 'bg-info/15 border-info/30',
+          iconColor: isDark ? '#38BDF8' : '#0369A1',
         };
       case 'barbell':
         return {
-          container: 'bg-purple-500/15 border-purple-500/30',
-          iconColor: '#A855F7',
+          container: 'bg-accent/15 border-accent/30',
+          iconColor: isDark ? '#10B981' : '#047857',
         };
       case 'sparkles':
       default:
         return {
-          container: 'bg-emerald-500/15 border-emerald-500/30',
-          iconColor: '#10B981',
+          container: 'bg-success/15 border-success/30',
+          iconColor: isDark ? '#10B981' : '#047857',
         };
     }
   };
@@ -53,12 +57,15 @@ export default function StatCard({
 
   return (
     <Container
-      activeOpacity={onPress ? 0.75 : 1}
+      activeOpacity={onPress ? 0.78 : 1}
       onPress={onPress}
       accessibilityRole={onPress ? 'button' : undefined}
-      className="flex-1 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark justify-between"
+      accessibilityLabel={onPress ? `${title}: ${value}, ${subtitle || ''}` : undefined}
+      className={`flex-1 bg-surface dark:bg-surface-dark p-3.5 rounded-2xl border-0 shadow-md shadow-slate-200/70 dark:shadow-none justify-between min-h-[100px] ${
+        onPress ? 'active:scale-[0.99]' : ''
+      }`}
     >
-      <View className="flex-row items-center justify-between mb-2">
+      <View className="flex-row items-center justify-between mb-1.5">
         <Text
           className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase tracking-wider flex-1 mr-1"
           numberOfLines={1}
@@ -69,20 +76,20 @@ export default function StatCard({
           <View className={`w-7 h-7 rounded-full items-center justify-center border ${badge.container}`}>
             <Ionicons
               name={iconName}
-              size={13}
+              size={14}
               color={badge.iconColor}
             />
           </View>
         ) : null}
       </View>
 
-      <Text className="text-text-primary dark:text-text-primary-dark text-xl font-black leading-6">
+      <Text className="text-text-primary dark:text-text-primary-dark text-xl font-baloo-bold leading-6">
         {value}
       </Text>
 
       {subtitle ? (
         <Text
-          className="text-text-muted dark:text-text-muted-dark mt-1 text-xs font-normal leading-snug"
+          className="text-text-muted dark:text-text-muted-dark mt-0.5 text-xs font-normal leading-snug"
           numberOfLines={1}
         >
           {subtitle}

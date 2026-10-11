@@ -72,6 +72,7 @@ export default function AdminScreen() {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [userSearch, setUserSearch] = useState('');
   const [userRoleFilter, setUserRoleFilter] = useState<'ALL' | 'USER' | 'ADMIN'>('ALL');
+  const [userTierFilter, setUserTierFilter] = useState<'ALL' | 'PRO' | 'FREE'>('ALL');
 
   // 3. Finance State
   const [revenueData, setRevenueData] = useState<AdminRevenueResponse | null>(null);
@@ -111,6 +112,7 @@ export default function AdminScreen() {
         const res = await getAdminUsersApi({
           search: userSearch,
           role: userRoleFilter,
+          tier: userTierFilter,
         });
         if (res.success) setUsers(res.users);
       } else if (activeTab === 'finance') {
@@ -138,7 +140,7 @@ export default function AdminScreen() {
       setLoadingExercises(false);
       setLoadingTickets(false);
     }
-  }, [activeTab, isCurrentUserAdmin, userSearch, userRoleFilter, selectedMuscle, ticketFilter]);
+  }, [activeTab, isCurrentUserAdmin, userSearch, userRoleFilter, userTierFilter, selectedMuscle, ticketFilter]);
 
   // Sync active tab if param changes after mount
   useEffect(() => {
@@ -181,7 +183,11 @@ export default function AdminScreen() {
           <TouchableOpacity
             onPress={() => {
               triggerHapticFeedback();
-              router.back();
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(screen)/dashboard');
+              }
             }}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="w-11 h-11 rounded-full bg-surface-card dark:bg-surface-card-dark items-center justify-center border border-input-border dark:border-input-border-dark"
@@ -192,29 +198,8 @@ export default function AdminScreen() {
             <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
               Admin Control Center
             </Text>
-            <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-              Platform administration & metrics
-            </Text>
           </View>
         </View>
-
-        {/* Refresh button */}
-        <TouchableOpacity
-          onPress={() => {
-            triggerHapticFeedback();
-            onRefresh();
-          }}
-          disabled={refreshing}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="w-9 h-9 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-          accessibilityLabel="Refresh data"
-        >
-          <Ionicons
-            name="refresh-outline"
-            size={16}
-            color={refreshing ? colors.accent : colors.textMuted}
-          />
-        </TouchableOpacity>
       </View>
 
       {/* ── Segmented Navigation Tabs ── */}
@@ -236,17 +221,12 @@ export default function AdminScreen() {
                 accessibilityRole="tab"
                 accessibilityState={{ selected: isSelected }}
                 hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                className={`flex-row items-center gap-1.5 px-4 min-h-[44px] py-2.5 rounded-full border ${
+                className={`px-4 min-h-[44px] py-2.5 rounded-full border items-center justify-center ${
                   isSelected
                     ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                     : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
                 }`}
               >
-                <Ionicons
-                  name={tab.icon}
-                  size={15}
-                  color={isSelected ? colors.accent : colors.textMuted}
-                />
                 <Text
                   className={`text-xs font-semibold ${
                     isSelected ? 'text-accent dark:text-accent-dark font-bold' : 'text-text-primary dark:text-text-primary-dark'
@@ -296,6 +276,10 @@ export default function AdminScreen() {
             roleFilter={userRoleFilter}
             onRoleFilterChange={(f) => {
               setUserRoleFilter(f);
+            }}
+            tierFilter={userTierFilter}
+            onTierFilterChange={(t) => {
+              setUserTierFilter(t);
             }}
             onReloadUsers={loadTabContent}
           />

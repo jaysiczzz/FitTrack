@@ -339,16 +339,6 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
               Daily Readiness
             </Text>
-            {streakStats.currentStreak > 0 ? (
-              <View className="bg-amber-500/15 border border-amber-500/30 px-2 py-0.5 rounded-full flex-row items-center">
-                <Text className="text-[11px] mr-1">🔥</Text>
-                <Text className="text-amber-700 dark:text-amber-400 font-extrabold text-[10px]">
-                  {streakStats.currentStreak} {streakStats.currentStreak === 1 ? 'Day Streak' : 'Days Streak'}
-                </Text>
-              </View>
-            ) : (
-              <></>
-            )}
           </View>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             {isCheckedIn && selectedMood

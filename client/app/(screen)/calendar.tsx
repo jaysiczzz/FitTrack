@@ -21,7 +21,13 @@ export default function CalendarScreen() {
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-row items-center gap-2.5">
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => {
+                  if (router.canGoBack()) {
+                    router.back();
+                  } else {
+                    router.replace('/(screen)/dashboard');
+                  }
+                }}
                 activeOpacity={0.7}
                 accessibilityLabel="Go back"
                 className="w-11 h-11 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
@@ -30,7 +36,7 @@ export default function CalendarScreen() {
               </TouchableOpacity>
               <View>
                 <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-                  Activity Calendar 📅
+                  Activity Calendar
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark font-normal">
                   Unified workouts, nutrition, and daily consistency

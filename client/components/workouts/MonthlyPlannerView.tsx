@@ -78,7 +78,7 @@ export default function MonthlyPlannerView({
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-11
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [showMesocycleDetails, setShowMesocycleDetails] = useState(true);
+  const [showMesocycleDetails, setShowMesocycleDetails] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -923,10 +923,10 @@ export default function MonthlyPlannerView({
             </View>
             <View className="flex-1 min-w-0">
               <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                4-Week Progressive Training Phases
+                Weekly Training Focus & RPE (Optional)
               </Text>
               <Text className="text-[10px] text-accent dark:text-accent-dark font-bold mt-0.5">
-                Current: {activeMesocycle.title} · {activeMesocycle.intensityLabel}
+                Target: {activeMesocycle.title} · {activeMesocycle.intensityLabel}
               </Text>
             </View>
           </View>
@@ -949,8 +949,8 @@ export default function MonthlyPlannerView({
                 onPress={() => {
                   onUpdateMesocycleWeek(w.weekNumber);
                   showSuccess(
-                    'Training Phase Updated',
-                    `Switched to ${w.title} (${w.intensityLabel})`
+                    'Training Focus Selected',
+                    `Targeting ${w.title} (${w.intensityLabel}). Review your effort guidelines below.`
                   );
                 }}
                 className={`flex-1 py-2 rounded-xl items-center justify-center border ${
@@ -985,7 +985,7 @@ export default function MonthlyPlannerView({
             {/* Beginner Cycle Explainer */}
             <View className="mb-2.5 p-2.5 rounded-xl bg-accent/10 border border-accent/25">
               <Text className="text-[10px] text-text-primary dark:text-text-primary-dark font-medium leading-normal">
-                📘 <Text className="font-bold">What is a 4-Week Progressive Cycle?</Text> It's a structured monthly fitness progression: 3 building weeks where you gradually challenge your muscles, followed by 1 Deload recovery week so joints and tendons recover and you avoid injury.
+                📘 <Text className="font-bold">How does this work?</Text> Selecting a week sets your educational target effort (RPE/Volume) for your workouts this week. It serves as coaching guidance so you know how hard to push or when to deload—your logged exercise weights remain completely under your manual control.
               </Text>
             </View>
 

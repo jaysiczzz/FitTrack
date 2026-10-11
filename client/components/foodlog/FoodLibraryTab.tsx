@@ -434,28 +434,6 @@ export default function FoodLibraryTab({
           ) : (
             <View className="flex-row flex-wrap justify-between">
               {paginatedCombos.map((combo) => {
-                const goalBadgeContainerClass =
-                  combo.goal === 'High Protein'
-                    ? 'bg-emerald-500/15 border-emerald-500/30 dark:bg-emerald-500/20 dark:border-emerald-500/40'
-                    : combo.goal === 'Fat Loss'
-                    ? 'bg-rose-500/15 border-rose-500/30 dark:bg-rose-500/20 dark:border-rose-500/40'
-                    : combo.goal === 'Post-Workout'
-                    ? 'bg-sky-500/15 border-sky-500/30 dark:bg-sky-500/20 dark:border-sky-500/40'
-                    : combo.goal === 'Clean Bulking'
-                    ? 'bg-purple-500/15 border-purple-500/30 dark:bg-purple-500/20 dark:border-purple-500/40'
-                    : 'bg-amber-500/15 border-amber-500/30 dark:bg-amber-500/20 dark:border-amber-500/40';
-
-                const goalBadgeTextColor =
-                  combo.goal === 'High Protein'
-                    ? (isDark ? '#86EFAC' : '#059669')
-                    : combo.goal === 'Fat Loss'
-                    ? (isDark ? '#FDA4AF' : '#DC2626')
-                    : combo.goal === 'Post-Workout'
-                    ? (isDark ? '#7DD3FC' : '#0284C7')
-                    : combo.goal === 'Clean Bulking'
-                    ? (isDark ? '#D8B4FE' : '#9333EA')
-                    : (isDark ? '#FDE047' : '#B45309');
-
                 return (
                   <TouchableOpacity
                     key={combo.id}
@@ -472,7 +450,7 @@ export default function FoodLibraryTab({
                           <Text className="text-lg">{combo.icon}</Text>
                         </View>
                         <View className="flex-1 min-w-0">
-                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                          <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
                             {combo.title}
                           </Text>
                           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium mt-0.5" numberOfLines={1}>
@@ -481,11 +459,8 @@ export default function FoodLibraryTab({
                         </View>
                       </View>
 
-                      <View className={`px-2 py-0.5 rounded-full border shrink-0 ${goalBadgeContainerClass}`}>
-                        <Text
-                          style={{ color: goalBadgeTextColor }}
-                          className="text-[9px] font-extrabold uppercase"
-                        >
+                      <View className="px-2 py-0.5 rounded-full border border-input-border dark:border-input-border-dark bg-input/60 dark:bg-input-dark/60 shrink-0">
+                        <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
                           {combo.goal}
                         </Text>
                       </View>
@@ -504,7 +479,7 @@ export default function FoodLibraryTab({
 
                     {/* Ingredients Preview */}
                     <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
-                      <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
+                      <Text className="font-semibold text-text-muted dark:text-text-muted-dark">Ingredients: </Text>
                       {combo.ingredients.map((ing) => ing.name).join(' · ')}
                     </Text>
                   </TouchableOpacity>
@@ -591,7 +566,7 @@ export default function FoodLibraryTab({
                           </View>
                         )}
                         <View className="flex-1 min-w-0">
-                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                          <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
                             {item.name}
                           </Text>
                           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
@@ -607,10 +582,10 @@ export default function FoodLibraryTab({
                         </View>
                       </View>
 
-                      {/* Compact Nutri-Score badge if present (no "Verified" clutter) */}
+                      {/* Compact Nutri-Score badge if present */}
                       {item.nutriscore ? (
-                        <View className={`px-1.5 py-0.5 rounded-md shrink-0 ${nutriscoreBg}`}>
-                          <Text className="text-[8px] font-black text-white">
+                        <View className="px-1.5 py-0.5 rounded-md shrink-0 bg-input/80 dark:bg-input-dark/80 border border-input-border/80 dark:border-input-border-dark/80">
+                          <Text className="text-[8px] font-bold text-text-muted dark:text-text-muted-dark">
                             Nutri {item.nutriscore}
                           </Text>
                         </View>
@@ -631,7 +606,7 @@ export default function FoodLibraryTab({
                     {/* Ingredients / Description Preview if available */}
                     {Boolean(item.ingredients || item.description) && (
                       <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
-                        <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
+                        <Text className="font-semibold text-text-muted dark:text-text-muted-dark">Ingredients: </Text>
                         {item.ingredients || item.description}
                       </Text>
                     )}

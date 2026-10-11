@@ -44,7 +44,7 @@ export default function DifficultySelectorPill({
         onPress={handleOpen}
         activeOpacity={0.75}
         hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
-        className={`flex-row items-center justify-center gap-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark min-h-[34px] ${
+        className={`flex-row items-center justify-center gap-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark min-h-[38px] ${
           compact ? 'px-2.5 py-1.5' : 'px-3.5 py-1.5'
         }`}
       >
@@ -76,7 +76,7 @@ export default function DifficultySelectorPill({
               position: 'absolute',
               top: (buttonLayout?.y || 100) + (buttonLayout?.height || 34) + 6,
               right: Math.max(16, windowWidth - ((buttonLayout?.x || 0) + (buttonLayout?.width || 120))),
-              width: 165,
+              width: 175,
             }}
             className="bg-surface dark:bg-surface-dark rounded-2xl p-2 border border-input-border dark:border-input-border-dark shadow-2xl"
             onPress={(e) => e.stopPropagation()}
@@ -98,7 +98,7 @@ export default function DifficultySelectorPill({
                     activeOpacity={0.7}
                     accessibilityRole="radio"
                     accessibilityState={{ selected: isSelected }}
-                    className={`flex-row items-center justify-between px-2.5 py-2 rounded-xl border ${
+                    className={`flex-row items-center justify-between px-3 py-2.5 min-h-[44px] rounded-xl border ${
                       isSelected
                         ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
                         : 'bg-transparent border-transparent'

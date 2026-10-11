@@ -23,7 +23,7 @@ interface AiSuggestionModalProps {
 }
 
 const MEAL_SLOTS: { id: SuggestionMealSlot; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { id: 'all', label: 'Whole Day', icon: 'sparkles' },
+  { id: 'all', label: 'Whole Day', icon: 'fast-food-outline' },
   { id: 'breakfast', label: 'Breakfast', icon: 'sunny-outline' },
   { id: 'lunch', label: 'Lunch', icon: 'restaurant-outline' },
   { id: 'dinner', label: 'Dinner', icon: 'moon-outline' },
@@ -168,7 +168,7 @@ export default function AiSuggestionModal({
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-1 mr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
-                What Should I Eat? 💡
+                What Should I Eat?
               </Text>
               <Text className="text-text-muted dark:text-text-muted-dark text-xs">
                 AI meal suggestions based on your {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'} goals
@@ -332,10 +332,10 @@ export default function AiSuggestionModal({
                 <Ionicons name="sparkles" size={16} color="#ffffff" />
                 <Text className="text-white font-extrabold text-sm">
                   {remainingCalories <= 0
-                    ? '✨ Generate Light Recovery Ideas'
+                    ? 'Generate Light Recovery Ideas'
                     : selectedSlot === 'all'
-                    ? '✨ Generate Whole Day Ideas'
-                    : `✨ Generate ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)} Suggestions`}
+                    ? 'Generate Whole Day Ideas'
+                    : `Generate ${selectedSlot.charAt(0).toUpperCase() + selectedSlot.slice(1)} Suggestions`}
                 </Text>
               </TouchableOpacity>
             </View>

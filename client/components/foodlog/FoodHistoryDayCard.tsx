@@ -68,9 +68,9 @@ export default function FoodHistoryDayCard({
                 }}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                 accessibilityLabel="Delete daily food log"
-                className="w-7 h-7 rounded-lg items-center justify-center bg-red-500/10 dark:bg-red-500/20 active:opacity-70 ml-1"
+                className="w-9 h-9 rounded-xl items-center justify-center bg-danger/10 dark:bg-danger-dark/20 active:opacity-70 ml-1"
               >
-                <Ionicons name="trash-outline" size={13} color="#EF4444" />
+                <Ionicons name="trash-outline" size={14} color={colors.danger} />
               </TouchableOpacity>
             ) : null}
           </View>
@@ -180,10 +180,12 @@ export default function FoodHistoryDayCard({
                 {/* 1-Tap Re-log Button */}
                 <TouchableOpacity
                   onPress={() => onReLogItem(meal)}
-                  activeOpacity={0.7}
-                  className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-1.5 rounded-xl flex-row items-center"
+                  activeOpacity={0.75}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Re-log ${meal.title}`}
+                  className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center justify-center active:opacity-75"
                 >
-                  <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
+                  <Text className="text-accent dark:text-accent-dark font-black text-xs">
                     Re-log
                   </Text>
                 </TouchableOpacity>

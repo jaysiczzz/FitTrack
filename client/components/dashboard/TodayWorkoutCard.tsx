@@ -5,6 +5,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 
+import { WorkoutRoutineTemplate } from '@/components/workouts/workoutTypes';
+
 export interface DashboardWorkoutExercise {
   id: string;
   name: string;
@@ -15,12 +17,16 @@ interface TodayWorkoutCardProps {
   exercises: DashboardWorkoutExercise[];
   isSessionCompleted?: boolean;
   completedStats?: { duration: number; caloriesBurned: number } | null;
+  scheduledRoutine?: WorkoutRoutineTemplate | null;
+  isRestDay?: boolean;
 }
 
 export default function TodayWorkoutCard({
   exercises,
   isSessionCompleted = false,
   completedStats,
+  scheduledRoutine,
+  isRestDay = false,
 }: TodayWorkoutCardProps) {
   const router = useRouter();
   const { colors } = useThemeColors();
@@ -98,7 +104,7 @@ export default function TodayWorkoutCard({
         <View className="flex-1 mr-2">
           <View className="flex-row items-center gap-2">
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-              Today's Workout
+              {isRestDay ? "Today's Split" : "Today's Workout"}
             </Text>
             {exercises.length > 0 && (
               <View className="bg-amber-500/15 dark:bg-amber-500/25 px-2 py-0.5 rounded-full flex-row items-center gap-1">
@@ -112,6 +118,10 @@ export default function TodayWorkoutCard({
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             {exercises.length > 0
               ? `${completedCount} of ${exercises.length} exercises complete`
+              : isRestDay
+              ? 'Weekly Recovery Target'
+              : scheduledRoutine
+              ? `Scheduled: ${scheduledRoutine.title.split('(')[0].trim()}`
               : 'No active session started'}
           </Text>
         </View>
@@ -134,22 +144,67 @@ export default function TodayWorkoutCard({
       {exercises.length === 0 ? (
         <TouchableOpacity
           activeOpacity={0.8}
-          onPress={() => router.push('/(screen)/workouts' as any)}
+          onPress={() => {
+            if (isRestDay) {
+              router.push({ pathname: '/(screen)/workouts', params: { tab: 'planner' } } as any);
+            } else {
+              router.push('/(screen)/workouts' as any);
+            }
+          }}
           className="bg-input dark:bg-input-dark rounded-2xl p-4 flex-row items-center justify-between border border-input-border dark:border-input-border-dark"
         >
-          <View className="flex-1 mr-3">
-            <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-              Ready to train today?
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-              Choose your routine or select exercises from the library.
-            </Text>
-          </View>
-          <View className="bg-accent dark:bg-accent-dark px-3.5 py-2 rounded-xl">
-            <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
-              Start
-            </Text>
-          </View>
+          {isRestDay ? (
+            <>
+              <View className="flex-1 mr-3">
+                <View className="flex-row items-center gap-1.5 mb-0.5">
+                  <Ionicons name="moon-outline" size={14} color={colors.accent} />
+                  <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                    Rest & Active Recovery
+                  </Text>
+                </View>
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs">
+                  Scheduled rest day in your weekly split. Muscle grows during recovery!
+                </Text>
+              </View>
+              <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3.5 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                  Split
+                </Text>
+              </View>
+            </>
+          ) : scheduledRoutine ? (
+            <>
+              <View className="flex-1 mr-3">
+                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs" numberOfLines={1}>
+                  {scheduledRoutine.title}
+                </Text>
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5" numberOfLines={1}>
+                  {scheduledRoutine.exercises?.length || 4} exercises · {scheduledRoutine.targetMuscleGroup || 'Training'} · {scheduledRoutine.estimatedDurationMinutes || 45}m
+                </Text>
+              </View>
+              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+                <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
+                  Start
+                </Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <View className="flex-1 mr-3">
+                <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                  Ready to train today?
+                </Text>
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+                  Choose your routine or select exercises from the library.
+                </Text>
+              </View>
+              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+                <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
+                  Start
+                </Text>
+              </View>
+            </>
+          )}
         </TouchableOpacity>
       ) : (
         <View className="gap-2">
@@ -158,16 +213,16 @@ export default function TodayWorkoutCard({
               key={ex.id}
               activeOpacity={0.7}
               onPress={() => router.push('/(screen)/workouts' as any)}
-              className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+              className="flex-row items-center justify-between p-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark min-h-[48px]"
             >
               <View className="flex-row items-center flex-1 mr-2">
                 {ex.isCompleted ? (
-                  <View className="w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-500/40 items-center justify-center mr-3">
+                  <View className="w-6 h-6 rounded-full bg-accent/20 border border-accent/40 items-center justify-center mr-3">
                     <Ionicons name="checkmark" size={13} color={colors.accent} />
                   </View>
                 ) : (
-                  <View className="w-6 h-6 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
-                    <Ionicons name="barbell" size={12} color="#A855F7" />
+                  <View className="w-6 h-6 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
+                    <Ionicons name="barbell" size={12} color={colors.accent} />
                   </View>
                 )}
 

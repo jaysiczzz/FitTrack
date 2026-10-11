@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import { View, Text, TouchableOpacity, DeviceEventEmitter, TextInput, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { CompletedSession, formatDateHeading, getTodayDateString } from '../workouts/workoutTypes';
 import { DailyFoodHistorySummary, FoodLogItem, getSmartFoodBadge } from '../foodlog/foodLogTypes';
 import { getWorkoutHistory } from '@/api/workout';
 import { getFoodLogHistoryApi, ApiDailyFoodLog } from '@/api/foodlog';
-import { getCheckInHistoryApi, CheckInRecord } from '@/api/checkin';
+import { getCheckInHistoryApi, saveCheckInApi, CheckInRecord } from '@/api/checkin';
 import { MOODS } from '../dashboard/DailyCheckInCard';
 import { useAuth } from '@/context/AuthContext';
+import { useToast } from '@/context/ToastContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -96,6 +97,90 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   
 
   const activeSelectedDate = externalSelectedDate !== undefined ? externalSelectedDate : internalSelectedDate;
+  const { showToast } = useToast();
+
+  // Reflection note inline editing state
+  const [editingNoteDate, setEditingNoteDate] = useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = useState('');
+  const [savingNote, setSavingNote] = useState(false);
+
+  // Sync reflection notes updated from DailyCheckInCard or elsewhere
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('DAILY_CHECKIN_UPDATED', (evt) => {
+      if (evt?.date && evt?.notes !== undefined) {
+        setLocalCheckIns((prev) => {
+          const existing = prev[evt.date];
+          if (!existing) return prev;
+          return {
+            ...prev,
+            [evt.date]: {
+              ...existing,
+              notes: evt.notes,
+            },
+          };
+        });
+      }
+    });
+    return () => {
+      sub.remove();
+    };
+  }, []);
+
+  const handleSaveCalendarNote = async (record: CheckInRecord) => {
+    if (!record.date) return;
+    setSavingNote(true);
+    try {
+      const updatedNote = noteDraft.trim();
+      await saveCheckInApi({
+        date: record.date,
+        moodId: record.moodId,
+        moodLabel: record.moodLabel,
+        coachTip: record.coachTip,
+        notes: updatedNote || undefined,
+      });
+
+      setLocalCheckIns((prev) => ({
+        ...prev,
+        [record.date]: {
+          ...record,
+          notes: updatedNote,
+        },
+      }));
+
+      if (record.date === todayStr && userId) {
+        const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayStr}`);
+        const saved = await AsyncStorage.getItem(checkinKey);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          parsed.notes = updatedNote;
+          await AsyncStorage.setItem(checkinKey, JSON.stringify(parsed));
+        }
+      }
+
+      DeviceEventEmitter.emit('DAILY_CHECKIN_UPDATED', {
+        date: record.date,
+        notes: updatedNote,
+        isCheckedIn: true,
+      });
+
+      showToast({
+        message: 'Reflection Saved',
+        description: `Note updated for ${record.date}.`,
+        type: 'success',
+        icon: '✓',
+      });
+      setEditingNoteDate(null);
+    } catch (err: any) {
+      showToast({
+        message: 'Error Saving Note',
+        description: err?.message || 'Could not update reflection note.',
+        type: 'error',
+      });
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
   const handleSelectDate = (dateStr: string | null) => {
     if (externalOnSelectDate) {
       externalOnSelectDate(dateStr);
@@ -439,7 +524,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   const avgDailyCalories = nutritionDaysInMonth > 0 ? Math.round(totalMonthConsumed / nutritionDaysInMonth) : 0;
 
   const bothActiveDays = useMemo(() => currentMonthDays.filter((d) => d.hasWorkout && d.hasNutrition).length, [currentMonthDays]);
-  const anyActiveDays = useMemo(() => currentMonthDays.filter((d) => d.hasWorkout || d.hasNutrition).length, [currentMonthDays]);
+  const anyActiveDays = useMemo(() => currentMonthDays.filter((d) => d.hasWorkout || d.hasNutrition || Boolean(d.checkIn)).length, [currentMonthDays]);
+  const checkInDaysInMonth = useMemo(() => currentMonthDays.filter((d) => Boolean(d.checkIn)).length, [currentMonthDays]);
   const overallAdherencePercent = Math.round((anyActiveDays / monthDaysCount) * 100);
 
   // Selected Day Details
@@ -455,9 +541,6 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         {!hideHeader && (
           <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-input-border/40 dark:border-input-border-dark/40">
             <View className="flex-row items-center gap-2">
-              <View className="w-7 h-7 rounded-lg bg-accent/15 items-center justify-center">
-                <Ionicons name="calendar-outline" size={16} color={colors.accent} />
-              </View>
               <View>
                 <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
                   Activity & Consistency Calendar
@@ -481,11 +564,6 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                 : 'bg-transparent'
             }`}
           >
-            <Ionicons
-              name="sparkles"
-              size={12}
-              color={filter === 'all' ? colors.accentContrast : colors.textMuted}
-            />
             <Text
               className={`text-xs font-black ${
                 filter === 'all' ? 'text-accent-contrast dark:text-accent-contrast-dark' : 'text-text-muted dark:text-text-muted-dark'
@@ -504,11 +582,6 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                 : 'bg-transparent'
             }`}
           >
-            <Ionicons
-              name="barbell"
-              size={13}
-              color={filter === 'workouts' ? colors.accentContrast : colors.textMuted}
-            />
             <Text
               className={`text-xs font-black ${
                 filter === 'workouts' ? 'text-accent-contrast dark:text-accent-contrast-dark' : 'text-text-muted dark:text-text-muted-dark'
@@ -527,11 +600,6 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                 : 'bg-transparent'
             }`}
           >
-            <Ionicons
-              name="restaurant"
-              size={13}
-              color={filter === 'nutrition' ? '#0B1120' : colors.textMuted}
-            />
             <Text
               className={`text-xs font-black ${
                 filter === 'nutrition' ? 'text-slate-900' : 'text-text-muted dark:text-text-muted-dark'
@@ -584,44 +652,71 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         {/* 3. Dynamic Monthly Overview Strip */}
         <View className="bg-input/60 dark:bg-input-dark/60 p-2.5 rounded-2xl mb-3.5 border border-input-border/40 dark:border-input-border-dark/40">
           {filter === 'all' && (
-            <View className="flex-row items-center justify-between">
+            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
               <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark" />
+                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark flex-shrink-0" />
                 <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
                   {anyActiveDays}/{monthDaysCount} Days Active ({overallAdherencePercent}%)
                 </Text>
               </View>
-              <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
-                {totalMonthWorkouts} Workouts · {nutritionDaysInMonth} Days Logged
-              </Text>
+              <View className="flex-row flex-wrap items-center gap-1.5">
+                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                    {totalMonthWorkouts} Workouts
+                  </Text>
+                </View>
+                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                  <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">
+                    {nutritionDaysInMonth} Meals
+                  </Text>
+                </View>
+                {checkInDaysInMonth > 0 && (
+                  <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                    <Text className="text-[10px] font-bold text-emerald-500 dark:text-emerald-400">
+                      {checkInDaysInMonth} Check-Ins
+                    </Text>
+                  </View>
+                )}
+              </View>
             </View>
           )}
 
           {filter === 'workouts' && (
-            <View className="flex-row items-center justify-between">
+            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
               <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark" />
+                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark flex-shrink-0" />
                 <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
                   {workoutDaysInMonth}/{monthDaysCount} Workout Days ({Math.round((workoutDaysInMonth / monthDaysCount) * 100)}%)
                 </Text>
               </View>
-              <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
-                {totalMonthWorkouts} Sessions · {totalMonthBurned.toLocaleString()} kcal Burned
-              </Text>
+              <View className="flex-row flex-wrap items-center gap-1.5">
+                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                    {totalMonthWorkouts} Sessions
+                  </Text>
+                </View>
+                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                  <Text className="text-[10px] font-bold text-orange-500 dark:text-orange-400">
+                    {totalMonthBurned.toLocaleString()} kcal Burned
+                  </Text>
+                </View>
+              </View>
             </View>
           )}
 
           {filter === 'nutrition' && (
-            <View className="flex-row items-center justify-between">
+            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
               <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                <View className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
                 <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
                   {nutritionDaysInMonth}/{monthDaysCount} Days Logged ({Math.round((nutritionDaysInMonth / monthDaysCount) * 100)}%)
                 </Text>
               </View>
-              <Text className="text-[11px] font-bold text-warning dark:text-warning-dark">
-                Avg: {avgDailyCalories.toLocaleString()} kcal/day
-              </Text>
+              <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">
+                  Avg: {avgDailyCalories.toLocaleString()} kcal/day
+                </Text>
+              </View>
             </View>
           )}
         </View>
@@ -822,11 +917,72 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1 leading-snug">
                     {selectedDayData.checkIn.coachTip}
                   </Text>
-                  {selectedDayData.checkIn.notes ? (
-                    <Text className="text-xs italic text-accent dark:text-accent-dark mt-1.5 font-medium">
-                      “{selectedDayData.checkIn.notes}”
-                    </Text>
-                  ) : null}
+                  {/* Reflection Note & Inline Editor */}
+                  {editingNoteDate === selectedDayData.dateStr ? (
+                    <View className="mt-2 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50">
+                      <TextInput
+                        value={noteDraft}
+                        onChangeText={setNoteDraft}
+                        placeholder="Write your reflection note..."
+                        placeholderTextColor={colors.textMuted}
+                        maxLength={200}
+                        className="bg-surface dark:bg-surface-dark p-2 rounded-xl text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2"
+                      />
+                      <View className="flex-row justify-end gap-2">
+                        <TouchableOpacity
+                          onPress={() => setEditingNoteDate(null)}
+                          className="px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark"
+                        >
+                          <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+                            Cancel
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={() => handleSaveCalendarNote(selectedDayData.checkIn!)}
+                          disabled={savingNote}
+                          className="px-3 py-1 rounded-lg bg-accent dark:bg-accent-dark flex-row items-center"
+                        >
+                          {savingNote ? (
+                            <ActivityIndicator size="small" color="#FFFFFF" className="mr-1" />
+                          ) : null}
+                          <Text className="text-[10px] font-bold text-white">
+                            Save Note
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  ) : selectedDayData.checkIn.notes ? (
+                    <View className="mt-2 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row items-start justify-between">
+                      <View className="flex-1 mr-2 flex-row items-start">
+                        <Ionicons name="document-text-outline" size={13} color={colors.accent} style={{ marginRight: 5, marginTop: 1 }} />
+                        <Text className="text-xs italic text-accent dark:text-accent-dark font-medium leading-snug">
+                          “{selectedDayData.checkIn.notes}”
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setNoteDraft(selectedDayData.checkIn?.notes || '');
+                          setEditingNoteDate(selectedDayData.dateStr);
+                        }}
+                        className="px-2 py-0.5 rounded bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
+                      >
+                        <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">Edit</Text>
+                      </TouchableOpacity>
+                    </View>
+                  ) : (
+                    <TouchableOpacity
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        setNoteDraft('');
+                        setEditingNoteDate(selectedDayData.dateStr);
+                      }}
+                      className="mt-2 pt-1.5 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row items-center"
+                    >
+                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+                        + Add reflection note...
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </View>
             );

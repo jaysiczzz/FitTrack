@@ -121,9 +121,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
           {personalRecord ? (
             <View className="flex-row items-center mt-1.5">
-              <View className="flex-row items-center px-2 py-0.5 rounded-full bg-amber-500/10 dark:bg-amber-500/20 border border-amber-500/30">
-                <Ionicons name="trophy" size={10} color={colors.warning} style={{ marginRight: 3.5 }} />
-                <Text className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+              <View className="flex-row items-center px-2 py-0.5 rounded-full bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30">
+                <Ionicons name="trophy" size={10} color={colors.accent} style={{ marginRight: 3.5 }} />
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
                   {personalRecord}
                 </Text>
               </View>
@@ -137,10 +137,10 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <View
             className={`rounded-full px-2.5 py-0.5 border ${
               difficulty.toLowerCase() === 'beginner'
-                ? 'bg-emerald-500/15 border-emerald-500/30'
+                ? 'bg-accent/15 border-accent/30'
                 : difficulty.toLowerCase() === 'advanced'
-                ? 'bg-purple-500/15 border-purple-500/30'
-                : 'bg-sky-500/15 border-sky-500/30'
+                ? 'bg-warning/15 border-warning/30'
+                : 'bg-info/15 border-info/30'
             }`}
           >
             <Text
@@ -148,8 +148,8 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 difficulty.toLowerCase() === 'beginner'
                   ? 'text-accent dark:text-accent-dark'
                   : difficulty.toLowerCase() === 'advanced'
-                  ? 'text-purple-400'
-                  : 'text-sky-400'
+                  ? 'text-warning dark:text-warning-dark'
+                  : 'text-info dark:text-info-dark'
               }`}
             >
               {difficulty}
@@ -160,11 +160,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <TouchableOpacity
               onPress={onRemoveExercise}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="w-9 h-9 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ml-0.5"
+              className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ml-0.5 active:opacity-60"
               activeOpacity={0.7}
+              accessibilityRole="button"
               accessibilityLabel={`Remove ${name}`}
             >
-              <Ionicons name="close" size={16} color={colors.danger} />
+              <Ionicons name="close" size={17} color={colors.danger} />
             </TouchableOpacity>
           ) : null}
         </View>
@@ -294,15 +295,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
+                  <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
                     <TouchableOpacity
                       onPress={() => {
                         if (!onUpdateSet) return;
                         const nextW = Math.max(0, Math.round((currWeight - stepDelta) * 10) / 10);
                         onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
                       }}
-                      className="w-6 h-full items-center justify-center active:opacity-60 shrink-0"
+                      className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                       hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                      accessibilityRole="button"
                       accessibilityLabel="Decrease weight"
                     >
                       <Ionicons name="remove" size={14} color={colors.textPrimary} />
@@ -341,8 +343,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         const nextW = Math.round((currWeight + stepDelta) * 10) / 10;
                         onUpdateSet(s.id, 'weight', nextW, false);
                       }}
-                      className="w-6 h-full items-center justify-center active:opacity-60 shrink-0"
+                      className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                       hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                      accessibilityRole="button"
                       accessibilityLabel="Increase weight"
                     >
                       <Ionicons name="add" size={14} color={colors.textPrimary} />
@@ -353,11 +356,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Reps Stepper Column */}
               {!isCardio && !isStretch && (
-                <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
+                <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', Math.max(1, currReps - 1))}
-                    className="w-6 h-full items-center justify-center active:opacity-60 shrink-0"
+                    className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    accessibilityRole="button"
                     accessibilityLabel="Decrease reps"
                   >
                     <Ionicons name="remove" size={14} color={colors.textPrimary} />
@@ -389,8 +393,9 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
-                    className="w-6 h-full items-center justify-center active:opacity-60 shrink-0"
+                    className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    accessibilityRole="button"
                     accessibilityLabel="Increase reps"
                   >
                     <Ionicons name="add" size={14} color={colors.textPrimary} />
@@ -400,7 +405,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Duration Column (Cardio / Stretch) */}
               {(isCardio || isStretch) && (
-                <View className="flex-1 min-w-0 h-10 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2 overflow-hidden">
+                <View className="flex-1 min-w-0 min-h-[44px] h-11 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2 overflow-hidden">
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {s.duration ? `${s.duration}s` : '60s'}
                   </Text>
@@ -412,16 +417,18 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 activeOpacity={0.7}
                 onPress={() => onToggleSet(s.id)}
                 hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-                className={`w-10 h-10 items-center justify-center rounded-xl border shrink-0 ${
+                accessibilityRole="checkbox"
+                accessibilityState={{ checked: Boolean(s.done) }}
+                accessibilityLabel={`Set ${s.setNumber || ''} ${s.done ? 'completed' : 'not done'}`}
+                className={`w-11 h-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border shrink-0 ${
                   s.done
                     ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                 }`}
-                accessibilityLabel="Mark set done"
               >
                 <Ionicons
                   name="checkmark"
-                  size={17}
+                  size={18}
                   color={s.done ? colors.accentContrast : colors.textMuted}
                 />
               </TouchableOpacity>

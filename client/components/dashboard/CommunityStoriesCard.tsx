@@ -145,9 +145,6 @@ export default function CommunityStoriesCard({
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-2 flex-1 mr-2">
-          <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
-            <Ionicons name="sparkles" size={16} color={colors.accent} />
-          </View>
           <View className="flex-1">
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
               Athlete Transformations

@@ -69,14 +69,15 @@ const OnboardingHeader: React.FC<OnboardingHeaderProps> = ({
           <TouchableOpacity
             onPress={handleBack}
             activeOpacity={0.7}
-            className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
             accessibilityLabel="Go back"
             accessibilityRole="button"
           >
-            <Ionicons name="arrow-back" size={16} color={colors.textPrimary} />
+            <Ionicons name="arrow-back" size={18} color={colors.textPrimary} />
           </TouchableOpacity>
         ) : (
-          <View className="w-8 h-8" />
+          <View className="w-11 h-11" />
         )}
 
         <View className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-full border border-input-border dark:border-input-border-dark">

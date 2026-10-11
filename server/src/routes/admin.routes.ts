@@ -3,6 +3,7 @@ import {
   getAdminSystemStats,
   getAdminUsers,
   updateUserRole,
+  toggleUserSuspension,
   deleteUser,
   getAdminTickets,
   updateAdminTicket,
@@ -24,6 +25,7 @@ router.get('/stats', getAdminSystemStats)
 // 2. User Directory & Role Management
 router.get('/users', getAdminUsers)
 router.put('/users/:id/role', updateUserRole)
+router.patch('/users/:id/suspend', toggleUserSuspension)
 router.delete('/users/:id', deleteUser)
 
 // 3. Inbound Support & Feedback Helpdesk

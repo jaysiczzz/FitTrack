@@ -24,6 +24,16 @@ import { useAuth } from '@/context/AuthContext';
 import { useToast } from '@/context/ToastContext';
 import { hapticFeedback } from '@/utils/haptics';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import {
+  useHeightUnit,
+  useWeightUnit,
+  HeightUnit,
+  WeightUnit,
+  cmToFtIn,
+  ftInToCm,
+  kgToLbs,
+  lbsToKg,
+} from '@/constants/units';
 
 interface EditProfileModalProps {
   visible: boolean;
@@ -41,6 +51,12 @@ export default function EditProfileModal({
   const { showSuccess, showError } = useToast();
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
+
+  const [heightUnit, setHeightUnit] = useHeightUnit();
+  const [weightUnit, setWeightUnit] = useWeightUnit();
+  const [feet, setFeet] = useState('');
+  const [inches, setInches] = useState('');
+  const [weightLbs, setWeightLbs] = useState('');
 
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -82,8 +98,16 @@ export default function EditProfileModal({
     if (visible && user) {
       setFirstName(user.firstName || '');
       setLastName(user.lastName || '');
-      if (user.height !== undefined) setHeight(String(user.height));
-      if (user.weight !== undefined) setWeight(String(user.weight));
+      if (user.height !== undefined) {
+        setHeight(String(user.height));
+        const { feet: f, inches: i } = cmToFtIn(user.height);
+        setFeet(String(f));
+        setInches(String(i));
+      }
+      if (user.weight !== undefined) {
+        setWeight(String(user.weight));
+        setWeightLbs(String(kgToLbs(user.weight)));
+      }
       if (user.age !== undefined) setAge(String(user.age));
       if (user.goal) {
         setGoal(user.goal === 'MUSCLE_GAIN' ? 'muscle' : 'loss');
@@ -105,8 +129,18 @@ export default function EditProfileModal({
 
     const cleanFirst = capitalizeWords(firstName).trim();
     const cleanLast = capitalizeWords(lastName).trim();
-    const hNum = Number(height);
-    const wNum = Number(weight);
+    let hNum = Number(height);
+    if (heightUnit === 'FT_IN') {
+      const f = parseInt(feet, 10) || 0;
+      const i = parseInt(inches, 10) || 0;
+      hNum = ftInToCm(f, i);
+    }
+
+    let wNum = Number(weight);
+    if (weightUnit === 'LBS') {
+      const lbs = parseFloat(weightLbs) || 0;
+      wNum = lbsToKg(lbs);
+    }
     const aNum = Number(age);
 
     let hasError = false;
@@ -127,20 +161,43 @@ export default function EditProfileModal({
       hasError = true;
     }
 
-    if (!height.trim()) {
-      setHeightError('Height is required');
-      hasError = true;
-    } else if (isNaN(hNum) || hNum < 50 || hNum > 250) {
-      setHeightError('Enter valid height (50-250 cm)');
-      hasError = true;
+    if (heightUnit === 'CM') {
+      if (!height.trim()) {
+        setHeightError('Height is required');
+        hasError = true;
+      } else if (isNaN(hNum) || hNum < 50 || hNum > 250) {
+        setHeightError('Enter valid height (50-250 cm)');
+        hasError = true;
+      }
+    } else {
+      const f = parseInt(feet, 10);
+      const i = parseInt(inches, 10);
+      if (!feet.trim()) {
+        setHeightError('Feet is required');
+        hasError = true;
+      } else if (isNaN(f) || f < 2 || f > 8 || (inches.trim() && (isNaN(i) || i < 0 || i >= 12))) {
+        setHeightError('Enter valid height (e.g. 5 ft 10 in)');
+        hasError = true;
+      }
     }
 
-    if (!weight.trim()) {
-      setWeightError('Weight is required');
-      hasError = true;
-    } else if (isNaN(wNum) || wNum < 20 || wNum > 350) {
-      setWeightError('Enter valid weight (20-350 kg)');
-      hasError = true;
+    if (weightUnit === 'KG') {
+      if (!weight.trim()) {
+        setWeightError('Weight is required');
+        hasError = true;
+      } else if (isNaN(wNum) || wNum < 20 || wNum > 350) {
+        setWeightError('Enter valid weight (20-350 kg)');
+        hasError = true;
+      }
+    } else {
+      const lbs = parseFloat(weightLbs);
+      if (!weightLbs.trim()) {
+        setWeightError('Weight is required');
+        hasError = true;
+      } else if (isNaN(lbs) || lbs < 45 || lbs > 800) {
+        setWeightError('Enter valid weight (45-800 lbs)');
+        hasError = true;
+      }
     }
 
     if (!age.trim()) {
@@ -213,9 +270,6 @@ export default function EditProfileModal({
           {/* Header */}
           <View className="flex-row items-center justify-between px-5 pt-4 pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
-                <Ionicons name="person-outline" size={17} color={colors.accent} />
-              </View>
               <View>
                 <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
                   Edit Personal Information
@@ -267,38 +321,165 @@ export default function EditProfileModal({
                 </View>
               </View>
 
+              {/* Unit Toggles Row */}
+              <View className="flex-row items-center justify-between mb-2 px-0.5">
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+                    Height:
+                  </Text>
+                  <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
+                    <Pressable
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setHeightUnit('CM');
+                        const f = parseInt(feet, 10) || 0;
+                        const i = parseInt(inches, 10) || 0;
+                        if (f > 0 || i > 0) setHeight(String(ftInToCm(f, i)));
+                      }}
+                      className={`px-2 py-0.5 rounded ${heightUnit === 'CM' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+                    >
+                      <Text className={`text-[10px] font-bold ${heightUnit === 'CM' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                        cm
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setHeightUnit('FT_IN');
+                        const cm = parseFloat(height);
+                        if (cm && cm > 0) {
+                          const { feet: f, inches: i } = cmToFtIn(cm);
+                          setFeet(String(f));
+                          setInches(String(i));
+                        }
+                      }}
+                      className={`px-2 py-0.5 rounded ${heightUnit === 'FT_IN' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+                    >
+                      <Text className={`text-[10px] font-bold ${heightUnit === 'FT_IN' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                        ft/in
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+                    Weight:
+                  </Text>
+                  <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
+                    <Pressable
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setWeightUnit('KG');
+                        const lbs = parseFloat(weightLbs);
+                        if (lbs && lbs > 0) setWeight(String(lbsToKg(lbs)));
+                      }}
+                      className={`px-2 py-0.5 rounded ${weightUnit === 'KG' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+                    >
+                      <Text className={`text-[10px] font-bold ${weightUnit === 'KG' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                        kg
+                      </Text>
+                    </Pressable>
+                    <Pressable
+                      onPress={() => {
+                        hapticFeedback.light();
+                        setWeightUnit('LBS');
+                        const kg = parseFloat(weight);
+                        if (kg && kg > 0) setWeightLbs(String(kgToLbs(kg)));
+                      }}
+                      className={`px-2 py-0.5 rounded ${weightUnit === 'LBS' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+                    >
+                      <Text className={`text-[10px] font-bold ${weightUnit === 'LBS' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                        lbs
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              </View>
+
               {/* Row 2: Height & Weight */}
               <View className={isStacked ? 'flex-col' : 'flex-row gap-3'}>
                 <View className={isStacked ? 'w-full' : 'flex-1 min-w-0'}>
-                  <Input
-                    label="Height"
-                    accessibilityLabel="Height in centimeters"
-                    value={height}
-                    onChangeText={(val) => {
-                      setHeight(val);
-                      if (heightError) setHeightError(null);
-                    }}
-                    placeholder="e.g. 175"
-                    keyboardType="decimal-pad"
-                    unit="cm"
-                    error={heightError || undefined}
-                  />
+                  {heightUnit === 'CM' ? (
+                    <Input
+                      label="Height"
+                      accessibilityLabel="Height in centimeters"
+                      value={height}
+                      onChangeText={(val) => {
+                        setHeight(val);
+                        if (heightError) setHeightError(null);
+                      }}
+                      placeholder="e.g. 175"
+                      keyboardType="decimal-pad"
+                      unit="cm"
+                      error={heightError || undefined}
+                    />
+                  ) : (
+                    <View className="flex-row gap-2">
+                      <View className="flex-1">
+                        <Input
+                          label="Height (ft)"
+                          accessibilityLabel="Height in feet"
+                          value={feet}
+                          onChangeText={(val) => {
+                            setFeet(val);
+                            if (heightError) setHeightError(null);
+                          }}
+                          placeholder="5"
+                          keyboardType="number-pad"
+                          unit="ft"
+                          error={heightError ? ' ' : undefined}
+                        />
+                      </View>
+                      <View className="flex-1">
+                        <Input
+                          label="(in)"
+                          accessibilityLabel="Height in inches"
+                          value={inches}
+                          onChangeText={(val) => {
+                            setInches(val);
+                            if (heightError) setHeightError(null);
+                          }}
+                          placeholder="10"
+                          keyboardType="number-pad"
+                          unit="in"
+                          error={heightError || undefined}
+                        />
+                      </View>
+                    </View>
+                  )}
                 </View>
 
                 <View className={isStacked ? 'w-full' : 'flex-1 min-w-0'}>
-                  <Input
-                    label="Weight"
-                    accessibilityLabel="Weight in kilograms"
-                    value={weight}
-                    onChangeText={(val) => {
-                      setWeight(val);
-                      if (weightError) setWeightError(null);
-                    }}
-                    placeholder="e.g. 70"
-                    keyboardType="decimal-pad"
-                    unit="kg"
-                    error={weightError || undefined}
-                  />
+                  {weightUnit === 'KG' ? (
+                    <Input
+                      label="Weight"
+                      accessibilityLabel="Weight in kilograms"
+                      value={weight}
+                      onChangeText={(val) => {
+                        setWeight(val);
+                        if (weightError) setWeightError(null);
+                      }}
+                      placeholder="e.g. 70"
+                      keyboardType="decimal-pad"
+                      unit="kg"
+                      error={weightError || undefined}
+                    />
+                  ) : (
+                    <Input
+                      label="Weight"
+                      accessibilityLabel="Weight in pounds"
+                      value={weightLbs}
+                      onChangeText={(val) => {
+                        setWeightLbs(val);
+                        if (weightError) setWeightError(null);
+                      }}
+                      placeholder="e.g. 154"
+                      keyboardType="decimal-pad"
+                      unit="lbs"
+                      error={weightError || undefined}
+                    />
+                  )}
                 </View>
               </View>
 

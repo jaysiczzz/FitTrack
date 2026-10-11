@@ -14,7 +14,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 import ConfirmModal from '../ui/ConfirmModal';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import {
@@ -25,7 +24,7 @@ import {
   CurrencyType,
   PaymentMethodType,
 } from '@/api/subscription';
-import { USD_PHP_EXCHANGE_RATE, convertCurrency, formatCurrency } from '@/constants/currency';
+import { USD_PHP_EXCHANGE_RATE } from '@/constants/currency';
 import {
   formatPhilippinePhone,
   validatePhilippinePhone,
@@ -215,9 +214,6 @@ export default function EWalletModal({
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center border border-emerald-500/30">
-                <Ionicons name="wallet" size={16} color="#10B981" />
-              </View>
               <View>
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                   FitTrack e-Wallet
@@ -336,7 +332,7 @@ export default function EWalletModal({
 
                   <TouchableOpacity
                     onPress={() => setDepositMethod('CARD')}
-                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                    className={`${currency === 'PHP' ? 'flex-2' : 'flex-1'} py-2 px-2 rounded-xl items-center border ${
                       depositMethod === 'CARD'
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
                         : 'bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark'

@@ -423,7 +423,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                   accessibilityLabel="Load Planned Workout"
                   className="bg-accent dark:bg-accent-dark min-h-[48px] py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-sm active:opacity-90"
                 >
-                  <Ionicons name="flash" size={16} color={colors.accentContrast} />
                   <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-baloo-bold uppercase tracking-wider">
                     Load Planned Workout
                   </Text>
@@ -688,9 +687,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                     <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
                       {recordText}
                     </Text>
-                  </View>
-                  <View className="w-6 h-6 rounded-md bg-accent/10 dark:bg-accent-dark/15 items-center justify-center">
-                    <Ionicons name="ribbon-outline" size={13} color={colors.accent} />
                   </View>
                 </View>
               );

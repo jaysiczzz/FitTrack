@@ -15,7 +15,7 @@ import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } fr
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorModal';
-import AiInsightsCard from '@/components/ai/AiInsightsCard';
+import AiInsightsCard from '@/components/foodlog/AiInsightsCard';
 import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
 import { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import { useToast } from '@/context/ToastContext';

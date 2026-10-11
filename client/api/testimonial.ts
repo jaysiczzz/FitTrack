@@ -14,6 +14,9 @@ export interface TestimonialItem {
   weightChangeKg?: number | null;
   durationWeeks?: number | null;
   verifiedAthlete?: boolean;
+  beforeImageUrl?: string | null;
+  afterImageUrl?: string | null;
+  status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED';
   createdAt: string;
 }
 
@@ -33,6 +36,9 @@ export interface SubmitTestimonialPayload {
   weightChangeKg?: number | null;
   durationWeeks?: number | null;
   avatarUrl?: string | null;
+  beforeImageUrl?: string | null;
+  afterImageUrl?: string | null;
+  publishImmediately?: boolean;
 }
 
 export const getTestimonialsApi = (
@@ -74,3 +80,17 @@ export const deleteMyTestimonialApi = (id?: string): Promise<{ success: boolean;
     method: 'DELETE',
   });
 };
+
+export const getAdminTestimonialsApi = (): Promise<{
+  success: boolean;
+  testimonials: TestimonialItem[];
+}> => apiRequest('/api/testimonials/admin/all');
+
+export const moderateTestimonialApi = (
+  id: string,
+  payload: { status?: 'PENDING_APPROVAL' | 'APPROVED' | 'REJECTED'; isFeatured?: boolean }
+): Promise<{ success: boolean; message: string; testimonial: TestimonialItem }> =>
+  apiRequest(`/api/testimonials/admin/${id}`, {
+    method: 'PATCH',
+    body: payload,
+  });

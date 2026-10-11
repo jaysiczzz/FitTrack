@@ -44,10 +44,12 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     interval: null,
     features: [
       'Full 80+ exercise library with animated GIFs & form cues',
-      'Unlimited workout logging, set tracker & rest timers',
-      'Standard food, calories, and water logger',
-      'Daily readiness check-in and workout streaks',
-      '3 free AI camera food scans & coach queries per day',
+      'Unlimited workout logging, custom exercises & rest timers',
+      'Complete calorie, macros, and water hydration logging',
+      'Daily readiness check-in and workout streak tracking',
+      'Up to 3 AI Camera Food Scans per day',
+      'Up to 15 AI Coach messages per day',
+      'Up to 5 AI-generated workout routines per month',
     ],
   },
   PRO_MONTHLY: {
@@ -61,12 +63,12 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     currency: 'PHP',
     interval: 'month',
     features: [
-      'Everything in Free tier (full exercise library & GIFs)',
-      'Unlimited AI Multimodal Camera Food Scanner & Macro Analysis',
-      'Unlimited 24/7 AI Fitness Coach (Google Gemini 2.0 Flash)',
-      'Daily, weekly, and monthly custom workout routine planner',
-      'Detailed Personal Record (PR) badges & 1RM progression charts',
-      'Priority cloud synchronization and offline data backup',
+      'Everything in Free tier (workout tracker, food log & calendar)',
+      '30 AI Camera Food Scans / day (Free capped at 3/day)',
+      '100 AI Coach messages / day (Free capped at 15/day)',
+      '30 AI Workout Routines / month (Free capped at 5/month)',
+      'Verified Pro Athlete badge on your profile',
+      'Uninterrupted premium training experience',
     ],
   },
   PRO_ANNUAL: {
@@ -82,9 +84,9 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     features: [
       'All Pro Monthly features included',
       'Save 33% compared to monthly (₱333/month · 2 months free)',
-      'Unlimited AI Food Scanner & Gemini 2.0 AI Coach',
-      'Custom routines, advanced analytics & PR trophies',
-      'Priority customer service and ticket resolution',
+      '30 AI Food Scans / day & 100 AI Coach messages / day',
+      '30 AI Workout Routines / month',
+      'Verified Pro Athlete badge on your profile',
     ],
   },
   LIFETIME_FOUNDER: {

@@ -346,12 +346,9 @@ export default function SubscriptionModal({
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-amber-500/20 items-center justify-center border border-amber-500/30">
-                <Ionicons name="sparkles" size={16} color="#F59E0B" />
-              </View>
               <View>
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
-                  FitTrack Pro
+                  FitTrack Pro Subscription
                 </Text>
               </View>
             </View>

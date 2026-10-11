@@ -24,7 +24,7 @@ const AuthTabs: React.FC<Props> = ({ active, onChange }) => {
             accessibilityState={{ selected: isActive }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 min-h-[34px] py-1.5 px-2 items-center justify-center rounded-xl ${
+            className={`flex-1 min-h-[44px] py-2.5 px-3 items-center justify-center rounded-xl ${
               isActive
                 ? 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
                 : 'border border-transparent'

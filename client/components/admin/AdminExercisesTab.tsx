@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
@@ -50,21 +50,30 @@ export default function AdminExercisesTab({
   const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
+  // ── Search State ──
+  const [exerciseSearch, setExerciseSearch] = useState('');
+
   // ── Add Exercise State ──
   const [showAddModal, setShowAddModal] = useState(false);
   const [savingExercise, setSavingExercise] = useState(false);
   const [autoFillingWithAi, setAutoFillingWithAi] = useState(false);
   const [addName, setAddName] = useState('');
   const [addMuscle, setAddMuscle] = useState('Chest');
+  const [addSecondaryMuscles, setAddSecondaryMuscles] = useState('');
   const [addCategory, setAddCategory] = useState('Strength');
   const [addType, setAddType] = useState('Compound');
   const [addDifficulty, setAddDifficulty] = useState('Intermediate');
   const [addEquipment, setAddEquipment] = useState('Barbell');
+  const [addEquipmentAlternatives, setAddEquipmentAlternatives] = useState('');
+  const [addRecommendedRest, setAddRecommendedRest] = useState('90');
+  const [addRecommendedTempo, setAddRecommendedTempo] = useState('');
+  const [addVideoUrl, setAddVideoUrl] = useState('');
   const [addMediaUrl, setAddMediaUrl] = useState('');
   const [addInstructions, setAddInstructions] = useState('');
   const [addFormTips, setAddFormTips] = useState('');
   const [addCommonMistakes, setAddCommonMistakes] = useState('');
   const [addBreathingTechnique, setAddBreathingTechnique] = useState('');
+  const [addErrors, setAddErrors] = useState<{ name?: string; instructions?: string }>({});
 
   // ── Edit Exercise State ──
   const [exerciseToEdit, setExerciseToEdit] = useState<ApiLibraryExercise | null>(null);
@@ -73,15 +82,21 @@ export default function AdminExercisesTab({
   const [autoFillingEditWithAi, setAutoFillingEditWithAi] = useState(false);
   const [editName, setEditName] = useState('');
   const [editMuscle, setEditMuscle] = useState('Chest');
+  const [editSecondaryMuscles, setEditSecondaryMuscles] = useState('');
   const [editCategory, setEditCategory] = useState('Strength');
   const [editType, setEditType] = useState('Compound');
   const [editDifficulty, setEditDifficulty] = useState('Intermediate');
   const [editEquipment, setEditEquipment] = useState('Barbell');
+  const [editEquipmentAlternatives, setEditEquipmentAlternatives] = useState('');
+  const [editRecommendedRest, setEditRecommendedRest] = useState('90');
+  const [editRecommendedTempo, setEditRecommendedTempo] = useState('');
+  const [editVideoUrl, setEditVideoUrl] = useState('');
   const [editMediaUrl, setEditMediaUrl] = useState('');
   const [editInstructions, setEditInstructions] = useState('');
   const [editFormTips, setEditFormTips] = useState('');
   const [editCommonMistakes, setEditCommonMistakes] = useState('');
   const [editBreathingTechnique, setEditBreathingTechnique] = useState('');
+  const [editErrors, setEditErrors] = useState<{ name?: string; instructions?: string }>({});
 
   // ── Delete State ──
   const [exerciseToDelete, setExerciseToDelete] = useState<ApiLibraryExercise | null>(null);
@@ -91,11 +106,17 @@ export default function AdminExercisesTab({
   const handleOpenAddModal = () => {
     triggerHapticFeedback();
     setAddName('');
+    setAddErrors({});
     setAddMuscle(selectedMuscle !== 'All' ? selectedMuscle : 'Chest');
+    setAddSecondaryMuscles('');
     setAddCategory('Strength');
     setAddType('Compound');
     setAddDifficulty('Intermediate');
     setAddEquipment('Barbell');
+    setAddEquipmentAlternatives('');
+    setAddRecommendedRest('90');
+    setAddRecommendedTempo('');
+    setAddVideoUrl('');
     setAddMediaUrl('');
     setAddInstructions('');
     setAddFormTips('');
@@ -106,7 +127,7 @@ export default function AdminExercisesTab({
 
   const handleAutoFillWithAi = async () => {
     if (!addName.trim()) {
-      showWarning('Name Required', 'Please enter an exercise name first (e.g. Romanian Deadlift).');
+      setAddErrors((prev) => ({ ...prev, name: 'Please enter an exercise name first (e.g. Romanian Deadlift).' }));
       return;
     }
 
@@ -117,6 +138,9 @@ export default function AdminExercisesTab({
       if (res?.success && res.data) {
         const d = res.data;
         if (d.primaryMuscle) setAddMuscle(d.primaryMuscle);
+        if (Array.isArray(d.secondaryMuscles) && d.secondaryMuscles.length > 0) {
+          setAddSecondaryMuscles(d.secondaryMuscles.join(', '));
+        }
         if (d.category) setAddCategory(d.category);
         if (d.difficulty) setAddDifficulty(d.difficulty);
         if (d.type) setAddType(d.type);
@@ -126,6 +150,7 @@ export default function AdminExercisesTab({
         }
         if (Array.isArray(d.instructions) && d.instructions.length > 0) {
           setAddInstructions(d.instructions.join('\n'));
+          setAddErrors((prev) => ({ ...prev, instructions: undefined }));
         }
         if (Array.isArray(d.formTips) && d.formTips.length > 0) {
           setAddFormTips(d.formTips.join('\n'));
@@ -146,14 +171,18 @@ export default function AdminExercisesTab({
   };
 
   const handleCreateExercise = async () => {
+    const errors: { name?: string; instructions?: string } = {};
     if (!addName.trim()) {
-      showWarning('Name Required', 'Please enter an exercise name.');
-      return;
+      errors.name = 'Please enter an exercise name.';
     }
     if (!addInstructions.trim()) {
-      showWarning('Instructions Required', 'Please provide execution instructions or steps.');
+      errors.instructions = 'Please provide execution instructions or steps.';
+    }
+    if (Object.keys(errors).length > 0) {
+      setAddErrors(errors);
       return;
     }
+    setAddErrors({});
 
     try {
       setSavingExercise(true);
@@ -162,15 +191,27 @@ export default function AdminExercisesTab({
       const instructionsArr = addInstructions.split('\n').map((s) => s.trim()).filter(Boolean);
       const formTipsArr = addFormTips ? addFormTips.split('\n').map((s) => s.trim()).filter(Boolean) : [];
       const commonMistakesArr = addCommonMistakes ? addCommonMistakes.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+      const secondaryMusclesArr = addSecondaryMuscles
+        ? addSecondaryMuscles.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const equipmentAltArr = addEquipmentAlternatives
+        ? addEquipmentAlternatives.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const restNum = parseInt(addRecommendedRest, 10) || 60;
 
       const res = await createLibraryExercise({
         name: addName.trim(),
         primaryMuscle: addMuscle,
         muscleGroup: addMuscle,
+        secondaryMuscles: secondaryMusclesArr,
         category: addCategory,
         type: addType || 'Compound',
         difficulty: addDifficulty,
         equipment: [addEquipment],
+        equipmentAlternatives: equipmentAltArr,
+        recommendedRest: restNum,
+        recommendedTempo: addRecommendedTempo.trim() || undefined,
+        videoUrl: addVideoUrl.trim() || undefined,
         imageUrl: isGif ? undefined : (addMediaUrl.trim() || undefined),
         gifUrl: isGif ? addMediaUrl.trim() : undefined,
         instructions: instructionsArr,
@@ -198,7 +239,7 @@ export default function AdminExercisesTab({
 
   const handleAutoFillEditWithAi = async () => {
     if (!editName.trim()) {
-      showWarning('Name Required', 'Please enter an exercise name first (e.g. Romanian Deadlift).');
+      setEditErrors((prev) => ({ ...prev, name: 'Please enter an exercise name first (e.g. Romanian Deadlift).' }));
       return;
     }
 
@@ -209,6 +250,9 @@ export default function AdminExercisesTab({
       if (res?.success && res.data) {
         const d = res.data;
         if (d.primaryMuscle) setEditMuscle(d.primaryMuscle);
+        if (Array.isArray(d.secondaryMuscles) && d.secondaryMuscles.length > 0) {
+          setEditSecondaryMuscles(d.secondaryMuscles.join(', '));
+        }
         if (d.category) setEditCategory(d.category);
         if (d.difficulty) setEditDifficulty(d.difficulty);
         if (d.type) setEditType(d.type);
@@ -218,6 +262,7 @@ export default function AdminExercisesTab({
         }
         if (Array.isArray(d.instructions) && d.instructions.length > 0) {
           setEditInstructions(d.instructions.join('\n'));
+          setEditErrors((prev) => ({ ...prev, instructions: undefined }));
         }
         if (Array.isArray(d.formTips) && d.formTips.length > 0) {
           setEditFormTips(d.formTips.join('\n'));
@@ -240,8 +285,12 @@ export default function AdminExercisesTab({
   const handleOpenEditModal = (ex: ApiLibraryExercise) => {
     triggerHapticFeedback();
     setExerciseToEdit(ex);
+    setEditErrors({});
     setEditName(ex.name || '');
     setEditMuscle(ex.primaryMuscle || ex.muscleGroup || 'Chest');
+    setEditSecondaryMuscles(
+      Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(', ') : ''
+    );
     setEditCategory(ex.category || 'Strength');
     setEditType((ex as any).type || 'Compound');
     setEditDifficulty(ex.difficulty || 'Intermediate');
@@ -253,6 +302,12 @@ export default function AdminExercisesTab({
       eq = ex.equipment;
     }
     setEditEquipment(eq);
+    setEditEquipmentAlternatives(
+      Array.isArray(ex.equipmentAlternatives) ? ex.equipmentAlternatives.join(', ') : ''
+    );
+    setEditRecommendedRest(ex.recommendedRest ? String(ex.recommendedRest) : '90');
+    setEditRecommendedTempo(ex.recommendedTempo || '');
+    setEditVideoUrl(ex.videoUrl || '');
 
     setEditMediaUrl(ex.gifUrl || ex.imageUrl || '');
 
@@ -284,14 +339,18 @@ export default function AdminExercisesTab({
 
   const handleUpdateExercise = async () => {
     if (!exerciseToEdit) return;
+    const errors: { name?: string; instructions?: string } = {};
     if (!editName.trim()) {
-      showWarning('Name Required', 'Please enter an exercise name.');
-      return;
+      errors.name = 'Please enter an exercise name.';
     }
     if (!editInstructions.trim()) {
-      showWarning('Instructions Required', 'Please provide execution instructions.');
+      errors.instructions = 'Please provide execution instructions.';
+    }
+    if (Object.keys(errors).length > 0) {
+      setEditErrors(errors);
       return;
     }
+    setEditErrors({});
 
     try {
       setUpdatingExercise(true);
@@ -300,15 +359,27 @@ export default function AdminExercisesTab({
       const instructionsArr = editInstructions.split('\n').map((s) => s.trim()).filter(Boolean);
       const formTipsArr = editFormTips ? editFormTips.split('\n').map((s) => s.trim()).filter(Boolean) : [];
       const commonMistakesArr = editCommonMistakes ? editCommonMistakes.split('\n').map((s) => s.trim()).filter(Boolean) : [];
+      const secondaryMusclesArr = editSecondaryMuscles
+        ? editSecondaryMuscles.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const equipmentAltArr = editEquipmentAlternatives
+        ? editEquipmentAlternatives.split(',').map((s) => s.trim()).filter(Boolean)
+        : [];
+      const restNum = parseInt(editRecommendedRest, 10) || 60;
 
       const res = await updateLibraryExercise(exerciseToEdit.id, {
         name: editName.trim(),
         primaryMuscle: editMuscle,
         muscleGroup: editMuscle,
+        secondaryMuscles: secondaryMusclesArr,
         category: editCategory,
         type: editType || 'Compound',
         difficulty: editDifficulty,
         equipment: [editEquipment],
+        equipmentAlternatives: equipmentAltArr,
+        recommendedRest: restNum,
+        recommendedTempo: editRecommendedTempo.trim() || undefined,
+        videoUrl: editVideoUrl.trim() || null,
         instructions: instructionsArr,
         formTips: formTipsArr,
         commonMistakes: commonMistakesArr,
@@ -353,13 +424,26 @@ export default function AdminExercisesTab({
     }
   };
 
+  const filteredExercises = useMemo(() => {
+    if (!exerciseSearch.trim()) return exercises;
+    const q = exerciseSearch.toLowerCase().trim();
+    return exercises.filter((ex) => {
+      const name = (ex.name || '').toLowerCase();
+      const muscle = (ex.primaryMuscle || ex.muscleGroup || '').toLowerCase();
+      const secMuscles = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(' ').toLowerCase() : '';
+      const eq = Array.isArray(ex.equipment) ? ex.equipment.join(' ').toLowerCase() : (ex.equipment || '').toLowerCase();
+      const cat = (ex.category || '').toLowerCase();
+      return name.includes(q) || muscle.includes(q) || secMuscles.includes(q) || eq.includes(q) || cat.includes(q);
+    });
+  }, [exercises, exerciseSearch]);
+
   return (
     <View className="gap-3">
       {/* Header + Add button */}
       <View className="flex-row items-center justify-between">
         <View>
           <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-            Exercise Catalog ({exercises.length})
+            Exercise Catalog ({filteredExercises.length}{exerciseSearch ? ` of ${exercises.length}` : ''})
           </Text>
           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
             Synchronized with live workout library & gifs
@@ -373,6 +457,24 @@ export default function AdminExercisesTab({
           <Ionicons name="add" size={18} color={colors.textPrimary} />
           <Text className="text-xs font-bold text-accent-contrast">Add Exercise</Text>
         </TouchableOpacity>
+      </View>
+
+      {/* Exercise Search Input */}
+      <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+        <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+        <TextInput
+          value={exerciseSearch}
+          onChangeText={setExerciseSearch}
+          placeholder="Search by exercise name, equipment, muscle..."
+          placeholderTextColor={colors.textMuted}
+          className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+          autoCapitalize="none"
+        />
+        {exerciseSearch.length > 0 && (
+          <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+          </TouchableOpacity>
+        )}
       </View>
 
       {/* Muscle Filter Scroll */}
@@ -409,8 +511,24 @@ export default function AdminExercisesTab({
             No exercises match this muscle group.
           </Text>
         </SurfaceCard>
+      ) : filteredExercises.length === 0 ? (
+        <SurfaceCard className="py-12 items-center justify-center">
+          <Ionicons name="search-outline" size={32} color={colors.textMuted} />
+          <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mt-2">
+            No matching exercises found
+          </Text>
+          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 text-center">
+            No exercises match "{exerciseSearch}".
+          </Text>
+          <TouchableOpacity
+            onPress={() => setExerciseSearch('')}
+            className="mt-3 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30"
+          >
+            <Text className="text-xs font-bold text-accent dark:text-accent-mint">Clear Search</Text>
+          </TouchableOpacity>
+        </SurfaceCard>
       ) : (
-        exercises.map((ex) => {
+        filteredExercises.map((ex) => {
           const mediaUri = ex.gifUrl || ex.imageUrl;
           const displayEquipment = Array.isArray(ex.equipment)
             ? ex.equipment.join(', ')
@@ -532,18 +650,28 @@ export default function AdminExercisesTab({
                     </TouchableOpacity>
                   </View>
                   <TextInput
-                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    className={`bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border text-sm text-text-primary dark:text-text-primary-dark ${
+                      addErrors.name
+                        ? 'border-danger'
+                        : 'border-input-border dark:border-input-border-dark'
+                    }`}
                     placeholder="e.g. Romanian Deadlift"
                     placeholderTextColor={colors.textMuted}
                     value={addName}
-                    onChangeText={setAddName}
+                    onChangeText={(val) => {
+                      setAddName(val);
+                      if (addErrors.name) setAddErrors((prev) => ({ ...prev, name: undefined }));
+                    }}
                   />
+                  {addErrors.name ? (
+                    <Text className="text-xs text-danger mt-1">{addErrors.name}</Text>
+                  ) : null}
                 </View>
 
                 {/* Target Muscle Group */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Target Muscle Group
+                    Primary Muscle Group
                   </Text>
                   <ScrollView
                     horizontal
@@ -564,11 +692,25 @@ export default function AdminExercisesTab({
                   </ScrollView>
                 </View>
 
-                {/* Equipment & Difficulty */}
+                {/* Secondary Muscles */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Secondary Muscles (comma-separated)
+                  </Text>
+                  <TextInput
+                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    placeholder="e.g. Triceps, Front Delts"
+                    placeholderTextColor={colors.textMuted}
+                    value={addSecondaryMuscles}
+                    onChangeText={setAddSecondaryMuscles}
+                  />
+                </View>
+
+                {/* Equipment & Equipment Alternatives */}
                 <View className="gap-2">
                   <View>
                     <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                      Equipment
+                      Primary Equipment
                     </Text>
                     <ScrollView
                       horizontal
@@ -591,6 +733,19 @@ export default function AdminExercisesTab({
 
                   <View>
                     <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                      Equipment Alternatives (comma-separated)
+                    </Text>
+                    <TextInput
+                      className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                      placeholder="e.g. Dumbbells, Resistance Bands"
+                      placeholderTextColor={colors.textMuted}
+                      value={addEquipmentAlternatives}
+                      onChangeText={setAddEquipmentAlternatives}
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
                       Difficulty Level
                     </Text>
                     <View className="flex-row gap-2">
@@ -605,6 +760,35 @@ export default function AdminExercisesTab({
                           }}
                         />
                       ))}
+                    </View>
+                  </View>
+
+                  {/* Rest & Tempo */}
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                        Rest (seconds)
+                      </Text>
+                      <TextInput
+                        className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                        placeholder="e.g. 90"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="numeric"
+                        value={addRecommendedRest}
+                        onChangeText={setAddRecommendedRest}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                        Tempo (ecc-pause-con)
+                      </Text>
+                      <TextInput
+                        className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                        placeholder="e.g. 3-0-1-0"
+                        placeholderTextColor={colors.textMuted}
+                        value={addRecommendedTempo}
+                        onChangeText={setAddRecommendedTempo}
+                      />
                     </View>
                   </View>
                 </View>
@@ -637,21 +821,46 @@ export default function AdminExercisesTab({
                   ) : null}
                 </View>
 
+                {/* Video Tutorial URL */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Video Tutorial URL (Optional)
+                  </Text>
+                  <TextInput
+                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    placeholder="e.g. https://youtube.com/watch?v=..."
+                    placeholderTextColor={colors.textMuted}
+                    value={addVideoUrl}
+                    onChangeText={setAddVideoUrl}
+                    autoCapitalize="none"
+                  />
+                </View>
+
                 {/* 3. Instructions & Form Guidance */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
                     Execution Instructions * (1 step per line)
                   </Text>
                   <TextInput
-                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark min-h-[70px]"
+                    className={`bg-surface-card dark:bg-surface-card-dark px-3 py-2 rounded-xl border text-sm text-text-primary dark:text-text-primary-dark min-h-[70px] ${
+                      addErrors.instructions
+                        ? 'border-danger'
+                        : 'border-input-border dark:border-input-border-dark'
+                    }`}
                     placeholder="1. Position feet shoulder-width apart&#10;2. Lower with control&#10;3. Drive through heels"
                     placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={3}
                     textAlignVertical="top"
                     value={addInstructions}
-                    onChangeText={setAddInstructions}
+                    onChangeText={(val) => {
+                      setAddInstructions(val);
+                      if (addErrors.instructions) setAddErrors((prev) => ({ ...prev, instructions: undefined }));
+                    }}
                   />
+                  {addErrors.instructions ? (
+                    <Text className="text-xs text-danger mt-1">{addErrors.instructions}</Text>
+                  ) : null}
                 </View>
 
                 <View>
@@ -767,18 +976,28 @@ export default function AdminExercisesTab({
                     </TouchableOpacity>
                   </View>
                   <TextInput
-                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    className={`bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border text-sm text-text-primary dark:text-text-primary-dark ${
+                      editErrors.name
+                        ? 'border-danger'
+                        : 'border-input-border dark:border-input-border-dark'
+                    }`}
                     placeholder="Exercise Name"
                     placeholderTextColor={colors.textMuted}
                     value={editName}
-                    onChangeText={setEditName}
+                    onChangeText={(val) => {
+                      setEditName(val);
+                      if (editErrors.name) setEditErrors((prev) => ({ ...prev, name: undefined }));
+                    }}
                   />
+                  {editErrors.name ? (
+                    <Text className="text-xs text-danger mt-1">{editErrors.name}</Text>
+                  ) : null}
                 </View>
 
                 {/* Target Muscle Group */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Target Muscle Group
+                    Primary Muscle Group
                   </Text>
                   <ScrollView
                     horizontal
@@ -797,6 +1016,20 @@ export default function AdminExercisesTab({
                       />
                     ))}
                   </ScrollView>
+                </View>
+
+                {/* Secondary Muscles */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Secondary Muscles (comma-separated)
+                  </Text>
+                  <TextInput
+                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    placeholder="e.g. Triceps, Front Delts"
+                    placeholderTextColor={colors.textMuted}
+                    value={editSecondaryMuscles}
+                    onChangeText={setEditSecondaryMuscles}
+                  />
                 </View>
 
                 {/* Movement Type (Compound vs Isolation) */}
@@ -819,11 +1052,11 @@ export default function AdminExercisesTab({
                   </View>
                 </View>
 
-                {/* Equipment & Difficulty */}
+                {/* Equipment & Equipment Alternatives */}
                 <View className="gap-2">
                   <View>
                     <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                      Equipment
+                      Primary Equipment
                     </Text>
                     <ScrollView
                       horizontal
@@ -846,6 +1079,19 @@ export default function AdminExercisesTab({
 
                   <View>
                     <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                      Equipment Alternatives (comma-separated)
+                    </Text>
+                    <TextInput
+                      className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                      placeholder="e.g. Dumbbells, Resistance Bands"
+                      placeholderTextColor={colors.textMuted}
+                      value={editEquipmentAlternatives}
+                      onChangeText={setEditEquipmentAlternatives}
+                    />
+                  </View>
+
+                  <View>
+                    <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
                       Difficulty Level
                     </Text>
                     <View className="flex-row gap-2">
@@ -860,6 +1106,35 @@ export default function AdminExercisesTab({
                           }}
                         />
                       ))}
+                    </View>
+                  </View>
+
+                  {/* Rest & Tempo */}
+                  <View className="flex-row gap-3">
+                    <View className="flex-1">
+                      <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                        Rest (seconds)
+                      </Text>
+                      <TextInput
+                        className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                        placeholder="e.g. 90"
+                        placeholderTextColor={colors.textMuted}
+                        keyboardType="numeric"
+                        value={editRecommendedRest}
+                        onChangeText={setEditRecommendedRest}
+                      />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                        Tempo (ecc-pause-con)
+                      </Text>
+                      <TextInput
+                        className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                        placeholder="e.g. 3-0-1-0"
+                        placeholderTextColor={colors.textMuted}
+                        value={editRecommendedTempo}
+                        onChangeText={setEditRecommendedTempo}
+                      />
                     </View>
                   </View>
                 </View>
@@ -892,21 +1167,46 @@ export default function AdminExercisesTab({
                   ) : null}
                 </View>
 
+                {/* Video Tutorial URL */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Video Tutorial URL (Optional)
+                  </Text>
+                  <TextInput
+                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
+                    placeholder="e.g. https://youtube.com/watch?v=..."
+                    placeholderTextColor={colors.textMuted}
+                    value={editVideoUrl}
+                    onChangeText={setEditVideoUrl}
+                    autoCapitalize="none"
+                  />
+                </View>
+
                 {/* 3. Instructions & Form Guidance */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
                     Execution Instructions * (1 step per line)
                   </Text>
                   <TextInput
-                    className="bg-surface-card dark:bg-surface-card-dark px-3 py-2 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark min-h-[70px]"
+                    className={`bg-surface-card dark:bg-surface-card-dark px-3 py-2 rounded-xl border text-sm text-text-primary dark:text-text-primary-dark min-h-[70px] ${
+                      editErrors.instructions
+                        ? 'border-danger'
+                        : 'border-input-border dark:border-input-border-dark'
+                    }`}
                     placeholder="Describe execution steps..."
                     placeholderTextColor={colors.textMuted}
                     multiline
                     numberOfLines={3}
                     textAlignVertical="top"
                     value={editInstructions}
-                    onChangeText={setEditInstructions}
+                    onChangeText={(val) => {
+                      setEditInstructions(val);
+                      if (editErrors.instructions) setEditErrors((prev) => ({ ...prev, instructions: undefined }));
+                    }}
                   />
+                  {editErrors.instructions ? (
+                    <Text className="text-xs text-danger mt-1">{editErrors.instructions}</Text>
+                  ) : null}
                 </View>
 
                 <View>

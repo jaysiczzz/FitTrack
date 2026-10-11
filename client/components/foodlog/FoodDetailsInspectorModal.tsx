@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
@@ -143,7 +143,10 @@ export default function FoodDetailsInspectorModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 bg-black/75 justify-end">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 bg-black/75 justify-end"
+      >
         <View className="bg-background dark:bg-background-dark rounded-t-3xl max-h-[92%] h-auto border-t border-input-border dark:border-input-border-dark overflow-hidden flex-col">
           {/* Header */}
           <View className="px-4 py-3 border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark flex-row items-center justify-between">
@@ -211,13 +214,13 @@ export default function FoodDetailsInspectorModal({
                     activeOpacity={0.8}
                     accessibilityRole="tab"
                     accessibilityState={{ selected: portionMode === 'grams' || portionMode === 'ml' }}
-                    className={`min-h-[34px] px-3 justify-center items-center rounded-md ${
+                    className={`min-h-[38px] px-3 justify-center items-center rounded-md ${
                       portionMode === 'grams' || portionMode === 'ml' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        portionMode === 'grams' || portionMode === 'ml' ? 'text-white font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
+                        portionMode === 'grams' || portionMode === 'ml' ? 'text-accent-contrast dark:text-accent-contrast-dark font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
                       {isLiquid ? 'Volume (ml)' : 'Grams (g)'}
@@ -229,13 +232,13 @@ export default function FoodDetailsInspectorModal({
                     activeOpacity={0.8}
                     accessibilityRole="tab"
                     accessibilityState={{ selected: portionMode === 'servings' }}
-                    className={`min-h-[34px] px-3 justify-center items-center rounded-md ${
+                    className={`min-h-[38px] px-3 justify-center items-center rounded-md ${
                       portionMode === 'servings' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        portionMode === 'servings' ? 'text-white font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
+                        portionMode === 'servings' ? 'text-accent-contrast dark:text-accent-contrast-dark font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
                       Servings
@@ -529,13 +532,13 @@ export default function FoodDetailsInspectorModal({
               accessibilityLabel={`+ Add to ${MEAL_LABELS[targetMeal]}`}
               className="bg-accent dark:bg-accent-dark py-3.5 px-4 min-h-[48px] rounded-2xl items-center justify-center shadow-sm"
             >
-              <Text className="text-white font-black text-sm" numberOfLines={1}>
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm" numberOfLines={1}>
                 + Add to {MEAL_LABELS[targetMeal]}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
