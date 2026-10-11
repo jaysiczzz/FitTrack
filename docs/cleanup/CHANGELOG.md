@@ -81,4 +81,15 @@ All code removals, refactors, extractions, and copy sanitizations performed duri
 - `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
 - Asset bundles: `app.json` verified to reference only `icon.png` and `adaptive-icon.png`.
 
+---
+
+## [Batch 5] - 2026-10-12
+### Removed & Refactored
+- `client/package.json` (DEP-001, DEP-002): Pruned unimported runtime dependency `react-native-worklets` and unused devDependency `@expo/ngrok`.
+- `client/app.json` (UNU-CFG-001): Cleaned up empty `"router": {}` block under `"extra"`.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Expo config: Verified valid JSON syntax and clean bundle structure.
+
 
