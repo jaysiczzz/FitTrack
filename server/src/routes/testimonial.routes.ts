@@ -8,6 +8,8 @@ import {
   submitTestimonial,
   deleteMyTestimonial,
   toggleHelpfulTestimonial,
+  getAdminTestimonials,
+  moderateTestimonial,
 } from '../controllers/testimonial.controller'
 
 const router = Router()
@@ -20,5 +22,9 @@ router.post('/:id/helpful', authMiddleware, toggleHelpfulTestimonial)
 router.get('/my', authMiddleware, getMyTestimonial)
 router.post('/', authMiddleware, validate(createTestimonialSchema), submitTestimonial)
 router.delete('/my', authMiddleware, deleteMyTestimonial)
+
+// Admin moderation routes
+router.get('/admin/all', authMiddleware, getAdminTestimonials)
+router.patch('/admin/:id', authMiddleware, moderateTestimonial)
 
 export default router

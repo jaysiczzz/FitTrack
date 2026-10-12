@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { WeeklySplit } from './workoutTypes';
 import { SPLIT_PRESETS, DAYS_OF_WEEK } from './plannerPresets';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface SplitPresetModalProps {
   visible: boolean;
@@ -25,7 +26,7 @@ export default function SplitPresetModal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View className="flex-1 bg-black/60 justify-end">
           <TouchableWithoutFeedback>
-            <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 max-h-[85%] border-t border-input-border dark:border-input-border-dark">
+            <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 pb-8 max-h-[85%] border-t border-input-border dark:border-input-border-dark">
               {/* Header */}
               <View className="flex-row justify-between items-center mb-4">
                 <View>
@@ -36,12 +37,7 @@ export default function SplitPresetModal({
                     Choose a battle-tested training split structure
                   </Text>
                 </View>
-                <TouchableOpacity
-                  onPress={onClose}
-                  className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-                >
-                  <Ionicons name="close" size={18} color={colors.textMuted} />
-                </TouchableOpacity>
+                <ModalCloseButton onClose={onClose} />
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} className="mb-2">

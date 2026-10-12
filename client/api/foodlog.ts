@@ -3,6 +3,7 @@ import { apiRequest } from './client';
 import { FoodLogItem } from '../components/foodlog/foodLogTypes';
 import { FoodCatalogItem } from '../data/commonFoods';
 import { authStorage } from '../utils/authStorage';
+import { APP_CONFIG } from '../constants/appConfig';
 
 export interface ApiFoodMeal {
   id: string;
@@ -71,13 +72,6 @@ export const saveDailyFoodLogApi = (payload: SaveDailyFoodLogPayload): Promise<S
   });
 };
 
-// 1b. Mark Day's Intake as Officially Completed
-export const completeDailyFoodLogApi = (date: string): Promise<SaveFoodLogResponse> => {
-  return apiRequest('/api/food-logs/complete-day', {
-    method: 'POST',
-    body: { date },
-  });
-};
 
 // 2. Fetch User's Complete Food Log History from Database
 export const getFoodLogHistoryApi = (): Promise<GetFoodHistoryResponse> => {
@@ -136,34 +130,13 @@ export const autoSyncFoodAndWater = (
   }, 600);
 };
 
-export const flushSyncFoodAndWater = async () => {
-  if (syncTimer) {
-    clearTimeout(syncTimer);
-    syncTimer = null;
-  }
-  if (pendingSyncPayload) {
-    const payload = { ...pendingSyncPayload };
-    pendingSyncPayload = null;
-    try {
-      await saveDailyFoodLogApi({
-        date: payload.date,
-        items: payload.items,
-        waterMl: payload.waterMl,
-      });
-    } catch (err) {
-      console.log('[FoodLog API] Flush sync failed:', err);
-    }
-  }
-};
-
-
 // 5. Search & Browse Foods Online (Open Food Facts Database)
 export interface SearchFoodsResponse {
   success: boolean;
   foods: FoodCatalogItem[];
 }
 
-export const OPEN_FOOD_FACTS_CATEGORY_TERMS: Record<string, string> = {
+const OPEN_FOOD_FACTS_CATEGORY_TERMS: Record<string, string> = {
   ALL: 'healthy',
   Protein: 'protein',
   Carbs: 'oats',
@@ -333,7 +306,7 @@ export const fetchOpenFoodFactsProducts = async (
     }
 
     // 2b. Direct Open Food Facts query fallback (openfoodfacts.net)
-    const offUrl = `https://world.openfoodfacts.net/cgi/search.pl?search_terms=${encodeURIComponent(
+    const offUrl = `${APP_CONFIG.openFoodFactsSearchUrl}?search_terms=${encodeURIComponent(
       searchTerm
     )}&search_simple=1&action=process&json=1&page_size=25`;
 
@@ -401,23 +374,3 @@ export const saveFoodToRecentHistory = async (food: any): Promise<void> => {
     console.log('Error caching recent food:', err);
   }
 };
-
-export const createCustomFoodApi = (data: {
-  name: string;
-  brand?: string;
-  category?: string;
-  servingSize?: string;
-  servingWeightG?: number;
-  servingUnit?: string;
-  calories: number;
-  protein: number;
-  carbs: number;
-  fat: number;
-  fiber?: number;
-  description?: string;
-  ingredients?: string;
-  icon?: string;
-}) => apiRequest('/api/food-logs/custom', { method: 'POST', body: data });
-
-export const deleteCustomFoodApi = (foodId: string) =>
-  apiRequest(`/api/food-logs/custom/${foodId}`, { method: 'DELETE' });

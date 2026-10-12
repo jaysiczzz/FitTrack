@@ -1,9 +1,9 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image } from 'react-native';
+import { Modal, View, Text, TouchableOpacity, ScrollView, TextInput, Image, KeyboardAvoidingView, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
-import { FoodCatalogItem, scaleFoodMacros, ScaledNutrition } from '../../data/commonFoods';
+import { FoodCatalogItem, scaleFoodMacros, ScaledNutrition, isLiquidFood } from '../../data/commonFoods';
 import { MealType, MEAL_LABELS, FoodLogItem, getSmartFoodBadge } from './foodLogTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import MealSelectorPill from './MealSelectorPill';
@@ -27,15 +27,30 @@ export default function FoodDetailsInspectorModal({
 }: FoodDetailsInspectorModalProps) {
   const { colors } = useThemeColors();
   const insets = useSafeAreaInsets();
-  const [portionMode, setPortionMode] = useState<'grams' | 'servings'>('grams');
+  const isLiquid = useMemo(() => isLiquidFood(food), [food]);
+
+  const [portionMode, setPortionMode] = useState<'grams' | 'ml' | 'servings'>('grams');
   const [amountInput, setAmountInput] = useState<string>('100');
   const [targetMeal, setTargetMeal] = useState<MealType>(defaultMeal);
+
+  const handleSwitchPortionMode = (mode: 'grams' | 'ml' | 'servings') => {
+    if (mode === portionMode) return;
+    setPortionMode(mode);
+    if (mode === 'servings') {
+      setAmountInput('1');
+    } else {
+      setAmountInput(String(food?.servingWeightG || (isLiquid ? 250 : 100)));
+    }
+  };
 
   useEffect(() => {
     if (food) {
       if (!food.servingWeightG || food.servingWeightG <= 0) {
         setPortionMode('servings');
         setAmountInput('1');
+      } else if (isLiquidFood(food)) {
+        setPortionMode('ml');
+        setAmountInput(String(food.servingWeightG || 250));
       } else {
         setPortionMode('grams');
         setAmountInput(String(food.servingWeightG || 100));
@@ -71,7 +86,9 @@ export default function FoodDetailsInspectorModal({
 
   const handleAdd = () => {
     const portionDesc =
-      portionMode === 'grams'
+      portionMode === 'ml'
+        ? `${numAmount}ml`
+        : portionMode === 'grams'
         ? `${numAmount}g`
         : `${numAmount} ${food.servingUnit || 'serving'}`;
 
@@ -126,7 +143,10 @@ export default function FoodDetailsInspectorModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 bg-black/75 justify-end">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 bg-black/75 justify-end"
+      >
         <View className="bg-background dark:bg-background-dark rounded-t-3xl max-h-[92%] h-auto border-t border-input-border dark:border-input-border-dark overflow-hidden flex-col">
           {/* Header */}
           <View className="px-4 py-3 border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark flex-row items-center justify-between">
@@ -144,25 +164,28 @@ export default function FoodDetailsInspectorModal({
               )}
               <View className="flex-1 min-w-0">
                 <Text
-                  className="text-base font-black text-text-primary dark:text-text-primary-dark leading-snug"
-                  numberOfLines={2}
+                  className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug"
+                  numberOfLines={3}
                 >
                   {food.name}
                 </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
-                  {food.brand ? `${food.brand} · ` : ''}{food.category}
-                </Text>
+                <View className="flex-row items-center gap-1.5 mt-0.5">
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+                    {food.brand ? `${food.brand} · ` : ''}{food.category}
+                  </Text>
+                  {food.isVerified && (
+                    <View className="px-1.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex-row items-center gap-0.5">
+                      <Ionicons name="checkmark-circle" size={10} color="#10B981" />
+                      <Text className="text-[8px] font-black text-emerald-500">Verified</Text>
+                    </View>
+                  )}
+                </View>
               </View>
             </View>
 
-            {/* Single Top Quality Badge */}
+            {/* Top Quality Badge & Close */}
             <View className="flex-row items-center gap-2">
-              {food.isVerified ? (
-                <View className="px-2 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex-row items-center gap-1 shrink-0">
-                  <Ionicons name="checkmark-circle" size={11} color="#10B981" />
-                  <Text className="text-[9px] font-black text-emerald-500">Verified</Text>
-                </View>
-              ) : food.nutriscore ? (
+              {food.nutriscore ? (
                 <View className={`px-1.5 py-0.5 rounded-md shrink-0 ${nutriscoreColor}`}>
                   <Text className="text-[8px] font-black text-white">Nutri {food.nutriscore}</Text>
                 </View>
@@ -178,44 +201,44 @@ export default function FoodDetailsInspectorModal({
             showsVerticalScrollIndicator={true}
           >
             {/* Interactive Portion Tuner */}
-            <View className="p-3.5 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark mb-3">
-              <View className="flex-row items-center justify-between mb-2.5">
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
+            <View className="p-3 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark mb-3">
+              <View className="flex-row items-center justify-between mb-2">
+                <Text className="text-[11px] font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
                   Portion Size
                 </Text>
 
-                {/* Grams / Servings Toggle with >=44px Touch Targets */}
-                <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-xl border border-input-border dark:border-input-border-dark">
+                {/* Grams/ml vs Servings Toggle with Compact Sizing */}
+                <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
                   <TouchableOpacity
-                    onPress={() => setPortionMode('grams')}
+                    onPress={() => handleSwitchPortionMode(isLiquid ? 'ml' : 'grams')}
                     activeOpacity={0.8}
                     accessibilityRole="tab"
-                    accessibilityState={{ selected: portionMode === 'grams' }}
-                    className={`min-h-[44px] px-3.5 justify-center items-center rounded-lg ${
-                      portionMode === 'grams' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
+                    accessibilityState={{ selected: portionMode === 'grams' || portionMode === 'ml' }}
+                    className={`min-h-[38px] px-3 justify-center items-center rounded-md ${
+                      portionMode === 'grams' || portionMode === 'ml' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        portionMode === 'grams' ? 'text-white font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
+                        portionMode === 'grams' || portionMode === 'ml' ? 'text-accent-contrast dark:text-accent-contrast-dark font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
-                      Grams (g)
+                      {isLiquid ? 'Volume (ml)' : 'Grams (g)'}
                     </Text>
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => setPortionMode('servings')}
+                    onPress={() => handleSwitchPortionMode('servings')}
                     activeOpacity={0.8}
                     accessibilityRole="tab"
                     accessibilityState={{ selected: portionMode === 'servings' }}
-                    className={`min-h-[44px] px-3.5 justify-center items-center rounded-lg ${
+                    className={`min-h-[38px] px-3 justify-center items-center rounded-md ${
                       portionMode === 'servings' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                     }`}
                   >
                     <Text
                       className={`text-xs font-bold ${
-                        portionMode === 'servings' ? 'text-white font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
+                        portionMode === 'servings' ? 'text-accent-contrast dark:text-accent-contrast-dark font-extrabold' : 'text-text-muted dark:text-text-muted-dark'
                       }`}
                     >
                       Servings
@@ -225,39 +248,64 @@ export default function FoodDetailsInspectorModal({
               </View>
 
               {/* Amount Input */}
-              <View className="flex-row items-center gap-2.5 mb-2.5">
+              <View className="flex-row items-center gap-2 mb-2">
                 <TextInput
                   value={amountInput}
                   onChangeText={setAmountInput}
                   keyboardType="numeric"
-                  className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl px-4 min-h-[46px] text-base font-black text-text-primary dark:text-text-primary-dark text-center"
+                  className="flex-1 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-xl px-3 min-h-[38px] text-sm font-black text-text-primary dark:text-text-primary-dark text-center"
                 />
-                <View className="min-w-[65px] justify-center items-center px-2 py-2.5 rounded-xl bg-input/50 dark:bg-input-dark/50 border border-input-border/40">
+                <View className="min-w-[60px] justify-center items-center px-2 py-2 rounded-xl bg-input/50 dark:bg-input-dark/50 border border-input-border/40">
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
-                    {portionMode === 'grams' ? 'grams' : food.servingUnit || 'servings'}
+                    {portionMode === 'ml' ? 'ml' : portionMode === 'grams' ? 'grams' : food.servingUnit || 'servings'}
                   </Text>
                 </View>
               </View>
 
-              {/* Quick Preset Buttons (>=44px Touch Targets) */}
+              {/* Quick Preset Buttons (Compact Chips) */}
               <View className="flex-row gap-1.5">
-                {portionMode === 'grams' ? (
+                {portionMode === 'ml' ? (
+                  [150, 250, 330, 500, 750].map((ml) => (
+                    <TouchableOpacity
+                      key={ml}
+                      onPress={() => setAmountInput(String(ml))}
+                      activeOpacity={0.7}
+                      accessibilityRole="button"
+                      className={`flex-1 min-h-[32px] justify-center items-center rounded-lg border ${
+                        amountInput === String(ml)
+                          ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                          : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                      }`}
+                    >
+                      <Text
+                        className={`text-[10px] font-bold ${
+                          amountInput === String(ml)
+                            ? 'text-accent dark:text-accent-dark font-black'
+                            : 'text-text-primary dark:text-text-primary-dark'
+                        }`}
+                        numberOfLines={1}
+                      >
+                        {ml}ml
+                      </Text>
+                    </TouchableOpacity>
+                  ))
+                ) : portionMode === 'grams' ? (
                   [50, 100, 150, 200, 250].map((g) => (
                     <TouchableOpacity
                       key={g}
                       onPress={() => setAmountInput(String(g))}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      className={`flex-1 min-h-[44px] justify-center items-center rounded-xl border ${
+                      className={`flex-1 min-h-[32px] justify-center items-center rounded-lg border ${
                         amountInput === String(g)
                           ? 'bg-accent/15 border-accent dark:border-accent-dark'
                           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                       }`}
                     >
                       <Text
-                        className={`text-xs font-black ${
+                        className={`text-[11px] font-bold ${
                           amountInput === String(g)
-                            ? 'text-accent dark:text-accent-dark'
+                            ? 'text-accent dark:text-accent-dark font-black'
                             : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                       >
@@ -272,16 +320,16 @@ export default function FoodDetailsInspectorModal({
                       onPress={() => setAmountInput(String(s))}
                       activeOpacity={0.7}
                       accessibilityRole="button"
-                      className={`flex-1 min-h-[44px] justify-center items-center rounded-xl border ${
+                      className={`flex-1 min-h-[32px] justify-center items-center rounded-lg border ${
                         amountInput === String(s)
                           ? 'bg-accent/15 border-accent dark:border-accent-dark'
                           : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                       }`}
                     >
                       <Text
-                        className={`text-xs font-black ${
+                        className={`text-[11px] font-bold ${
                           amountInput === String(s)
-                            ? 'text-accent dark:text-accent-dark'
+                            ? 'text-accent dark:text-accent-dark font-black'
                             : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                       >
@@ -484,13 +532,13 @@ export default function FoodDetailsInspectorModal({
               accessibilityLabel={`+ Add to ${MEAL_LABELS[targetMeal]}`}
               className="bg-accent dark:bg-accent-dark py-3.5 px-4 min-h-[48px] rounded-2xl items-center justify-center shadow-sm"
             >
-              <Text className="text-white font-black text-sm" numberOfLines={1}>
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm" numberOfLines={1}>
                 + Add to {MEAL_LABELS[targetMeal]}
               </Text>
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

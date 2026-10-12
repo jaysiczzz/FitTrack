@@ -21,6 +21,12 @@ export const findById = (id: string) => {
             age: true,
             goal: true,
             createdAt: true,
+            subscription: {
+                select: {
+                    tier: true,
+                    status: true,
+                },
+            },
         },
     })
 }
@@ -68,6 +74,12 @@ export const updateUser = (
             age: true,
             goal: true,
             createdAt: true,
+            subscription: {
+                select: {
+                    tier: true,
+                    status: true,
+                },
+            },
         },
     })
 }

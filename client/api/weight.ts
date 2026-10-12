@@ -28,10 +28,6 @@ export interface WeightApiResponse {
   message?: string;
 }
 
-export const getWeightLogsApi = (): Promise<WeightApiResponse> => {
-  return apiRequest('/api/weight');
-};
-
 export const saveWeightLogApi = (data: {
   weight: number;
   date?: string;
@@ -40,20 +36,5 @@ export const saveWeightLogApi = (data: {
   return apiRequest('/api/weight', {
     method: 'POST',
     body: data,
-  });
-};
-
-export const deleteWeightLogApi = (id: string): Promise<WeightApiResponse> => {
-  return apiRequest(`/api/weight/${id}`, {
-    method: 'DELETE',
-  });
-};
-
-export const setTargetWeightApi = (
-  targetWeight: number | null
-): Promise<{ success: boolean; targetWeight: number | null; stats: WeightStats }> => {
-  return apiRequest('/api/weight/target', {
-    method: 'PUT',
-    body: { targetWeight },
   });
 };

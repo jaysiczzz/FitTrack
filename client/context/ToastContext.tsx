@@ -11,6 +11,7 @@ export interface ToastOptions {
   actionLabel?: string;
   onAction?: () => void;
   duration?: number;
+  topOffset?: number;
   bottomOffset?: number;
 }
 
@@ -36,6 +37,7 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     actionLabel?: string;
     onAction?: () => void;
     duration?: number;
+    topOffset?: number;
     bottomOffset?: number;
   }>({
     visible: false,
@@ -60,7 +62,8 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         iconName: options.iconName,
         actionLabel: options.actionLabel,
         onAction: options.onAction,
-        duration: options.duration ?? 4000,
+        duration: options.duration ?? 2000,
+        topOffset: options.topOffset,
         bottomOffset: options.bottomOffset ?? 24,
       });
     }
@@ -122,10 +125,12 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
         description={toastState.description}
         type={toastState.type}
         icon={toastState.icon}
+        iconName={toastState.iconName}
         actionLabel={toastState.actionLabel}
         onAction={toastState.onAction}
         onDismiss={hideToast}
         duration={toastState.duration}
+        topOffset={toastState.topOffset}
         bottomOffset={toastState.bottomOffset}
       />
     </ToastContext.Provider>

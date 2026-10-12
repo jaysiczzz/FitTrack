@@ -1,22 +1,33 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '@/constants/colors';
+import { useColorScheme } from 'nativewind';
+import FieldLabel from './FieldLabel';
 
-interface Props extends TextInputProps {
+export { FieldLabel };
+
+export interface InputProps extends TextInputProps {
   label?: string;
+  labelClassName?: string;
   error?: string;
+  helperText?: string;
   unit?: string;
   isPassword?: boolean;
+  leftIcon?: React.ReactNode;
+  rightAdornment?: React.ReactNode;
 }
 
-const Input = React.forwardRef<TextInput, Props>(
+const Input = React.forwardRef<TextInput, InputProps>(
   (
     {
       label,
+      labelClassName,
       error,
+      helperText,
       unit,
       isPassword,
+      leftIcon,
+      rightAdornment,
       secureTextEntry,
       className = '',
       style,
@@ -26,33 +37,46 @@ const Input = React.forwardRef<TextInput, Props>(
     },
     ref
   ) => {
-    const { colors, isDark } = useThemeColors();
-    const placeholderColor = colors.textMuted;
-    const defaultIconColor = colors.textMuted;
+    const { colorScheme } = useColorScheme();
+    const isDark = colorScheme === 'dark';
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
     const isPasswordField = isPassword ?? Boolean(secureTextEntry);
     const shouldBeSecure = isPasswordField ? !showPassword : secureTextEntry;
 
+    const placeholderColor = isDark ? '#94A3B8' : '#64748B';
+    const eyeIconColor = isFocused
+      ? isDark
+        ? '#10B981'
+        : '#047857'
+      : isDark
+      ? '#94A3B8'
+      : '#64748B';
+
     return (
       <View className="w-full mb-3">
         {label ? (
-          <Text className="text-text-muted dark:text-text-muted-dark mb-1.5 text-[10px] tracking-wider uppercase font-bold">
+          <FieldLabel className={labelClassName}>
             {label}
-          </Text>
+          </FieldLabel>
         ) : null}
-        <View className="relative w-full flex-row items-center">
+
+        <View
+          className={`w-full flex-row items-center bg-input dark:bg-input-dark border rounded-xl min-h-[48px] px-3.5 ${
+            error
+              ? 'border-danger dark:border-danger-dark'
+              : isFocused
+              ? 'border-accent dark:border-accent-dark ring-1 ring-accent/30'
+              : 'border-input-border dark:border-input-border-dark'
+          }`}
+        >
+          {leftIcon ? <View className="mr-2.5 shrink-0">{leftIcon}</View> : null}
+
           <TextInput
             ref={ref}
             keyboardAppearance={isDark ? 'dark' : 'light'}
-            className={`flex-1 bg-input dark:bg-input-dark border ${
-              error
-                ? 'border-danger dark:border-danger-dark'
-                : isFocused
-                ? 'border-accent dark:border-accent-dark'
-                : 'border-input-border dark:border-input-border-dark'
-            } pl-3.5 ${isPasswordField || unit ? 'pr-11' : 'pr-3.5'} py-2.5 rounded-xl text-text-primary dark:text-text-primary-dark text-sm min-h-[46px] ${className}`}
+            className={`flex-1 min-w-0 text-text-primary dark:text-text-primary-dark text-sm py-2.5 ${className}`}
             placeholderTextColor={placeholderColor}
             style={style}
             secureTextEntry={shouldBeSecure}
@@ -66,31 +90,45 @@ const Input = React.forwardRef<TextInput, Props>(
             }}
             {...rest}
           />
+
           {isPasswordField ? (
             <TouchableOpacity
               onPress={() => setShowPassword((prev) => !prev)}
-              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
               accessibilityRole="button"
-              className="absolute right-3 p-1 items-center justify-center rounded-lg"
+              className="w-10 h-10 items-center justify-center shrink-0 -mr-1 rounded-lg active:opacity-60"
             >
               <Ionicons
                 name={showPassword ? 'eye-off' : 'eye'}
                 size={20}
-                color={isFocused ? colors.accent : defaultIconColor}
+                color={eyeIconColor}
               />
             </TouchableOpacity>
           ) : unit ? (
-            <View
-              style={{ pointerEvents: 'none' } as any}
-              className="absolute right-2.5 bg-surface/80 dark:bg-surface-dark/80 px-2 py-0.5 rounded-md border border-input-border/50 dark:border-input-border-dark/50"
+            <Text
+              accessibilityElementsHidden={true}
+              importantForAccessibility="no"
+              className="shrink-0 ml-2 text-xs font-baloo-bold text-text-muted dark:text-text-muted-dark uppercase select-none"
             >
-              <Text className="text-text-muted dark:text-text-muted-dark text-[10px] font-bold uppercase">{unit}</Text>
-            </View>
+              {unit}
+            </Text>
+          ) : rightAdornment ? (
+            <View className="shrink-0 ml-2">{rightAdornment}</View>
           ) : null}
         </View>
+
         {error ? (
-          <Text className="text-danger dark:text-danger-dark text-[11px] mt-0.5 font-medium">{error}</Text>
+          <Text
+            accessibilityRole="alert"
+            className="text-danger dark:text-danger-dark text-xs mt-1.5 font-baloo-medium px-0.5"
+          >
+            {error}
+          </Text>
+        ) : helperText ? (
+          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 font-sans px-0.5">
+            {helperText}
+          </Text>
         ) : null}
       </View>
     );

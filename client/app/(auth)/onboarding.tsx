@@ -14,6 +14,7 @@ import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { capitalizeWords } from '@/utils/formatters';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
@@ -120,6 +121,12 @@ export default function OnboardingScreen() {
       return;
     }
 
+    if (!data.isVerified) {
+      setServerError('Please verify your email address before completing onboarding.');
+      router.replace('/(auth)/verify');
+      return;
+    }
+
     try {
       setServerError('');
       setLoading(true);
@@ -135,7 +142,7 @@ export default function OnboardingScreen() {
       setRegisteredPayload({ token: res.token, user: res.user, refreshToken: res.refreshToken });
       clear();
     } catch (err: any) {
-      setServerError(err.message || 'Registration failed. Please try again.');
+      setServerError(getFriendlyErrorMessage(err, 'Registration failed. Please try again.'));
     } finally {
       setLoading(false);
     }
@@ -153,27 +160,29 @@ export default function OnboardingScreen() {
     if (step === 2) {
       setStep(1);
     } else if (step === 1) {
-      router.replace('/(auth)');
+      router.replace('/(auth)/verify');
     }
   };
 
-  // If user navigated directly to /onboarding without registering first
-  if (!data && !registeredPayload) {
+  // If user navigated directly to /onboarding without registering first or without verifying
+  if ((!data || !data.isVerified) && !registeredPayload) {
     return (
       <SafeAreaView className="flex-1 bg-background dark:bg-background-dark justify-center px-6">
         <View className="w-full max-w-[440px] mx-auto bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70 rounded-3xl p-6 items-center text-center">
           <View className="w-16 h-16 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-4">
-            <Ionicons name="document-text" size={32} color={colors.accent} />
+            <Ionicons name="mail-unread-outline" size={32} color={colors.accent} />
           </View>
           <Text className="text-xl font-bold text-text-primary dark:text-text-primary-dark mb-2 text-center">
-            Registration Required
+            {!data ? 'Registration Required' : 'Verification Required'}
           </Text>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center leading-relaxed mb-6">
-            To personalize your AI fitness plan, please start by setting up your login credentials.
+            {!data
+              ? 'To personalize your AI fitness plan, please start by setting up your login credentials.'
+              : 'Please verify your email address with the 6-digit confirmation code before proceeding.'}
           </Text>
           <Button
-            title="Go to Registration"
-            onPress={() => router.replace('/(auth)')}
+            title={!data ? 'Go to Registration' : 'Verify Email'}
+            onPress={() => router.replace(!data ? '/(auth)' : '/(auth)/verify')}
           />
         </View>
       </SafeAreaView>

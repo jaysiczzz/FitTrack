@@ -398,7 +398,7 @@ export default function ExerciseVisual({
                 className="absolute inset-0 items-center justify-center pointer-events-none"
               >
                 <ActivityIndicator size="small" color="#10B981" />
-                <Text className="text-[10px] font-bold text-white/50 mt-2">Loading motion demonstration...</Text>
+                <Text className="text-[10px] font-bold text-white/50 mt-2">Loading exercise preview...</Text>
               </View>
             )}
 

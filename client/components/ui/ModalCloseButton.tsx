@@ -17,11 +17,11 @@ export default function ModalCloseButton({
       activeOpacity={0.7}
       accessibilityRole="button"
       accessibilityLabel="Close"
-      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-      className={`w-9 h-9 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ${className}`}
+      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      className={`w-10 h-10 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark active:opacity-60 ${className}`}
       {...props}
     >
-      <Text className="text-text-primary dark:text-text-primary-dark text-sm font-bold">✕</Text>
+      <Text className="text-text-primary dark:text-text-primary-dark text-base font-bold">✕</Text>
     </TouchableOpacity>
   );
 }

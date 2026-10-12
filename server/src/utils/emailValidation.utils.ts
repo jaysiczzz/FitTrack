@@ -45,7 +45,11 @@ export async function validateEmailDeliverability(email: string): Promise<{ vali
 
   // Verify domain has active Mail Exchange (MX) records
   try {
-    const mxRecords = await dns.promises.resolveMx(domain)
+    const mxPromise = dns.promises.resolveMx(domain)
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error('DNS_TIMEOUT')), 3000)
+    )
+    const mxRecords = await Promise.race([mxPromise, timeoutPromise])
     if (!mxRecords || mxRecords.length === 0) {
       return {
         valid: false,
@@ -53,6 +57,10 @@ export async function validateEmailDeliverability(email: string): Promise<{ vali
       }
     }
   } catch (err: any) {
+    if (err.message === 'DNS_TIMEOUT') {
+      console.warn(`[DNS MX Timeout] Resolving MX for ${domain} timed out after 3s, proceeding.`)
+      return { valid: true }
+    }
     if (err.code === 'ENOTFOUND' || err.code === 'ENODATA' || err.code === 'ESERVFAIL') {
       return {
         valid: false,

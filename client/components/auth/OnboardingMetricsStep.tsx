@@ -1,14 +1,27 @@
-import React, { useRef, useMemo } from 'react';
-import { View, Text, TextInput } from 'react-native';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
+import { View, Text, TextInput, Pressable } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { calculateBmi } from '@/utils/formatters';
+import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import {
+  useHeightUnit,
+  useWeightUnit,
+  HeightUnit,
+  WeightUnit,
+  cmToFtIn,
+  ftInToCm,
+  kgToLbs,
+  lbsToKg,
+} from '@/constants/units';
+import { hapticFeedback } from '@/utils/haptics';
 
 interface OnboardingMetricsStepProps {
-  height: string;
+  height: string; // Stored/passed in cm
   onHeightChange: (val: string) => void;
   heightError?: string;
 
-  weight: string;
+  weight: string; // Stored/passed in kg
   onWeightChange: (val: string) => void;
   weightError?: string;
 
@@ -33,8 +46,106 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
   goal,
   onNext,
 }) => {
+  const [heightUnit, setHeightUnit] = useHeightUnit();
+  const [weightUnit, setWeightUnit] = useWeightUnit();
+
+  // Local state for Imperial inputs
+  const [feetInput, setFeetInput] = useState('');
+  const [inchesInput, setInchesInput] = useState('');
+  const [weightLbsInput, setWeightLbsInput] = useState('');
+
   const weightRef = useRef<TextInput>(null);
+  const inchesRef = useRef<TextInput>(null);
   const ageRef = useRef<TextInput>(null);
+
+  // Sync initial feet/inches if height is provided in cm
+  useEffect(() => {
+    const cm = parseFloat(height);
+    if (cm && cm > 0 && !feetInput && !inchesInput) {
+      const { feet, inches } = cmToFtIn(cm);
+      setFeetInput(String(feet));
+      setInchesInput(String(inches));
+    }
+  }, [height]);
+
+  // Sync initial weight in lbs if weight is provided in kg
+  useEffect(() => {
+    const kg = parseFloat(weight);
+    if (kg && kg > 0 && !weightLbsInput) {
+      setWeightLbsInput(String(kgToLbs(kg)));
+    }
+  }, [weight]);
+
+  const handleToggleHeightUnit = (newUnit: HeightUnit) => {
+    hapticFeedback.light();
+    setHeightUnit(newUnit);
+    if (newUnit === 'FT_IN') {
+      const cm = parseFloat(height);
+      if (cm && cm > 0) {
+        const { feet, inches } = cmToFtIn(cm);
+        setFeetInput(String(feet));
+        setInchesInput(String(inches));
+      }
+    } else {
+      const f = parseInt(feetInput, 10) || 0;
+      const i = parseInt(inchesInput, 10) || 0;
+      if (f > 0 || i > 0) {
+        const cm = ftInToCm(f, i);
+        onHeightChange(String(cm));
+      }
+    }
+  };
+
+  const handleToggleWeightUnit = (newUnit: WeightUnit) => {
+    hapticFeedback.light();
+    setWeightUnit(newUnit);
+    if (newUnit === 'LBS') {
+      const kg = parseFloat(weight);
+      if (kg && kg > 0) {
+        setWeightLbsInput(String(kgToLbs(kg)));
+      }
+    } else {
+      const lbs = parseFloat(weightLbsInput);
+      if (lbs && lbs > 0) {
+        onWeightChange(String(lbsToKg(lbs)));
+      }
+    }
+  };
+
+  const handleFeetChange = (val: string) => {
+    setFeetInput(val);
+    const f = parseInt(val, 10) || 0;
+    const i = parseInt(inchesInput, 10) || 0;
+    if (f > 0 || i > 0) {
+      const cm = ftInToCm(f, i);
+      onHeightChange(String(cm));
+    } else {
+      onHeightChange('');
+    }
+  };
+
+  const handleInchesChange = (val: string) => {
+    setInchesInput(val);
+    const f = parseInt(feetInput, 10) || 0;
+    const i = parseInt(val, 10) || 0;
+    if (f > 0 || i > 0) {
+      const cm = ftInToCm(f, i);
+      onHeightChange(String(cm));
+    } else {
+      onHeightChange('');
+    }
+  };
+
+  const handleWeightLbsChange = (val: string) => {
+    setWeightLbsInput(val);
+    const lbs = parseFloat(val);
+    if (lbs && lbs > 0) {
+      const kg = lbsToKg(lbs);
+      onWeightChange(String(kg));
+    } else {
+      onWeightChange('');
+    }
+  };
 
   // Real-time calculation of estimated health metrics
   const statsPreview = useMemo(() => {
@@ -46,84 +157,179 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       return null;
     }
 
-    const heightInMeters = h / 100;
-    const bmi = w / (heightInMeters * heightInMeters);
-
+    const { bmi: bmiVal, category } = calculateBmi(w, h);
     let bmiCategory = 'Healthy Weight';
     let bmiColor = 'text-accent dark:text-accent-dark';
-    if (bmi < 18.5) {
+    if (category === 'Underweight') {
       bmiCategory = 'Underweight';
-      bmiColor = 'text-amber-500 dark:text-amber-400';
-    } else if (bmi >= 25 && bmi < 30) {
+      bmiColor = 'text-warning dark:text-warning-dark';
+    } else if (category === 'Overweight') {
       bmiCategory = 'Overweight';
-      bmiColor = 'text-amber-500 dark:text-amber-400';
-    } else if (bmi >= 30) {
+      bmiColor = 'text-warning dark:text-warning-dark';
+    } else if (category === 'Obese') {
       bmiCategory = 'High BMI';
-      bmiColor = 'text-red-500 dark:text-red-400';
+      bmiColor = 'text-danger dark:text-danger-dark';
     }
 
-    // Mifflin-St Jeor formula baseline estimation
-    const bmr = 10 * w + 6.25 * h - 5 * a + 5;
-    const tdee = Math.round(bmr * 1.35); // Moderate activity baseline
-
-    let targetCalories = tdee;
-    if (goal === 'MUSCLE_GAIN') {
-      targetCalories = tdee + 300;
-    } else if (goal === 'WEIGHT_LOSS') {
-      targetCalories = Math.max(1400, tdee - 450);
-    }
-
-    // Macro estimates
-    const proteinGrams = Math.round(w * (goal === 'MUSCLE_GAIN' ? 2.0 : 1.8));
-    const fatGrams = Math.round((targetCalories * 0.25) / 9);
-    const carbGrams = Math.round((targetCalories - (proteinGrams * 4 + fatGrams * 9)) / 4);
+    const targets = calculatePersonalizedTargets(
+      { weight: w, height: h, age: a, goal },
+      (goal as any) || 'MUSCLE_GAIN'
+    );
 
     return {
-      bmi: bmi.toFixed(1),
+      bmi: bmiVal.toFixed(1),
       bmiCategory,
       bmiColor,
-      targetCalories,
-      proteinGrams,
-      carbGrams,
-      fatGrams,
+      targetCalories: targets.calories,
+      proteinGrams: targets.protein,
+      carbGrams: targets.carbs,
+      fatGrams: targets.fat,
     };
   }, [height, weight, age, goal]);
 
   return (
     <View className="w-full">
-      {/* 2-column Height & Weight */}
-      <View className="flex-row gap-2.5 w-full">
-        <View className="flex-1">
-          <Input
-            className="w-full"
-            label="Height"
-            placeholder="175"
-            unit="cm"
-            value={height}
-            onChangeText={onHeightChange}
-            keyboardType="numeric"
-            error={heightError}
-            returnKeyType="next"
-            onSubmitEditing={() => weightRef.current?.focus()}
-            blurOnSubmit={false}
-          />
+      {/* Unit Selector Row */}
+      <View className="flex-row items-center justify-between mb-2 px-0.5">
+        <View className="flex-row items-center gap-1.5">
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            Height:
+          </Text>
+          <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
+            <Pressable
+              onPress={() => handleToggleHeightUnit('CM')}
+              className={`px-2 py-0.5 rounded ${heightUnit === 'CM' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+            >
+              <Text className={`text-[10px] font-bold ${heightUnit === 'CM' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                cm
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleToggleHeightUnit('FT_IN')}
+              className={`px-2 py-0.5 rounded ${heightUnit === 'FT_IN' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+            >
+              <Text className={`text-[10px] font-bold ${heightUnit === 'FT_IN' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                ft/in
+              </Text>
+            </Pressable>
+          </View>
         </View>
 
+        <View className="flex-row items-center gap-1.5">
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            Weight:
+          </Text>
+          <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark">
+            <Pressable
+              onPress={() => handleToggleWeightUnit('KG')}
+              className={`px-2 py-0.5 rounded ${weightUnit === 'KG' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+            >
+              <Text className={`text-[10px] font-bold ${weightUnit === 'KG' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                kg
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={() => handleToggleWeightUnit('LBS')}
+              className={`px-2 py-0.5 rounded ${weightUnit === 'LBS' ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'}`}
+            >
+              <Text className={`text-[10px] font-bold ${weightUnit === 'LBS' ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'}`}>
+                lbs
+              </Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+
+      {/* 2-column Height & Weight */}
+      <View className="flex-row gap-2.5 w-full">
+        {/* Height Section */}
         <View className="flex-1">
-          <Input
-            className="w-full"
-            ref={weightRef}
-            label="Weight"
-            placeholder="72"
-            unit="kg"
-            value={weight}
-            onChangeText={onWeightChange}
-            keyboardType="decimal-pad"
-            error={weightError}
-            returnKeyType="next"
-            onSubmitEditing={() => ageRef.current?.focus()}
-            blurOnSubmit={false}
-          />
+          {heightUnit === 'CM' ? (
+            <Input
+              className="w-full"
+              label="Height"
+              placeholder="175"
+              unit="cm"
+              value={height}
+              onChangeText={onHeightChange}
+              keyboardType="numeric"
+              error={heightError}
+              returnKeyType="next"
+              onSubmitEditing={() => weightRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          ) : (
+            <View className="w-full">
+              <View className="flex-row gap-1.5">
+                <View className="flex-1">
+                  <Input
+                    className="w-full"
+                    label="Height (ft)"
+                    placeholder="5"
+                    unit="ft"
+                    value={feetInput}
+                    onChangeText={handleFeetChange}
+                    keyboardType="numeric"
+                    error={heightError ? ' ' : undefined}
+                    returnKeyType="next"
+                    onSubmitEditing={() => inchesRef.current?.focus()}
+                    blurOnSubmit={false}
+                  />
+                </View>
+                <View className="flex-1">
+                  <Input
+                    ref={inchesRef}
+                    className="w-full"
+                    label="(in)"
+                    placeholder="10"
+                    unit="in"
+                    value={inchesInput}
+                    onChangeText={handleInchesChange}
+                    keyboardType="numeric"
+                    error={heightError}
+                    returnKeyType="next"
+                    onSubmitEditing={() => weightRef.current?.focus()}
+                    blurOnSubmit={false}
+                  />
+                </View>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* Weight Section */}
+        <View className="flex-1">
+          {weightUnit === 'KG' ? (
+            <Input
+              className="w-full"
+              ref={weightRef}
+              label="Weight"
+              placeholder="72"
+              unit="kg"
+              value={weight}
+              onChangeText={onWeightChange}
+              keyboardType="decimal-pad"
+              error={weightError}
+              returnKeyType="next"
+              onSubmitEditing={() => ageRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          ) : (
+            <Input
+              className="w-full"
+              ref={weightRef}
+              label="Weight"
+              placeholder="160"
+              unit="lbs"
+              value={weightLbsInput}
+              onChangeText={handleWeightLbsChange}
+              keyboardType="decimal-pad"
+              error={weightError}
+              returnKeyType="next"
+              onSubmitEditing={() => ageRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+          )}
         </View>
       </View>
 

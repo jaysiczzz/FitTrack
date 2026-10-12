@@ -15,13 +15,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
+import { THEME_STORAGE_KEY } from '@/constants/storageKeys';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import ResetPasswordModal from '@/components/settings/ResetPasswordModal';
 import HelpSupportModal from '@/components/settings/HelpSupportModal';
 import PrivacyPolicyModal from '@/components/settings/PrivacyPolicyModal';
-import TestimonialModal from '@/components/settings/TestimonialModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import EWalletModal from '@/components/subscription/EWalletModal';
-import AdminRevenueModal from '@/components/subscription/AdminRevenueModal';
 import EditProfileModal from '@/components/profile/EditProfileModal';
 import {
   getCurrentSubscriptionApi,
@@ -46,7 +46,7 @@ import {
 } from '@/utils/notificationService';
 
 import { hapticFeedback } from '@/utils/haptics';
-import { useWeightUnit } from '@/constants/units';
+import { useWeightUnit, useHeightUnit } from '@/constants/units';
 
 export default function Settings() {
   const router = useRouter();
@@ -55,6 +55,7 @@ export default function Settings() {
   const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
   const [weightUnit, setWeightUnit] = useWeightUnit();
+  const [heightUnit, setHeightUnit] = useHeightUnit();
 
   const isAdmin = user?.role?.toUpperCase() === 'ADMIN';
 
@@ -74,7 +75,7 @@ export default function Settings() {
     hapticFeedback.light();
     setIsDarkLocal(isDark);
     const newTheme = isDark ? 'dark' : 'light';
-    AsyncStorage.setItem('fittrack_app_theme', newTheme).catch(() => {});
+    AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
     setTimeout(() => {
       setColorScheme(newTheme);
     }, 40);
@@ -86,10 +87,8 @@ export default function Settings() {
   const [showHelpModal, setShowHelpModal] = useState(false);
   const [helpInitialTab, setHelpInitialTab] = useState<'faq' | 'contact'>('faq');
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showTestimonialModal, setShowTestimonialModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
   const [showEWalletModal, setShowEWalletModal] = useState(false);
-  const [showAdminRevenueModal, setShowAdminRevenueModal] = useState(false);
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
@@ -230,12 +229,12 @@ export default function Settings() {
     try {
       const sent = await sendTestNotification();
       if (sent) {
-        showSuccess('Test Notification Sent', 'Check your device notification tray!');
+        showSuccess('Sample Reminder Sent', 'Check your device notification tray!');
       } else {
         showWarning('Permissions Needed', 'Enable notification permissions above first.');
       }
     } catch {
-      showError('Test Failed', 'Could not dispatch test notification.');
+      showError('Notification Error', 'Could not dispatch sample notification.');
     } finally {
       setTestingNotification(false);
     }
@@ -267,7 +266,7 @@ export default function Settings() {
         }
       }, 150);
     } catch (err: any) {
-      showError('Action Failed', err?.message || 'Could not delete your account. Please try again.');
+      showError('Action Failed', getFriendlyErrorMessage(err, 'Could not delete your account. Please try again.'));
       setIsDeletingAccount(false);
     }
   };
@@ -284,7 +283,13 @@ export default function Settings() {
           {/* Back Button & Header */}
           <View className="flex-row items-center mb-1">
             <Pressable
-              onPress={() => router.back()}
+              onPress={() => {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(screen)/profile');
+                }
+              }}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               className="w-11 h-11 rounded-xl bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
               accessibilityLabel="Go back"
@@ -328,8 +333,8 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowSubscriptionModal(true)}
           >
-            <View className="w-8 h-8 rounded-full bg-amber-500/15 border border-amber-500/30 items-center justify-center mr-3">
-              <Ionicons name="diamond" size={14} color="#F59E0B" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="diamond-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <View className="flex-row items-center gap-1.5">
@@ -337,12 +342,12 @@ export default function Settings() {
                   FitTrack Pro Subscription
                 </Text>
                 {currentSub?.tier && currentSub.tier !== 'FREE' ? (
-                  <View className="bg-emerald-500/20 px-1.5 py-0.5 rounded-md">
-                    <Text className="text-[9px] font-bold text-emerald-500 uppercase">Active</Text>
+                  <View className="bg-emerald-500/15 border border-emerald-500/30 px-1.5 py-0.5 rounded-md">
+                    <Text className="text-[9px] font-bold text-accent dark:text-accent-dark uppercase">Active</Text>
                   </View>
                 ) : (
-                  <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
-                    <Text className="text-[9px] font-bold text-accent uppercase">Upgrade</Text>
+                  <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-1.5 py-0.5 rounded-md">
+                    <Text className="text-[9px] font-bold text-accent dark:text-accent-dark uppercase">Upgrade</Text>
                   </View>
                 )}
               </View>
@@ -360,8 +365,8 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowEWalletModal(true)}
           >
-            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="wallet" size={14} color={colors.accent} />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="wallet-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <View className="flex-row items-center justify-between pr-2">
@@ -382,15 +387,15 @@ export default function Settings() {
 
         {/* Admin Management Section (Visible for ADMIN role) */}
         {isAdmin && (
-          <SurfaceCard className="mb-3 border-accent/30 dark:border-accent-dark/30">
+          <SurfaceCard className="mb-3 border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center justify-between mb-2">
               <View className="flex-row items-center gap-1.5">
-                <Ionicons name="shield-checkmark" size={16} color={colors.accent} />
+                <Ionicons name="shield-checkmark-outline" size={16} color={colors.accent} />
                 <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
                   Admin Control Center
                 </Text>
               </View>
-              <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-full">
+              <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded-full">
                 <Text className="text-[10px] font-bold text-accent dark:text-accent-dark uppercase">
                   Executive Access
                 </Text>
@@ -405,8 +410,8 @@ export default function Settings() {
                 router.push('/(screen)/admin');
               }}
             >
-              <View className="w-9 h-9 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 items-center justify-center mr-3">
-                <Ionicons name="apps-outline" size={18} color={colors.accent} />
+              <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                <Ionicons name="apps-outline" size={14} color={colors.textPrimary} />
               </View>
               <View className="flex-1">
                 <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
@@ -414,28 +419,6 @@ export default function Settings() {
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                   Live KPIs, user directory, exercise catalog & support desk
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={16} color={colors.accent} />
-            </Pressable>
-
-            {/* Quick Payouts & Ledger Modal Shortcut */}
-            <Pressable
-              className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-              onPress={() => {
-                hapticFeedback.light();
-                setShowAdminRevenueModal(true);
-              }}
-            >
-              <View className="w-9 h-9 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/20 dark:border-accent-dark/20 items-center justify-center mr-3">
-                <Ionicons name="trending-up" size={16} color={colors.accent} />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                  Quick Revenue Modal
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                  Fast MRR check, Stripe fees & instant payout modal
                 </Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
@@ -457,8 +440,8 @@ export default function Settings() {
               setShowEditProfileModal(true);
             }}
           >
-            <View className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
-              <Ionicons name="person-outline" size={14} color={colors.accent} />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="person-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -475,8 +458,8 @@ export default function Settings() {
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowResetPasswordModal(true)}
           >
-            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="key" size={14} color={colors.accent} />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="key-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -496,8 +479,8 @@ export default function Settings() {
               setShowDeleteModal(true);
             }}
           >
-            <View className="w-8 h-8 rounded-full bg-danger/15 border border-danger/30 items-center justify-center mr-3">
-              <Ionicons name="trash-outline" size={14} color="#EF4444" />
+            <View className="w-8 h-8 rounded-full bg-danger/10 border border-danger/20 items-center justify-center mr-3">
+              <Ionicons name="trash-outline" size={14} color={colors.danger} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-danger dark:text-danger-dark">
@@ -575,8 +558,8 @@ export default function Settings() {
           <View className="border-t border-input-border dark:border-input-border-dark py-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1 pr-2">
-                <View className="w-8 h-8 rounded-full bg-orange-500/15 border border-orange-500/30 items-center justify-center mr-3">
-                  <Ionicons name="sunny" size={14} color="#FB923C" />
+                <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                  <Ionicons name="restaurant-outline" size={14} color={colors.textPrimary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -635,8 +618,8 @@ export default function Settings() {
           <View className="border-t border-input-border dark:border-input-border-dark py-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1 pr-2">
-                <View className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-500/30 items-center justify-center mr-3">
-                  <Ionicons name="water" size={14} color="#38BDF8" />
+                <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                  <Ionicons name="water-outline" size={14} color={colors.textPrimary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -685,8 +668,8 @@ export default function Settings() {
           <View className="border-t border-input-border dark:border-input-border-dark py-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1 pr-2">
-                <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
-                  <Ionicons name="barbell" size={14} color="#A855F7" />
+                <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                  <Ionicons name="barbell-outline" size={14} color={colors.textPrimary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -725,8 +708,8 @@ export default function Settings() {
           <View className="border-t border-input-border dark:border-input-border-dark py-3">
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center flex-1 pr-2">
-                <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-                  <Ionicons name="pulse" size={14} color="#10B981" />
+                <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                  <Ionicons name="pulse-outline" size={14} color={colors.textPrimary} />
                 </View>
                 <View className="flex-1">
                   <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -768,8 +751,8 @@ export default function Settings() {
 
           {/* Sound Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="w-8 h-8 rounded-full bg-teal-500/15 border border-teal-500/30 items-center justify-center mr-3">
-              <Ionicons name="volume-high" size={14} color="#14B8A6" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="volume-high-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -783,14 +766,14 @@ export default function Settings() {
               value={notifSettings.soundEnabled}
               onValueChange={(val) => handleToggleNotification('soundEnabled', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+              trackColor={{ false: colors.inputBorder, true: colors.accent }}
             />
           </View>
 
           {/* Vibration Toggle */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="w-8 h-8 rounded-full bg-pink-500/15 border border-pink-500/30 items-center justify-center mr-3">
-              <Ionicons name="phone-portrait-outline" size={14} color="#EC4899" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="phone-portrait-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -804,7 +787,7 @@ export default function Settings() {
               value={notifSettings.vibrationEnabled}
               onValueChange={(val) => handleToggleNotification('vibrationEnabled', val)}
               thumbColor={colors.surface}
-              trackColor={{ false: colors.inputBorder, true: '#10B981' }}
+              trackColor={{ false: colors.inputBorder, true: colors.accent }}
             />
           </View>
 
@@ -816,8 +799,8 @@ export default function Settings() {
           {/* Quiet Hours Switch */}
           <View className="border-t border-input-border dark:border-input-border-dark py-3">
             <View className="flex-row items-center justify-between">
-              <View className="w-8 h-8 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center mr-3">
-                <Ionicons name="bed" size={14} color="#818CF8" />
+              <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+                <Ionicons name="bed-outline" size={14} color={colors.textPrimary} />
               </View>
               <View className="flex-1 pr-3">
                 <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -899,8 +882,8 @@ export default function Settings() {
           </Text>
 
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="w-8 h-8 rounded-full bg-indigo-500/15 border border-indigo-500/30 items-center justify-center mr-3">
-              <Ionicons name="moon" size={14} color="#818CF8" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="moon-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -924,8 +907,8 @@ export default function Settings() {
 
           {/* Weight Units Preference */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
-            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="barbell-outline" size={14} color={colors.accent} />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="scale-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1 pr-3">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -981,6 +964,66 @@ export default function Settings() {
               </Pressable>
             </View>
           </View>
+
+          {/* Height Units Preference */}
+          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="resize-outline" size={14} color={colors.textPrimary} />
+            </View>
+            <View className="flex-1 pr-3">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                Height Unit
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Display height in {heightUnit === 'CM' ? 'Centimeters (cm)' : 'Feet & Inches (ft/in)'}
+              </Text>
+            </View>
+
+            <View className="flex-row items-center bg-input dark:bg-input-dark p-1 rounded-xl border border-input-border dark:border-input-border-dark">
+              <Pressable
+                onPress={() => {
+                  hapticFeedback.light();
+                  setHeightUnit('CM');
+                }}
+                className={`px-3 py-1.5 rounded-lg ${
+                  heightUnit === 'CM'
+                    ? 'bg-accent dark:bg-accent-dark'
+                    : 'bg-transparent'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    heightUnit === 'CM'
+                      ? 'text-white'
+                      : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  CM
+                </Text>
+              </Pressable>
+              <Pressable
+                onPress={() => {
+                  hapticFeedback.light();
+                  setHeightUnit('FT_IN');
+                }}
+                className={`px-3 py-1.5 rounded-lg ${
+                  heightUnit === 'FT_IN'
+                    ? 'bg-accent dark:bg-accent-dark'
+                    : 'bg-transparent'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    heightUnit === 'FT_IN'
+                      ? 'text-white'
+                      : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  FT / IN
+                </Text>
+              </Pressable>
+            </View>
+          </View>
         </SurfaceCard>
 
         {/* 4. Support & Help Center Section */}
@@ -997,8 +1040,8 @@ export default function Settings() {
               setShowHelpModal(true);
             }}
           >
-            <View className="w-8 h-8 rounded-full bg-sky-500/15 border border-sky-500/30 items-center justify-center mr-3">
-              <Ionicons name="help-circle" size={15} color="#38BDF8" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="help-circle-outline" size={15} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -1019,8 +1062,8 @@ export default function Settings() {
               setShowHelpModal(true);
             }}
           >
-            <View className="w-8 h-8 rounded-full bg-purple-500/15 border border-purple-500/30 items-center justify-center mr-3">
-              <Ionicons name="chatbubbles" size={14} color="#A855F7" />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="chatbubbles-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -1033,38 +1076,13 @@ export default function Settings() {
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
           </Pressable>
 
-          {/* Athlete Stories & Testimonials */}
-          <Pressable
-            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
-            onPress={() => setShowTestimonialModal(true)}
-          >
-            <View className="w-8 h-8 rounded-full bg-accent/15 border border-accent/30 items-center justify-center mr-3">
-              <Ionicons name="sparkles" size={14} color={colors.accent} />
-            </View>
-            <View className="flex-1">
-              <View className="flex-row items-center gap-1.5">
-                <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
-                  Athlete Stories & Reviews
-                </Text>
-                <View className="flex-row items-center bg-amber-500/15 px-1.5 py-0.5 rounded-full gap-1">
-                  <Ionicons name="star" size={10} color={colors.warning} />
-                  <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">Community</Text>
-                </View>
-              </View>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Read transformations or share your journey
-              </Text>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-          </Pressable>
-
           {/* Privacy Policy */}
           <Pressable
             className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
             onPress={() => setShowPrivacyModal(true)}
           >
-            <View className="w-8 h-8 rounded-full bg-emerald-500/15 border border-emerald-500/30 items-center justify-center mr-3">
-              <Ionicons name="shield-checkmark" size={14} color={colors.accent} />
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="shield-checkmark-outline" size={14} color={colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -1134,11 +1152,6 @@ export default function Settings() {
         initialTab={helpInitialTab}
       />
 
-      {/* Athlete Testimonials Modal */}
-      <TestimonialModal
-        visible={showTestimonialModal}
-        onClose={() => setShowTestimonialModal(false)}
-      />
 
       {/* Privacy Policy Modal */}
       <PrivacyPolicyModal
@@ -1158,15 +1171,6 @@ export default function Settings() {
         visible={showEWalletModal}
         onClose={() => setShowEWalletModal(false)}
         onBalanceUpdated={(newBal) => setWalletBalance(newBal)}
-      />
-
-      {/* Admin Revenue Dashboard Modal */}
-      <AdminRevenueModal
-        visible={showAdminRevenueModal}
-        onClose={() => {
-          setShowAdminRevenueModal(false);
-          loadBillingSummary();
-        }}
       />
 
       {/* Edit Personal Information & Avatar Modal */}

@@ -21,8 +21,6 @@ import {
 import {
   MealType,
   getSmartMealType,
-  MEAL_LABELS,
-  MEAL_GLYPHS,
   FoodLogItem,
   getSmartFoodBadge,
 } from './foodLogTypes';
@@ -34,11 +32,12 @@ import {
 import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import FilterChip from '../ui/FilterChip';
+import EmptyState from '../ui/EmptyState';
+import { hapticFeedback } from '@/utils/haptics';
 import MealSelectorPill from './MealSelectorPill';
 import ResponsiveMacroRow from './ResponsiveMacroRow';
 import MealComboDetailsModal from './MealComboDetailsModal';
 import FoodDetailsInspectorModal from './FoodDetailsInspectorModal';
-import { useResponsive } from '@/hooks/useResponsive';
 
 export type LibraryMode = 'combos' | 'search' | 'recent';
 export type ComboFilter = 'ALL' | 'High Protein' | 'Fat Loss' | 'Post-Workout' | 'Clean Bulking' | 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -85,6 +84,7 @@ export default function FoodLibraryTab({
   }, [libraryMode, searchQuery, activeCategory, activeComboFilter]);
 
   const debounceTimerRef = useRef<any>(null);
+  const sentinelRef = useRef<any>(null);
 
   useEffect(() => {
     setSelectedMeal(defaultMeal || getSmartMealType());
@@ -211,6 +211,24 @@ export default function FoodLibraryTab({
     return displayedFoods.slice(0, visibleCount);
   }, [displayedFoods, visibleCount]);
 
+  const currentTotalItems = libraryMode === 'combos' ? filteredCombos.length : displayedFoods.length;
+
+  // Automated Infinite Scroll when reaching list end (Combos, Foods, and Recents)
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof IntersectionObserver !== 'undefined' && sentinelRef.current) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries[0]?.isIntersecting && currentTotalItems > visibleCount) {
+            setVisibleCount((prev) => prev + PAGE_SIZE);
+          }
+        },
+        { rootMargin: '300px' }
+      );
+      observer.observe(sentinelRef.current);
+      return () => observer.disconnect();
+    }
+  }, [currentTotalItems, visibleCount, libraryMode]);
+
   // 1-Tap Log entire Meal Combo
   const handleLogMealCombo = (combo: MealCombo, scale: number = 1.0, targetMeal?: MealType) => {
     const scaledCalories = Math.round(combo.calories * scale);
@@ -246,41 +264,8 @@ export default function FoodLibraryTab({
       icon: combo.icon,
     };
 
+    hapticFeedback.light();
     onAddFood(newLogItem);
-    setSessionAddedCount((prev) => prev + 1);
-  };
-
-  // Quick 1-tap add of standard single serving
-  const handleQuickLogStandard = (food: FoodCatalogItem) => {
-    const smartBadge = getSmartFoodBadge({
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      fiber: food.fiber,
-      category: food.category,
-      brand: food.brand,
-      name: food.name,
-    });
-
-    const newLogItem: FoodLogItem = {
-      id: `${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
-      mealType: selectedMeal,
-      title: food.name,
-      subtitle: food.brand ? `${food.servingSize} · ${food.brand}` : food.servingSize,
-      calories: food.calories,
-      protein: food.protein,
-      carbs: food.carbs,
-      fat: food.fat,
-      goalBadge: smartBadge.badge,
-      goalBadgeColor: smartBadge.color,
-      icon: food.icon,
-      imageUri: food.imageUri,
-    };
-
-    onAddFood(newLogItem);
-    saveFoodToRecentHistory(food);
-    getRecentLoggedFoods().then((list) => setRecentFoods(list));
     setSessionAddedCount((prev) => prev + 1);
   };
 
@@ -302,10 +287,10 @@ export default function FoodLibraryTab({
           </View>
           <TouchableOpacity
             onPress={onSwitchToToday}
-            activeOpacity={0.8}
-            className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl"
+            activeOpacity={0.85}
+            className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl justify-center items-center shadow-xs active:opacity-85"
           >
-            <Text className="text-white font-bold text-xs">
+            <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
               View Today's Log →
             </Text>
           </TouchableOpacity>
@@ -436,40 +421,19 @@ export default function FoodLibraryTab({
 
           {/* Combos Cards List */}
           {filteredCombos.length === 0 ? (
-            <View className="p-8 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
-              <Ionicons name="search" size={26} color={colors.textMuted} style={{ marginBottom: 8 }} />
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-                No meal combos found
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
-                Try searching for another ingredient like "chicken", "oats", or "salmon".
-              </Text>
-            </View>
+            <EmptyState
+              icon="restaurant-outline"
+              title="No Meal Combos Found"
+              description='Try searching for another ingredient like "chicken", "oats", or "salmon", or reset your filters.'
+              actionLabel={searchQuery || activeComboFilter !== 'ALL' ? 'Reset Filters' : undefined}
+              onAction={() => {
+                setSearchQuery('');
+                setActiveComboFilter('ALL');
+              }}
+            />
           ) : (
             <View className="flex-row flex-wrap justify-between">
               {paginatedCombos.map((combo) => {
-                const goalBadgeContainerClass =
-                  combo.goal === 'High Protein'
-                    ? 'bg-emerald-500/15 border-emerald-500/30 dark:bg-emerald-500/20 dark:border-emerald-500/40'
-                    : combo.goal === 'Fat Loss'
-                    ? 'bg-rose-500/15 border-rose-500/30 dark:bg-rose-500/20 dark:border-rose-500/40'
-                    : combo.goal === 'Post-Workout'
-                    ? 'bg-sky-500/15 border-sky-500/30 dark:bg-sky-500/20 dark:border-sky-500/40'
-                    : combo.goal === 'Clean Bulking'
-                    ? 'bg-purple-500/15 border-purple-500/30 dark:bg-purple-500/20 dark:border-purple-500/40'
-                    : 'bg-amber-500/15 border-amber-500/30 dark:bg-amber-500/20 dark:border-amber-500/40';
-
-                const goalBadgeTextColor =
-                  combo.goal === 'High Protein'
-                    ? (isDark ? '#86EFAC' : '#059669')
-                    : combo.goal === 'Fat Loss'
-                    ? (isDark ? '#FDA4AF' : '#DC2626')
-                    : combo.goal === 'Post-Workout'
-                    ? (isDark ? '#7DD3FC' : '#0284C7')
-                    : combo.goal === 'Clean Bulking'
-                    ? (isDark ? '#D8B4FE' : '#9333EA')
-                    : (isDark ? '#FDE047' : '#B45309');
-
                 return (
                   <TouchableOpacity
                     key={combo.id}
@@ -486,7 +450,7 @@ export default function FoodLibraryTab({
                           <Text className="text-lg">{combo.icon}</Text>
                         </View>
                         <View className="flex-1 min-w-0">
-                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                          <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
                             {combo.title}
                           </Text>
                           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium mt-0.5" numberOfLines={1}>
@@ -495,11 +459,8 @@ export default function FoodLibraryTab({
                         </View>
                       </View>
 
-                      <View className={`px-2 py-0.5 rounded-full border shrink-0 ${goalBadgeContainerClass}`}>
-                        <Text
-                          style={{ color: goalBadgeTextColor }}
-                          className="text-[9px] font-extrabold uppercase"
-                        >
+                      <View className="px-2 py-0.5 rounded-full border border-input-border dark:border-input-border-dark bg-input/60 dark:bg-input-dark/60 shrink-0">
+                        <Text className="text-[9px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
                           {combo.goal}
                         </Text>
                       </View>
@@ -518,25 +479,23 @@ export default function FoodLibraryTab({
 
                     {/* Ingredients Preview */}
                     <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
-                      <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
+                      <Text className="font-semibold text-text-muted dark:text-text-muted-dark">Ingredients: </Text>
                       {combo.ingredients.map((ing) => ing.name).join(' · ')}
                     </Text>
                   </TouchableOpacity>
                 );
               })}
 
-              {/* Load More Combos */}
+              {/* Automated Infinite Scroll Sentinel for Combos */}
               {filteredCombos.length > visibleCount && (
-                <View className="w-full items-center my-3">
-                  <TouchableOpacity
-                    onPress={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    activeOpacity={0.8}
-                    className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-5 py-2 rounded-xl shadow-sm"
-                  >
-                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                      Load More Combos ({filteredCombos.length - visibleCount} remaining)
-                    </Text>
-                  </TouchableOpacity>
+                <View
+                  ref={sentinelRef}
+                  className="w-full items-center my-4 py-2"
+                >
+                  <ActivityIndicator size="small" color={colors.accent} />
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-1 font-medium">
+                    Loading more combos...
+                  </Text>
                 </View>
               )}
             </View>
@@ -553,19 +512,20 @@ export default function FoodLibraryTab({
             <View className="py-12 items-center">
               <ActivityIndicator size="small" color={colors.accent} />
               <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
-                Searching food database...
+                Searching foods...
               </Text>
             </View>
           ) : displayedFoods.length === 0 ? (
-            <View className="p-8 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center my-2">
-              <Ionicons name="search" size={26} color={colors.textMuted} style={{ marginBottom: 8 }} />
-              <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-                No foods found
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
-                Try searching for another food or switch to Balanced Meal Combos.
-              </Text>
-            </View>
+            <EmptyState
+              icon="search"
+              title="No Foods Found"
+              description="Try searching for another food item or switch to Balanced Meal Combos."
+              actionLabel="Browse Meal Combos"
+              onAction={() => {
+                setSearchQuery('');
+                setLibraryMode('combos');
+              }}
+            />
           ) : (
             <View className="flex-row flex-wrap justify-between">
               {paginatedFoods.map((item) => {
@@ -606,19 +566,26 @@ export default function FoodLibraryTab({
                           </View>
                         )}
                         <View className="flex-1 min-w-0">
-                          <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
+                          <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark leading-snug" numberOfLines={2}>
                             {item.name}
                           </Text>
                           <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
-                            {item.brand ? `${item.brand} · ` : ''}{item.servingSize} ({item.servingWeightG || 100}g)
+                            {item.brand ? `${item.brand} · ` : ''}
+                            {(() => {
+                              const s = item.servingSize || '1 serving';
+                              if (/\(\s*\d+\s*g\s*\)/i.test(s) || /\b\d+\s*g\b/i.test(s)) {
+                                return s;
+                              }
+                              return `${s} (${item.servingWeightG || 100}g)`;
+                            })()}
                           </Text>
                         </View>
                       </View>
 
-                      {/* Compact Nutri-Score badge if present (no "Verified" clutter) */}
+                      {/* Compact Nutri-Score badge if present */}
                       {item.nutriscore ? (
-                        <View className={`px-1.5 py-0.5 rounded-md shrink-0 ${nutriscoreBg}`}>
-                          <Text className="text-[8px] font-black text-white">
+                        <View className="px-1.5 py-0.5 rounded-md shrink-0 bg-input/80 dark:bg-input-dark/80 border border-input-border/80 dark:border-input-border-dark/80">
+                          <Text className="text-[8px] font-bold text-text-muted dark:text-text-muted-dark">
                             Nutri {item.nutriscore}
                           </Text>
                         </View>
@@ -639,7 +606,7 @@ export default function FoodLibraryTab({
                     {/* Ingredients / Description Preview if available */}
                     {Boolean(item.ingredients || item.description) && (
                       <Text className="text-[11px] text-text-muted dark:text-text-muted-dark leading-4 mt-2" numberOfLines={1}>
-                        <Text className="font-bold text-text-primary dark:text-text-primary-dark">Ingredients: </Text>
+                        <Text className="font-semibold text-text-muted dark:text-text-muted-dark">Ingredients: </Text>
                         {item.ingredients || item.description}
                       </Text>
                     )}
@@ -647,18 +614,16 @@ export default function FoodLibraryTab({
                 );
               })}
 
-              {/* Load More Foods */}
+              {/* Automated Infinite Scroll Sentinel */}
               {displayedFoods.length > visibleCount && (
-                <View className="w-full items-center my-3">
-                  <TouchableOpacity
-                    onPress={() => setVisibleCount((prev) => prev + PAGE_SIZE)}
-                    activeOpacity={0.8}
-                    className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-5 py-2 rounded-xl shadow-sm"
-                  >
-                    <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                      Load More Foods ({displayedFoods.length - visibleCount} remaining)
-                    </Text>
-                  </TouchableOpacity>
+                <View
+                  ref={sentinelRef}
+                  className="w-full items-center my-4 py-2"
+                >
+                  <ActivityIndicator size="small" color={colors.accent} />
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-1 font-medium">
+                    Loading more foods...
+                  </Text>
                 </View>
               )}
             </View>

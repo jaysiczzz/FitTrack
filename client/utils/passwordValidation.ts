@@ -46,3 +46,5 @@ export function validatePasswordStrength(password: string): PasswordValidationRe
     hasSpecialChar,
   };
 }
+
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

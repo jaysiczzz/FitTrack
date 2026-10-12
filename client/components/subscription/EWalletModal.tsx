@@ -14,8 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
 import ConfirmModal from '../ui/ConfirmModal';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import {
   getUserWalletApi,
   initiateWalletDepositApi,
@@ -24,7 +24,7 @@ import {
   CurrencyType,
   PaymentMethodType,
 } from '@/api/subscription';
-import { USD_PHP_EXCHANGE_RATE, convertCurrency, formatCurrency } from '@/constants/currency';
+import { USD_PHP_EXCHANGE_RATE } from '@/constants/currency';
 import {
   formatPhilippinePhone,
   validatePhilippinePhone,
@@ -198,7 +198,7 @@ export default function EWalletModal({
         }
       }
     } catch (err: any) {
-      setWalletError(err?.message || 'Failed to deposit funds. Please check your payment details.');
+      setWalletError(getFriendlyErrorMessage(err, 'Failed to deposit funds. Please check your payment details.'));
     } finally {
       setDepositing(false);
     }
@@ -214,15 +214,12 @@ export default function EWalletModal({
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-emerald-500/20 items-center justify-center border border-emerald-500/30">
-                <Ionicons name="wallet" size={16} color="#10B981" />
-              </View>
               <View>
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                   FitTrack e-Wallet
                 </Text>
                 <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  GCash, Maya & Stripe Card Top-Ups
+                  GCash, Maya & Card Top-Ups
                 </Text>
               </View>
             </View>
@@ -230,9 +227,6 @@ export default function EWalletModal({
           </View>
 
           <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
-            {/* Inline Error Banner */}
-            <ModalErrorBanner error={walletError} onDismiss={() => setWalletError(null)} />
-
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">
               <View className="flex-row items-center justify-between w-full mb-1">
@@ -256,6 +250,9 @@ export default function EWalletModal({
                     onPress={() => {
                       setCurrency('USD');
                       setTopUpAmount('25');
+                      if (depositMethod === 'GCASH' || depositMethod === 'MAYA') {
+                        setDepositMethod('CARD');
+                      }
                     }}
                     className={`px-2 py-0.5 rounded ${currency === 'USD' ? 'bg-accent' : ''}`}
                   >
@@ -301,44 +298,48 @@ export default function EWalletModal({
 
                 {/* Payment Rail Options */}
                 <View className="flex-row gap-2 mb-3">
-                  <TouchableOpacity
-                    onPress={() => setDepositMethod('GCASH')}
-                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
-                      depositMethod === 'GCASH'
-                        ? 'bg-sky-500/15 border-sky-500'
-                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                    }`}
-                  >
-                    <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-sky-600 dark:text-sky-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
-                      GCash (PH)
-                    </Text>
-                    <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">PayMongo Rail</Text>
-                  </TouchableOpacity>
+                  {currency === 'PHP' && (
+                    <TouchableOpacity
+                      onPress={() => setDepositMethod('GCASH')}
+                      className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                        depositMethod === 'GCASH'
+                          ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                          : 'bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark'
+                      }`}
+                    >
+                      <Text className={`text-xs font-bold ${depositMethod === 'GCASH' ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'}`}>
+                        GCash (PH)
+                      </Text>
+                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">PayMongo Rail</Text>
+                    </TouchableOpacity>
+                  )}
 
-                  <TouchableOpacity
-                    onPress={() => setDepositMethod('MAYA')}
-                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
-                      depositMethod === 'MAYA'
-                        ? 'bg-emerald-500/15 border-emerald-500'
-                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                    }`}
-                  >
-                    <Text className={`text-xs font-bold ${depositMethod === 'MAYA' ? 'text-emerald-600 dark:text-emerald-400' : 'text-text-primary dark:text-text-primary-dark'}`}>
-                      Maya (PH)
-                    </Text>
-                    <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Digital Bank</Text>
-                  </TouchableOpacity>
+                  {currency === 'PHP' && (
+                    <TouchableOpacity
+                      onPress={() => setDepositMethod('MAYA')}
+                      className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                        depositMethod === 'MAYA'
+                          ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                          : 'bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark'
+                      }`}
+                    >
+                      <Text className={`text-xs font-bold ${depositMethod === 'MAYA' ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'}`}>
+                        Maya (PH)
+                      </Text>
+                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Digital Bank</Text>
+                    </TouchableOpacity>
+                  )}
 
                   <TouchableOpacity
                     onPress={() => setDepositMethod('CARD')}
-                    className={`flex-1 py-2 px-2 rounded-xl items-center border ${
+                    className={`${currency === 'PHP' ? 'flex-2' : 'flex-1'} py-2 px-2 rounded-xl items-center border ${
                       depositMethod === 'CARD'
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
-                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                        : 'bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark'
                     }`}
                   >
                     <Text className={`text-xs font-bold ${depositMethod === 'CARD' ? 'text-accent dark:text-accent-dark' : 'text-text-primary dark:text-text-primary-dark'}`}>
-                      Card (Stripe)
+                      Credit / Debit Card
                     </Text>
                     <Text className="text-[9px] text-text-muted dark:text-text-muted-dark">Visa / Mastercard</Text>
                   </TouchableOpacity>
@@ -388,7 +389,7 @@ export default function EWalletModal({
                         <Text className="text-[10px] font-bold text-emerald-500">
                           {detectCardBrand(cardNumber) !== 'generic'
                             ? detectCardBrand(cardNumber).toUpperCase()
-                            : 'Stripe Live API'}
+                            : 'Secure Card Checkout'}
                         </Text>
                       </View>
                     </View>
@@ -501,6 +502,19 @@ export default function EWalletModal({
                     <Text className="text-[9px] text-text-muted dark:text-text-muted-dark mt-0.5">
                       Rate: 1 USD = ₱{USD_PHP_EXCHANGE_RATE.toFixed(2)} PHP (Direct ledger credit)
                     </Text>
+                  </View>
+                )}
+
+                {/* Inline Error Notification */}
+                {walletError && (
+                  <View className="flex-row items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/25 mb-3">
+                    <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                    <Text className="text-xs text-danger dark:text-danger-dark font-medium flex-1">
+                      {walletError}
+                    </Text>
+                    <TouchableOpacity onPress={() => setWalletError(null)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                      <Ionicons name="close" size={14} color={colors.danger} />
+                    </TouchableOpacity>
                   </View>
                 )}
 

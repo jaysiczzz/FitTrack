@@ -43,11 +43,13 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     currency: 'PHP',
     interval: null,
     features: [
-      'Basic workout and exercise set tracking',
-      '50+ exercise library with video demonstrations',
-      'Standard food, calories & water logger',
-      'Daily readiness check-in and streaks',
-      'Community athlete transformations & reviews',
+      'Full 80+ exercise library with animated GIFs & form cues',
+      'Unlimited workout logging, custom exercises & rest timers',
+      'Complete calorie, macros, and water hydration logging',
+      'Daily readiness check-in and workout streak tracking',
+      'Up to 3 AI Camera Food Scans per day',
+      'Up to 15 AI Coach messages per day',
+      'Up to 5 AI-generated workout routines per month',
     ],
   },
   PRO_MONTHLY: {
@@ -61,12 +63,12 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     currency: 'PHP',
     interval: 'month',
     features: [
-      'Everything in Free tier',
-      'Unlimited AI Fitness Coach (Google Gemini 2.0 Flash)',
-      'AI Multimodal Camera Food Scanner & Macro Analysis',
-      'Daily, weekly, and monthly workout routine planner',
-      'Detailed Personal Record (PR) badges and trophies',
-      'Offline-first cloud synchronization and data backup',
+      'Everything in Free tier (workout tracker, food log & calendar)',
+      '30 AI Camera Food Scans / day (Free capped at 3/day)',
+      '100 AI Coach messages / day (Free capped at 15/day)',
+      '30 AI Workout Routines / month (Free capped at 5/month)',
+      'Verified Pro Athlete badge on your profile',
+      'Uninterrupted premium training experience',
     ],
   },
   PRO_ANNUAL: {
@@ -81,10 +83,10 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     interval: 'year',
     features: [
       'All Pro Monthly features included',
-      'Save 33% compared to monthly (₱333/month)',
-      'Priority customer service and ticket resolution',
-      'Advanced 1RM and volume analytics',
-      'Early access to all upcoming features',
+      'Save 33% compared to monthly (₱333/month · 2 months free)',
+      '30 AI Food Scans / day & 100 AI Coach messages / day',
+      '30 AI Workout Routines / month',
+      'Verified Pro Athlete badge on your profile',
     ],
   },
   LIFETIME_FOUNDER: {
@@ -157,12 +159,14 @@ export const getSubscriptionPlans = asyncHandler(async (req: AuthRequest, res: R
   const currency = (req.query.currency as string) || 'PHP'
   const isUSD = currency.toUpperCase() === 'USD'
 
-  const formattedPlans = Object.values(SUBSCRIPTION_PLANS).map((p) => ({
-    ...p,
-    price: isUSD ? p.priceUSD : p.pricePHP,
-    currency: isUSD ? 'USD' : 'PHP',
-    symbol: isUSD ? '$' : '₱',
-  }))
+  const formattedPlans = Object.values(SUBSCRIPTION_PLANS)
+    .filter((p) => p.tier !== SubscriptionTier.LIFETIME_FOUNDER)
+    .map((p) => ({
+      ...p,
+      price: isUSD ? p.priceUSD : p.pricePHP,
+      currency: isUSD ? 'USD' : 'PHP',
+      symbol: isUSD ? '$' : '₱',
+    }))
 
   res.json({
     success: true,
@@ -251,6 +255,10 @@ export const createCheckoutSession = asyncHandler(async (req: AuthRequest, res: 
 
   if (!plan) {
     return res.status(400).json({ error: 'Invalid paid subscription tier selected.' })
+  }
+
+  if (tier === SubscriptionTier.LIFETIME_FOUNDER) {
+    return res.status(400).json({ error: 'Founder Lifetime Pass is no longer available for purchase. Please choose Pro Monthly or Pro Annual.' })
   }
 
   const pricing = getPlanPricing(tier, currency)

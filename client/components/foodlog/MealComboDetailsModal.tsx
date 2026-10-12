@@ -43,7 +43,6 @@ export default function MealComboDetailsModal({
   const scaledProtein = Math.round(combo.protein * scaleFactor);
   const scaledCarbs = Math.round(combo.carbs * scaleFactor);
   const scaledFat = Math.round(combo.fat * scaleFactor);
-  const scaledFiber = Math.round((combo.fiber || 0) * scaleFactor);
 
   // Macro calorie ratios for progress bar
   const totalMacroCals = scaledProtein * 4 + scaledCarbs * 4 + scaledFat * 9;
@@ -161,7 +160,7 @@ export default function MealComboDetailsModal({
                     >
                       <Text
                         className={`text-xs font-black ${
-                          active ? 'text-white' : 'text-text-primary dark:text-text-primary-dark'
+                          active ? 'text-accent-contrast dark:text-accent-contrast-dark' : 'text-text-primary dark:text-text-primary-dark'
                         }`}
                         numberOfLines={1}
                       >
@@ -169,7 +168,7 @@ export default function MealComboDetailsModal({
                       </Text>
                       <Text
                         className={`text-[9px] ${
-                          active ? 'text-white/80' : 'text-text-muted dark:text-text-muted-dark'
+                          active ? 'text-accent-contrast/80 dark:text-accent-contrast-dark/80' : 'text-text-muted dark:text-text-muted-dark'
                         }`}
                         numberOfLines={1}
                       >
@@ -196,33 +195,27 @@ export default function MealComboDetailsModal({
               <View className="h-2 rounded-full overflow-hidden flex-row bg-input dark:bg-input-dark mb-3">
                 <View style={{ width: `${proteinPct}%`, backgroundColor: '#10B981' }} />
                 <View style={{ width: `${carbsPct}%`, backgroundColor: '#0EA5E9' }} />
-                <View style={{ width: `${fatPct}%`, backgroundColor: '#F59E0B' }} />
+                <View style={{ width: `${fatPct}%`, backgroundColor: '#8B5CF6' }} />
               </View>
 
-              {/* Detailed 4-Column Macro Grid */}
+              {/* Detailed 3-Column Macro Grid */}
               <View className="flex-row justify-between pt-2 border-t border-input-border/60 dark:border-input-border-dark/60">
                 <View className="items-center flex-1 min-w-0">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Protein</Text>
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">Protein</Text>
                   <Text className="text-sm font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
                     {scaledProtein}g
                   </Text>
                 </View>
                 <View className="items-center flex-1 min-w-0 border-x border-input-border/60 dark:border-input-border-dark/60">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Carbs</Text>
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">Carbs</Text>
                   <Text className="text-sm font-black text-sky-600 dark:text-sky-400 mt-0.5">
                     {scaledCarbs}g
                   </Text>
                 </View>
-                <View className="items-center flex-1 min-w-0 border-r border-input-border/60 dark:border-input-border-dark/60">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Fats</Text>
-                  <Text className="text-sm font-black text-amber-600 dark:text-amber-400 mt-0.5">
-                    {scaledFat}g
-                  </Text>
-                </View>
                 <View className="items-center flex-1 min-w-0">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">Fiber</Text>
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">Fats</Text>
                   <Text className="text-sm font-black text-purple-600 dark:text-purple-400 mt-0.5">
-                    {scaledFiber}g
+                    {scaledFat}g
                   </Text>
                 </View>
               </View>
@@ -316,7 +309,7 @@ export default function MealComboDetailsModal({
               accessibilityLabel={`+ Add to ${MEAL_LABELS[targetMeal]}`}
               className="bg-accent dark:bg-accent-dark py-3.5 px-4 min-h-[48px] rounded-2xl items-center justify-center shadow-sm"
             >
-              <Text className="text-white font-black text-sm" numberOfLines={1}>
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm" numberOfLines={1}>
                 + Add to {MEAL_LABELS[targetMeal]}
               </Text>
             </TouchableOpacity>

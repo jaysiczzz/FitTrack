@@ -27,6 +27,7 @@ import {
 
 import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
+import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 
 interface PromptCategory {
   id: string;
@@ -94,6 +95,12 @@ export default function AiCoachScreen() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
 
+  // Quota & tier tracking
+  const [isPro, setIsPro] = useState(false);
+  const [remainingMessages, setRemainingMessages] = useState<number | null>(null);
+  const [quotaReached, setQuotaReached] = useState(false);
+  const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+
   const scrollViewRef = useRef<ScrollView>(null);
   const storageKey = authStorage.getScopedKey(user?.id, 'ai_coach_chat_history');
 
@@ -120,8 +127,15 @@ export default function AiCoachScreen() {
       // 2. Cloud DB synchronization
       try {
         const cloudRes = await getChatHistoryApi();
-        if (cloudRes?.success && Array.isArray(cloudRes.messages) && cloudRes.messages.length > 0) {
-          if (isMounted) {
+        if (cloudRes?.success && isMounted) {
+          if (cloudRes.isPro !== undefined) setIsPro(cloudRes.isPro);
+          if (cloudRes.remainingMessages !== undefined) {
+            setRemainingMessages(cloudRes.remainingMessages);
+            if (!cloudRes.isPro && cloudRes.remainingMessages === 0) {
+              setQuotaReached(true);
+            }
+          }
+          if (Array.isArray(cloudRes.messages) && cloudRes.messages.length > 0) {
             setMessages(cloudRes.messages);
             await AsyncStorage.setItem(storageKey, JSON.stringify(cloudRes.messages));
           }
@@ -178,6 +192,17 @@ export default function AiCoachScreen() {
   const handleSend = async (customText?: string) => {
     const textToSend = (customText || inputText).trim();
     if (!textToSend || isSending) return;
+
+    if (!isPro && remainingMessages !== null && remainingMessages <= 0) {
+      setQuotaReached(true);
+      setShowSubscriptionModal(true);
+      return;
+    }
+
+    if (isPro && remainingMessages !== null && remainingMessages <= 0) {
+      showError('Fair Use Limit Reached', "You have reached today's Fair Use limit of 100 AI Coach messages. Your quota will refresh at midnight.");
+      return;
+    }
 
     setInputText('');
     setFailedMessage(null);
@@ -240,6 +265,11 @@ export default function AiCoachScreen() {
           setMessages(finalMessages);
           await persistMessagesLocally(finalMessages);
           streamSuccess = true;
+          if (!isPro && remainingMessages !== null) {
+            const nextRemaining = Math.max(0, remainingMessages - 1);
+            setRemainingMessages(nextRemaining);
+            if (nextRemaining === 0) setQuotaReached(true);
+          }
         }
       } catch {
         // Stream failed, will fall back to standard JSON call below
@@ -249,6 +279,11 @@ export default function AiCoachScreen() {
         // Fallback to standard request
         const res = await chatWithCoachApi(apiPayload);
         if (res.success && res.message) {
+          if (res.isPro !== undefined) setIsPro(res.isPro);
+          if (res.remainingMessages !== undefined && res.remainingMessages !== null) {
+            setRemainingMessages(res.remainingMessages);
+            if (!res.isPro && res.remainingMessages === 0) setQuotaReached(true);
+          }
           const coachMsg: ChatMessage = {
             role: 'model',
             content: res.message,
@@ -265,9 +300,22 @@ export default function AiCoachScreen() {
       }
     } catch (err: any) {
       console.error('Coach Chat Error:', err);
-      setMessages(updatedMessages);
-      setFailedMessage(textToSend);
-      showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
+      const errText = err?.message || '';
+      if (errText.includes('DAILY_AI_LIMIT_REACHED') || errText.includes('limit of 15')) {
+        setMessages(updatedMessages);
+        setQuotaReached(true);
+        setRemainingMessages(0);
+        setShowSubscriptionModal(true);
+        showError('Daily Limit Reached', 'You have used all 15 free AI Coach messages for today. Upgrade to FitTrack Pro for unlimited coaching.');
+      } else if (errText.includes('PRO_FAIR_USE_LIMIT_REACHED') || errText.includes('Fair Use limit')) {
+        setMessages(updatedMessages);
+        setRemainingMessages(0);
+        showError('Fair Use Limit Reached', "You have reached today's Fair Use limit of 100 AI Coach messages. Your quota will refresh at midnight.");
+      } else {
+        setMessages(updatedMessages);
+        setFailedMessage(textToSend);
+        showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
+      }
     } finally {
       setIsSending(false);
       scrollToBottom(true);
@@ -388,7 +436,13 @@ export default function AiCoachScreen() {
       <View className="flex-row items-center justify-between px-4 py-3 bg-surface dark:bg-surface-dark border-b border-input-border dark:border-input-border-dark shadow-xs z-10">
         <View className="flex-row items-center flex-1">
           <TouchableOpacity
-            onPress={() => router.back()}
+            onPress={() => {
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(screen)/dashboard');
+              }
+            }}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
@@ -399,26 +453,27 @@ export default function AiCoachScreen() {
 
           <View className="relative mr-3">
             <View className="w-10 h-10 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/40 dark:border-accent-dark/40">
-              <Ionicons name="sparkles" size={20} color={colors.accent} />
+              <Ionicons name="fitness" size={20} color={colors.accent} />
             </View>
             <View className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-surface dark:border-surface-dark" />
           </View>
 
           <View className="flex-1">
-            <View className="flex-row items-center gap-1.5">
-              <Text
-                className="text-text-primary dark:text-text-primary-dark font-extrabold text-base"
-                numberOfLines={1}
-              >
-                FitTrack Coach
-              </Text>
-              <View className="bg-accent/15 dark:bg-accent-dark/20 px-1.5 py-0.5 rounded-md">
-                <Text className="text-accent dark:text-accent-dark text-[9px] font-black">AI 3.1</Text>
-              </View>
-            </View>
-            <Text className="text-text-muted dark:text-text-muted-dark text-[11px]" numberOfLines={1}>
-              Real-Time Nutrition, Workout & Readiness Coach
+            <Text
+              className="text-text-primary dark:text-text-primary-dark font-extrabold text-base"
+              numberOfLines={1}
+            >
+              FitTrack Coach
             </Text>
+            {!isPro && remainingMessages !== null ? (
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                {remainingMessages} of 15 free messages left today
+              </Text>
+            ) : isPro ? (
+              <Text className="text-[10px] text-accent dark:text-accent-dark font-semibold">
+                FitTrack Pro · {remainingMessages !== null ? `${remainingMessages} of 100 messages left today` : '100 messages / day'}
+              </Text>
+            ) : null}
           </View>
         </View>
 
@@ -433,21 +488,8 @@ export default function AiCoachScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* Sync Context Banner */}
-      <View className="bg-accent/10 dark:bg-accent-dark/15 px-4 py-2 flex-row items-center justify-between border-b border-accent/20 dark:border-accent-dark/20">
-        <View className="flex-row items-center flex-1 pr-2">
-          <Ionicons name="sync-circle-outline" size={16} color={colors.accent} style={{ marginRight: 6 }} />
-          <Text className="text-[11px] font-medium text-accent dark:text-accent-dark" numberOfLines={1}>
-            Live Profile, Daily Check-In & Nutrition Synced
-          </Text>
-        </View>
-        <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-          Synced
-        </Text>
-      </View>
-
       {/* Quick Topic Chips Carousel */}
-      <View className="bg-surface/50 dark:bg-surface-dark/50 border-b border-input-border dark:border-input-border-dark py-2 px-3">
+      <View className="bg-surface/50 dark:bg-surface-dark/50 border-b border-input-border dark:border-input-border-dark py-1.5 px-3">
         <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
           {QUICK_TOPICS.map((topic) => (
             <TouchableOpacity
@@ -455,10 +497,10 @@ export default function AiCoachScreen() {
               activeOpacity={0.7}
               onPress={() => handleSend(topic.prompt)}
               hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-              className="mr-2 px-3.5 py-2 min-h-[44px] rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
+              className="mr-2 px-3 py-1.5 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
             >
-              <Ionicons name={topic.icon} size={14} color={colors.accent} style={{ marginRight: 6 }} />
-              <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
+              <Ionicons name={topic.icon} size={13} color={colors.accent} style={{ marginRight: 5 }} />
+              <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
                 {topic.label}
               </Text>
             </TouchableOpacity>
@@ -480,7 +522,7 @@ export default function AiCoachScreen() {
               <View className="py-12 items-center justify-center">
                 <ActivityIndicator size="small" color={colors.accent} />
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
-                  Loading coach conversation...
+                  Getting your conversation ready...
                 </Text>
               </View>
             ) : (
@@ -497,7 +539,7 @@ export default function AiCoachScreen() {
                     >
                       {showAvatar && (
                         <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
-                          <Ionicons name="sparkles" size={13} color={colors.accent} />
+                          <Ionicons name="fitness" size={14} color={colors.accent} />
                         </View>
                       )}
 
@@ -533,7 +575,7 @@ export default function AiCoachScreen() {
                 {isSending && (
                   <View className="flex-row items-end mb-3.5 justify-start">
                     <View className="w-7 h-7 rounded-full bg-accent/20 dark:bg-accent-dark/25 items-center justify-center mr-2 mb-1 border border-accent/30 dark:border-accent-dark/30 shrink-0">
-                      <Ionicons name="sparkles" size={13} color={colors.accent} />
+                      <Ionicons name="fitness" size={14} color={colors.accent} />
                     </View>
                     <View className="bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark px-4 py-3 rounded-2xl rounded-tl-xs flex-row items-center gap-2">
                       <ActivityIndicator size="small" color={colors.accent} />
@@ -565,17 +607,42 @@ export default function AiCoachScreen() {
             </View>
           )}
 
+          {/* Quota Exhausted Banner */}
+          {!isPro && quotaReached && (
+            <View className="mx-4 mb-2 p-3 rounded-xl bg-accent/10 border border-accent/25 flex-row items-center justify-between">
+              <View className="flex-1 mr-2">
+                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                  Daily Free Limit Reached (15/15)
+                </Text>
+                <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                  Upgrade to FitTrack Pro for unlimited 24/7 coaching, or wait until midnight.
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setShowSubscriptionModal(true)}
+                className="px-3 py-1.5 rounded-lg bg-accent"
+              >
+                <Text className="text-xs font-bold text-accent-contrast">Upgrade</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
           {/* Bottom Chat Input Bar */}
           <View className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark">
-            <View className="flex-row items-end gap-2">
-              <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2 border border-input-border dark:border-input-border-dark max-h-28">
+            <View className="flex-row items-center gap-2">
+              <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2.5 border border-input-border dark:border-input-border-dark min-h-[44px] justify-center max-h-28">
                 <TextInput
                   value={inputText}
                   onChangeText={setInputText}
-                  placeholder="Ask your coach anything about food, workouts, or goals..."
+                  placeholder={
+                    !isPro && quotaReached
+                      ? 'Daily free limit reached (15/15). Upgrade for unlimited...'
+                      : 'Ask your coach anything about food, workouts, or goals...'
+                  }
                   placeholderTextColor={colors.textMuted}
                   multiline
                   maxLength={600}
+                  editable={isPro || !quotaReached}
                   className="text-text-primary dark:text-text-primary-dark text-sm p-0 leading-5"
                   style={Platform.select({
                     web: { outlineStyle: 'none' } as any,
@@ -585,22 +652,22 @@ export default function AiCoachScreen() {
 
               <TouchableOpacity
                 onPress={() => handleSend()}
-                disabled={!inputText.trim() || isSending}
+                disabled={!inputText.trim() || isSending || (!isPro && quotaReached)}
                 activeOpacity={0.8}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                className={`w-11 h-11 rounded-2xl items-center justify-center shadow-xs transition-opacity ${
-                  !inputText.trim() || isSending
+                className={`w-11 h-11 rounded-2xl items-center justify-center shadow-xs transition-opacity shrink-0 ${
+                  !inputText.trim() || isSending || (!isPro && quotaReached)
                     ? 'bg-accent/30 dark:bg-accent-dark/30'
                     : 'bg-accent dark:bg-accent-dark'
                 }`}
               >
                 {isSending ? (
-                  <ActivityIndicator size="small" color={colors.accentContrast} />
+                  <ActivityIndicator size="small" color="#FFFFFF" />
                 ) : (
                   <Ionicons
                     name="arrow-up"
                     size={20}
-                    color={!inputText.trim() ? colors.textMuted : colors.accentContrast}
+                    color={!inputText.trim() ? colors.textMuted : '#FFFFFF'}
                   />
                 )}
               </TouchableOpacity>
@@ -620,6 +687,17 @@ export default function AiCoachScreen() {
         isDanger
         onConfirm={handleConfirmClear}
         onCancel={() => setShowClearConfirm(false)}
+      />
+
+      {/* Subscription Upgrade Modal */}
+      <SubscriptionModal
+        visible={showSubscriptionModal}
+        onClose={() => setShowSubscriptionModal(false)}
+        onSubscriptionUpdated={() => {
+          setIsPro(true);
+          setQuotaReached(false);
+          setRemainingMessages(null);
+        }}
       />
     </SafeAreaView>
   );

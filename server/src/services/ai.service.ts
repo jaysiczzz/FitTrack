@@ -295,12 +295,58 @@ export async function generateAIMealSuggestions(params: {
   goal: string
   remainingCalories: number
   remainingProtein: number
+  mealType?: string
 }): Promise<MealSuggestion[]> {
+  const isBudgetExhausted = params.remainingCalories <= 50
+  const targetMeal = params.mealType && params.mealType !== 'all' ? params.mealType.toLowerCase() : null
+
+  const mealScopeInstruction = targetMeal
+    ? `SPECIFIC MEAL TIMING REQUIREMENT:
+The user specifically requested meal options for: **${targetMeal.toUpperCase()}**!
+- ALL 3 suggested options MUST be suitable and appropriate for **${targetMeal.toUpperCase()}** (set "category": "${targetMeal}").
+${
+  targetMeal === 'breakfast'
+    ? '- Focus on morning energizing foods (e.g. eggs, protein oats, healthy toasts, high-protein breakfast bowls, smoothies).'
+    : targetMeal === 'lunch'
+    ? '- Focus on midday power meals (e.g. high-protein bowls, healthy wraps, salads with chicken/tuna/tofu, balanced stir-fries).'
+    : targetMeal === 'dinner'
+    ? '- Focus on nourishing evening recovery suppers (e.g. salmon/steak/poultry with roasted veggies, quinoa, light soups).'
+    : '- Focus on fast, satisfying, high-protein snacks (e.g. Greek yogurt, protein shake, edamame, cottage cheese, rice cakes with peanut butter).'
+}`
+    : `WHOLE DAY / ALL-DAY SPREAD:
+Provide a versatile variety of meals across different times of day (e.g. main meals and high-protein snacks). Set category to "breakfast", "lunch", "dinner", or "snack".`
+
+  const budgetConstraint = isBudgetExhausted
+    ? `SPECIAL INSTRUCTION - BUDGET ALREADY REACHED/EXCEEDED:
+The user has ALREADY reached or exceeded their daily calorie target for today (${params.remainingCalories} kcal left).
+Do NOT suggest high-calorie or heavy meals!
+Instead, recommend 3 ultra-light, zero-calorie or very low-calorie (under 45 kcal each) digestive, hydration, and recovery options:
+- e.g. "Soothing Peppermint & Chamomile Herbal Tea" (0 kcal, 0g P)
+- e.g. "Cucumber, Lemon & Mint Infused Ice Water" (10 kcal, 0g P)
+- e.g. "Crunchy Celery Sticks with Himalayan Pink Salt" (15 kcal, 1g P)
+- e.g. "Electrolyte Lemon Water with Chia Seeds" (35 kcal, 1.5g P)
+Explain in the "reason" that this satisfies oral fixation and supports recovery/digestion without adding excess calories.`
+    : `STRICT BUDGET CONSTRAINT - DO NOT EXCEED REMAINING CALORIES:
+The user has ${params.remainingCalories} kcal remaining today.
+- CRITICAL: EACH SUGGESTED MEAL MUST NOT EXCEED ${params.remainingCalories} kcal (calories <= ${params.remainingCalories}).
+- Suggestions MUST NOT blow past the user's remaining calorie budget under any circumstances!
+${params.remainingCalories < 350
+  ? `- Since the remaining budget is tight (${params.remainingCalories} kcal), suggest high-protein, satiating mini-meals or smart light snacks (e.g. Greek yogurt with cinnamon, whey protein shake, hard-boiled eggs with baby carrots, low-fat cottage cheese) that strictly stay under ${params.remainingCalories} kcal.`
+  : params.remainingCalories < 650
+  ? `- The user has moderate room (${params.remainingCalories} kcal). Suggest satisfying single meals or bowls that maximize protein (${params.remainingProtein}g target) while staying safely under ${params.remainingCalories} kcal.`
+  : `- The user has ample budget (${params.remainingCalories} kcal). Suggest wholesome, nutrient-dense meals that leave comfortable room for their day and help reach ${params.remainingProtein}g protein.`
+}`
+
   const prompt = `You are FitTrack's AI Nutrition Coach.
-Recommend 3 distinct, delicious, practical meals or snacks for a beginner user with:
+Recommend 3 distinct, delicious, practical meals or snacks for a user with:
 - Fitness Goal: ${params.goal} (e.g. MUSCLE_GAIN or WEIGHT_LOSS)
 - Remaining Calories Today: ${params.remainingCalories} kcal
 - Remaining Protein Target: ${params.remainingProtein}g
+${targetMeal ? `- Target Meal Category: ${targetMeal.toUpperCase()}` : '- Meal Timing: Whole Day'}
+
+${mealScopeInstruction}
+
+${budgetConstraint}
 
 CRITICAL REQUIREMENTS FOR INGREDIENTS & PORTIONS:
 1. Every item in the "ingredients" array MUST specify its EXACT measurable portion/quantity and unit (e.g., grams, cups, tablespoons, pieces, slices).
@@ -316,6 +362,7 @@ CRITICAL REQUIREMENTS FOR INGREDIENTS & PORTIONS:
      * "2 tbsp (32g) natural peanut butter"
    - FORBIDDEN: Bare ingredient names without amounts (e.g., DO NOT write "Chicken breast", "Rice", "Olive oil", "Eggs"). The user needs to know exactly how much of each ingredient to prepare/add to achieve the meal.
 2. The sum of the ingredients and their specified quantities MUST realistically and mathematically match the meal's stated calories, protein, carbs, and fat.
+3. Each meal's calories MUST BE <= ${isBudgetExhausted ? 45 : params.remainingCalories}.
 
 Return a JSON array of 3 meal objects:
 - title: Name of the meal
@@ -524,6 +571,42 @@ You are conversing directly with ${context.firstName || 'the user'}.
   }
 
   return fullResponse.trim()
+}
+
+export async function autocompleteExerciseWithAI(name: string): Promise<{
+  primaryMuscle: string
+  secondaryMuscles: string[]
+  category: string
+  type: string
+  difficulty: string
+  equipment: string[]
+  instructions: string[]
+  formTips: string[]
+  commonMistakes: string[]
+  breathingTechnique: string
+}> {
+  const prompt = `You are an elite certified strength & conditioning coach (CSCS).
+Break down this exercise for a fitness app exercise catalog: "${name}".
+
+Return a single JSON object with these exact keys:
+- "primaryMuscle": Primary targeted muscle. Must be one of: "Chest", "Back", "Legs", "Shoulders", "Arms", "Core", "Full Body"
+- "secondaryMuscles": Array of 1-3 secondary muscles worked (e.g. ["Triceps", "Front Delts"])
+- "category": Exercise category. Must be one of: "Strength", "Hypertrophy", "Cardio", "Endurance", "Mobility"
+- "type": "Compound" or "Isolation"
+- "difficulty": "Beginner", "Intermediate", or "Advanced"
+- "equipment": Array of required equipment (e.g. ["Barbell"], ["Dumbbells"], ["Cable"], ["Machine"], or ["Bodyweight"])
+- "instructions": Array of 3 to 5 clear, concise step-by-step instructions
+- "formTips": Array of 2 to 3 pro trainer tips to maximize engagement and ensure proper posture
+- "commonMistakes": Array of 2 to 3 common mistakes or injury risks to avoid
+- "breathingTechnique": One clear sentence detailing the breathing cadence (e.g. "Inhale deeply as you lower the weight, and exhale forcefully as you drive upward.")
+
+Return strictly valid JSON only.`
+
+  const text = await generateWithFallback([prompt], {
+    responseMimeType: 'application/json',
+  })
+
+  return JSON.parse(text)
 }
 
 

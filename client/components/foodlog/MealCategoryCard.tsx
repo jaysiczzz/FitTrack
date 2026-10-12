@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { FoodLogItem, MealType } from './foodLogTypes';
+import { FoodLogItem, MealType, MEAL_GLYPHS } from './foodLogTypes';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
@@ -17,13 +17,6 @@ interface MealCategoryCardProps {
   onEditItem?: (item: FoodLogItem) => void;
   onDuplicateItem?: (item: FoodLogItem) => void;
 }
-
-const MEAL_CATEGORY_ICONS: Record<MealType, keyof typeof Ionicons.glyphMap> = {
-  breakfast: 'sunny',
-  lunch: 'restaurant',
-  dinner: 'moon',
-  snack: 'cafe',
-};
 
 const cleanSubtitle = (subtitle?: string): string => {
   if (!subtitle) return '';
@@ -57,7 +50,7 @@ export default function MealCategoryCard({
         <View className="flex-1 mr-2">
           <View className="flex-row items-center">
             <Ionicons
-              name={iconName || MEAL_CATEGORY_ICONS[type] || 'restaurant'}
+              name={iconName || MEAL_GLYPHS[type] || 'restaurant'}
               size={15}
               color={colors.accent}
               style={{ marginRight: 6 }}
@@ -79,21 +72,24 @@ export default function MealCategoryCard({
             <TouchableOpacity
               onPress={() => onScanPress(type)}
               activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="w-8 h-8 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              accessibilityRole="button"
               accessibilityLabel={`Scan ${title}`}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
             >
-              <Ionicons name="camera" size={17} color={colors.textPrimary} />
+              <Ionicons name="camera" size={17} color={colors.accent} />
             </TouchableOpacity>
           ) : null}
 
           <TouchableOpacity
             onPress={() => onAddPress(type)}
             activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Add food to ${title}`}
             hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            className="h-8 px-3 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+            className="h-11 min-h-[44px] px-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
           >
-            <Text className="text-accent dark:text-accent-dark font-bold text-xs">+ Add</Text>
+            <Text className="text-accent dark:text-accent-dark font-baloo-bold text-xs">+ Add</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -173,22 +169,24 @@ export default function MealCategoryCard({
                     {onDuplicateItem && (
                       <TouchableOpacity
                         onPress={() => onDuplicateItem(item)}
-                        hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                        hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                         activeOpacity={0.7}
-                        className="w-5 h-5 rounded-full items-center justify-center"
+                        className="w-7 h-7 rounded-lg items-center justify-center bg-input/80 dark:bg-input-dark/80"
                         accessibilityLabel={`Duplicate ${item.title}`}
+                        accessibilityRole="button"
                       >
-                        <Ionicons name="copy-outline" size={13} color={colors.textMuted} />
+                        <Ionicons name="copy-outline" size={14} color={colors.textMuted} />
                       </TouchableOpacity>
                     )}
                     <TouchableOpacity
                       onPress={() => onDeleteItem(item.id)}
-                      hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       activeOpacity={0.7}
-                      className="w-5 h-5 rounded-full items-center justify-center"
+                      className="w-7 h-7 rounded-lg items-center justify-center bg-danger/10 dark:bg-danger-dark/15"
                       accessibilityLabel={`Delete ${item.title}`}
+                      accessibilityRole="button"
                     >
-                      <Ionicons name="trash" size={13} color={colors.danger} />
+                      <Ionicons name="trash" size={14} color={colors.danger} />
                     </TouchableOpacity>
                   </View>
 

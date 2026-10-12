@@ -7,6 +7,7 @@ import {
   chatCoach,
   getChatHistory,
   clearChatHistory,
+  autocompleteExercise,
 } from '../controllers/ai.controller'
 import { authMiddleware } from '../middleware/auth.middleware'
 import { aiLimiter } from '../middleware/rateLimit.middleware'
@@ -24,6 +25,7 @@ router.post('/suggest-meals', suggestMeals)
 router.post('/chat', chatCoach)
 router.get('/chat/history', getChatHistory)
 router.delete('/chat/history', clearChatHistory)
+router.post('/autocomplete-exercise', autocompleteExercise)
 
 export default router
 

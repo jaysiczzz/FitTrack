@@ -14,7 +14,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { WorkoutRoutineTemplate, RoutineExercise } from './workoutTypes';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
-import { useToast } from '@/context/ToastContext';
+import ModalErrorBanner from '../ui/ModalErrorBanner';
+import ModalCloseButton from '../ui/ModalCloseButton';
 
 interface CreateRoutineModalProps {
   visible: boolean;
@@ -31,13 +32,14 @@ export default function CreateRoutineModal({
   onClose,
 }: CreateRoutineModalProps) {
   const { colors } = useThemeColors();
-  const { showWarning } = useToast();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Hypertrophy');
+  const [customCategory, setCustomCategory] = useState('');
   const [duration, setDuration] = useState(45);
   const [exercises, setExercises] = useState<RoutineExercise[]>([]);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   // Exercise picker state
   const [showPicker, setShowPicker] = useState(false);
@@ -78,6 +80,7 @@ export default function CreateRoutineModal({
     setExercises((prev) => [...prev, newEx]);
     setShowPicker(false);
     setSearchQuery('');
+    setErrorMessage(null);
   };
 
   const handleRemoveExercise = (index: number) => {
@@ -86,19 +89,25 @@ export default function CreateRoutineModal({
 
   const handleSave = () => {
     if (!title.trim()) {
-      showWarning('Routine Title Required', 'Please enter a name for this routine template.');
+      setErrorMessage('Please enter a routine name to save.');
+      return;
+    }
+    if (category === 'Custom' && !customCategory.trim()) {
+      setErrorMessage('Please enter a name for your custom category.');
       return;
     }
     if (exercises.length === 0) {
-      showWarning('Add Exercises', 'Please add at least one exercise to your routine.');
+      setErrorMessage('Please add at least one exercise to your routine.');
       return;
     }
+
+    const finalCategory = category === 'Custom' ? customCategory.trim() : category;
 
     const newRoutine: WorkoutRoutineTemplate = {
       id: `custom-routine-${Date.now()}`,
       title: title.trim(),
       description: description.trim() || undefined,
-      category,
+      category: finalCategory,
       estimatedDurationMinutes: duration,
       exercises,
       isCustom: true,
@@ -110,8 +119,10 @@ export default function CreateRoutineModal({
     setTitle('');
     setDescription('');
     setCategory('Hypertrophy');
+    setCustomCategory('');
     setDuration(45);
     setExercises([]);
+    setErrorMessage(null);
     onClose();
   };
 
@@ -120,12 +131,13 @@ export default function CreateRoutineModal({
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 bg-black/60 justify-end md:justify-center items-center p-0 md:p-4"
       >
         <TouchableWithoutFeedback onPress={onClose}>
           <View className="flex-1 w-full justify-end md:justify-center items-center">
             <TouchableWithoutFeedback>
-              <View className="w-full md:max-w-lg bg-background dark:bg-background-dark rounded-t-3xl md:rounded-3xl p-5 max-h-[90%] border-t md:border border-input-border dark:border-input-border-dark">
+              <View className="w-full md:max-w-lg bg-background dark:bg-background-dark rounded-t-3xl md:rounded-3xl p-5 pb-8 md:pb-5 max-h-[90%] border-t md:border border-input-border dark:border-input-border-dark">
                 {/* Modal Header */}
                 <View className="flex-row justify-between items-center mb-4">
                   <View>
@@ -136,39 +148,49 @@ export default function CreateRoutineModal({
                       Save a reusable workout for your weekly split
                     </Text>
                   </View>
-                  <TouchableOpacity
-                    onPress={onClose}
-                    className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-                  >
-                    <Ionicons name="close" size={18} color={colors.textMuted} />
-                  </TouchableOpacity>
+                  <ModalCloseButton onClose={onClose} />
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} className="mb-4">
+                  {/* Inline Error Notification Banner */}
+                  <ModalErrorBanner
+                    error={errorMessage}
+                    onDismiss={() => setErrorMessage(null)}
+                    className="mb-3"
+                  />
+
                   {/* Routine Title */}
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1.5">
                     Routine Name
                   </Text>
                   <TextInput
                     value={title}
-                    onChangeText={setTitle}
+                    onChangeText={(t) => {
+                      setTitle(t);
+                      if (errorMessage) setErrorMessage(null);
+                    }}
                     placeholder="e.g. Arms & Shoulders Hypertrophy"
                     placeholderTextColor={colors.textMuted}
-                    className="p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark text-text-primary dark:text-text-primary-dark text-sm font-semibold mb-3.5"
+                    className="p-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark text-text-primary dark:text-text-primary-dark text-sm font-semibold mb-3"
                   />
 
                   {/* Category Chips */}
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1.5">
                     Category Focus
                   </Text>
-                  <View className="flex-row flex-wrap gap-1.5 mb-3.5">
+                  <View className="flex-row flex-wrap gap-1.5 mb-2.5">
                     {CATEGORIES.map((cat) => {
                       const isSelected = category === cat;
                       return (
                         <TouchableOpacity
                           key={cat}
-                          onPress={() => setCategory(cat)}
-                          className={`px-3 py-1.5 rounded-xl border ${
+                          onPress={() => {
+                            setCategory(cat);
+                            if (errorMessage) setErrorMessage(null);
+                          }}
+                          activeOpacity={0.75}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                          className={`min-h-[30px] px-2.5 py-1 rounded-lg border justify-center items-center ${
                             isSelected
                               ? 'bg-accent/15 dark:bg-accent-dark/25 border-accent'
                               : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -186,18 +208,36 @@ export default function CreateRoutineModal({
                     })}
                   </View>
 
+                  {/* Custom Category Input if 'Custom' is selected */}
+                  {category === 'Custom' && (
+                    <View className="mb-3">
+                      <TextInput
+                        value={customCategory}
+                        onChangeText={(t) => {
+                          setCustomCategory(t);
+                          if (errorMessage) setErrorMessage(null);
+                        }}
+                        placeholder="Type custom focus (e.g. Mobility, Kettlebell, Core)"
+                        placeholderTextColor={colors.textMuted}
+                        className="p-2.5 rounded-xl bg-input dark:bg-input-dark border border-accent/40 text-text-primary dark:text-text-primary-dark text-xs font-semibold"
+                      />
+                    </View>
+                  )}
+
                   {/* Estimated Duration */}
                   <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1.5">
                     Estimated Duration
                   </Text>
-                  <View className="flex-row gap-2 mb-4">
+                  <View className="flex-row gap-1.5 mb-3.5">
                     {DURATIONS.map((dur) => {
                       const isSelected = duration === dur;
                       return (
                         <TouchableOpacity
                           key={dur}
                           onPress={() => setDuration(dur)}
-                          className={`flex-1 py-2 rounded-xl items-center border ${
+                          activeOpacity={0.75}
+                          hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                          className={`flex-1 min-h-[30px] py-1.5 rounded-lg items-center justify-center border ${
                             isSelected
                               ? 'bg-accent/15 dark:bg-accent-dark/25 border-accent'
                               : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -208,7 +248,7 @@ export default function CreateRoutineModal({
                               isSelected ? 'text-accent dark:text-accent-dark' : 'text-text-muted'
                             }`}
                           >
-                            {dur} min
+                            {dur}m
                           </Text>
                         </TouchableOpacity>
                       );
@@ -222,11 +262,12 @@ export default function CreateRoutineModal({
                     </Text>
                     <TouchableOpacity
                       onPress={() => setShowPicker(!showPicker)}
-                      className="flex-row items-center gap-1 bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-1 rounded-xl"
+                      activeOpacity={0.75}
+                      className="flex-row items-center gap-1.5 bg-accent/15 dark:bg-accent-dark/25 min-h-[36px] px-3 py-1.5 rounded-xl active:opacity-75"
                     >
-                      <Ionicons name={showPicker ? 'chevron-up' : 'add'} size={14} color={colors.accent} />
+                      <Ionicons name={showPicker ? 'chevron-up' : 'add'} size={15} color={colors.accent} />
                       <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                        {showPicker ? 'Hide Library' : '+ Add Exercise'}
+                        {showPicker ? 'Hide Library' : 'Add Exercise'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -314,9 +355,9 @@ export default function CreateRoutineModal({
 
                 {/* Save Button */}
                 <TouchableOpacity
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                   onPress={handleSave}
-                  className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
+                  className="bg-accent dark:bg-accent-dark min-h-[48px] py-3.5 rounded-2xl items-center justify-center shadow-sm active:opacity-85"
                 >
                   <Text className="text-accent-contrast dark:text-accent-contrast-dark text-sm font-black tracking-wide">
                     Save Routine Template

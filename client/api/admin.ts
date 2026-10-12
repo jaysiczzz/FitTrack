@@ -15,6 +15,19 @@ export interface AdminSystemStats {
     mealsLoggedToday: number;
     totalStories: number;
   };
+  engagement?: {
+    dau: number;
+    mau: number;
+    dauMauRatio: number;
+    proConversionRate: number;
+    supportResolutionRate: number;
+  };
+  growthHistory?: {
+    date: string;
+    label: string;
+    usersCount: number;
+    activityCount: number;
+  }[];
   aiEngine: {
     foodScansToday: number;
     coachQuestionsToday: number;
@@ -46,6 +59,8 @@ export interface AdminUserItem {
   firstName: string;
   lastName: string;
   role: 'USER' | 'ADMIN';
+  isSuspended?: boolean;
+  suspendedReason?: string | null;
   height: number;
   weight: number;
   targetWeight?: number | null;
@@ -127,6 +142,23 @@ export const updateUserRoleApi = (
   apiRequest(`/api/admin/users/${userId}/role`, {
     method: 'PUT',
     body: { role },
+  });
+
+/**
+ * Suspend or unsuspend a user account
+ */
+export const toggleUserSuspensionApi = (
+  userId: string,
+  isSuspended: boolean,
+  reason?: string
+): Promise<{
+  success: boolean;
+  message: string;
+  user: { id: string; email: string; firstName: string; lastName: string; role: 'USER' | 'ADMIN'; isSuspended: boolean; suspendedReason?: string | null };
+}> =>
+  apiRequest(`/api/admin/users/${userId}/suspend`, {
+    method: 'PATCH',
+    body: { isSuspended, reason },
   });
 
 /**

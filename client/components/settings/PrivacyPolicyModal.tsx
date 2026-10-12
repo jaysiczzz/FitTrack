@@ -1,8 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, ScrollView, Pressable } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import { SUPPORT_EMAIL } from '@/constants/appConfig';
 
 interface PrivacyPolicyModalProps {
   visible: boolean;
@@ -36,7 +35,7 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
                 🔒 Security & Encryption
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                FitTrack protects your credentials with industry-standard bcrypt hashing and short-lived JWT access tokens with rotating refresh tokens. Sensitive authentication tokens are stored in your device's hardware-backed SecureStore.
+                FitTrack protects your credentials with industry-standard encryption and secure token authentication. Sensitive credentials and session data are stored securely on your device using encrypted hardware-backed storage.
               </Text>
             </View>
 
@@ -51,19 +50,37 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
 
             <View className="mb-4">
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
-                ✨ AI Vision & Photo Analysis
+                ✨ AI Vision & Multimodal Processing
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                When you scan food with our AI food scanner, images are processed in real-time via Google Gemini Vision solely to estimate macros and calories. Images are not retained or used for public machine learning training.
+                When you use our AI features (AI Camera Food Scanner, AI Coach, and AI Workout Routine Generator), images and prompts are processed via Google's Gemini API to calculate macronutrients, generate workouts, and provide coaching guidance. FitTrack never sells your media or chat logs to third-party advertisers. Data submitted to Google AI services is handled in accordance with Google's API Terms of Service.
               </Text>
             </View>
 
             <View className="mb-4">
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
-                📱 Offline Storage
+                💳 Payment & Financial Security
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
-                Recent foods, check-ins, and notification preferences are cached locally on your device for instant performance and offline functionality. Logging out automatically clears session caches from your device.
+                All subscription and e-wallet transactions are processed directly through PCI-DSS Level 1 certified gateways (Stripe, PayMongo, GCash, Maya). FitTrack never stores your credit card numbers, CVVs, or e-wallet MPINs on its servers.
+              </Text>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
+                🗑️ Account Deletion & Right to Erasure
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
+                You have complete ownership of your fitness and nutrition records. You can permanently delete your account and wipe all associated workout sessions, food logs, body weight history, and credentials at any time directly in Settings → Danger Zone → Delete Account.
+              </Text>
+            </View>
+
+            <View className="mb-4">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark mb-1">
+                📱 Offline Storage & Local Caching
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-relaxed">
+                Recent foods, check-ins, and notification preferences are cached locally on your device for instant offline responsiveness. Logging out automatically purges all temporary cached sessions from your device.
               </Text>
             </View>
 
@@ -72,7 +89,7 @@ export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyMo
                 For privacy inquiries or account data requests, contact us at:
               </Text>
               <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                fittrack.app.help@gmail.com
+                {SUPPORT_EMAIL}
               </Text>
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-2">
                 FitTrack Version 1.0.5 · Last updated September 2026

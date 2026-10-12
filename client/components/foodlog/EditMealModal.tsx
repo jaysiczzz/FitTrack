@@ -7,6 +7,8 @@ import {
   ScrollView,
   TextInput,
   Image,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import {
   FoodLogItem,
@@ -153,7 +155,10 @@ export default function EditMealModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/65 justify-end">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 bg-black/65 justify-end"
+      >
         <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
           {/* Header */}
           <View className="flex-row justify-between items-center mb-3">
@@ -225,7 +230,7 @@ export default function EditMealModal({
                   key={mult}
                   onPress={() => handleMultiplierChange(mult)}
                   activeOpacity={0.8}
-                  className={`flex-1 py-2 rounded-xl border items-center justify-center ${
+                  className={`flex-1 py-2 min-h-[38px] rounded-xl border items-center justify-center ${
                     activeMultiplier === mult
                       ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -234,7 +239,7 @@ export default function EditMealModal({
                   <Text
                     className={`text-[11px] font-extrabold ${
                       activeMultiplier === mult
-                        ? 'text-white font-black'
+                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
                         : 'text-text-muted dark:text-text-muted-dark'
                     }`}
                   >
@@ -270,7 +275,7 @@ export default function EditMealModal({
                     key={m}
                     onPress={() => setSelectedMeal(m)}
                     activeOpacity={0.8}
-                    className={`flex-1 py-2.5 px-1 rounded-xl items-center justify-center border ${
+                    className={`flex-1 py-2.5 px-1 min-h-[38px] rounded-xl items-center justify-center border ${
                       isSelected
                         ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -279,7 +284,7 @@ export default function EditMealModal({
                     <Text
                       className={`text-[11px] font-bold capitalize ${
                         isSelected
-                          ? 'text-white font-black'
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
                           : 'text-text-primary dark:text-text-primary-dark'
                       }`}
                     >
@@ -296,9 +301,9 @@ export default function EditMealModal({
               badge="Manual"
               initialExpanded={false}
             >
-              <View className="flex-row gap-2 pt-1 pb-1">
+              <View className="flex-row flex-wrap gap-2 pt-1 pb-1">
                 {/* Calories */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-bold uppercase">
                     Calories
                   </Text>
@@ -315,7 +320,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Protein */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-accent dark:text-accent-dark font-bold uppercase">
                     Protein
                   </Text>
@@ -332,7 +337,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Carbs */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-info dark:text-info-dark font-bold uppercase">
                     Carbs
                   </Text>
@@ -349,7 +354,7 @@ export default function EditMealModal({
                 </View>
 
                 {/* Fat */}
-                <View className="flex-1 bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
+                <View className="w-[48%] sm:flex-1 min-w-[70px] bg-input dark:bg-input-dark p-2 rounded-xl border border-input-border dark:border-input-border-dark items-center">
                   <Text className="text-[10px] text-tertiary dark:text-tertiary-dark font-bold uppercase">
                     Fats
                   </Text>
@@ -368,13 +373,13 @@ export default function EditMealModal({
             </CollapsibleSection>
 
             {/* Action Buttons */}
-            <View className="gap-2 pt-3">
+            <View className="gap-2 pt-3 pb-6">
               <TouchableOpacity
                 onPress={handleSave}
                 activeOpacity={0.8}
                 className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center min-h-[48px]"
               >
-                <Text className="text-white font-bold text-sm tracking-wide">
+                <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-sm tracking-wide">
                   Save Changes ({Math.round(currentCals)} kcal)
                 </Text>
               </TouchableOpacity>
@@ -394,7 +399,7 @@ export default function EditMealModal({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

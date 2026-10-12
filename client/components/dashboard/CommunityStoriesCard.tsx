@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator, Image, DeviceEventEmitter, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import SurfaceCard from '../ui/SurfaceCard';
@@ -30,6 +30,7 @@ export default function CommunityStoriesCard({
   const [stories, setStories] = useState<TestimonialItem[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
+  const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string; author: string } | null>(null);
 
   // Load persistent votes from AsyncStorage
   const loadStoredVotes = useCallback(async () => {
@@ -144,9 +145,6 @@ export default function CommunityStoriesCard({
       {/* Header */}
       <View className="flex-row items-center justify-between mb-3">
         <View className="flex-row items-center gap-2 flex-1 mr-2">
-          <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
-            <Ionicons name="sparkles" size={16} color={colors.accent} />
-          </View>
           <View className="flex-1">
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
               Athlete Transformations
@@ -174,7 +172,7 @@ export default function CommunityStoriesCard({
         <View className="py-8 items-center justify-center">
           <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
-            Loading community stories...
+            Loading stories...
           </Text>
         </View>
       ) : stories.length === 0 ? (
@@ -285,6 +283,58 @@ export default function CommunityStoriesCard({
                     ) : null}
                   </View>
 
+                  {/* Before & After Photo Preview */}
+                  {(item.beforeImageUrl || item.afterImageUrl) ? (
+                    <View className="flex-row items-center gap-2 mb-2.5">
+                      {item.beforeImageUrl ? (
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            setPreviewPhoto({
+                              uri: item.beforeImageUrl!,
+                              label: 'Before Transformation',
+                              author: item.authorName,
+                            })
+                          }
+                          className="flex-1 h-20 rounded-xl overflow-hidden border border-input-border dark:border-input-border-dark relative bg-surface dark:bg-surface-dark"
+                        >
+                          <Image
+                            source={{ uri: item.beforeImageUrl }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                          <View className="absolute bottom-1 left-1 bg-black/70 px-1.5 py-0.5 rounded-md flex-row items-center gap-0.5">
+                            <Ionicons name="expand-outline" size={8} color="#FFFFFF" />
+                            <Text className="text-[8px] font-black text-white uppercase">Before</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : null}
+                      {item.afterImageUrl ? (
+                        <TouchableOpacity
+                          activeOpacity={0.85}
+                          onPress={() =>
+                            setPreviewPhoto({
+                              uri: item.afterImageUrl!,
+                              label: 'After Transformation',
+                              author: item.authorName,
+                            })
+                          }
+                          className="flex-1 h-20 rounded-xl overflow-hidden border border-accent/40 relative bg-surface dark:bg-surface-dark"
+                        >
+                          <Image
+                            source={{ uri: item.afterImageUrl }}
+                            className="w-full h-full"
+                            resizeMode="cover"
+                          />
+                          <View className="absolute bottom-1 left-1 bg-accent px-1.5 py-0.5 rounded-md flex-row items-center gap-0.5">
+                            <Ionicons name="expand-outline" size={8} color="#FFFFFF" />
+                            <Text className="text-[8px] font-black text-white uppercase">After</Text>
+                          </View>
+                        </TouchableOpacity>
+                      ) : null}
+                    </View>
+                  ) : null}
+
                   {/* Quote Body */}
                   <Text
                     numberOfLines={3}
@@ -296,8 +346,8 @@ export default function CommunityStoriesCard({
 
                 {/* Footer Action Row */}
                 <View className="flex-row items-center justify-between pt-2 border-t border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                    Verified FitTrack Journey
+                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
+                    Verified Transformation
                   </Text>
 
                   <TouchableOpacity
@@ -343,6 +393,43 @@ export default function CommunityStoriesCard({
           <Text className="text-xs font-bold text-white">Share Your Story</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Photo Lightbox / Zoom Modal */}
+      {previewPhoto && (
+        <Modal
+          visible={Boolean(previewPhoto)}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPreviewPhoto(null)}
+        >
+          <View className="flex-1 bg-black/95 items-center justify-center p-4">
+            <View className="w-full max-w-lg flex-row items-center justify-between mb-3 px-1">
+              <View>
+                <Text className="text-white font-extrabold text-sm">
+                  {previewPhoto.author}'s Journey
+                </Text>
+                <Text className="text-white/70 text-xs">
+                  {previewPhoto.label}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => setPreviewPhoto(null)}
+                className="w-10 h-10 rounded-full bg-white/20 items-center justify-center"
+              >
+                <Ionicons name="close" size={22} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+
+            <View className="w-full max-w-lg h-4/5 rounded-2xl overflow-hidden bg-black/40 items-center justify-center">
+              <Image
+                source={{ uri: previewPhoto.uri }}
+                className="w-full h-full"
+                resizeMode="contain"
+              />
+            </View>
+          </View>
+        </Modal>
+      )}
     </SurfaceCard>
   );
 }

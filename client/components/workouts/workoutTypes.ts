@@ -71,7 +71,7 @@ export type DayOfWeek = 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat' | 'sun';
 
 export type WeeklySplit = Record<DayOfWeek, string | null>;
 
-export type PlannerViewMode = 'daily' | 'weekly' | 'monthly';
+export type PlannerViewMode = 'weekly' | 'monthly' | 'daily';
 
 export interface MonthlyScheduleDay {
   routineId: string | null;
@@ -155,13 +155,8 @@ export interface MonthCalendarDay {
   isPartOfStreak?: boolean;
 }
 
-export const getTodayDateString = (): string => {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-};
+import { getTodayDateString, formatDateHeading } from '@/utils/formatters';
+export { getTodayDateString, formatDateHeading };
 
 export const getDateStringFromTimestamp = (isoString?: string | null): string => {
   if (!isoString) return '';
@@ -173,28 +168,61 @@ export const getDateStringFromTimestamp = (isoString?: string | null): string =>
   return `${year}-${month}-${day}`;
 };
 
-export const formatDateHeading = (dateStr: string): string => {
-  const todayStr = getTodayDateString();
-  const [year, month, day] = dateStr.split('-').map(Number);
-  const dateObj = new Date(year, month - 1, day);
+export const formatRawWorkoutSession = (s: any): CompletedSession => {
+  const rawDuration = s.duration;
+  const durationMinutes =
+    typeof rawDuration === 'number'
+      ? rawDuration
+      : parseInt(rawDuration, 10) || 35;
 
-  const yesterdayObj = new Date();
-  yesterdayObj.setDate(yesterdayObj.getDate() - 1);
-  const yYear = yesterdayObj.getFullYear();
-  const yMonth = String(yesterdayObj.getMonth() + 1).padStart(2, '0');
-  const yDay = String(yesterdayObj.getDate()).padStart(2, '0');
-  const calcYesterdayStr = `${yYear}-${yMonth}-${yDay}`;
+  const dateStr =
+    s.dateStr ||
+    (s.completedAt ? getDateStringFromTimestamp(s.completedAt) : '') ||
+    (s.createdAt ? getDateStringFromTimestamp(s.createdAt) : '') ||
+    (s.startedAt ? getDateStringFromTimestamp(s.startedAt) : '') ||
+    getTodayDateString();
 
-  if (dateStr === todayStr) {
-    return `Today (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-  }
-  if (dateStr === calcYesterdayStr) {
-    return `Yesterday (${dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`;
-  }
+  const displayDate = s.date || (dateStr ? formatDateHeading(dateStr) : 'Completed');
 
-  return dateObj.toLocaleDateString('en-US', {
-    weekday: 'short',
-    month: 'short',
-    day: 'numeric',
+  const exercises = (s.exercises || []).map((e: any) => {
+    const sets = (e.sets || []).map((set: any, idx: number) => ({
+      id: set.id,
+      setNumber: set.setNumber || idx + 1,
+      weight: set.weight !== undefined && set.weight !== null ? set.weight : undefined,
+      reps: set.reps !== undefined && set.reps !== null ? set.reps : undefined,
+      bodyweight: Boolean(set.bodyweight),
+      done: Boolean(set.done),
+    }));
+
+    return {
+      id: e.id,
+      exerciseId: e.exerciseId || e.id,
+      name: e.name,
+      category: e.category,
+      setsSummary: `${sets.length} sets`,
+      sets,
+    };
   });
+
+  const totalSetsCount = exercises.reduce(
+    (acc: number, e: any) => acc + (e.sets?.length || 0),
+    0
+  );
+
+  return {
+    id: s.id,
+    date: displayDate,
+    dateStr,
+    completedAt: s.completedAt,
+    title: s.title || 'Workout Session',
+    duration:
+      typeof s.duration === 'string' && s.duration.includes('min')
+        ? s.duration
+        : `${durationMinutes} min`,
+    durationMinutes,
+    caloriesBurned: s.caloriesBurned || 240,
+    exercisesCount: exercises.length,
+    totalSetsCount,
+    exercises,
+  };
 };

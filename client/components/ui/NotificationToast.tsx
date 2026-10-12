@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   Platform,
   StyleSheet,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -24,6 +25,7 @@ export interface NotificationToastProps {
   onAction?: () => void;
   onDismiss: () => void;
   duration?: number;
+  topOffset?: number;
   bottomOffset?: number;
 }
 
@@ -32,7 +34,7 @@ const TYPE_CONFIG: Record<
   { borderColor: string; bgBadge: string; defaultIcon: keyof typeof Ionicons.glyphMap }
 > = {
   success: {
-    borderColor: 'border-accent/40 dark:border-accent-dark/40',
+    borderColor: 'border-accent/40 dark:border-transparent',
     bgBadge: 'bg-accent/15 dark:bg-accent-dark/25',
     defaultIcon: 'checkmark-circle',
   },
@@ -63,12 +65,15 @@ export default function NotificationToast({
   actionLabel,
   onAction,
   onDismiss,
-  duration = 4000,
-  bottomOffset = 28,
+  duration = 2000,
+  topOffset,
+  bottomOffset,
 }: NotificationToastProps) {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
+  const insets = useSafeAreaInsets();
+  const [toastVisible, setToastVisible] = useState(visible);
   const opacityAnim = useRef(new Animated.Value(0)).current;
-  const translateYAnim = useRef(new Animated.Value(40)).current;
+  const translateYAnim = useRef(new Animated.Value(-60)).current;
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -80,10 +85,11 @@ export default function NotificationToast({
     const useNative = Platform.OS !== 'web';
 
     if (visible) {
+      setToastVisible(true);
       Animated.parallel([
         Animated.timing(opacityAnim, {
           toValue: 1,
-          duration: 160,
+          duration: 180,
           useNativeDriver: useNative,
         }),
         Animated.spring(translateYAnim, {
@@ -104,15 +110,17 @@ export default function NotificationToast({
       Animated.parallel([
         Animated.timing(opacityAnim, {
           toValue: 0,
-          duration: 200,
+          duration: 180,
           useNativeDriver: useNative,
         }),
         Animated.timing(translateYAnim, {
-          toValue: 40,
-          duration: 200,
+          toValue: -60,
+          duration: 180,
           useNativeDriver: useNative,
         }),
-      ]).start();
+      ]).start(() => {
+        setToastVisible(false);
+      });
     }
 
     return () => {
@@ -127,133 +135,153 @@ export default function NotificationToast({
     Animated.parallel([
       Animated.timing(opacityAnim, {
         toValue: 0,
-        duration: 200,
+        duration: 180,
         useNativeDriver: useNative,
       }),
       Animated.timing(translateYAnim, {
-        toValue: 40,
-        duration: 200,
+        toValue: -60,
+        duration: 180,
         useNativeDriver: useNative,
       }),
     ]).start(() => {
+      setToastVisible(false);
       onDismiss();
     });
   };
 
-  if (!visible) return null;
+  if (!toastVisible && !visible) return null;
+
+  const resolvedTop =
+    topOffset ??
+    (insets.top > 0 ? insets.top + 8 : Platform.OS === 'ios' ? 52 : 36);
 
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.success;
   const iconColor = {
-    success: colors.accent,
+    success: isDark ? '#34D399' : colors.accent,
     info: colors.info,
     warning: colors.warning,
     error: colors.danger,
   }[type];
 
   return (
-    <View
-      style={[styles.container, { bottom: bottomOffset, pointerEvents: 'box-none' } as any]}
-    >
-      <Animated.View
-        style={[
-          styles.toastWrapper,
-          Platform.select({
-            web: {
-              boxShadow: '0 12px 36px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.3)',
-            } as any,
-            default: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: 0.4,
-              shadowRadius: 16,
-              elevation: 12,
-            },
-          }),
-          {
-            opacity: opacityAnim,
-            transform: [{ translateY: translateYAnim }],
-          },
-        ]}
+    <View style={styles.overlay} pointerEvents="box-none">
+      <View
+        style={[styles.container, { top: resolvedTop }]}
+        pointerEvents="box-none"
       >
-        <View
-          className={`flex-row items-center bg-surface/95 dark:bg-surface-dark/95 border ${config.borderColor} rounded-2xl p-3.5 backdrop-blur-md`}
+        <Animated.View
+          pointerEvents="auto"
+          style={[
+            styles.toastWrapper,
+            Platform.select({
+              web: {
+                boxShadow:
+                  '0 12px 36px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.3)',
+              } as any,
+              default: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 8 },
+                shadowOpacity: 0.4,
+                shadowRadius: 16,
+                elevation: 12,
+              },
+            }),
+            {
+              opacity: opacityAnim,
+              transform: [{ translateY: translateYAnim }],
+            },
+          ]}
         >
-          {/* Icon Badge */}
           <View
-            className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${config.bgBadge}`}
+            className={`flex-row items-center bg-surface/95 dark:bg-surface-dark/95 border ${config.borderColor} rounded-2xl p-3.5 backdrop-blur-md`}
           >
-            {iconName ? (
-              <Ionicons name={iconName} size={20} color={iconColor} />
-            ) : icon ? (
-              <Text className="text-base">{icon}</Text>
-            ) : (
-              <Ionicons name={config.defaultIcon} size={20} color={iconColor} />
-            )}
-          </View>
-
-          {/* Text Content */}
-          <View className="flex-1 pr-2">
-            <Text
-              className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs leading-4"
-              numberOfLines={2}
+            {/* Icon Badge */}
+            <View
+              className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${config.bgBadge}`}
             >
-              {message}
-            </Text>
-            {description ? (
+              {iconName ? (
+                <Ionicons name={iconName} size={20} color={iconColor} />
+              ) : icon ? (
+                <Text className="text-base">{icon}</Text>
+              ) : (
+                <Ionicons name={config.defaultIcon} size={20} color={iconColor} />
+              )}
+            </View>
+
+            {/* Text Content */}
+            <View className="flex-1 pr-2">
               <Text
-                className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium mt-0.5 leading-3.5"
+                className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs leading-4"
                 numberOfLines={2}
               >
-                {description}
+                {message}
               </Text>
-            ) : null}
-          </View>
+              {description ? (
+                <Text
+                  className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium mt-0.5 leading-3.5"
+                  numberOfLines={2}
+                >
+                  {description}
+                </Text>
+              ) : null}
+            </View>
 
-          {/* Optional Action Button */}
-          {actionLabel && onAction ? (
+            {/* Optional Action Button */}
+            {actionLabel && onAction ? (
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  onAction();
+                  handleDismiss();
+                }}
+                className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-2xl mr-2"
+              >
+                <Text className="text-white font-bold text-[11px]">
+                  {actionLabel}
+                </Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {/* Close Button */}
             <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => {
-                onAction();
-                handleDismiss();
-              }}
-              className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-2xl mr-2"
+              activeOpacity={0.7}
+              onPress={handleDismiss}
+              className="w-6 h-6 rounded-full bg-input dark:bg-input-dark items-center justify-center"
             >
-              <Text className="text-white font-bold text-[11px]">
-                {actionLabel}
+              <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px]">
+                ✕
               </Text>
             </TouchableOpacity>
-          ) : null}
-
-          {/* Close Button */}
-          <TouchableOpacity
-            activeOpacity={0.7}
-            onPress={handleDismiss}
-            className="w-6 h-6 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-          >
-            <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px]">
-              ✕
-            </Text>
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
+          </View>
+        </Animated.View>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
+  overlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'transparent',
+    alignItems: 'center',
+    zIndex: 999999,
+    elevation: 999999,
+    pointerEvents: 'box-none',
+  },
   container: {
     position: 'absolute',
     left: 0,
     right: 0,
     alignItems: 'center',
-    zIndex: 9999,
+    zIndex: 999999,
     paddingHorizontal: 16,
     borderRadius: 12,
+    pointerEvents: 'box-none',
   },
   toastWrapper: {
     width: '100%',
     maxWidth: 440,
     borderRadius: 16,
+    zIndex: 999999,
   },
 });

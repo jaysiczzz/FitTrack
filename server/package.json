@@ -7,7 +7,9 @@
     "dev": "nodemon --exec tsx src/app.ts",
     "build": "tsc",
     "start": "node dist/app.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "seed:jejo": "tsx prisma/seed-jejo-month.ts",
+    "clear:jejo": "tsx prisma/clear-jejo-data.ts"
   },
   "keywords": [],
   "author": "",

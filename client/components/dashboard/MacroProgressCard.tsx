@@ -1,8 +1,7 @@
 import React from 'react';
-import { View, Text, Platform, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 
 interface MacroProgressCardProps {

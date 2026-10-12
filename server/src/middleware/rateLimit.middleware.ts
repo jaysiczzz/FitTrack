@@ -7,7 +7,7 @@ import { AuthRequest } from './auth.middleware'
  */
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // 20 attempts per 15 minutes per IP
+  max: process.env.NODE_ENV === 'production' ? 20 : 500, // 20 in production, generous in local development
   standardHeaders: true,
   legacyHeaders: false,
   message: {

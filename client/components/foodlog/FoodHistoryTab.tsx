@@ -9,6 +9,8 @@ import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
 import FoodHistoryDayCard from './FoodHistoryDayCard';
 import ConfirmModal from '../ui/ConfirmModal';
+import { CardSkeleton } from '../ui/Skeleton';
+import EmptyState from '../ui/EmptyState';
 import { useThemeColors } from '../../constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 import {
@@ -52,7 +54,7 @@ export default function FoodHistoryTab({
   const [loading, setLoading] = useState(true);
   const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>([]);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const [selectedRange, setSelectedRange] = useState<HistoryRange>('15days');
+  const [selectedRange, setSelectedRange] = useState<HistoryRange>('7days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [dayToDelete, setDayToDelete] = useState<DailyFoodHistorySummary | null>(null);
 
@@ -277,12 +279,16 @@ export default function FoodHistoryTab({
     }
   };
 
-  // Generate the 15-day rolling calendar strip
-  const fifteenDaySlots: CalendarDaySlot[] = useMemo(() => {
+  // Generate dynamic rolling calendar strip (7 or 15 days, empty for all-time)
+  const rangeDaysCount = selectedRange === '7days' ? 7 : 15;
+
+  const calendarSlots: CalendarDaySlot[] = useMemo(() => {
+    if (selectedRange === 'all') return [];
+    const count = selectedRange === '7days' ? 7 : 15;
     const slots: CalendarDaySlot[] = [];
     const today = new Date();
 
-    for (let i = 14; i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
       const y = d.getFullYear();
@@ -306,7 +312,7 @@ export default function FoodHistoryTab({
     }
 
     return slots;
-  }, [historyList, targets.protein]);
+  }, [historyList, targets.protein, selectedRange]);
 
   // Filter history based on range selection
   const filteredHistory = useMemo(() => {
@@ -334,20 +340,19 @@ export default function FoodHistoryTab({
     return list;
   }, [historyList, selectedRange, selectedDayFilter]);
 
-  // Compute 15-day or filtered averages
+  // Compute averages and consistency metrics
   const totalDays = filteredHistory.length;
   const avgCalories = totalDays > 0 ? Math.round(filteredHistory.reduce((acc, h) => acc + h.totalCalories, 0) / totalDays) : 0;
   const avgProtein = totalDays > 0 ? Math.round(filteredHistory.reduce((acc, h) => acc + h.totalProtein, 0) / totalDays) : 0;
-  const loggedDaysIn15 = fifteenDaySlots.filter((s) => s.hasLog).length;
-  const consistencyPercent = Math.round((loggedDaysIn15 / 15) * 100);
+  const loggedDaysInStrip = calendarSlots.filter((s) => s.hasLog).length;
+  const consistencyPercent = rangeDaysCount > 0 ? Math.round((loggedDaysInStrip / rangeDaysCount) * 100) : 0;
 
   if (loading) {
     return (
-      <View className="py-12 items-center justify-center">
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
-          Loading 15-day nutrition history...
-        </Text>
+      <View className="py-2 gap-y-3">
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={2} />
       </View>
     );
   }
@@ -355,42 +360,26 @@ export default function FoodHistoryTab({
   return (
     <View className="mb-6">
       {/* 1. Range Selection Filter Tabs */}
-      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3.5 border border-input-border dark:border-input-border-dark">
+      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-4 border border-input-border dark:border-input-border-dark">
         <TouchableOpacity
-          onPress={() => {
-            setSelectedRange('15days');
-            setSelectedDayFilter(null);
-          }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
-            selectedRange === '15days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
-          }`}
-        >
-          <Text
-            className={`text-xs font-bold ${
-              selectedRange === '15days' && !selectedDayFilter
-                ? 'text-accent dark:text-accent-dark'
-                : 'text-text-muted dark:text-text-muted-dark'
-            }`}
-          >
-            15 Days
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('7days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             selectedRange === '7days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={selectedRange === '7days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '7days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -401,18 +390,52 @@ export default function FoodHistoryTab({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setSelectedRange('15days');
+            setSelectedDayFilter(null);
+          }}
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
+            selectedRange === '15days' && !selectedDayFilter
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
+          }`}
+        >
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={selectedRange === '15days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
+          <Text
+            className={`text-xs font-black ${
+              selectedRange === '15days' && !selectedDayFilter
+                ? 'text-accent dark:text-accent-dark'
+                : 'text-text-muted dark:text-text-muted-dark'
+            }`}
+          >
+            15 Days
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('all');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             selectedRange === 'all' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="infinite-outline"
+            size={15}
+            color={selectedRange === 'all' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === 'all' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -423,118 +446,120 @@ export default function FoodHistoryTab({
         </TouchableOpacity>
       </View>
 
-      {/* 2. 15-Day Consistency Strip with Shortcut to Full Dedicated Activity Calendar */}
-      <SurfaceCard className="mb-4">
-        <View className="flex-row justify-between items-center mb-2.5">
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="calendar" size={15} color={colors.accent} />
-            <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
-              15-Day Consistency
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
-              <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
-                {loggedDaysIn15}/15 Days ({consistencyPercent}%)
+      {/* 2. Dynamic Consistency Strip (7-day or 15-day adaptive, hidden in All-Time) */}
+      {selectedRange !== 'all' && (
+        <SurfaceCard className="mb-4">
+          <View className="flex-row justify-between items-center mb-2.5">
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="calendar" size={15} color={colors.accent} />
+              <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
+                {selectedRange === '7days' ? '7-Day Consistency' : '15-Day Consistency'}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(screen)/calendar' as any)}
-              className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
-              activeOpacity={0.7}
-            >
-              <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
-                Full Calendar
-              </Text>
-              <Ionicons name="chevron-forward" size={10} color={colors.accent} />
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-2">
+              <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
+                <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
+                  {loggedDaysInStrip}/{rangeDaysCount} Days ({consistencyPercent}%)
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(screen)/calendar' as any)}
+                className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
+                activeOpacity={0.7}
+              >
+                <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                  Full Calendar
+                </Text>
+                <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-3">
-          Tap any date below to jump to that day's meal logs:
-        </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-3">
+            Tap any date below to jump to that day's meal logs:
+          </Text>
 
-        {/* Horizontal Calendar Strip */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-1">
-          <View className="flex-row gap-1.5">
-            {fifteenDaySlots.map((slot) => {
-              const isSelected = selectedDayFilter === slot.dateStr;
+          {/* Horizontal Calendar Strip */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-1">
+            <View className="flex-row gap-1.5">
+              {calendarSlots.map((slot) => {
+                const isSelected = selectedDayFilter === slot.dateStr;
 
-              return (
-                <TouchableOpacity
-                  key={slot.dateStr}
-                  onPress={() => {
-                    if (selectedDayFilter === slot.dateStr) {
-                      setSelectedDayFilter(null);
-                    } else {
-                      setSelectedDayFilter(slot.dateStr);
-                      // Expand target day automatically
-                      setExpandedDates((prev) => ({ ...prev, [slot.dateStr]: true }));
-                    }
-                  }}
-                  activeOpacity={0.7}
-                  className={`w-[44px] py-2 rounded-2xl items-center border ${
-                    isSelected
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                      : slot.hasLog
-                      ? slot.hitProtein
-                        ? 'bg-accent/20 dark:bg-accent-dark/25 border-accent/60'
-                        : 'bg-accent/10 dark:bg-accent-dark/15 border-accent/30'
-                      : 'bg-input dark:bg-input-dark border-input-border/60 dark:border-input-border-dark/60'
-                  }`}
-                >
-                  <Text
-                    className={`text-[9px] font-bold uppercase mb-0.5 ${
+                return (
+                  <TouchableOpacity
+                    key={slot.dateStr}
+                    onPress={() => {
+                      if (selectedDayFilter === slot.dateStr) {
+                        setSelectedDayFilter(null);
+                      } else {
+                        setSelectedDayFilter(slot.dateStr);
+                        // Expand target day automatically
+                        setExpandedDates((prev) => ({ ...prev, [slot.dateStr]: true }));
+                      }
+                    }}
+                    activeOpacity={0.7}
+                    className={`w-[44px] py-2 rounded-2xl items-center border ${
                       isSelected
-                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
-                        : 'text-text-muted dark:text-text-muted-dark'
-                    }`}
-                  >
-                    {slot.dayLabel}
-                  </Text>
-                  <Text
-                    className={`text-xs font-black mb-1 ${
-                      isSelected
-                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
-                        : 'text-text-primary dark:text-text-primary-dark'
-                    }`}
-                  >
-                    {slot.dateNum}
-                  </Text>
-
-                  {/* Status Indicator Dot */}
-                  <View
-                    className={`w-2 h-2 rounded-full ${
-                      isSelected
-                        ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                         : slot.hasLog
                         ? slot.hitProtein
-                          ? 'bg-accent dark:bg-accent-dark'
-                          : 'bg-accent/60 dark:bg-accent-dark/60'
-                        : 'bg-input-border dark:bg-input-border-dark'
+                          ? 'bg-accent/20 dark:bg-accent-dark/25 border-accent/60'
+                          : 'bg-accent/10 dark:bg-accent-dark/15 border-accent/30'
+                        : 'bg-input dark:bg-input-dark border-input-border/60 dark:border-input-border-dark/60'
                     }`}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
+                  >
+                    <Text
+                      className={`text-[9px] font-bold uppercase mb-0.5 ${
+                        isSelected
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
+                          : 'text-text-muted dark:text-text-muted-dark'
+                      }`}
+                    >
+                      {slot.dayLabel}
+                    </Text>
+                    <Text
+                      className={`text-xs font-black mb-1 ${
+                        isSelected
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {slot.dateNum}
+                    </Text>
 
-        {selectedDayFilter ? (
-          <TouchableOpacity
-            onPress={() => setSelectedDayFilter(null)}
-            className="mt-2.5 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row justify-between items-center"
-          >
-            <Text className="text-accent dark:text-accent-dark text-xs font-bold">
-              Filtering for: {formatDateHeading(selectedDayFilter)}
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold">
-              ✕ Clear Filter
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </SurfaceCard>
+                    {/* Status Indicator Dot */}
+                    <View
+                      className={`w-2 h-2 rounded-full ${
+                        isSelected
+                          ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
+                          : slot.hasLog
+                          ? slot.hitProtein
+                            ? 'bg-accent dark:bg-accent-dark'
+                            : 'bg-accent/60 dark:bg-accent-dark/60'
+                          : 'bg-input-border dark:bg-input-border-dark'
+                      }`}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          {selectedDayFilter ? (
+            <TouchableOpacity
+              onPress={() => setSelectedDayFilter(null)}
+              className="mt-2.5 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row justify-between items-center"
+            >
+              <Text className="text-accent dark:text-accent-dark text-xs font-bold">
+                Filtering for: {formatDateHeading(selectedDayFilter)}
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold">
+                ✕ Clear Filter
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </SurfaceCard>
+      )}
 
       {/* 3. Nutrition Averages & Goal Breakdown Banner */}
       <SurfaceCard className="mb-4">
@@ -546,10 +571,24 @@ export default function FoodHistoryTab({
               ? 'Last 7 Days Nutrition Averages'
               : 'All-Time Nutrition Averages'}
           </Text>
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
-              {totalDays} {totalDays === 1 ? 'Day' : 'Days'} Logged
-            </Text>
+          <View className="flex-row items-center gap-1.5">
+            <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full">
+              <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
+                {totalDays} {totalDays === 1 ? 'Day' : 'Days'} Logged
+              </Text>
+            </View>
+            {selectedRange === 'all' && (
+              <TouchableOpacity
+                onPress={() => router.push('/(screen)/calendar' as any)}
+                className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-0.5 rounded-lg border border-accent/30"
+                activeOpacity={0.7}
+              >
+                <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                  Calendar
+                </Text>
+                <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -590,26 +629,17 @@ export default function FoodHistoryTab({
       </Text>
 
       {filteredHistory.length === 0 ? (
-        <SurfaceCard className="p-6 items-center justify-center my-2">
-          <View className="w-12 h-12 rounded-2xl bg-input dark:bg-input-dark items-center justify-center mb-3">
-            <Ionicons name="calendar" size={26} color={colors.textMuted} />
-          </View>
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center mb-1">
-            No Records Found
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[240px]">
-            Log your meals and tap "Complete Day" to build your nutrition history.
-          </Text>
-          <TouchableOpacity
-            onPress={onSwitchToToday}
-            activeOpacity={0.8}
-            className="bg-accent dark:bg-accent-dark px-5 py-3 rounded-2xl"
-          >
-            <Text className="text-white font-bold text-xs uppercase tracking-wide">
-              Log Today's Meal
-            </Text>
-          </TouchableOpacity>
-        </SurfaceCard>
+        <EmptyState
+          icon="calendar"
+          title="No Records Found"
+          description={
+            selectedDayFilter
+              ? `No meal log was found for ${formatDateHeading(selectedDayFilter)}.`
+              : 'Log your meals and tap "Complete Day" to build your nutrition history.'
+          }
+          actionLabel="Log Today's Meal"
+          onAction={onSwitchToToday}
+        />
       ) : (
         filteredHistory.map((day) => (
           <FoodHistoryDayCard

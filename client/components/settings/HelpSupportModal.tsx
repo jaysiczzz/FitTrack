@@ -16,7 +16,9 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { sendFeedbackApi } from '@/api/support';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ModalErrorBanner from '../ui/ModalErrorBanner';
+import { SUPPORT_EMAIL } from '@/constants/appConfig';
+import { DEFAULT_WATER_TARGET_ML } from '@/constants/fitnessDefaults';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface FaqItem {
   id: string;
@@ -41,6 +43,13 @@ const FAQS: FaqItem[] = [
       'The scanner uses Google Gemini Vision AI. Snap a clear photo of your plate or describe your meal. The AI estimates portion size, calories, protein, carbs, and fat automatically, and lets you edit the numbers before logging.',
   },
   {
+    id: 'ai-coach',
+    category: 'ai',
+    question: 'What is the AI Coach and what does it know?',
+    answer:
+      'The AI Coach is context-aware: it syncs with your live profile, today’s logged meals, workout history, and morning readiness check-in. Tap the coach floating button on any screen to ask for meal ideas, recovery strategies, workout modifications, or motivation.',
+  },
+  {
     id: 'calorie-target',
     category: 'nutrition',
     question: 'How is my daily calorie target calculated?',
@@ -52,7 +61,7 @@ const FAQS: FaqItem[] = [
     category: 'nutrition',
     question: 'How does the water tracker work?',
     answer:
-      'Your daily hydration target is 2,000 ml. Use the +250 ml and +500 ml 1-tap buttons on your Dashboard or Food Log. The tracker automatically resets at midnight each day.',
+      `Your daily hydration baseline target is ${DEFAULT_WATER_TARGET_ML.toLocaleString()} ml. Use the +250 ml and +500 ml 1-tap buttons on your Dashboard or Food Log. The tracker automatically resets at midnight each day.`,
   },
   {
     id: 'track-sets',
@@ -60,6 +69,13 @@ const FAQS: FaqItem[] = [
     question: 'How do I log exercise sets during a workout?',
     answer:
       'On the Workouts tab (Today), tap "+ Add Exercise" or generate an AI routine. For each exercise, adjust weight and reps, then tap the checkmark button when completed. When finished, tap "Complete Session" to record calories burned and history.',
+  },
+  {
+    id: 'workout-planner',
+    category: 'workouts',
+    question: 'How do I schedule routines and use the Monthly Planner?',
+    answer:
+      'Go to Workouts → Planner tab. You can assign routine templates to any day of the week, assign rest days, and follow weekly training focus and RPE targets for gradual, safe muscular overload.',
   },
   {
     id: 'exercise-form',
@@ -74,6 +90,20 @@ const FAQS: FaqItem[] = [
     question: 'How does the AI Workout Generator work?',
     answer:
       'Tap the sparkle icon in the Workouts tab. The AI analyzes your fitness goal, experience level, and preferred duration to generate a personalized balanced routine with target sets and reps.',
+  },
+  {
+    id: 'daily-checkin',
+    category: 'account',
+    question: 'What is the Daily Check-in & Readiness Score?',
+    answer:
+      'Every morning on your Dashboard, answer 4 quick questions about your sleep quality, muscle soreness, energy level, and mood. FitTrack computes a Readiness Score to help you tailor training intensity and avoid overtraining.',
+  },
+  {
+    id: 'community-stories',
+    category: 'account',
+    question: 'How do Athlete Transformation Stories work?',
+    answer:
+      'Under Community Stories on your Dashboard, explore inspiring member milestones and before/after photos. You can also publish your own journey from the Share tab. All submissions undergo admin verification before going live.',
   },
   {
     id: 'profile-update',
@@ -116,12 +146,18 @@ export default function HelpSupportModal({
   const [message, setMessage] = useState('');
   const [email, setEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [subjectError, setSubjectError] = useState<string | null>(null);
+  const [messageError, setMessageError] = useState<string | null>(null);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
-      setFormError(null);
+      setSubjectError(null);
+      setMessageError(null);
+      setEmailError(null);
+      setSubmitError(null);
     }
   }, [visible, initialTab]);
 
@@ -142,15 +178,29 @@ export default function HelpSupportModal({
   };
 
   const handleSendFeedback = async () => {
-    setFormError(null);
+    setSubjectError(null);
+    setMessageError(null);
+    setEmailError(null);
+    setSubmitError(null);
+
+    let hasError = false;
+
     if (!subject.trim()) {
-      setFormError('Please enter a subject line.');
-      return;
+      setSubjectError('Please enter a subject line.');
+      hasError = true;
     }
+
     if (message.trim().length < 10) {
-      setFormError('Please enter at least 10 characters in your message.');
-      return;
+      setMessageError('Please enter at least 10 characters in your message.');
+      hasError = true;
     }
+
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setEmailError('Please enter a valid email address.');
+      hasError = true;
+    }
+
+    if (hasError) return;
 
     setSubmitting(true);
     try {
@@ -165,17 +215,20 @@ export default function HelpSupportModal({
       setSubject('');
       setMessage('');
       setEmail('');
-      setFormError(null);
+      setSubjectError(null);
+      setMessageError(null);
+      setEmailError(null);
+      setSubmitError(null);
       onClose();
     } catch (err: any) {
-      setFormError(err?.message || 'Failed to submit feedback. Please check your connection and try again.');
+      setSubmitError(getFriendlyErrorMessage(err, 'Failed to submit feedback. Please check your connection and try again.'));
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDirectEmail = () => {
-    const emailUrl = `mailto:fittrack.app.help@gmail.com?subject=${encodeURIComponent(
+    const emailUrl = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(
       subject ? `[FitTrack Support] ${subject}` : 'FitTrack Support Request'
     )}&body=${encodeURIComponent(message || '')}`;
     Linking.openURL(emailUrl).catch(() => {
@@ -269,10 +322,10 @@ export default function HelpSupportModal({
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2 max-h-8">
                 {[
                   { id: 'all', label: 'All Topics' },
-                  { id: 'nutrition', label: '🥗 Nutrition' },
-                  { id: 'workouts', label: '🏋️ Workouts' },
-                  { id: 'ai', label: '✨ AI Features' },
-                  { id: 'account', label: '⚙️ Account' },
+                  { id: 'nutrition', label: 'Nutrition' },
+                  { id: 'workouts', label: 'Workouts' },
+                  { id: 'ai', label: 'AI Features' },
+                  { id: 'account', label: 'Account & Guides' },
                 ].map((cat) => (
                   <TouchableOpacity
                     key={cat.id}
@@ -344,18 +397,15 @@ export default function HelpSupportModal({
           ) : (
             /* TAB 2: CONTACT & FEEDBACK */
             <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              {/* Inline Error Banner */}
-              <ModalErrorBanner error={formError} onDismiss={() => setFormError(null)} />
-
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Category
               </Text>
               <View className="flex-row flex-wrap gap-1.5 mb-3">
                 {[
-                  { id: 'GENERAL', label: 'General Feedback' },
-                  { id: 'BUG', label: '🐛 Bug Report' },
-                  { id: 'FEATURE', label: '💡 Feature Idea' },
-                  { id: 'QUESTION', label: '❓ Question' },
+                  { id: 'GENERAL', label: 'General' },
+                  { id: 'BUG', label: 'Bug Report' },
+                  { id: 'FEATURE', label: 'Feature Idea' },
+                  { id: 'QUESTION', label: 'Question' },
                 ].map((item) => (
                   <TouchableOpacity
                     key={item.id}
@@ -388,12 +438,21 @@ export default function HelpSupportModal({
                   value={subject}
                   onChangeText={(val) => {
                     setSubject(val);
-                    if (formError) setFormError(null);
+                    if (subjectError) setSubjectError(null);
                   }}
                   placeholder="e.g. Question about calorie calculation"
                   placeholderTextColor={colors.textMuted}
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark ${
+                    subjectError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {subjectError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {subjectError}
+                  </Text>
+                )}
               </View>
 
               {/* Message */}
@@ -405,15 +464,24 @@ export default function HelpSupportModal({
                   value={message}
                   onChangeText={(val) => {
                     setMessage(val);
-                    if (formError) setFormError(null);
+                    if (messageError) setMessageError(null);
                   }}
                   placeholder="Describe your issue or feedback in detail..."
                   placeholderTextColor={colors.textMuted}
                   multiline
                   numberOfLines={4}
                   textAlignVertical="top"
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark min-h-[90px]"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark min-h-[90px] ${
+                    messageError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {messageError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {messageError}
+                  </Text>
+                )}
               </View>
 
               {/* Email (Optional) */}
@@ -423,14 +491,36 @@ export default function HelpSupportModal({
                 </Text>
                 <TextInput
                   value={email}
-                  onChangeText={setEmail}
+                  onChangeText={(val) => {
+                    setEmail(val);
+                    if (emailError) setEmailError(null);
+                  }}
                   placeholder="your.email@example.com"
                   placeholderTextColor={colors.textMuted}
                   keyboardType="email-address"
                   autoCapitalize="none"
-                  className="bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark p-3 text-xs text-text-primary dark:text-text-primary-dark"
+                  className={`bg-input dark:bg-input-dark rounded-xl border p-3 text-xs text-text-primary dark:text-text-primary-dark ${
+                    emailError
+                      ? 'border-rose-500 dark:border-rose-400'
+                      : 'border-input-border dark:border-input-border-dark'
+                  }`}
                 />
+                {emailError && (
+                  <Text className="text-[11px] text-rose-500 dark:text-rose-400 mt-1 font-medium">
+                    {emailError}
+                  </Text>
+                )}
               </View>
+
+              {/* Inline Submit Error Notification */}
+              {submitError && (
+                <View className="flex-row items-center gap-2 p-3 rounded-xl bg-danger/10 border border-danger/25 mb-3">
+                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                  <Text className="text-xs text-danger dark:text-danger-dark font-medium flex-1">
+                    {submitError}
+                  </Text>
+                </View>
+              )}
 
               {/* Action Buttons */}
               <View className="gap-2.5 mb-4">
@@ -454,7 +544,7 @@ export default function HelpSupportModal({
                 >
                   <Ionicons name="mail-outline" size={16} color={colors.textPrimary} className="mr-2" />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Email Support Directly (fittrack.app.help@gmail.com)
+                    Email Support Directly ({SUPPORT_EMAIL})
                   </Text>
                 </TouchableOpacity>
               </View>

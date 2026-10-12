@@ -10,6 +10,9 @@ import ExerciseVisual from './ExerciseVisual';
 import { useThemeColors } from '@/constants/colors';
 import FilterChip from '../ui/FilterChip';
 import DifficultySelectorPill from './DifficultySelectorPill';
+import { CardSkeleton } from '../ui/Skeleton';
+import EmptyState from '../ui/EmptyState';
+import { hapticFeedback } from '@/utils/haptics';
 
 interface WorkoutLibraryTabProps {
   onAddExercise: (exercise: LibraryExercise) => void;
@@ -103,6 +106,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
   }, [exercises, searchQuery, selectedMuscle, selectedDifficulty]);
 
   const handleAdd = (ex: LibraryExercise) => {
+    hapticFeedback.light();
     onAddExercise(ex);
   };
 
@@ -168,22 +172,25 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
         </ScrollView>
       </View>
 
-      {/* Loading Indicator */}
+      {/* Loading Skeletons */}
       {loading ? (
-        <View className="py-8 items-center">
-          <ActivityIndicator size="small" color={colors.accent} />
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">Loading exercises...</Text>
+        <View className="py-2 gap-y-3">
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={3} />
+          <CardSkeleton lines={2} />
         </View>
       ) : filteredExercises.length === 0 ? (
-        <View className="rounded-2xl border border-input-border dark:border-input-border-dark p-6 items-center my-4 bg-surface/50 dark:bg-surface-dark/50">
-          <Ionicons name="search" size={26} color={colors.textMuted} style={{ marginBottom: 8 }} />
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-            No exercises match your filter
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-1 text-center">
-            Try clearing your search query or selecting "All" muscle groups.
-          </Text>
-        </View>
+        <EmptyState
+          icon="search"
+          title="No Exercises Match Your Filter"
+          description="Try clearing your search query or selecting 'All' muscle groups."
+          actionLabel="Clear Filters"
+          onAction={() => {
+            setSearchQuery('');
+            setSelectedMuscle('All');
+            setSelectedDifficulty('All');
+          }}
+        />
       ) : (
         filteredExercises.map((ex) => {
           const eqStr = Array.isArray(ex.equipment) ? ex.equipment.join(', ') : ex.equipment || 'No Equipment';
@@ -266,23 +273,24 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
               </View>
 
               {/* Action Buttons Row */}
-              <View className="flex-row items-center justify-between pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60">
+              <View className="flex-row items-center justify-between pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60 gap-2">
                 <TouchableOpacity
                   onPress={() => handleOpenDetails(ex)}
-                  className="px-3 py-2 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5"
+                  activeOpacity={0.75}
+                  className="min-h-[44px] px-3.5 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5 active:opacity-75"
                 >
-                  <Ionicons name="body-outline" size={13} color={colors.accent} />
+                  <Ionicons name="body-outline" size={14} color={colors.accent} />
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     Anatomy & Form Guide
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                  activeOpacity={0.8}
+                  activeOpacity={0.85}
                   onPress={() => handleAdd(ex)}
-                  className="px-3.5 py-2 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1.5 shadow-xs"
+                  className="min-h-[44px] px-4 py-2.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center gap-1.5 shadow-xs active:opacity-85"
                 >
-                  <Ionicons name="add" size={14} color={colors.accentContrast} />
+                  <Ionicons name="add" size={15} color={colors.accentContrast} />
                   <Text className="text-xs font-bold text-accent-contrast dark:text-accent-contrast-dark">
                     Add to Today
                   </Text>

@@ -13,6 +13,8 @@ model User {
   firstName       String
   lastName        String
   role            Role             @default(USER)
+  isSuspended     Boolean          @default(false)
+  suspendedReason String?
   avatarUrl       String?
   height          Int              // cm
   weight          Float            // kg
@@ -36,6 +38,7 @@ model User {
   wallet          Wallet?
   walletTransactions WalletTransaction[]
   supportTickets  SupportTicket[]
+  aiRoutineLogs   AiRoutineLog[]
 }
 
 enum Goal {
@@ -258,6 +261,9 @@ model Testimonial {
   weightChangeKg  Float?
   durationWeeks   Int?
   verifiedAthlete Boolean   @default(true)
+  beforeImageUrl  String?
+  afterImageUrl   String?
+  status          String    @default("APPROVED") // PENDING_APPROVAL | APPROVED | REJECTED
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @default(now()) @updatedAt
   votes           TestimonialVote[]
@@ -265,6 +271,7 @@ model Testimonial {
   @@index([goal])
   @@index([userId])
   @@index([isFeatured])
+  @@index([status])
 }
 
 model TestimonialVote {
@@ -330,6 +337,18 @@ model AiChatMessage {
   role      String   // "user" | "model"
   content   String   @db.Text
   createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([userId, createdAt])
+}
+
+model AiRoutineLog {
+  id           String   @id @default(uuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  targetArea   String?
+  routineTitle String?
+  createdAt    DateTime @default(now())
 
   @@index([userId])
   @@index([userId, createdAt])

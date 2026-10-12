@@ -4,6 +4,8 @@ import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
+import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import { ONBOARDING_CHECKLIST_DELAYS } from '@/constants/appConfig';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -47,13 +49,13 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   useEffect(() => {
     if (error) return;
 
-    const t1 = setTimeout(() => setActiveCheckIndex(1), 600);
-    const t2 = setTimeout(() => setActiveCheckIndex(2), 1300);
-    const t3 = setTimeout(() => setActiveCheckIndex(3), 2000);
+    const t1 = setTimeout(() => setActiveCheckIndex(1), ONBOARDING_CHECKLIST_DELAYS.STEP_1_MS);
+    const t2 = setTimeout(() => setActiveCheckIndex(2), ONBOARDING_CHECKLIST_DELAYS.STEP_2_MS);
+    const t3 = setTimeout(() => setActiveCheckIndex(3), ONBOARDING_CHECKLIST_DELAYS.STEP_3_MS);
     const t4 = setTimeout(() => {
       setActiveCheckIndex(4);
       setAnimationDone(true);
-    }, 2700);
+    }, ONBOARDING_CHECKLIST_DELAYS.COMPLETE_MS);
 
     return () => {
       clearTimeout(t1);
@@ -69,25 +71,16 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
     const h = height || 175;
     const a = age || 25;
 
-    const bmr = 10 * w + 6.25 * h - 5 * a + 5;
-    const tdee = Math.round(bmr * 1.35);
-
-    let targetCalories = tdee;
-    if (goal === 'MUSCLE_GAIN') {
-      targetCalories = tdee + 300;
-    } else if (goal === 'WEIGHT_LOSS') {
-      targetCalories = Math.max(1400, tdee - 450);
-    }
-
-    const protein = Math.round(w * (goal === 'MUSCLE_GAIN' ? 2.0 : 1.8));
-    const fats = Math.round((targetCalories * 0.25) / 9);
-    const carbs = Math.round((targetCalories - (protein * 4 + fats * 9)) / 4);
+    const targets = calculatePersonalizedTargets(
+      { weight: w, height: h, age: a, goal },
+      (goal as any) || 'MUSCLE_GAIN'
+    );
 
     return {
-      targetCalories,
-      protein,
-      carbs,
-      fats,
+      targetCalories: targets.calories,
+      protein: targets.protein,
+      carbs: targets.carbs,
+      fats: targets.fat,
       planTitle: goal === 'MUSCLE_GAIN' ? 'Hypertrophy & Strength Protocol' : 'Metabolic Calorie Deficit Protocol',
       focusSummary:
         goal === 'MUSCLE_GAIN'

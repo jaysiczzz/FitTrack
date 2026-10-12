@@ -18,6 +18,7 @@ import { forgotPasswordApi, resetPasswordWithCodeApi } from '@/api/auth';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import PasswordRequirements from '../ui/PasswordRequirements';
 import { validatePasswordStrength } from '@/utils/passwordValidation';
+import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface ForgotPasswordModalProps {
   visible: boolean;
@@ -109,7 +110,7 @@ export default function ForgotPasswordModal({
       showSuccess('Code Sent', `We sent a 6-digit reset code to ${trimmed}`);
       setStep('reset');
     } catch (err: any) {
-      fail(step === 'reset' ? 'code' : 'email', err?.message || 'Failed to send reset code. Please check the email.');
+      fail(step === 'reset' ? 'code' : 'email', getFriendlyErrorMessage(err, 'Failed to send reset code. Please check the email.'));
     } finally {
       setLoading(false);
     }
@@ -153,7 +154,7 @@ export default function ForgotPasswordModal({
       if (onSuccess) onSuccess(trimmedEmail);
       handleClose();
     } catch (err: any) {
-      const msg = err?.message || 'Failed to reset password. Please check your verification code.';
+      const msg = getFriendlyErrorMessage(err, 'Failed to reset password. Please check your verification code.');
       fail(msg.toLowerCase().includes('password') ? 'password' : 'code', msg);
     } finally {
       setLoading(false);
@@ -162,7 +163,10 @@ export default function ForgotPasswordModal({
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
-      <KeyboardAvoidingView className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4"
+      >
         <Pressable className="flex-1 w-full" onPress={handleClose} />
 
         <View className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">

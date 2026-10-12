@@ -1,27 +1,28 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { ScrollView, View, Text, TouchableOpacity, DeviceEventEmitter } from 'react-native';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { ScrollView, View, Text, DeviceEventEmitter } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
 import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
-import WorkoutPlannerTab from '@/components/workouts/WorkoutPlannerTab';
+import WorkoutPlannerTab, { mergeWithDefaultTemplates } from '@/components/workouts/WorkoutPlannerTab';
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
 import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
 import { LibraryExercise, CompletedSession, WorkoutRoutineTemplate, getTodayDateString } from '@/components/workouts/workoutTypes';
 import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
-import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorModal';
+import AiInsightsCard from '@/components/foodlog/AiInsightsCard';
+import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
+import { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { screenCache } from '@/utils/screenCache';
-import { AIWorkoutPlan } from '@/api/ai';
+import { AIWorkoutPlan, getAIInsights, AIInsight } from '@/api/ai';
 import {
   getTodayWorkoutSession,
   addExerciseToTodaySession,
@@ -32,11 +33,9 @@ import {
   deleteWorkoutExerciseApi,
   completeWorkoutSessionApi,
   getWorkoutHistory,
-  ApiWorkoutExercise,
 } from '@/api/workout';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import { hapticFeedback } from '@/utils/haptics';
-import { useThemeColors } from '@/constants/colors';
 
 const EXERCISE_CATALOG_MAP = new Map<string, LibraryExercise>();
 COMMON_EXERCISES_CATALOG.forEach((ex) => {
@@ -161,11 +160,20 @@ function getExerciseMetadata(nameOrId?: string, fallbackName?: string): Partial<
 }
 
 export default function Workouts() {
-  const router = useRouter();
-  const { colors } = useThemeColors();
+  const params = useLocalSearchParams<{ tab?: WorkoutTabType }>();
   const { user } = useAuth();
   const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<WorkoutTabType>('today');
+  const [activeTab, setActiveTab] = useState<WorkoutTabType>(
+    params.tab && ['today', 'planner', 'library', 'history'].includes(params.tab)
+      ? params.tab
+      : 'today'
+  );
+
+  useEffect(() => {
+    if (params.tab && ['today', 'planner', 'library', 'history'].includes(params.tab)) {
+      setActiveTab(params.tab);
+    }
+  }, [params.tab]);
   const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
   const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
   const [isRestDay, setIsRestDay] = useState(false);
@@ -175,8 +183,75 @@ export default function Workouts() {
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [exerciseToRemove, setExerciseToRemove] = useState<TodayExerciseItem | null>(null);
+  const [showRestDayAddConfirm, setShowRestDayAddConfirm] = useState(false);
+  const [pendingRestDayAction, setPendingRestDayAction] = useState<(() => Promise<void> | void) | null>(null);
+  const [restDayOverridden, setRestDayOverridden] = useState(false);
   const { startRestTimer } = useWorkoutTimer();
   const updateTimersRef = useRef<Record<string, any>>({});
+
+  const executeWithRestCheck = (action: () => Promise<void> | void) => {
+    if (isRestDay && todayExercises.length === 0 && !restDayOverridden) {
+      setPendingRestDayAction(() => action);
+      setShowRestDayAddConfirm(true);
+    } else {
+      action();
+    }
+  };
+
+  // AI Workout Insights State - Local Dynamic vs Gemini Deep AI
+  const [loadingAi, setLoadingAi] = useState(false);
+  const [geminiInsights, setGeminiInsights] = useState<AIInsight[] | null>(null);
+  const [insightMode, setInsightMode] = useState<'local' | 'gemini'>('local');
+
+  const mappedWorkoutExercises = useMemo<DashboardWorkoutExercise[]>(() => {
+    return todayExercises.map((ex) => ({
+      id: ex.key || ex.exerciseId || ex.name,
+      name: ex.name,
+      isCompleted: Boolean(ex.sets && ex.sets.length > 0 && ex.sets.every((s) => s.done)),
+    }));
+  }, [todayExercises]);
+
+  const dynamicWorkoutInsights = useMemo<AIInsight[]>(() => {
+    const allInsights = generateDynamicCoachingInsights({
+      caloriesLogged: 0,
+      proteinLogged: 0,
+      carbsLogged: 0,
+      fatLogged: 0,
+      targetCalories: 2000,
+      targetProtein: 150,
+      targetCarbs: 200,
+      targetFat: 60,
+      waterMl: 0,
+      targetWater: 2000,
+      userGoal: (user?.goal as any) || 'MUSCLE_GAIN',
+      todayExercises: mappedWorkoutExercises,
+      workoutSessionDone: Boolean(completedStats),
+      todayCompletedWorkoutStats: completedStats,
+      currentStreak: 0,
+      userName: user?.name || 'Athlete',
+    });
+    return [allInsights[0]].filter(Boolean);
+  }, [mappedWorkoutExercises, completedStats, user?.goal, user?.name]);
+
+  const workoutGeminiInsights = useMemo(() => {
+    if (!geminiInsights || geminiInsights.length === 0) return [];
+    const workoutKeywords = ['workout', 'train', 'exercise', 'set', 'rep', 'lift', 'strength', 'muscle', 'recovery', 'periodiz'];
+    const matches = geminiInsights.filter((item) =>
+      workoutKeywords.some(
+        (kw) =>
+          item.title.toLowerCase().includes(kw) ||
+          item.lines.some((l) => l.toLowerCase().includes(kw))
+      )
+    );
+    return matches.length > 0 ? matches : [geminiInsights[0]];
+  }, [geminiInsights]);
+
+  const activeWorkoutInsights = useMemo(() => {
+    if (insightMode === 'gemini' && workoutGeminiInsights.length > 0) {
+      return workoutGeminiInsights;
+    }
+    return dynamicWorkoutInsights;
+  }, [insightMode, workoutGeminiInsights, dynamicWorkoutInsights]);
 
   const getTodayCacheKey = () => {
     return authStorage.getScopedKey(user?.id, `fittrack_today_exercises_${getTodayDateString()}`);
@@ -196,7 +271,7 @@ export default function Workouts() {
       if (savedTemplates) {
         try {
           const parsed = JSON.parse(savedTemplates);
-          if (Array.isArray(parsed) && parsed.length > 0) templates = parsed;
+          if (Array.isArray(parsed) && parsed.length > 0) templates = mergeWithDefaultTemplates(parsed);
         } catch { }
       }
 
@@ -341,6 +416,19 @@ export default function Workouts() {
     fetchTodaySession();
     fetchHistoryCount();
     fetchScheduledRoutine();
+
+    const subComplete = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      fetchHistoryCount();
+    });
+    const subDelete = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', () => {
+      fetchTodaySession();
+      fetchHistoryCount();
+    });
+
+    return () => {
+      subComplete.remove();
+      subDelete.remove();
+    };
   }, [user?.id]);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {
@@ -638,6 +726,10 @@ export default function Workouts() {
   };
 
   const handleAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
+    executeWithRestCheck(() => proceedWithAddExerciseFromLibrary(libEx));
+  };
+
+  const proceedWithAddExerciseFromLibrary = async (libEx: LibraryExercise) => {
     const targetTier = ((libEx.difficulty || 'Intermediate').toLowerCase()) as 'beginner' | 'intermediate' | 'advanced';
     const preset = getDifficultyPreset(libEx, targetTier);
     const activeDefaultSets = preset.defaultSets;
@@ -783,6 +875,10 @@ export default function Workouts() {
   };
 
   const handleAddAiExercises = async (exercises: AIWorkoutPlan['exercises']) => {
+    executeWithRestCheck(() => proceedWithAddAiExercises(exercises));
+  };
+
+  const proceedWithAddAiExercises = async (exercises: AIWorkoutPlan['exercises']) => {
     if (!exercises || exercises.length === 0) return;
 
     // 1. Instantly create optimistic items
@@ -865,6 +961,10 @@ export default function Workouts() {
   };
 
   const handleRepeatWorkoutSession = async (session: CompletedSession) => {
+    executeWithRestCheck(() => proceedWithRepeatWorkoutSession(session));
+  };
+
+  const proceedWithRepeatWorkoutSession = async (session: CompletedSession) => {
     if (!session.exercises || session.exercises.length === 0) {
       showToast({
         message: 'No Exercises in Routine',
@@ -960,6 +1060,10 @@ export default function Workouts() {
   };
 
   const handleStartRoutine = async (routine: WorkoutRoutineTemplate) => {
+    executeWithRestCheck(() => proceedWithStartRoutine(routine));
+  };
+
+  const proceedWithStartRoutine = async (routine: WorkoutRoutineTemplate) => {
     if (!routine.exercises || routine.exercises.length === 0) {
       showToast({
         message: 'No Exercises in Routine',
@@ -1064,7 +1168,7 @@ export default function Workouts() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}>
+      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}>
         <View className="w-full max-w-5xl self-center mx-auto">
           {/* Header */}
           <View className="mb-4">
@@ -1085,28 +1189,37 @@ export default function Workouts() {
 
           {/* Tab Content */}
           {activeTab === 'today' && (
-            <TodayWorkoutTab
-              exercises={todayExercises}
-              loading={loading}
-              isRestDay={isRestDay}
-              completedSessionsCount={completedSessionsCount}
-              completedStats={completedStats}
-              scheduledRoutine={todayScheduledRoutine}
-              onLoadScheduledRoutine={() => todayScheduledRoutine && handleStartRoutine(todayScheduledRoutine)}
-              onNavigateToPlanner={() => setActiveTab('planner')}
-              onToggleSet={handleToggleSet}
-              onUpdateSet={handleUpdateSet}
-              onAddSet={handleAddSet}
-              onDeleteSet={handleDeleteSet}
-              onRemoveExercise={promptRemoveExercise}
-              onUpdateExercisePreset={handleUpdateExercisePreset}
-              onNavigateToLibrary={() => setActiveTab('library')}
-              onOpenAiGenerator={() => setShowAiModal(true)}
-              onCompleteSession={() => setShowCompleteModal(true)}
-              onStartRestTimer={(seconds, exerciseName) =>
-                startRestTimer(seconds, exerciseName)
-              }
-            />
+            <>
+              <TodayWorkoutTab
+                exercises={todayExercises}
+                loading={loading}
+                isRestDay={isRestDay}
+                completedSessionsCount={completedSessionsCount}
+                completedStats={completedStats}
+                scheduledRoutine={todayScheduledRoutine}
+                onLoadScheduledRoutine={() => todayScheduledRoutine && handleStartRoutine(todayScheduledRoutine)}
+                onNavigateToPlanner={() => setActiveTab('planner')}
+                onToggleSet={handleToggleSet}
+                onUpdateSet={handleUpdateSet}
+                onAddSet={handleAddSet}
+                onDeleteSet={handleDeleteSet}
+                onRemoveExercise={promptRemoveExercise}
+                onUpdateExercisePreset={handleUpdateExercisePreset}
+                onNavigateToLibrary={() => setActiveTab('library')}
+                onOpenAiGenerator={() => setShowAiModal(true)}
+                onCompleteSession={() => setShowCompleteModal(true)}
+                onStartRestTimer={(seconds, exerciseName) =>
+                  startRestTimer(seconds, exerciseName)
+                }
+              />
+
+              {/* AI Workout Insights */}
+              <AiInsightsCard
+                category="workout"
+                insights={activeWorkoutInsights}
+                loading={loadingAi}
+              />
+            </>
           )}
 
           {activeTab === 'planner' && (
@@ -1160,6 +1273,29 @@ export default function Workouts() {
         iconName="trash-outline"
         onConfirm={handleConfirmRemoveExercise}
         onCancel={() => setExerciseToRemove(null)}
+      />
+
+      {/* Rest Day Override Confirmation Modal */}
+      <ConfirmModal
+        visible={showRestDayAddConfirm}
+        title="Scheduled Rest Day"
+        message="Today is designated as your rest day for muscular recovery. Do you still want to log a workout session today?"
+        confirmText="Log Workout Anyway"
+        cancelText="Keep Resting"
+        iconName="fitness-outline"
+        onConfirm={() => {
+          setShowRestDayAddConfirm(false);
+          setRestDayOverridden(true);
+          if (pendingRestDayAction) {
+            const action = pendingRestDayAction;
+            setPendingRestDayAction(null);
+            action();
+          }
+        }}
+        onCancel={() => {
+          setShowRestDayAddConfirm(false);
+          setPendingRestDayAction(null);
+        }}
       />
     </SafeAreaView>
   );

@@ -1,0 +1,131 @@
+# FitTrack Client Cleanup Changelog
+
+All code removals, refactors, extractions, and copy sanitizations performed during Phase 5 controlled execution are logged here per batch.
+
+---
+
+## [Batch 1] - 2026-10-12
+### Removed
+- `client/components/dashboard/AiInsightsCard.tsx` (UNU-001): Redundant 1-line re-export barrel file.
+- `client/components/auth/GoalCard.tsx` (UNU-002): Unused early onboarding goal card component.
+- `client/components/foodlog/QuickActionToolbar.tsx` (UNU-003): Unused food quick-action component.
+- `client/components/profile/AthleteBadgesCard.tsx` (UNU-004): Unused profile milestone badges card.
+- `client/components/profile/WeightProgressCard.tsx` (UNU-005): Unused 540-line weight progress chart component.
+- `client/components/profile/SetTargetWeightModal.tsx` (UNU-006): Transitive dead modal (only imported by dead `WeightProgressCard`).
+- `client/components/ui/BottomSheetHeader.tsx` (UNU-007): Unused drag handle header component.
+- `client/components/ui/SectionHeader.tsx` (UNU-008): Unused section header component.
+- `client/components/ui/index.ts` (UNU-009): Unused barrel file re-exporting UI components.
+
+### Verification
+- `npx tsc --noEmit`: Passed with 0 errors (matched baseline).
+- Screen rendering: No imports existed; no screens impacted.
+
+---
+
+## [Batch 2] - 2026-10-12
+### Removed
+- `client/api/weight.ts` (UNU-010, UNU-011, UNU-012): Unused `getWeightLogsApi`, `deleteWeightLogApi`, `setTargetWeightApi`.
+- `client/api/foodlog.ts` (UNU-013, UNU-014, UNU-015, UNU-017, UNU-018): Unused `completeDailyFoodLogApi`, `flushSyncFoodAndWater`, `createCustomFoodApi`, `deleteCustomFoodApi`, unexported `OPEN_FOOD_FACTS_CATEGORY_TERMS`.
+- `client/api/workout.ts` (UNU-019, UNU-020): Unused `createCustomExerciseApi`, `deleteCustomExerciseApi`.
+- `client/app/(screen)/profile.tsx` (UNU-021, UNU-022, UNU-023, UNU-024, UNU-025, UNU-034): Dead state `totalWorkoutsCount`, `totalMealsCount`, `hasHitMacro`, `loading`, `age`, unused `ActivityIndicator` import.
+- `client/app/(screen)/dashboard.tsx` (UNU-026, UNU-032): Dead state `targetWorkoutsThisWeek`, unused `ActivityIndicator`, `Ionicons`, `isLandscape`.
+- `client/app/(screen)/foodlog.tsx` (UNU-027, UNU-028, UNU-033): Dead local helpers `saveWater`, `refreshAIInsights`, unused `ActivityIndicator`, `MEAL_ICONS`, `useRouter`, `router`.
+- `client/app/(screen)/workouts.tsx` (UNU-029, UNU-035): Dead local helper `refreshAIInsights`, unused `TouchableOpacity`, `Ionicons`, `ExerciseDetailsModal`, `ApiWorkoutExercise`, `useRouter`, `router`, `useThemeColors`, `colors`.
+- `client/app/(auth)/index.tsx` (UNU-031): Unused `Text`, `Ionicons`, `useThemeColors`, `colors`.
+- `client/components/ai/AiInsightsCard.tsx` (UNU-040): Unused `onRefresh` prop, unused `TouchableOpacity`, `ActivityIndicator`.
+- `client/components/foodlog/FoodLibraryTab.tsx` (UNU-030, UNU-053): Unused `handleQuickLogStandard`, unused `MEAL_LABELS`, `MEAL_GLYPHS`, `useResponsive`.
+- `client/components/dashboard/DailyCheckInCard.tsx` (UNU-045): Unused `Platform` import.
+- `client/components/dashboard/DailyGoalsCard.tsx` (UNU-046): Unused `useThemeColors` import.
+- `client/components/dashboard/MacroProgressCard.tsx` (UNU-047): Unused `Platform`, `useThemeColors` imports.
+- `client/components/foodlog/MacroSummaryCard.tsx` (UNU-054): Unused `useThemeColors` import.
+- `client/components/settings/PrivacyPolicyModal.tsx` (UNU-061): Unused `Ionicons`, `useThemeColors` imports.
+- `client/components/workouts/AssignRoutineModal.tsx` (UNU-067): Unused `SurfaceCard` import.
+- `client/components/workouts/WorkoutHistoryTab.tsx` (UNU-072): Unused `ActivityIndicator` import.
+- `client/data/commonExercises.ts` (UNU-075): Unused `getDifficultyPreset` import.
+- `client/utils/notificationService.ts` (UNU-077): Unused `ApiNotificationSettings` import.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Screen rendering: Unused imports/functions/state removed; active UI and behaviors preserved.
+
+---
+
+## [Batch 3] - 2026-10-12
+### Refactored & Consolidated
+- `client/utils/formatters.ts` (RED-001, RED-005, RED-010): Centralized `getTodayDateString`, `formatDateHeading`, canonical `formatGoalLabel`, and `calculateBmi`.
+- `client/components/foodlog/foodLogTypes.ts` (RED-001): Re-exported `getTodayDateString` and `formatDateHeading` from `@/utils/formatters` avoiding code duplication while maintaining backwards-compatible imports.
+- `client/components/workouts/workoutTypes.ts` (RED-001, RED-002): Re-exported date formatters; removed redundant/dead `calculateWorkoutStreak` function (superseded by `client/utils/streakUtils.ts`).
+- `client/utils/passwordValidation.ts` (RED-004): Exported canonical `EMAIL_REGEX`.
+- `client/components/auth/LoginForm.tsx` & `RegisterForm.tsx` (RED-004): Replaced duplicated inline email regexes with imported `EMAIL_REGEX`.
+- `client/components/admin/AdminUsersTab.tsx` (RED-005): Replaced duplicate inline `formatGoal` with canonical `formatGoalLabel`.
+- `client/components/foodlog/MealCategoryCard.tsx` (RED-006): Replaced duplicate `MEAL_CATEGORY_ICONS` map with canonical `MEAL_GLYPHS` from `foodLogTypes.ts`.
+- `client/components/workouts/CreateRoutineModal.tsx`, `SplitPresetModal.tsx`, `AssignRoutineModal.tsx` (RED-008): Replaced duplicated custom touchable close buttons with shared `<ModalCloseButton />`.
+- `client/components/auth/OnboardingMetricsStep.tsx` & `OnboardingPlanStep.tsx` (RED-009, RED-010): Consolidated Mifflin-St Jeor BMR/TDEE math and macronutrient splitting to canonical `calculatePersonalizedTargets`; consolidated BMI calculation to `calculateBmi`.
+- `client/app/(screen)/profile.tsx` (RED-010): Consolidated inline BMI calculation and classification to `calculateBmi`.
+- `client/components/workouts/ExerciseVideoModal.tsx` (RED-011): Standardized URL opening from React Native `Linking` to `expo-linking`.
+- `client/app/(screen)/dashboard.tsx` (RED-012): Replaced raw `AsyncStorage.getItem('user')` call with typed, error-handled `authStorage.getUser()`.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Screen rendering: Date headings, goal formatting, onboarding targets, BMI vitals, and modal close buttons operating uniformly.
+
+---
+
+## [Batch 4] - 2026-10-12
+### Removed & Refactored
+- `client/assets/icon.svg` (AST-001): Deleted unused vector icon asset (`app.json` strictly bundles `./assets/icon.png`).
+- `client/constants/colors.ts` (UNU-STY-001): Pruned unreferenced `COLORS.secondary` color tokens (`blue`, `purple`, `orange`, `mint`).
+- `client/components/ui/FilterChip.tsx` (UNU-STY-002): Applied previously unapplied `roundedClass` variable to container `className` so the `rounded` prop (`full` vs `xl`) functions properly.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Asset bundles: `app.json` verified to reference only `icon.png` and `adaptive-icon.png`.
+
+---
+
+## [Batch 5] - 2026-10-12
+### Removed & Refactored
+- `client/package.json` (DEP-001, DEP-002): Pruned unimported runtime dependency `react-native-worklets` and unused devDependency `@expo/ngrok`.
+- `client/app.json` (UNU-CFG-001): Cleaned up empty `"router": {}` block under `"extra"`.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Expo config: Verified valid JSON syntax and clean bundle structure.
+
+---
+
+## [Batch 6] - 2026-10-12
+### Extracted & Centralized
+- `client/constants/appConfig.ts` (HRD-004, HRD-005, HRD-016): Created centralized configuration module defining `SUPPORT_EMAIL`, `APP_CONFIG` (timeouts, versions, external endpoints), and `ONBOARDING_CHECKLIST_DELAYS`.
+- `client/constants/fitnessDefaults.ts` (HRD-007, HRD-008): Created centralized fitness defaults module defining `DEFAULT_WATER_TARGET_ML`, `MIN_WATER_TARGET_ML`, `WATER_INCREMENT_SMALL_ML`, `DEFAULT_MACRO_TARGETS`, and `CALORIE_MULTIPLIERS`.
+- `client/constants/storageKeys.ts` (HRD-017): Created centralized storage keys module defining `STORAGE_KEYS` and `THEME_STORAGE_KEY`.
+- `client/config.ts` (HRD-001, HRD-002): Documented Render backend fallback URL and referenced `DEFAULT_DEV_PORT` from `APP_CONFIG`.
+- `client/api/foodlog.ts` (HRD-003): Replaced hardcoded Open Food Facts URL with `APP_CONFIG.openFoodFactsSearchUrl`.
+- `client/components/settings/HelpSupportModal.tsx` & `PrivacyPolicyModal.tsx` (HRD-004, HRD-009): Replaced hardcoded support email literals with `SUPPORT_EMAIL`; synced FAQ hydration answer with `DEFAULT_WATER_TARGET_ML` (2,500 ml).
+- `client/components/auth/OnboardingPlanStep.tsx` (HRD-005): Replaced hardcoded timeout numbers with `ONBOARDING_CHECKLIST_DELAYS`.
+- `client/app/_layout.tsx` & `client/app/(screen)/settings.tsx` (HRD-017): Standardized bare theme storage string on `THEME_STORAGE_KEY`.
+- `client/app/(screen)/dashboard.tsx`, `foodlog.tsx`, `WaterTrackerCard.tsx`, `streakUtils.ts` (HRD-008): Replaced hardcoded water math constants with central fitness defaults.
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- Runtime behavior: Verified email intents, hydration targets, and storage key reads operate without regression.
+
+---
+
+## [Batch 7] - 2026-10-12
+### Sanitized & Friendly Error Mapping
+- `client/utils/errorMapper.ts` (JRG-001, JRG-002, JRG-003): Created central error mapper `getFriendlyErrorMessage` parsing Network/Abort errors, timeout events, HTTP status codes (400, 401, 403, 404, 409, 429, 500, 502, 503), stripping backend URLs, and delivering human-friendly feedback.
+- `client/api/client.ts` (JRG-001, JRG-002): Sanitized client fetch handler so AbortError and network drops do not leak the raw backend API Render URL or port; normalized 500 responses into friendly copy.
+- `client/app/_layout.tsx` (JRG-004): Gated root `ErrorBoundary` so stack traces and technical errors are only rendered in development (`__DEV__`), providing user-friendly recovery instructions in production.
+- `client/components/settings/PrivacyPolicyModal.tsx` (JRG-005, JRG-006, JRG-007, JRG-008): Replaced cryptographic/backend implementation jargon (`bcrypt`, `cryptographic salt`, `JWT`, `SecureStore/Keychain`) with plain, reassuring user privacy copy.
+- `client/components/subscription/SubscriptionModal.tsx` & `EWalletModal.tsx` (JRG-009, JRG-010, JRG-011): Replaced payment gateway jargon (`Stripe Live API`, `Card (Stripe)`) with polished customer payment terminology (`Credit or Debit Card`, `Secure Direct Checkout`).
+- `client/app/(screen)/settings.tsx` (JRG-012): Replaced developer-facing test notification copy with user-friendly sample reminder text.
+- `client/app/(screen)/ai-coach.tsx`, `FoodLibraryTab.tsx`, `TodayWorkoutTab.tsx`, `CommunityStoriesCard.tsx`, `ExerciseVisual.tsx` (JRG-013, JRG-014, JRG-015, JRG-016): Reworded developer placeholders, fallback states, and empty labels with polished copy.
+- Routed unhandled raw catch blocks through `getFriendlyErrorMessage` across auth screens, modals, and tab forms (`(auth)/index.tsx`, `verify.tsx`, `onboarding.tsx`, `RegisterForm.tsx`, `ForgotPasswordModal.tsx`, `EditProfileModal.tsx`, `LogWeightModal.tsx`, `ChangeProfilePhotoModal.tsx`, `ResetPasswordModal.tsx`, `AiWorkoutGeneratorModal.tsx`, `AiSuggestionModal.tsx`, `HelpSupportModal.tsx`, `AiScanModal.tsx`, `TestimonialModal.tsx`).
+
+### Verification
+- `npx tsc --noEmit`: Passed with **0 errors** (matched baseline).
+- UI inspection: Raw technical jargon eliminated across user-facing modals, policy screens, and error alert banners.
+
+
+

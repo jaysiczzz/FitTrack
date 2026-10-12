@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { View, Text, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, DeviceEventEmitter } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -18,6 +18,9 @@ import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import SurfaceCard from '../ui/SurfaceCard';
 import ConfirmModal from '../ui/ConfirmModal';
+import { CardSkeleton } from '../ui/Skeleton';
+import EmptyState from '../ui/EmptyState';
+import { useWeightUnit, convertFromKg } from '@/constants/units';
 
 interface WorkoutHistoryTabProps {
   onRepeatSession?: (session: CompletedSession) => void;
@@ -35,10 +38,13 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const userId = user?.id;
   const historyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history_cache');
 
+  const [unit] = useWeightUnit();
+  const unitLabel = unit.toLowerCase();
+
   const [history, setHistory] = useState<CompletedSession[]>([]);
   const [loading, setLoading] = useState(false);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
-  const [selectedRange, setSelectedRange] = useState<WorkoutHistoryRange>('15days');
+  const [selectedRange, setSelectedRange] = useState<WorkoutHistoryRange>('7days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<CompletedSession | null>(null);
 
@@ -94,7 +100,8 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                 e.name?.toLowerCase().includes('dip')
               );
               if (first.weight && Number(first.weight) > 0) {
-                setsSummary = `${setsCount} sets · ${first.weight}kg × ${first.reps || 10} reps`;
+                const displayWeight = convertFromKg(Number(first.weight), unit);
+                setsSummary = `${setsCount} sets · ${displayWeight}${unitLabel} × ${first.reps || 10} reps`;
               } else if (isExBodyweight) {
                 setsSummary = `${setsCount} sets · Body Weight × ${first.reps || 10} reps`;
               } else if (first.reps) {
@@ -156,6 +163,14 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
 
   useEffect(() => {
     fetchHistory();
+
+    const sub = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      fetchHistory();
+    });
+
+    return () => {
+      sub.remove();
+    };
   }, [fetchHistory]);
 
   const toggleExpand = (id: string) => {
@@ -177,6 +192,17 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       console.log('[Workout History] Failed to save updated history cache:', err)
     );
 
+    // Also remove legacy dashboard key if present to prevent stale fallback
+    const legacyKey = authStorage.getScopedKey(userId, 'fittrack_workout_history');
+    AsyncStorage.removeItem(legacyKey).catch(() => {});
+
+    // If deleting today's session, clear today's exercises cache
+    const todayStr = getTodayDateString();
+    if (target.dateStr === todayStr) {
+      const todayCacheKey = authStorage.getScopedKey(userId, `fittrack_today_exercises_${todayStr}`);
+      AsyncStorage.removeItem(todayCacheKey).catch(() => {});
+    }
+
     // 2. Clean up expanded state
     setExpandedDates((prev) => {
       const next = { ...prev };
@@ -187,7 +213,10 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     // 3. Instant toast feedback (0ms delay)
     showSuccess('Workout session deleted');
 
-    // 4. Fire server deletion in background
+    // 4. Emit event across all screens/tabs (Dashboard, Monthly Planner, Workouts screen)
+    DeviceEventEmitter.emit('WORKOUT_SESSION_DELETED', { sessionId: target.id, dateStr: target.dateStr });
+
+    // 5. Fire server deletion in background
     try {
       await deleteWorkoutSessionApi(target.id);
     } catch (err) {
@@ -195,12 +224,16 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     }
   };
 
-  // Generate 15-day rolling consistency calendar strip
-  const fifteenDaySlots: WorkoutCalendarSlot[] = useMemo(() => {
+  // Generate dynamic rolling consistency calendar strip (7 or 15 days, empty for all-time)
+  const rangeDaysCount = selectedRange === '7days' ? 7 : 15;
+
+  const calendarSlots: WorkoutCalendarSlot[] = useMemo(() => {
+    if (selectedRange === 'all') return [];
+    const count = selectedRange === '7days' ? 7 : 15;
     const slots: WorkoutCalendarSlot[] = [];
     const today = new Date();
 
-    for (let i = 14; i >= 0; i--) {
+    for (let i = count - 1; i >= 0; i--) {
       const d = new Date();
       d.setDate(today.getDate() - i);
       const y = d.getFullYear();
@@ -228,7 +261,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     }
 
     return slots;
-  }, [history]);
+  }, [history, selectedRange]);
 
   // Filter history based on range or specific day selection
   const filteredSessions = useMemo(() => {
@@ -271,16 +304,15 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const totalSets = filteredSessions.reduce((acc, s) => acc + (s.totalSetsCount || 0), 0);
   const totalExercises = filteredSessions.reduce((acc, s) => acc + (s.exercisesCount || 0), 0);
 
-  const activeDaysIn15 = fifteenDaySlots.filter((s) => s.hasWorkout).length;
-  const consistencyPercent = Math.round((activeDaysIn15 / 15) * 100);
+  const activeDaysInStrip = calendarSlots.filter((s) => s.hasWorkout).length;
+  const consistencyPercent = rangeDaysCount > 0 ? Math.round((activeDaysInStrip / rangeDaysCount) * 100) : 0;
 
   if (loading) {
     return (
-      <View className="py-12 items-center justify-center">
-        <ActivityIndicator size="large" color={colors.accent} />
-        <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
-          Loading workout history & performance trends...
-        </Text>
+      <View className="py-2 gap-y-3">
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={3} />
+        <CardSkeleton lines={2} />
       </View>
     );
   }
@@ -288,42 +320,26 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   return (
     <View className="mb-6">
       {/* 1. Range Selection Filter Tabs */}
-      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3.5 border border-input-border dark:border-input-border-dark">
+      <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-4 border border-input-border dark:border-input-border-dark">
         <TouchableOpacity
-          onPress={() => {
-            setSelectedRange('15days');
-            setSelectedDayFilter(null);
-          }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
-            selectedRange === '15days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
-          }`}
-        >
-          <Text
-            className={`text-xs font-bold ${
-              selectedRange === '15days' && !selectedDayFilter
-                ? 'text-accent dark:text-accent-dark'
-                : 'text-text-muted dark:text-text-muted-dark'
-            }`}
-          >
-            15 Days
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('7days');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             selectedRange === '7days' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="calendar-outline"
+            size={14}
+            color={selectedRange === '7days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === '7days' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -334,18 +350,52 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         </TouchableOpacity>
 
         <TouchableOpacity
+          activeOpacity={0.8}
+          onPress={() => {
+            setSelectedRange('15days');
+            setSelectedDayFilter(null);
+          }}
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
+            selectedRange === '15days' && !selectedDayFilter
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
+          }`}
+        >
+          <Ionicons
+            name="time-outline"
+            size={14}
+            color={selectedRange === '15days' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
+          <Text
+            className={`text-xs font-black ${
+              selectedRange === '15days' && !selectedDayFilter
+                ? 'text-accent dark:text-accent-dark'
+                : 'text-text-muted dark:text-text-muted-dark'
+            }`}
+          >
+            15 Days
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          activeOpacity={0.8}
           onPress={() => {
             setSelectedRange('all');
             setSelectedDayFilter(null);
           }}
-          className={`flex-1 py-2 rounded-xl items-center border ${
+          className={`flex-1 min-h-[44px] py-2.5 rounded-xl items-center justify-center flex-row gap-1.5 active:opacity-80 ${
             selectedRange === 'all' && !selectedDayFilter
-              ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
-              : 'bg-transparent border-transparent'
+              ? 'bg-background dark:bg-background-dark shadow-sm border border-input-border/40'
+              : ''
           }`}
         >
+          <Ionicons
+            name="infinite-outline"
+            size={15}
+            color={selectedRange === 'all' && !selectedDayFilter ? colors.accent : colors.textMuted}
+          />
           <Text
-            className={`text-xs font-bold ${
+            className={`text-xs font-black ${
               selectedRange === 'all' && !selectedDayFilter
                 ? 'text-accent dark:text-accent-dark'
                 : 'text-text-muted dark:text-text-muted-dark'
@@ -356,112 +406,118 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         </TouchableOpacity>
       </View>
 
-      {/* 2. 15-Day Consistency Strip with Shortcut to Full Dedicated Activity Calendar */}
-      <SurfaceCard className="mb-4">
-        <View className="flex-row justify-between items-center mb-2.5">
-          <View className="flex-row items-center gap-1.5">
-            <Ionicons name="calendar" size={15} color={colors.accent} />
-            <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
-              15-Day Consistency
-            </Text>
-          </View>
-          <View className="flex-row items-center gap-2">
-            <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
-              <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
-                {activeDaysIn15}/15 Days ({consistencyPercent}%)
+      {/* 2. Dynamic Consistency Strip (7-day or 15-day adaptive, hidden in All-Time) */}
+      {selectedRange !== 'all' && (
+        <SurfaceCard className="mb-4">
+          <View className="flex-row justify-between items-center mb-2.5">
+            <View className="flex-row items-center gap-1.5">
+              <Ionicons name="calendar" size={15} color={colors.accent} />
+              <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
+                {selectedRange === '7days' ? '7-Day Consistency' : '15-Day Consistency'}
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(screen)/calendar' as any)}
-              className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
-              activeOpacity={0.7}
-            >
-              <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
-                Full Calendar
-              </Text>
-              <Ionicons name="chevron-forward" size={10} color={colors.accent} />
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-2">
+              <View className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-0.5 rounded-full">
+                <Text className="text-accent dark:text-accent-dark font-black text-[10px]">
+                  {activeDaysInStrip}/{rangeDaysCount} Days ({consistencyPercent}%)
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => router.push('/(screen)/calendar' as any)}
+                className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-1 rounded-lg border border-accent/30"
+                activeOpacity={0.7}
+              >
+                <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                  Full Calendar
+                </Text>
+                <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+              </TouchableOpacity>
+            </View>
           </View>
-        </View>
 
-        <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-3">
-          Tap any date below to jump to that day's workout sessions:
-        </Text>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] mb-3">
+            Tap any date below to jump to that day's workout sessions:
+          </Text>
 
-        {/* Horizontal Calendar Strip */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-1">
-          <View className="flex-row gap-1.5">
-            {fifteenDaySlots.map((slot) => {
-              const isSelected = selectedDayFilter === slot.dateStr;
+          {/* Horizontal Calendar Strip */}
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="py-1">
+            <View className="flex-row gap-1.5">
+              {calendarSlots.map((slot) => {
+                const isSelected = selectedDayFilter === slot.dateStr;
 
-              return (
-                <TouchableOpacity
-                  key={slot.dateStr}
-                  onPress={() => {
-                    if (selectedDayFilter === slot.dateStr) {
-                      setSelectedDayFilter(null);
-                    } else {
-                      setSelectedDayFilter(slot.dateStr);
-                    }
-                  }}
-                  activeOpacity={0.7}
-                  className={`w-[44px] py-2 rounded-2xl items-center border ${
-                    isSelected
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
-                      : slot.hasWorkout
-                      ? 'bg-accent/20 dark:bg-accent-dark/25 border-accent/60'
-                      : 'bg-input dark:bg-input-dark border-input-border/60 dark:border-input-border-dark/60'
-                  }`}
-                >
-                  <Text
-                    className={`text-[9px] font-bold uppercase mb-0.5 ${
+                return (
+                  <TouchableOpacity
+                    key={slot.dateStr}
+                    onPress={() => {
+                      if (selectedDayFilter === slot.dateStr) {
+                        setSelectedDayFilter(null);
+                      } else {
+                        setSelectedDayFilter(slot.dateStr);
+                        const targetSession = history.find((s) => s.dateStr === slot.dateStr);
+                        if (targetSession) {
+                          setExpandedDates((prev) => ({ ...prev, [targetSession.id]: true }));
+                        }
+                      }
+                    }}
+                    activeOpacity={0.7}
+                    className={`w-[44px] py-2 rounded-2xl items-center border ${
                       isSelected
-                        ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
-                        : 'text-text-muted dark:text-text-muted-dark'
-                    }`}
-                  >
-                    {slot.dayLabel}
-                  </Text>
-                  <Text
-                    className={`text-xs font-black mb-1 ${
-                      isSelected
-                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
-                        : 'text-text-primary dark:text-text-primary-dark'
-                    }`}
-                  >
-                    {slot.dateNum}
-                  </Text>
-
-                  {/* Status Indicator Dot */}
-                  <View
-                    className={`w-2 h-2 rounded-full ${
-                      isSelected
-                        ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
+                        ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                         : slot.hasWorkout
-                        ? 'bg-accent dark:bg-accent-dark'
-                        : 'bg-input-border dark:bg-input-border-dark'
+                        ? 'bg-accent/20 dark:bg-accent-dark/25 border-accent/60'
+                        : 'bg-input dark:bg-input-dark border-input-border/60 dark:border-input-border-dark/60'
                     }`}
-                  />
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </ScrollView>
+                  >
+                    <Text
+                      className={`text-[9px] font-bold uppercase mb-0.5 ${
+                        isSelected
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark font-black'
+                          : 'text-text-muted dark:text-text-muted-dark'
+                      }`}
+                    >
+                      {slot.dayLabel}
+                    </Text>
+                    <Text
+                      className={`text-xs font-black mb-1 ${
+                        isSelected
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }`}
+                    >
+                      {slot.dateNum}
+                    </Text>
 
-        {selectedDayFilter ? (
-          <TouchableOpacity
-            onPress={() => setSelectedDayFilter(null)}
-            className="mt-2.5 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row justify-between items-center"
-          >
-            <Text className="text-accent dark:text-accent-dark text-xs font-bold">
-              Filtering for: {formatDateHeading(selectedDayFilter)}
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold">
-              ✕ Clear Filter
-            </Text>
-          </TouchableOpacity>
-        ) : null}
-      </SurfaceCard>
+                    {/* Status Indicator Dot */}
+                    <View
+                      className={`w-2 h-2 rounded-full ${
+                        isSelected
+                          ? 'bg-accent-contrast dark:bg-accent-contrast-dark'
+                          : slot.hasWorkout
+                          ? 'bg-accent dark:bg-accent-dark'
+                          : 'bg-input-border dark:bg-input-border-dark'
+                      }`}
+                    />
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </ScrollView>
+
+          {selectedDayFilter ? (
+            <TouchableOpacity
+              onPress={() => setSelectedDayFilter(null)}
+              className="mt-2.5 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row justify-between items-center"
+            >
+              <Text className="text-accent dark:text-accent-dark text-xs font-bold">
+                Filtering for: {formatDateHeading(selectedDayFilter)}
+              </Text>
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs font-bold">
+                ✕ Clear Filter
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </SurfaceCard>
+      )}
 
       {/* 3. Workout Performance & Averages Banner */}
       <SurfaceCard className="mb-4">
@@ -473,10 +529,24 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
               ? 'Last 7 Days Performance'
               : 'All-Time Performance'}
           </Text>
-          <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full">
-            <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
-              {totalSessions} {totalSessions === 1 ? 'Session' : 'Sessions'} Logged
-            </Text>
+          <View className="flex-row items-center gap-1.5">
+            <View className="bg-accent/15 dark:bg-accent-dark/20 px-2.5 py-0.5 rounded-full">
+              <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px]">
+                {totalSessions} {totalSessions === 1 ? 'Session' : 'Sessions'} Logged
+              </Text>
+            </View>
+            {selectedRange === 'all' && (
+              <TouchableOpacity
+                onPress={() => router.push('/(screen)/calendar' as any)}
+                className="flex-row items-center gap-1 bg-accent/10 dark:bg-accent-dark/15 px-2 py-0.5 rounded-lg border border-accent/30"
+                activeOpacity={0.7}
+              >
+                <Text className="text-accent dark:text-accent-dark font-bold text-[10px]">
+                  Calendar
+                </Text>
+                <Ionicons name="chevron-forward" size={10} color={colors.accent} />
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
@@ -530,30 +600,17 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       </Text>
 
       {filteredSessions.length === 0 ? (
-        <SurfaceCard className="p-6 items-center justify-center my-2">
-          <View className="w-12 h-12 rounded-2xl bg-input dark:bg-input-dark items-center justify-center mb-3">
-            <Ionicons name="barbell" size={26} color={colors.textMuted} />
-          </View>
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm text-center mb-1">
-            No Workouts Found
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[240px]">
-            {selectedDayFilter
+        <EmptyState
+          icon="barbell"
+          title="No Workouts Found"
+          description={
+            selectedDayFilter
               ? `No workout was completed on ${formatDateHeading(selectedDayFilter)}.`
-              : 'Complete your daily workout session to start building your workout history and performance trends.'}
-          </Text>
-          {onSwitchToToday ? (
-            <TouchableOpacity
-              onPress={onSwitchToToday}
-              activeOpacity={0.8}
-              className="bg-accent dark:bg-accent-dark px-5 py-3 rounded-2xl"
-            >
-              <Text className="text-white font-bold text-xs uppercase tracking-wide">
-                Start Today's Workout
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </SurfaceCard>
+              : 'Complete your daily workout session to start building your workout history and performance trends.'
+          }
+          actionLabel={onSwitchToToday ? "Start Today's Workout" : undefined}
+          onAction={onSwitchToToday}
+        />
       ) : (
         filteredSessions.map((session) => {
           const isExpanded = Boolean(expandedDates[session.id]);
@@ -652,11 +709,11 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
                     {/* Quick Action: Repeat Routine in Today's Workout */}
                     {onRepeatSession && session.exercises.length > 0 ? (
                       <TouchableOpacity
-                        activeOpacity={0.8}
+                        activeOpacity={0.75}
                         onPress={() => onRepeatSession(session)}
-                        className="mt-3 py-2.5 px-3 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 flex-row items-center justify-center gap-1.5"
+                        className="mt-3 min-h-[44px] py-2.5 px-3 rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 dark:border-accent-dark/40 flex-row items-center justify-center gap-1.5 active:opacity-75"
                       >
-                        <Ionicons name="repeat" size={14} color={colors.accent} />
+                        <Ionicons name="repeat" size={15} color={colors.accent} />
                         <Text className="text-xs font-bold text-accent dark:text-accent-dark">
                           Repeat Routine in Today's Workout
                         </Text>
