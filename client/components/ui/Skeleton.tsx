@@ -92,9 +92,12 @@ export function ListItemSkeleton({ className = '' }: { className?: string }) {
 /** Pre-composed Skeleton for 2x2 Stat Blocks */
 export function StatCardSkeleton() {
   return (
-    <View className="flex-1 min-h-[96px] p-3 rounded-2xl bg-surface dark:bg-surface-dark border-0 shadow-md shadow-slate-200/70 dark:shadow-none justify-center">
-      <Skeleton width={28} height={28} borderRadius={14} className="mb-2" />
-      <Skeleton width="50%" height={18} borderRadius={6} className="mb-1" />
+    <View className="flex-1 min-h-[96px] p-3.5 rounded-2xl bg-surface dark:bg-surface-dark border-0 shadow-md shadow-slate-200/70 dark:shadow-none justify-between">
+      <View className="flex-row items-center justify-between mb-1.5">
+        <Skeleton width="40%" height={10} borderRadius={4} />
+        <Skeleton width={28} height={28} borderRadius={10} />
+      </View>
+      <Skeleton width="60%" height={20} borderRadius={6} className="mb-1" />
       <Skeleton width="70%" height={10} borderRadius={4} />
     </View>
   );

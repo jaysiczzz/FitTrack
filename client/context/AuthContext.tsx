@@ -22,6 +22,7 @@ export interface AuthUser {
   firstName?: string;
   lastName?: string;
   role?: 'USER' | 'ADMIN';
+  gender?: 'MALE' | 'FEMALE';
   height?: number;
   weight?: number;
   targetWeight?: number | null;
@@ -108,9 +109,23 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       }
     });
 
+    // Real-time live subscription & pro status unlock across devices
+    const subSub = DeviceEventEmitter.addListener('SUBSCRIPTION_UPDATED', () => {
+      getUserProfile()
+        .then(async (profileRes) => {
+          if (profileRes?.user && isMounted) {
+            const normalized = normalizeAuthUser(profileRes.user);
+            setUser(normalized);
+            await authStorage.setUser(normalized);
+          }
+        })
+        .catch(() => {});
+    });
+
     return () => {
       isMounted = false;
       sub.remove();
+      subSub.remove();
     };
   }, [router]);
 

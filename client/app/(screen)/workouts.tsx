@@ -10,8 +10,19 @@ import WorkoutPlannerTab, { mergeWithDefaultTemplates } from '@/components/worko
 import WorkoutLibraryTab from '@/components/workouts/WorkoutLibraryTab';
 import WorkoutHistoryTab from '@/components/workouts/WorkoutHistoryTab';
 import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
-import { LibraryExercise, CompletedSession, WorkoutRoutineTemplate, getTodayDateString } from '@/components/workouts/workoutTypes';
-import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
+import {
+  LibraryExercise,
+  CompletedSession,
+  WorkoutRoutineTemplate,
+  MonthlySchedule,
+  getTodayDateString,
+} from '@/components/workouts/workoutTypes';
+import {
+  DEFAULT_ROUTINE_TEMPLATES,
+  DEFAULT_BEGINNER_ROUTINE,
+  DEFAULT_WEEKLY_SPLIT,
+  getTodayDayOfWeek,
+} from '@/components/workouts/plannerPresets';
 import { getDifficultyPreset } from '@/components/workouts/workoutPresets';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AiWorkoutGeneratorModal from '@/components/workouts/AiWorkoutGeneratorModal';
@@ -229,9 +240,10 @@ export default function Workouts() {
       todayCompletedWorkoutStats: completedStats,
       currentStreak: 0,
       userName: user?.name || 'Athlete',
+      gender: user?.gender,
     });
     return [allInsights[0]].filter(Boolean);
-  }, [mappedWorkoutExercises, completedStats, user?.goal, user?.name]);
+  }, [mappedWorkoutExercises, completedStats, user?.goal, user?.name, user?.gender]);
 
   const workoutGeminiInsights = useMemo(() => {
     if (!geminiInsights || geminiInsights.length === 0) return [];
@@ -261,10 +273,12 @@ export default function Workouts() {
     try {
       const templatesKey = authStorage.getScopedKey(user?.id, 'workout_planner_templates');
       const splitKey = authStorage.getScopedKey(user?.id, 'workout_planner_split');
+      const monthlyScheduleKey = authStorage.getScopedKey(user?.id, 'workout_planner_monthly_schedule');
 
-      const [savedTemplates, savedSplit] = await Promise.all([
+      const [savedTemplates, savedSplit, savedMonthly] = await Promise.all([
         AsyncStorage.getItem(templatesKey),
         AsyncStorage.getItem(splitKey),
+        AsyncStorage.getItem(monthlyScheduleKey),
       ]);
 
       let templates = DEFAULT_ROUTINE_TEMPLATES;
@@ -283,6 +297,33 @@ export default function Workouts() {
         } catch { }
       }
 
+      let monthlySchedule: MonthlySchedule = {};
+      if (savedMonthly) {
+        try {
+          const parsed = JSON.parse(savedMonthly);
+          if (parsed && typeof parsed === 'object') monthlySchedule = parsed;
+        } catch { }
+      }
+
+      // Priority 1: Check if today's specific date has an override in Monthly Calendar
+      const todayDateKey = getTodayDateString();
+      const monthlyEntry = monthlySchedule[todayDateKey];
+
+      if (monthlyEntry) {
+        if (monthlyEntry.isRestDay) {
+          setTodayScheduledRoutine(null);
+          setIsRestDay(true);
+          return;
+        }
+        if (monthlyEntry.routineId) {
+          const matched = templates.find((r) => r.id === monthlyEntry.routineId) || null;
+          setTodayScheduledRoutine(matched);
+          setIsRestDay(false);
+          return;
+        }
+      }
+
+      // Priority 2: Fall back to recurring Weekly Split for today's day of week
       const todayDay = getTodayDayOfWeek();
       const routineId = split[todayDay];
       const matched = templates.find((r) => r.id === routineId) || null;
@@ -424,12 +465,31 @@ export default function Workouts() {
       fetchTodaySession();
       fetchHistoryCount();
     });
+    const subCrossDevice = DeviceEventEmitter.addListener('WORKOUT_CROSS_DEVICE_STATE', () => {
+      fetchTodaySession();
+      fetchHistoryCount();
+    });
+    const subSplit = DeviceEventEmitter.addListener('WORKOUT_SPLIT_UPDATED', () => {
+      fetchScheduledRoutine();
+    });
+    const subSchedule = DeviceEventEmitter.addListener('WORKOUT_SCHEDULE_UPDATED', () => {
+      fetchScheduledRoutine();
+    });
 
     return () => {
       subComplete.remove();
       subDelete.remove();
+      subCrossDevice.remove();
+      subSplit.remove();
+      subSchedule.remove();
     };
   }, [user?.id]);
+
+  useEffect(() => {
+    if (activeTab === 'today') {
+      fetchScheduledRoutine();
+    }
+  }, [activeTab]);
 
   const handleToggleSet = async (exerciseKey: string, setId: string) => {
     hapticFeedback.light();
@@ -1168,79 +1228,85 @@ export default function Workouts() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}>
-        <View className="w-full max-w-5xl self-center mx-auto">
-          {/* Header */}
-          <View className="mb-4">
-            <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Workouts
-            </Text>
-          </View>
-
-          {/* Top Segmented Tabs */}
-          <WorkoutTabs
-            activeTab={activeTab}
-            onChange={(tab) => {
-              setActiveTab(tab);
-              if (tab === 'today') fetchScheduledRoutine();
-            }}
-            historyCount={completedSessionsCount}
-          />
-
-          {/* Tab Content */}
-          {activeTab === 'today' && (
-            <>
-              <TodayWorkoutTab
-                exercises={todayExercises}
-                loading={loading}
-                isRestDay={isRestDay}
-                completedSessionsCount={completedSessionsCount}
-                completedStats={completedStats}
-                scheduledRoutine={todayScheduledRoutine}
-                onLoadScheduledRoutine={() => todayScheduledRoutine && handleStartRoutine(todayScheduledRoutine)}
-                onNavigateToPlanner={() => setActiveTab('planner')}
-                onToggleSet={handleToggleSet}
-                onUpdateSet={handleUpdateSet}
-                onAddSet={handleAddSet}
-                onDeleteSet={handleDeleteSet}
-                onRemoveExercise={promptRemoveExercise}
-                onUpdateExercisePreset={handleUpdateExercisePreset}
-                onNavigateToLibrary={() => setActiveTab('library')}
-                onOpenAiGenerator={() => setShowAiModal(true)}
-                onCompleteSession={() => setShowCompleteModal(true)}
-                onStartRestTimer={(seconds, exerciseName) =>
-                  startRestTimer(seconds, exerciseName)
-                }
-              />
-
-              {/* AI Workout Insights */}
-              <AiInsightsCard
-                category="workout"
-                insights={activeWorkoutInsights}
-                loading={loadingAi}
-              />
-            </>
-          )}
-
-          {activeTab === 'planner' && (
-            <WorkoutPlannerTab
-              onStartRoutine={handleStartRoutine}
-              onSwitchToToday={() => setActiveTab('today')}
-            />
-          )}
-
-          {activeTab === 'library' && (
-            <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
-          )}
-
-          {activeTab === 'history' && (
-            <WorkoutHistoryTab
-              onRepeatSession={handleRepeatWorkoutSession}
-              onSwitchToToday={() => setActiveTab('today')}
-            />
-          )}
+      {/* Top Fixed Screen Header & Tabs */}
+      <View className="w-full max-w-5xl self-center mx-auto px-4 pt-3 pb-1">
+        {/* Header */}
+        <View className="mb-3.5">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+            Workouts
+          </Text>
         </View>
-      </ScrollView>
+
+        {/* Top Segmented Tabs */}
+        <WorkoutTabs
+          activeTab={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === 'today') fetchScheduledRoutine();
+          }}
+          historyCount={completedSessionsCount}
+        />
+      </View>
+
+      {/* Tab Content */}
+      {activeTab === 'library' ? (
+        <View className="flex-1 min-h-0 w-full max-w-5xl self-center mx-auto px-4 pt-1">
+          <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
+        </View>
+      ) : (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 125 }}>
+          <View className="w-full max-w-5xl self-center mx-auto">
+            {activeTab === 'today' && (
+              <>
+                <TodayWorkoutTab
+                  exercises={todayExercises}
+                  loading={loading}
+                  isRestDay={isRestDay}
+                  completedSessionsCount={completedSessionsCount}
+                  completedStats={completedStats}
+                  scheduledRoutine={todayScheduledRoutine}
+                  onLoadScheduledRoutine={() => todayScheduledRoutine && handleStartRoutine(todayScheduledRoutine)}
+                  onNavigateToPlanner={() => setActiveTab('planner')}
+                  onToggleSet={handleToggleSet}
+                  onUpdateSet={handleUpdateSet}
+                  onAddSet={handleAddSet}
+                  onDeleteSet={handleDeleteSet}
+                  onRemoveExercise={promptRemoveExercise}
+                  onUpdateExercisePreset={handleUpdateExercisePreset}
+                  onNavigateToLibrary={() => setActiveTab('library')}
+                  onOpenAiGenerator={() => setShowAiModal(true)}
+                  onStartBeginnerRoutine={() => handleStartRoutine(DEFAULT_BEGINNER_ROUTINE)}
+                  onCompleteSession={() => setShowCompleteModal(true)}
+                  onStartRestTimer={(seconds, exerciseName) =>
+                    startRestTimer(seconds, exerciseName)
+                  }
+                />
+
+                {/* AI Workout Insights */}
+                <AiInsightsCard
+                  category="workout"
+                  insights={activeWorkoutInsights}
+                  loading={loadingAi}
+                />
+              </>
+            )}
+
+            {activeTab === 'planner' && (
+              <WorkoutPlannerTab
+                onStartRoutine={handleStartRoutine}
+                onSwitchToToday={() => setActiveTab('today')}
+              />
+            )}
+
+            {activeTab === 'history' && (
+              <WorkoutHistoryTab
+                onRepeatSession={handleRepeatWorkoutSession}
+                onSwitchToToday={() => setActiveTab('today')}
+              />
+            )}
+          </View>
+        </ScrollView>
+      )}
 
       {/* AI Workout Generator Modal */}
       <AiWorkoutGeneratorModal

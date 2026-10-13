@@ -28,12 +28,75 @@ export const getTodayDayOfWeek = (): DayOfWeek => {
   return getDayOfWeekFromDate(new Date());
 };
 
+export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
+  id: 'template-beginner-foundations',
+  title: 'Day 1: Full-Body Foundations',
+  description: 'Easy-to-learn, safe dumbbell and bodyweight movements designed specifically for first-time lifters.',
+  category: 'Foundations',
+  targetMuscleGroup: 'Full Body',
+  estimatedDurationMinutes: 30,
+  exercises: [
+    {
+      exerciseId: 'ex-goblet-squat',
+      name: 'Dumbbell Goblet Squat',
+      category: 'Strength',
+      type: 'Compound',
+      primaryMuscle: 'Legs',
+      muscleGroup: 'Legs',
+      defaultSets: [
+        { weight: 10, reps: 10 },
+        { weight: 10, reps: 10 },
+        { weight: 12, reps: 10 },
+      ],
+    },
+    {
+      exerciseId: 'ex-push-ups',
+      name: 'Push-ups',
+      category: 'Strength',
+      type: 'Compound',
+      primaryMuscle: 'Chest',
+      muscleGroup: 'Chest',
+      defaultSets: [
+        { bodyweight: true, reps: 10 },
+        { bodyweight: true, reps: 10 },
+        { bodyweight: true, reps: 8 },
+      ],
+    },
+    {
+      exerciseId: 'ex-dumbbell-row',
+      name: 'One-Arm Dumbbell Row',
+      category: 'Strength',
+      type: 'Compound',
+      primaryMuscle: 'Back',
+      muscleGroup: 'Back',
+      defaultSets: [
+        { weight: 10, reps: 10 },
+        { weight: 10, reps: 10 },
+        { weight: 12, reps: 10 },
+      ],
+    },
+    {
+      exerciseId: 'ex-plank',
+      name: 'Plank',
+      category: 'Core',
+      type: 'Isometric',
+      primaryMuscle: 'Core',
+      muscleGroup: 'Core',
+      defaultSets: [
+        { bodyweight: true, reps: 30 },
+        { bodyweight: true, reps: 30 },
+      ],
+    },
+  ],
+};
+
 export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
+  DEFAULT_BEGINNER_ROUTINE,
   {
     id: 'template-push-1',
     title: 'Push Day (Chest, Shoulders & Triceps)',
     description: 'Targeted upper body pressing muscles with barbell and bodyweight compound movements.',
-    category: 'Hypertrophy',
+    category: 'Muscle Building',
     targetMuscleGroup: 'Chest & Shoulders',
     estimatedDurationMinutes: 45,
     exercises: [
@@ -95,7 +158,7 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
     id: 'template-pull-1',
     title: 'Pull Day (Back, Biceps & Lats)',
     description: 'Upper body pulling routine designed for a wide V-taper, thick upper back, and strong biceps.',
-    category: 'Hypertrophy',
+    category: 'Muscle Building',
     targetMuscleGroup: 'Back & Biceps',
     estimatedDurationMinutes: 45,
     exercises: [
@@ -383,7 +446,7 @@ export const MESOCYCLE_WEEKS: MesocycleWeekInfo[] = [
     subtitle: 'Foundation & Technique',
     focus: 'Build your exercise baseline, dial in proper movement form, and set comfortable working weights.',
     intensityLabel: 'Moderate (Effort 6-7/10)',
-    targetRPE: 'Effort 6-7 · 3-4 reps in reserve',
+    targetRPE: 'Effort 6-7/10 · Finish each set with 3-4 reps still in the tank',
     volumeMultiplier: '100% Base Volume',
     tips: 'Focus on clean form, controlled pacing, and steady breathing.',
   },
@@ -394,7 +457,7 @@ export const MESOCYCLE_WEEKS: MesocycleWeekInfo[] = [
     subtitle: 'Gradual Overload',
     focus: 'Add 1-2 reps or slightly increase weight on your main exercises as your muscles adapt.',
     intensityLabel: 'Challenging (Effort 7.5-8.5/10)',
-    targetRPE: 'Effort 7.5-8.5 · 2 reps in reserve',
+    targetRPE: 'Effort 7.5-8.5/10 · Finish set with 2 reps still in the tank',
     volumeMultiplier: '+5% to +10% Challenge',
     tips: 'Push for 1 more rep while keeping strict, safe form.',
   },
@@ -405,7 +468,7 @@ export const MESOCYCLE_WEEKS: MesocycleWeekInfo[] = [
     subtitle: 'Top Performance',
     focus: 'Reach your highest workout volume and effort before your scheduled recovery week.',
     intensityLabel: 'Peak Effort (Effort 9/10)',
-    targetRPE: 'Effort 8.5-9.5 · 0-1 rep in reserve',
+    targetRPE: 'Effort 8.5-9.5/10 · Challenging set (0-1 rep in reserve)',
     volumeMultiplier: 'Peak Challenge (Top Sets)',
     tips: 'Give your best on every set; make sure to get 8 hours of sleep and hydrate well.',
   },
@@ -416,7 +479,7 @@ export const MESOCYCLE_WEEKS: MesocycleWeekInfo[] = [
     subtitle: 'Joint & Muscle Recovery',
     focus: 'Lighten your workout weights and volume by 40% to let joints, tendons, and muscles recover.',
     intensityLabel: 'Active Recovery (Effort 5-6/10)',
-    targetRPE: 'Effort 5-6 · 4-5 reps in reserve',
+    targetRPE: 'Effort 5-6/10 · Light recovery sets (4-5 reps in reserve)',
     volumeMultiplier: '50% - 60% Light Volume',
     tips: 'Allow your body to refresh and recover; you will come back stronger next month!',
   },

@@ -5,6 +5,8 @@ import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { Goal } from '@prisma/client'
 import { capitalizeWords } from '../utils/formatters.utils'
+import { createNotification } from './inAppNotification.controller'
+import { emitToCommunity, emitToAdmin } from '../socket'
 
 /**
  * GET /api/testimonials
@@ -232,9 +234,9 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
     (afterImageUrl && String(afterImageUrl).trim())
   )
   const isAdmin = user.role === 'ADMIN'
-  const shouldPublish = isAdmin && Boolean(publishImmediately)
-  const moderationStatus = shouldPublish ? 'APPROVED' : 'PENDING_APPROVAL'
-  const isFeatured = shouldPublish
+  const shouldPublishImmediately = isAdmin && Boolean(publishImmediately)
+  const moderationStatus = shouldPublishImmediately ? 'APPROVED' : 'PENDING_APPROVAL'
+  const isFeatured = moderationStatus === 'APPROVED'
 
   let saved
   if (id) {
@@ -278,9 +280,44 @@ export const submitTestimonial = asyncHandler(async (req: AuthRequest, res: Resp
     })
   }
 
-  const successMessage = moderationStatus === 'PENDING_APPROVAL'
-    ? 'Your transformation story has been submitted for admin verification. Once approved, it will be published in the community feed!'
-    : (id ? 'Your transformation story has been updated successfully!' : 'Thank you! Your transformation story has been published.')
+  if (moderationStatus === 'APPROVED') {
+    createNotification({
+      userId,
+      type: 'ACHIEVEMENT',
+      title: 'Story Published! 🌟',
+      message: 'Your transformation story is now live in the Community Stories feed!',
+      linkUrl: '/(screen)/dashboard?modal=testimonials&tab=feed',
+    }).catch(() => {})
+  } else {
+    // Notify the user that their story is pending review
+    createNotification({
+      userId,
+      type: 'ACHIEVEMENT',
+      title: 'Story Submitted for Review ⏳',
+      message: 'Your transformation story has been submitted and is currently pending admin approval.',
+      linkUrl: '/(screen)/dashboard?modal=testimonials&tab=write',
+    }).catch(() => {})
+
+    // Notify ALL admins of the new story awaiting review
+    prisma.user.findMany({
+      where: { role: 'ADMIN' },
+      select: { id: true },
+    }).then((adminUsers) => {
+      for (const admin of adminUsers) {
+        createNotification({
+          userId: admin.id,
+          type: 'SUPPORT',
+          title: 'New Story Pending Approval 📝',
+          message: `${authorName} submitted a transformation story waiting for review.`,
+          linkUrl: '/(screen)/admin?tab=support&subTab=stories',
+        }).catch(() => {})
+      }
+    }).catch(() => {})
+  }
+
+  const successMessage = moderationStatus === 'APPROVED'
+    ? (id ? 'Your transformation story has been updated and published!' : 'Thank you! Your transformation story has been published to the community.')
+    : (id ? 'Your transformation story update has been submitted for admin approval.' : 'Thank you! Your story has been submitted for admin approval.')
 
   res.status(200).json({
     success: true,
@@ -339,10 +376,13 @@ export const toggleHelpfulTestimonial = asyncHandler(async (req: AuthRequest, re
       },
     })
 
+    const finalCount = Math.max(updated.helpfulCount, 0)
+    emitToCommunity('testimonial:voted', { id, helpfulCount: finalCount })
+
     return res.json({
       success: true,
       hasVoted: false,
-      helpfulCount: Math.max(updated.helpfulCount, 0),
+      helpfulCount: finalCount,
       message: 'Inspiration vote removed',
     })
   } else {
@@ -364,6 +404,8 @@ export const toggleHelpfulTestimonial = asyncHandler(async (req: AuthRequest, re
         helpfulCount: true,
       },
     })
+
+    emitToCommunity('testimonial:voted', { id, helpfulCount: updated.helpfulCount })
 
     return res.json({
       success: true,
@@ -461,6 +503,31 @@ export const moderateTestimonial = asyncHandler(async (req: AuthRequest, res: Re
       ...(status ? { status } : {}),
       ...(finalFeatured !== undefined ? { isFeatured: finalFeatured } : {}),
     },
+  })
+
+  if (updated.userId) {
+    createNotification({
+      userId: updated.userId,
+      type: status === 'APPROVED' ? 'ACHIEVEMENT' : 'SUPPORT',
+      title: status === 'APPROVED' ? 'Story Approved! 🌟' : 'Story Moderation Notice',
+      message: status === 'APPROVED'
+        ? 'Your athlete transformation story has been approved and published to the community.'
+        : 'Your transformation story was reviewed by administrators and marked as private.',
+      linkUrl: status === 'APPROVED'
+        ? '/(screen)/dashboard?modal=testimonials&tab=feed'
+        : '/(screen)/dashboard?modal=testimonials&tab=write',
+    }).catch(() => {})
+  }
+
+  if (status === 'APPROVED') {
+    emitToCommunity('testimonial:new', updated)
+  }
+
+  emitToAdmin('admin:event', {
+    type: 'TESTIMONIAL_MODERATED',
+    id: updated.id,
+    status: updated.status,
+    timestamp: new Date().toISOString(),
   })
 
   res.json({

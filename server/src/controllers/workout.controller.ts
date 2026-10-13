@@ -3,6 +3,8 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import * as workoutModel from '../models/workout.model'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
+import { createNotification } from './inAppNotification.controller'
+import { emitToUser, emitToAdmin } from '../socket'
 
 export const getLibrary = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { search, muscleGroup, category, difficulty, equipment, type, bodyPart } = req.query
@@ -188,6 +190,8 @@ export const addExerciseToToday = asyncHandler(async (req: AuthRequest, res: Res
   const updatedSession = await workoutModel.getTodayActiveSession(userId)
   const enrichedExercise = updatedSession.exercises.find((e: any) => e.id === exercise.id) || exercise
 
+  emitToUser(userId, 'workout:state_updated', { action: 'ADD_EXERCISE', exercise: enrichedExercise })
+
   res.json({ exercise: enrichedExercise })
 })
 
@@ -200,6 +204,10 @@ export const toggleSet = asyncHandler(async (req: AuthRequest, res: Response) =>
   const updatedSet = await workoutModel.toggleExerciseSet(setId, done)
   if (!updatedSet) return res.status(404).json({ error: 'Set not found' })
 
+  if (req.user?.id) {
+    emitToUser(req.user.id, 'workout:state_updated', { action: 'TOGGLE_SET', setId, done })
+  }
+
   res.json({ set: updatedSet })
 })
 
@@ -208,6 +216,11 @@ export const deleteExercise = asyncHandler(async (req: AuthRequest, res: Respons
   if (!exerciseId) return res.status(400).json({ error: 'Exercise ID is required' })
 
   await workoutModel.removeWorkoutExercise(exerciseId)
+
+  if (req.user?.id) {
+    emitToUser(req.user.id, 'workout:state_updated', { action: 'DELETE_EXERCISE', exerciseId })
+  }
+
   res.json({ success: true })
 })
 
@@ -217,6 +230,22 @@ export const completeSession = asyncHandler(async (req: AuthRequest, res: Respon
 
   const session = await workoutModel.getTodayActiveSession(userId)
   const completedSession = await workoutModel.finishWorkoutSession(session.id)
+
+  createNotification({
+    userId,
+    type: 'WORKOUT',
+    title: 'Workout Completed! 🏋️',
+    message: `Crushed your session! Finished in ${completedSession.duration || 30} mins with ~${completedSession.caloriesBurned || 200} kcal burned. Great work!`,
+    linkUrl: '/(screen)/workouts?tab=history',
+  }).catch(() => {})
+
+  emitToUser(userId, 'workout:state_updated', { action: 'COMPLETE_SESSION', session: completedSession })
+  emitToAdmin('admin:event', {
+    type: 'WORKOUT_COMPLETED',
+    userId,
+    duration: completedSession.duration,
+    timestamp: new Date().toISOString(),
+  })
 
   res.json({ session: completedSession })
 })
@@ -248,6 +277,10 @@ export const updateSetController = asyncHandler(async (req: AuthRequest, res: Re
     done: done !== undefined ? Boolean(done) : undefined,
   })
 
+  if (req.user?.id) {
+    emitToUser(req.user.id, 'workout:state_updated', { action: 'UPDATE_SET', set: updatedSet })
+  }
+
   res.json({ set: updatedSet })
 })
 
@@ -262,6 +295,10 @@ export const addSetController = asyncHandler(async (req: AuthRequest, res: Respo
     bodyweight: bodyweight !== undefined ? Boolean(bodyweight) : undefined,
   })
 
+  if (req.user?.id) {
+    emitToUser(req.user.id, 'workout:state_updated', { action: 'ADD_SET', set: newSet })
+  }
+
   res.status(201).json({ set: newSet })
 })
 
@@ -270,6 +307,11 @@ export const deleteSetController = asyncHandler(async (req: AuthRequest, res: Re
   if (!setId) return res.status(400).json({ error: 'Set ID is required' })
 
   await workoutModel.deleteExerciseSet(setId)
+
+  if (req.user?.id) {
+    emitToUser(req.user.id, 'workout:state_updated', { action: 'DELETE_SET', setId })
+  }
+
   res.json({ success: true })
 })
 

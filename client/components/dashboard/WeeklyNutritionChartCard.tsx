@@ -287,9 +287,9 @@ export default function WeeklyNutritionChartCard({
           accessibilityRole="button"
           accessibilityLabel={chartMode === 'nutrition' ? 'View food history' : 'View workout log'}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 min-h-[44px] justify-center items-center"
+          className="px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-center"
         >
-          <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+          <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
             {chartMode === 'nutrition' ? 'Food History →' : 'Workout Log →'}
           </Text>
         </TouchableOpacity>

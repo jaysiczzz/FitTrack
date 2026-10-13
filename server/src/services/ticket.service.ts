@@ -1,5 +1,6 @@
 import { prisma } from '../config/db'
 import { TicketCategory, TicketStatus } from '@prisma/client'
+import { emitToAdmin, emitToUser } from '../socket'
 
 export interface SupportTicket {
   id: string
@@ -61,7 +62,7 @@ export async function createTicket(ticketData: {
     },
   })
 
-  return {
+  const mapped = {
     id: t.id,
     userId: t.userId,
     userEmail: t.userEmail,
@@ -74,6 +75,9 @@ export async function createTicket(ticketData: {
     createdAt: t.createdAt.toISOString(),
     updatedAt: t.updatedAt.toISOString(),
   }
+
+  emitToAdmin('ticket:created', mapped)
+  return mapped
 }
 
 export async function updateTicket(
@@ -89,7 +93,7 @@ export async function updateTicket(
       },
     })
 
-    return {
+    const mapped = {
       id: t.id,
       userId: t.userId,
       userEmail: t.userEmail,
@@ -102,6 +106,13 @@ export async function updateTicket(
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString(),
     }
+
+    emitToAdmin('ticket:updated', mapped)
+    if (mapped.userId) {
+      emitToUser(mapped.userId, 'ticket:updated', mapped)
+    }
+
+    return mapped
   } catch {
     return null
   }
@@ -110,6 +121,7 @@ export async function updateTicket(
 export async function deleteTicket(id: string): Promise<boolean> {
   try {
     await prisma.supportTicket.delete({ where: { id } })
+    emitToAdmin('ticket:deleted', { id })
     return true
   } catch {
     return false

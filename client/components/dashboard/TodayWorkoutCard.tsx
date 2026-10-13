@@ -131,7 +131,7 @@ export default function TodayWorkoutCard({
             onPress={() => router.push('/(screen)/workouts' as any)}
             activeOpacity={0.8}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
+            className="bg-accent/10 dark:bg-accent-dark/15 justify-center items-center px-3 py-1.5 rounded-xl border border-accent/30 dark:border-accent-dark/30"
           >
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">
               Resume
@@ -166,7 +166,7 @@ export default function TodayWorkoutCard({
                   Scheduled rest day in your weekly split. Muscle grows during recovery!
                 </Text>
               </View>
-              <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3.5 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
                   Split
                 </Text>
@@ -182,7 +182,7 @@ export default function TodayWorkoutCard({
                   {scheduledRoutine.exercises?.length || 4} exercises · {scheduledRoutine.targetMuscleGroup || 'Training'} · {scheduledRoutine.estimatedDurationMinutes || 45}m
                 </Text>
               </View>
-              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                   Start
                 </Text>
@@ -198,7 +198,7 @@ export default function TodayWorkoutCard({
                   Choose your routine or select exercises from the library.
                 </Text>
               </View>
-              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                   Start
                 </Text>

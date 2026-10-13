@@ -8,7 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -32,6 +34,7 @@ import {
   SubscriptionTierType,
   CurrencyType,
   PaymentMethodType,
+  FeatureLimitsMap,
 } from '@/api/subscription';
 import {
   formatPhilippinePhone,
@@ -66,9 +69,10 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     features: [
       'Full 80+ exercise library with animated GIFs & form cues',
       'Unlimited workout logging, set tracker & rest timers',
+      '3M+ verified foods database via Open Food Facts',
       'Standard food, calories, and water logger',
+      'Up to 5 AI Smart Meal Suggestions / day',
       'Daily readiness check-in & streaks',
-      'Community stories & achievement milestones',
     ],
   },
   {
@@ -85,9 +89,10 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     features: [
       'Everything in Free tier (workout tracker, food log & calendar)',
       '30 AI Camera Food Scans / day (Free capped at 3/day)',
-      '100 AI Coach messages / day (Free capped at 15/day)',
+      '30 AI Smart Meal Suggestions / day (Free capped at 5/day)',
+      '150 AI Coach messages / day (Free capped at 15/day)',
       '30 AI Workout Routines / month (Free capped at 5/month)',
-      'Verified Pro Athlete badge on profile & coaching screens',
+      'Pro Athlete badge on profile & coaching screens',
       'Uninterrupted premium training experience',
     ],
   },
@@ -105,9 +110,9 @@ const DEFAULT_PLANS: SubscriptionPlanItem[] = [
     features: [
       'All Pro Monthly features included',
       'Save 33% compared to monthly (₱333/mo · 2 months free)',
-      '30 AI Food Scans / day & 100 AI Coach messages / day',
-      '30 AI Workout Routines / month',
-      'Verified Pro Athlete badge on your profile',
+      '30 AI Food Scans / day & 30 AI Meal Suggestions / day',
+      '150 AI Coach messages / day & 30 AI Routines / month',
+      'Pro Athlete badge on your profile',
     ],
   },
 ];
@@ -118,11 +123,13 @@ export default function SubscriptionModal({
   onSubscriptionUpdated,
 }: SubscriptionModalProps) {
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { showSuccess, showError, showWarning } = useToast();
   const { user } = useAuth();
 
   const [currency, setCurrency] = useState<CurrencyType>('PHP');
   const [plans, setPlans] = useState<SubscriptionPlanItem[]>(DEFAULT_PLANS);
+  const [featureLimits, setFeatureLimits] = useState<FeatureLimitsMap | null>(null);
   const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
   const [daysRemaining, setDaysRemaining] = useState<number | null>(null);
   const [isPro, setIsPro] = useState(false);
@@ -158,6 +165,9 @@ export default function SubscriptionModal({
 
       if (plansRes?.success && plansRes.plans && plansRes.plans.length > 0) {
         setPlans(plansRes.plans);
+      }
+      if (plansRes?.limits) {
+        setFeatureLimits(plansRes.limits);
       }
       if (subRes?.success && subRes.subscription) {
         setCurrentSub(subRes.subscription);
@@ -339,23 +349,27 @@ export default function SubscriptionModal({
   return (
     <>
       <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/60">
-        <Pressable className="flex-1" onPress={onClose} />
+        <View className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4">
+          <Pressable className="hidden md:flex flex-1 w-full" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
-          {/* Header */}
-          <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View className="flex-row items-center gap-2">
-              <View>
+          <View
+            style={{
+              paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16,
+              paddingBottom: Platform.OS !== 'web' && insets.bottom > 0 ? insets.bottom + 8 : 16,
+            }}
+            className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[92%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
+              <View className="flex-row items-center gap-2">
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                   FitTrack Pro Subscription
                 </Text>
               </View>
+              <ModalCloseButton onClose={onClose} />
             </View>
-            <ModalCloseButton onClose={onClose} />
-          </View>
 
-          <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+            <ScrollView className="flex-1 mt-3" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Currency Selector */}
             <View className="flex-row items-center justify-between p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
               <View>
@@ -539,7 +553,7 @@ export default function SubscriptionModal({
 
             {/* Side-by-Side Free vs Pro Comparison Matrix */}
             <View className="p-3.5 bg-input/40 dark:bg-input-dark/40 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
-              <View className="flex-row items-center justify-between mb-2">
+              <View className="flex-row items-center justify-between mb-2 pb-1.5 border-b border-input-border/40 dark:border-input-border-dark/40">
                 <Text className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-text-muted-dark">
                   Exact Feature Comparison
                 </Text>
@@ -553,83 +567,115 @@ export default function SubscriptionModal({
                 </View>
               </View>
 
-              <View className="gap-1.5">
-                {[
+              {/* Dynamic Limit Values from API */}
+              {(() => {
+                const freeCoach = featureLimits?.FREE?.COACH?.max ?? 15;
+                const proCoach = featureLimits?.PRO?.COACH?.max ?? 150;
+                const freeScan = featureLimits?.FREE?.FOOD_SCAN?.max ?? 3;
+                const proScan = featureLimits?.PRO?.FOOD_SCAN?.max ?? 30;
+                const freeMeal = featureLimits?.FREE?.MEAL_SUGGESTION?.max ?? 5;
+                const proMeal = featureLimits?.PRO?.MEAL_SUGGESTION?.max ?? 30;
+                const freeRoutine = featureLimits?.FREE?.WORKOUT_GENERATOR?.max ?? 5;
+                const proRoutine = featureLimits?.PRO?.WORKOUT_GENERATOR?.max ?? 30;
+
+                const comparisonFeatures = [
                   {
-                    feature: '80+ Exercise Library & Guides',
-                    free: 'Full Access',
-                    pro: 'Full Access',
-                    proHighlight: false,
+                    feature: 'AI Fitness Coach',
+                    free: `${freeCoach} msgs / day`,
+                    pro: `${proCoach} msgs / day`,
+                    proHighlight: true,
                   },
                   {
-                    feature: 'Workout & Set Logging',
+                    feature: 'AI Camera Food Scanner',
+                    free: `${freeScan} scans / day`,
+                    pro: `${proScan} scans / day`,
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'AI Smart Meal Suggestions',
+                    free: `${freeMeal} ideas / day`,
+                    pro: `${proMeal} ideas / day`,
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'AI Workout Routine Generator',
+                    free: `${freeRoutine} routines / mo`,
+                    pro: `${proRoutine} routines / mo`,
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'Pro Athlete Badge',
+                    free: '-',
+                    pro: 'Included',
+                    proHighlight: true,
+                  },
+                  {
+                    feature: 'Workout Logging & Exercise Guides',
                     free: 'Unlimited',
                     pro: 'Unlimited',
                     proHighlight: false,
                   },
                   {
-                    feature: 'Food, Calorie & Water Log',
-                    free: 'Full Access',
-                    pro: 'Full Access',
+                    feature: 'Food Tracking & 3M+ Food Database',
+                    free: 'Unlimited',
+                    pro: 'Unlimited',
                     proHighlight: false,
                   },
-                  {
-                    feature: 'AI Camera Food Scanner',
-                    free: '3 Scans / Day',
-                    pro: '30 Scans / Day',
-                    proHighlight: true,
-                  },
-                  {
-                    feature: 'AI Coach',
-                    free: '15 Chats / Day',
-                    pro: '100 Chats / Day',
-                    proHighlight: true,
-                  },
-                  {
-                    feature: 'AI Workout Routine Generator',
-                    free: '5 Routines / Mo',
-                    pro: '30 Routines / Mo',
-                    proHighlight: true,
-                  },
-                  {
-                    feature: 'Verified Athlete Profile Badge',
-                    free: 'Standard',
-                    pro: 'Pro Badge',
-                    proHighlight: true,
-                  },
-                ].map((row, idx) => (
-                  <View
-                    key={idx}
-                    className="flex-row items-center justify-between py-1 border-b border-input-border/30 dark:border-input-border-dark/30"
-                  >
-                    <Text className="text-[11px] font-medium text-text-primary dark:text-text-primary-dark flex-1 pr-2">
-                      {row.feature}
-                    </Text>
-                    <View className="flex-row items-center gap-2 pr-1">
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark w-20 text-center">
-                        {row.free}
+                ];
+
+                const renderRows = (
+                  rows: Array<{ feature: string; free: string; pro: string; proHighlight: boolean }>
+                ) =>
+                  rows.map((row, idx) => (
+                    <View
+                      key={idx}
+                      className={`flex-row items-center justify-between py-1.5 ${
+                        idx !== rows.length - 1
+                          ? 'border-b border-input-border/20 dark:border-input-border-dark/20'
+                          : ''
+                      }`}
+                    >
+                      <Text className="text-[11px] font-medium text-text-primary dark:text-text-primary-dark flex-1 pr-2">
+                        {row.feature}
                       </Text>
-                      <View
-                        className={`w-24 py-1 rounded-md items-center justify-center ${
-                          row.proHighlight
-                            ? 'bg-accent/15 border border-accent/30'
-                            : 'bg-input dark:bg-input-dark'
-                        }`}
-                      >
-                        <Text
-                          className={`text-[10px] font-bold ${
+                      <View className="flex-row items-center gap-2 pr-1">
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark w-20 text-center font-medium">
+                          {row.free}
+                        </Text>
+                        <View
+                          className={`w-24 py-1 rounded-md items-center justify-center ${
                             row.proHighlight
-                              ? 'text-accent dark:text-accent-dark'
-                              : 'text-text-primary dark:text-text-primary-dark'
+                              ? 'bg-accent/15 border border-accent/30'
+                              : 'bg-transparent'
                           }`}
                         >
-                          {row.pro}
-                        </Text>
+                          <Text
+                            className={`text-[10px] font-bold ${
+                              row.proHighlight
+                                ? 'text-accent dark:text-accent-dark'
+                                : 'text-text-primary dark:text-text-primary-dark'
+                            }`}
+                          >
+                            {row.pro}
+                          </Text>
+                        </View>
                       </View>
                     </View>
+                  ));
+
+                return (
+                  <View className="gap-1">
+                    <View>{renderRows(comparisonFeatures)}</View>
+
+                    {/* Small print footer */}
+                    <View className="pt-2 mt-1 border-t border-input-border/30 dark:border-input-border-dark/30">
+                      <Text className="text-[9px] text-text-muted dark:text-text-muted-dark leading-3.5 italic">
+                        * Daily limits reset at midnight UTC (00:00 UTC). Monthly routine generator resets on the 1st of each month (UTC).
+                      </Text>
+                    </View>
                   </View>
-                ))}
-              </View>
+                );
+              })()}
             </View>
 
             {/* Payment Method Selector */}

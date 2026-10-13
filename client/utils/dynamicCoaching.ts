@@ -18,6 +18,7 @@ export interface DynamicCoachingContext {
   todayCompletedWorkoutStats?: { duration: number; caloriesBurned: number } | null;
   currentStreak: number;
   userName?: string;
+  gender?: string;
 }
 
 /**
@@ -36,13 +37,14 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
     const duration = ctx.todayCompletedWorkoutStats?.duration || 35;
     const caloriesBurned = ctx.todayCompletedWorkoutStats?.caloriesBurned || 240;
     const protDiff = ctx.targetProtein - ctx.proteinLogged;
+    const recProtein = ctx.gender === 'FEMALE' ? '20-25g' : '25-35g';
 
     workoutInsight = {
       title: 'Workout Completed · Anabolic Recovery',
       lines: [
         `Finished ${duration} min session (${caloriesBurned} kcal burned). Your ${streakText} is officially locked in!`,
         protDiff > 0
-          ? `Consume 25-35g of protein in your post-workout window to initiate muscle protein synthesis (${protDiff}g remaining today).`
+          ? `Consume ${recProtein} of protein in your post-workout window to initiate muscle protein synthesis (${protDiff}g remaining today).`
           : `Daily protein target achieved! Focus on cellular rehydration and restful recovery.`,
       ],
     };

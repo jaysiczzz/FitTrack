@@ -1,3 +1,5 @@
+import { BMR_OFFSET, MIN_CALORIE_FLOOR, DIETARY_FAT_RATIO } from '@/constants/fitnessDefaults';
+
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
 export interface FoodLogItem {
@@ -202,7 +204,7 @@ export const getBadgeStyles = (color?: BadgeColor) => {
 };
 
 export const calculatePersonalizedTargets = (
-  user?: { weight?: number | null; height?: number | null; age?: number | null; goal?: string | null } | null,
+  user?: { weight?: number | null; height?: number | null; age?: number | null; goal?: string | null; gender?: string | null } | null,
   fallbackGoal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' = 'MUSCLE_GAIN'
 ): MacroTargets => {
   const goal = (user?.goal as any) || fallbackGoal;
@@ -211,15 +213,22 @@ export const calculatePersonalizedTargets = (
   const w = Number(user?.weight) || 70;
   const h = Number(user?.height) || 175;
   const a = Number(user?.age) || 25;
+  const gender = user?.gender;
 
-  const bmr = 10 * w + 6.25 * h - 5 * a + 5;
+  const isFemale = gender === 'FEMALE';
+  const bmrOffset = isFemale ? BMR_OFFSET.FEMALE : BMR_OFFSET.MALE;
+  const minFloor = isFemale ? MIN_CALORIE_FLOOR.FEMALE : MIN_CALORIE_FLOOR.MALE;
+  const fatRatio = isFemale ? DIETARY_FAT_RATIO.FEMALE : DIETARY_FAT_RATIO.MALE;
+
+  const bmr = 10 * w + 6.25 * h - 5 * a + bmrOffset;
   const tdee = Math.round(bmr * 1.35);
 
-  let calories = isMuscleGain ? tdee + 300 : Math.max(1400, tdee - 450);
-  calories = Math.max(1400, Math.min(4500, calories));
+  let calories = isMuscleGain ? tdee + 300 : Math.max(minFloor, tdee - 450);
+  calories = Math.max(minFloor, Math.min(4500, calories));
 
-  const protein = Math.round(w * (isMuscleGain ? 2.0 : 1.8));
-  const fat = Math.round((calories * 0.25) / 9);
+  const proteinMultiplier = isMuscleGain ? (isFemale ? 1.8 : 2.0) : (isFemale ? 1.6 : 1.8);
+  const protein = Math.round(w * proteinMultiplier);
+  const fat = Math.round((calories * fatRatio) / 9);
   const carbs = Math.max(50, Math.round((calories - (protein * 4 + fat * 9)) / 4));
 
   return {

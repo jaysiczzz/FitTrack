@@ -280,10 +280,10 @@ export function RepTempoBar({
 
   const parts = tempoStr.split('-');
   const phases = [
-    { label: 'Down', sec: parts[0] || '2', icon: 'arrow-down-circle', color: '#38BDF8', note: 'Eccentric' },
-    { label: 'Pause', sec: parts[1] || '0', icon: 'pause-circle', color: '#FBBF24', note: 'Stretch' },
-    { label: 'Up', sec: parts[2] || '1', icon: 'arrow-up-circle', color: '#34D399', note: 'Concentric' },
-    { label: 'Reset', sec: parts[3] || '0', icon: 'refresh-circle', color: '#A78BFA', note: 'Lockout' },
+    { label: 'Down', sec: parts[0] || '2', icon: 'arrow-down-circle', color: '#38BDF8', note: 'Control Down' },
+    { label: 'Pause', sec: parts[1] || '0', icon: 'pause-circle', color: '#FBBF24', note: 'Brief Hold' },
+    { label: 'Up', sec: parts[2] || '1', icon: 'arrow-up-circle', color: '#34D399', note: 'Drive Up' },
+    { label: 'Reset', sec: parts[3] || '0', icon: 'refresh-circle', color: '#A78BFA', note: 'Top Reset' },
   ];
 
   return (

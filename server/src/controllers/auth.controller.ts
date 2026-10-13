@@ -1,14 +1,16 @@
 import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
-import { Goal } from '@prisma/client'
+import { Goal, Gender } from '@prisma/client'
 import { hashPassword, comparePassword, validatePasswordStrength } from '../utils/password.utils'
-import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllUserTokens } from '../utils/jwt.utils'
+import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllUserTokens, recordPasswordChangeTimestamp } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { validateEmailDeliverability, EMAIL_REGEX } from '../utils/emailValidation.utils'
 import { sendPasswordResetEmail, sendEmailVerificationEmail } from '../services/email.service'
 import { capitalizeWords } from '../utils/formatters.utils'
+import { createNotification } from './inAppNotification.controller'
+import { emitToAdmin } from '../socket'
 
 export const login = asyncHandler(async (req: Request, res: Response) => {
     const { email, password } = req.body
@@ -59,12 +61,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
             firstName: capitalizeWords(user.firstName),
             lastName: capitalizeWords(user.lastName),
             role: user.role,
+            gender: user.gender,
         },
     })
 })
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-    const { firstName, lastName, email, password, goal } = req.body
+    const { firstName, lastName, email, password, goal, gender } = req.body
 
     if (!firstName || !lastName || !email || !password ||
         req.body.height === undefined || req.body.weight === undefined ||
@@ -102,6 +105,15 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         return res.status(400).json({ error: 'Invalid goal value' })
     }
 
+    let userGender: Gender = Gender.MALE
+    if (gender) {
+        if (gender === 'FEMALE') userGender = Gender.FEMALE
+        else if (gender === 'MALE') userGender = Gender.MALE
+        else {
+            return res.status(400).json({ error: 'Invalid gender value. Must be MALE or FEMALE.' })
+        }
+    }
+
     const existingUser = await userModel.findByEmail(normalizedEmail)
     if (existingUser) {
         return res.status(409).json({ error: 'An account with this email already exists' })
@@ -134,10 +146,28 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         lastName: cleanLast,
         email: normalizedEmail,
         password: hashedPassword,
+        gender: userGender,
         height,
         weight,
         age,
         goal: goal as Goal,
+    })
+
+    // Dispatch a one-time onboarding welcome notification
+    createNotification({
+        userId: user.id,
+        title: '👋 Welcome to FitTrack!',
+        message: 'Your personal fitness hub is ready. Set your daily goals, log your workouts, and start building consistency!',
+        type: 'SYSTEM',
+        linkUrl: '/(screen)/dashboard',
+    }).catch(() => {})
+
+    emitToAdmin('admin:event', {
+        type: 'NEW_REGISTRATION',
+        userId: user.id,
+        name: `${cleanFirst} ${cleanLast}`,
+        email: normalizedEmail,
+        timestamp: new Date().toISOString(),
     })
 
     const accessToken = signAccessToken({ id: user.id, role: user.role })
@@ -153,6 +183,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
             firstName: cleanFirst,
             lastName: cleanLast,
             role: user.role,
+            gender: user.gender,
             height: user.height,
             weight: user.weight,
             age: user.age,
@@ -226,18 +257,15 @@ export const changePassword = asyncHandler(async (req: AuthRequest, res: Respons
         data: { password: hashedPassword },
     })
 
-    // Revoke all existing refresh tokens for security on password change
+    // Revoke all existing refresh tokens across all devices
     await revokeAllUserTokens(userId)
 
-    // Issue fresh token pair for the active session
-    const accessToken = signAccessToken({ id: user.id, role: user.role })
-    const refreshToken = await createRefreshToken(user.id)
+    // Invalidate all existing access tokens immediately across all devices
+    await recordPasswordChangeTimestamp(user.email)
 
     res.json({
-        message: 'Password updated successfully',
-        token: accessToken,
-        accessToken,
-        refreshToken,
+        success: true,
+        message: 'Password updated successfully. You have been logged out from all devices. Please log in with your new password.',
     })
 })
 
@@ -344,8 +372,11 @@ export const resetPasswordWithCode = asyncHandler(async (req: Request, res: Resp
         data: { password: hashedPassword },
     })
 
-    // Invalidate all active sessions for security
+    // Invalidate all active sessions for security across all devices
     await revokeAllUserTokens(user.id)
+
+    // Invalidate all existing access tokens immediately across all devices
+    await recordPasswordChangeTimestamp(normalizedEmail)
 
     res.json({
         success: true,

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FoodLogItem, MealType } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
 import { useToast } from '../../context/ToastContext';
@@ -8,6 +9,8 @@ import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import InModalToast from '../ui/InModalToast';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
+import QuotaUsageMeter from '../ui/QuotaUsageMeter';
+import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '../../api/subscription';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export type SuggestionMealSlot = 'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack';
@@ -20,6 +23,7 @@ interface AiSuggestionModalProps {
   remainingCalories: number;
   remainingProtein: number;
   initialMealType?: SuggestionMealSlot;
+  onUpgradePress?: () => void;
 }
 
 const MEAL_SLOTS: { id: SuggestionMealSlot; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -38,9 +42,11 @@ export default function AiSuggestionModal({
   remainingCalories,
   remainingProtein,
   initialMealType = 'all',
+  onUpgradePress,
 }: AiSuggestionModalProps) {
   const { colors } = useThemeColors();
   const { showWarning, showError } = useToast();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [cachedSlots, setCachedSlots] = useState<Partial<Record<SuggestionMealSlot, MealSuggestion[]>>>({});
   const [loggedMealTitles, setLoggedMealTitles] = useState<string[]>([]);
@@ -52,6 +58,13 @@ export default function AiSuggestionModal({
     icon?: string;
   } | null>(null);
 
+  // Quota & Pro state
+  const [isPro, setIsPro] = useState(false);
+  const [dailySuggestCount, setDailySuggestCount] = useState(0);
+  const [freeSuggestLimit, setFreeSuggestLimit] = useState(5);
+  const [proSuggestLimit, setProSuggestLimit] = useState(30);
+  const [suggestResetsAt, setSuggestResetsAt] = useState<string | null>(null);
+
   const isMuscleGain = goal === 'MUSCLE_GAIN';
 
   const currentRecommendations = cachedSlots[selectedSlot] || [];
@@ -59,6 +72,15 @@ export default function AiSuggestionModal({
 
   const generateRecommendations = async (slotOverride?: SuggestionMealSlot) => {
     const activeSlot = slotOverride || selectedSlot;
+    const currentLimit = isPro ? proSuggestLimit : freeSuggestLimit;
+
+    if (dailySuggestCount >= currentLimit) {
+      const limitMsg = `Daily meal suggestion limit reached (${currentLimit}/${currentLimit}). Resets at midnight UTC.${!isPro ? ' Upgrade to Pro for 30 suggestions/day.' : ''}`;
+      setSuggestionError(limitMsg);
+      showWarning('Daily Limit Reached', limitMsg);
+      return;
+    }
+
     setLoading(true);
     setInModalToast(null);
     setSuggestionError(null);
@@ -75,11 +97,27 @@ export default function AiSuggestionModal({
           ...prev,
           [activeSlot]: res.suggestions,
         }));
+        if (res.usage) {
+          setDailySuggestCount(res.usage.used);
+          if (res.usage.resetsAt) {
+            setSuggestResetsAt(res.usage.resetsAt);
+          }
+        } else {
+          setDailySuggestCount((prev) => prev + 1);
+        }
       } else {
         setSuggestionError('No meal recommendations returned. Please try again.');
       }
     } catch (err: any) {
       console.log('AI Suggest Error:', err?.message);
+      const errText = err?.message || '';
+      if (errText.includes('LIMIT_REACHED') || err?.status === 429) {
+        setDailySuggestCount(currentLimit);
+        const limitMsg = `Daily meal suggestion limit reached (${currentLimit}/${currentLimit}). Resets at midnight UTC.${!isPro ? ' Upgrade to Pro for 30 suggestions/day.' : ''}`;
+        setSuggestionError(limitMsg);
+        showWarning('Daily Limit Reached', limitMsg);
+        return;
+      }
       setSuggestionError(getFriendlyErrorMessage(err, 'Unable to load meal recommendations right now. Please check your connection and try again.'));
     } finally {
       setLoading(false);
@@ -94,7 +132,31 @@ export default function AiSuggestionModal({
       setLoggedMealTitles([]);
       setSuggestionError(null);
       setInModalToast(null);
-      // Deliberately DO NOT auto-generate upon opening modal to save API tokens and ask user first!
+
+      getCurrentSubscriptionApi()
+        .then((res) => {
+          if (res?.success && res.isPro) {
+            setIsPro(true);
+          }
+        })
+        .catch(() => {});
+
+      getSubscriptionPlansApi()
+        .then((res) => {
+          if (res?.limits?.FREE?.MEAL_SUGGESTION?.max) {
+            setFreeSuggestLimit(res.limits.FREE.MEAL_SUGGESTION.max);
+          }
+          if (res?.limits?.PRO?.MEAL_SUGGESTION?.max) {
+            setProSuggestLimit(res.limits.PRO.MEAL_SUGGESTION.max);
+          }
+          if (res?.userUsage?.usage?.MEAL_SUGGESTION) {
+            setDailySuggestCount(res.userUsage.usage.MEAL_SUGGESTION.used);
+            if (res.userUsage.usage.MEAL_SUGGESTION.resetsAt) {
+              setSuggestResetsAt(res.userUsage.usage.MEAL_SUGGESTION.resetsAt);
+            }
+          }
+        })
+        .catch(() => {});
     }
   }, [visible, initialMealType, goal]);
 
@@ -162,8 +224,12 @@ export default function AiSuggestionModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[88%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+      <View className="flex-1 bg-black/60 justify-end md:justify-center md:items-center p-0 md:p-4">
+        <Pressable className="hidden md:flex flex-1 w-full" onPress={onClose} />
+        <View
+          style={{ paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16 }}
+          className="bg-surface dark:bg-surface-dark rounded-none md:rounded-3xl flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
+        >
           {/* Header */}
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-1 mr-2">
@@ -190,11 +256,41 @@ export default function AiSuggestionModal({
             </View>
           </View>
 
+          {/* Subscription Quota Usage Meter */}
+          <QuotaUsageMeter
+            isPro={isPro}
+            used={dailySuggestCount}
+            limit={isPro ? proSuggestLimit : freeSuggestLimit}
+            unit="suggestions"
+            period="day"
+            resetsAt={suggestResetsAt || undefined}
+            onUpgradePress={onUpgradePress}
+            className="mb-3"
+          />
+
           {/* Inline Error Banner */}
           <ModalErrorBanner
             error={suggestionError}
             onDismiss={() => setSuggestionError(null)}
           />
+
+          {/* Upgrade prompt if limit reached */}
+          {suggestionError &&
+          (suggestionError.includes('limit reached') ||
+            suggestionError.includes('LIMIT_REACHED')) &&
+          onUpgradePress &&
+          !isPro ? (
+            <TouchableOpacity
+              onPress={onUpgradePress}
+              activeOpacity={0.8}
+              className="mb-3 py-2.5 px-3 bg-accent/15 dark:bg-accent-dark/20 border border-accent dark:border-accent-dark rounded-xl flex-row items-center justify-center gap-2"
+            >
+              <Ionicons name="sparkles" size={15} color={colors.accent} />
+              <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                Upgrade to Pro (30 daily suggestions)
+              </Text>
+            </TouchableOpacity>
+          ) : null}
 
           {/* Meal Timing / Category Scope Filter Pills */}
           <View className="mb-3">
@@ -213,7 +309,8 @@ export default function AiSuggestionModal({
                     activeOpacity={0.7}
                     accessibilityRole="button"
                     accessibilityState={{ selected: isSelected }}
-                    className={`flex-row items-center gap-1.5 px-3.5 py-1.5 rounded-full border transition-all ${
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    className={`flex-row items-center gap-1.5 min-h-[32px] px-3.5 py-1.5 rounded-full border transition-all ${
                       isSelected
                         ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-xs'
                         : 'bg-input/80 dark:bg-input-dark/80 border-input-border dark:border-input-border-dark opacity-90'
@@ -325,13 +422,19 @@ export default function AiSuggestionModal({
               </Text>
 
               <TouchableOpacity
-                onPress={() => generateRecommendations(selectedSlot)}
+                onPress={
+                  !isPro && dailySuggestCount >= (isPro ? proSuggestLimit : freeSuggestLimit) && onUpgradePress
+                    ? onUpgradePress
+                    : () => generateRecommendations(selectedSlot)
+                }
                 activeOpacity={0.8}
                 className="w-full bg-accent dark:bg-accent-dark py-3.5 px-5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
               >
                 <Ionicons name="sparkles" size={16} color="#ffffff" />
                 <Text className="text-white font-extrabold text-sm">
-                  {remainingCalories <= 0
+                  {!isPro && dailySuggestCount >= (isPro ? proSuggestLimit : freeSuggestLimit)
+                    ? 'Daily Limit Reached · Upgrade to Pro'
+                    : remainingCalories <= 0
                     ? 'Generate Light Recovery Ideas'
                     : selectedSlot === 'all'
                     ? 'Generate Whole Day Ideas'
@@ -340,7 +443,11 @@ export default function AiSuggestionModal({
               </TouchableOpacity>
             </View>
           ) : (
-            <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
+            <ScrollView
+              showsVerticalScrollIndicator={false}
+              className="flex-1 min-h-0 mb-2"
+              contentContainerStyle={{ paddingBottom: 28 }}
+            >
               {currentRecommendations.map((rec, idx) => (
                 <View
                   key={`${rec.title}-${idx}`}

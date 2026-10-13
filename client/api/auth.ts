@@ -5,6 +5,7 @@ export const registerUser = (payload: {
   lastName: string;
   email: string;
   password: string;
+  gender?: 'MALE' | 'FEMALE';
   height: number;
   weight: number;
   age: number;

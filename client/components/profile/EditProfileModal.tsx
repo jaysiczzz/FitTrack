@@ -64,6 +64,7 @@ export default function EditProfileModal({
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
   const [goal, setGoal] = useState<'muscle' | 'loss'>('muscle');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE'>('MALE');
 
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
   const [lastNameError, setLastNameError] = useState<string | null>(null);
@@ -111,6 +112,9 @@ export default function EditProfileModal({
       if (user.age !== undefined) setAge(String(user.age));
       if (user.goal) {
         setGoal(user.goal === 'MUSCLE_GAIN' ? 'muscle' : 'loss');
+      }
+      if (user.gender) {
+        setGender(user.gender);
       }
       setFirstNameError(null);
       setLastNameError(null);
@@ -222,6 +226,7 @@ export default function EditProfileModal({
         weight: Number(wNum.toFixed(1)),
         age: Math.round(aNum),
         goal: mappedGoal,
+        gender,
       });
 
       const updatedUserData = {
@@ -232,6 +237,7 @@ export default function EditProfileModal({
         weight: Number(wNum.toFixed(1)),
         age: Math.round(aNum),
         goal: mappedGoal,
+        gender,
       };
 
       await updateUser(updatedUserData as any);
@@ -499,6 +505,53 @@ export default function EditProfileModal({
                     unit="yrs"
                     error={ageError || undefined}
                   />
+                </View>
+              </View>
+
+              {/* Biological Sex Section */}
+              <View className="mb-4">
+                <FieldLabel>Biological Sex</FieldLabel>
+                <View
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Biological Sex"
+                  className="flex-row gap-2"
+                >
+                  {(['MALE', 'FEMALE'] as const).map((g) => {
+                    const isSelected = gender === g;
+                    const label = g === 'MALE' ? 'Male' : 'Female';
+                    return (
+                      <TouchableOpacity
+                        key={g}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setGender(g);
+                        }}
+                        className={`flex-1 min-h-[42px] py-2 px-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                            : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                        }`}
+                      >
+                        <Text
+                          className={`text-xs font-bold ${
+                            isSelected
+                              ? 'text-accent dark:text-accent-dark'
+                              : 'text-text-muted dark:text-text-muted-dark'
+                          }`}
+                        >
+                          {label}
+                        </Text>
+                        {isSelected && (
+                          <Ionicons
+                            name="checkmark-circle"
+                            size={14}
+                            color={colors.accent}
+                          />
+                        )}
+                      </TouchableOpacity>
+                    );
+                  })}
                 </View>
               </View>
 

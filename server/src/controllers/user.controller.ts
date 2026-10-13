@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import * as userModel from '../models/user.model'
-import { Goal } from '@prisma/client'
+import { Goal, Gender } from '@prisma/client'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { capitalizeWords } from '../utils/formatters.utils'
@@ -38,6 +38,7 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
         firstName?: string;
         lastName?: string;
         avatarUrl?: string | null;
+        gender?: Gender;
         height?: number;
         weight?: number;
         targetWeight?: number | null;
@@ -106,6 +107,16 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
             return res.status(400).json({ error: 'Invalid goal value' })
         }
         updateData.goal = goal as Goal
+    }
+
+    if (req.body.gender !== undefined) {
+        if (req.body.gender === 'FEMALE') {
+            updateData.gender = Gender.FEMALE
+        } else if (req.body.gender === 'MALE') {
+            updateData.gender = Gender.MALE
+        } else {
+            return res.status(400).json({ error: 'Invalid gender value. Must be MALE or FEMALE.' })
+        }
     }
 
     const user = await userModel.updateUser(userId, updateData)

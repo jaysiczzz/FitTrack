@@ -260,8 +260,8 @@ export default function DailyGoalsCard({
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={`${goal.actionLabel} for ${goal.title}`}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                className="min-h-[38px] px-3.5 py-1.5 items-center justify-center rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark active:opacity-75"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="px-3 py-1 items-center justify-center rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark active:opacity-75"
               >
                 <Text className="text-xs font-bold text-accent-contrast dark:text-accent-contrast-dark">
                   {goal.actionLabel}

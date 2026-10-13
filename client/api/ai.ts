@@ -124,7 +124,17 @@ export const getAIMealSuggestions = async (payload: {
   remainingCalories: number;
   remainingProtein: number;
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'all';
-}): Promise<{ success: boolean; suggestions: MealSuggestion[] }> => {
+}): Promise<{
+  success: boolean;
+  suggestions: MealSuggestion[];
+  usage?: {
+    used: number;
+    limit: number;
+    remaining: number;
+    resetsAt: string;
+    tier?: string;
+  };
+}> => {
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
     body: payload,
@@ -147,6 +157,7 @@ export const chatWithCoachApi = async (
   isPro?: boolean;
   remainingMessages?: number | null;
   dailyLimit?: number;
+  resetsAt?: string;
   error?: string;
 }> => {
   return apiRequest('/api/ai/chat', {
@@ -229,6 +240,7 @@ export const getChatHistoryApi = async (): Promise<{
   isPro?: boolean;
   remainingMessages?: number | null;
   dailyLimit?: number;
+  resetsAt?: string;
 }> => {
   return apiRequest('/api/ai/chat/history', {
     method: 'GET',

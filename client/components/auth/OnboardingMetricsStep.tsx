@@ -29,6 +29,9 @@ interface OnboardingMetricsStepProps {
   onAgeChange: (val: string) => void;
   ageError?: string;
 
+  gender: 'MALE' | 'FEMALE';
+  onGenderChange: (val: 'MALE' | 'FEMALE') => void;
+
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | '';
   onNext: () => void;
 }
@@ -43,6 +46,8 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
   age,
   onAgeChange,
   ageError,
+  gender,
+  onGenderChange,
   goal,
   onNext,
 }) => {
@@ -172,7 +177,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
     }
 
     const targets = calculatePersonalizedTargets(
-      { weight: w, height: h, age: a, goal },
+      { weight: w, height: h, age: a, gender, goal },
       (goal as any) || 'MUSCLE_GAIN'
     );
 
@@ -185,7 +190,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       carbGrams: targets.carbs,
       fatGrams: targets.fat,
     };
-  }, [height, weight, age, goal]);
+  }, [height, weight, age, gender, goal]);
 
   return (
     <View className="w-full">
@@ -330,6 +335,44 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
               blurOnSubmit={false}
             />
           )}
+        </View>
+      </View>
+
+      {/* Biological Sex Selector */}
+      <View className="mb-2.5">
+        <View className="flex-row items-center justify-between mb-1 px-0.5">
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            Biological Sex
+          </Text>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+            Calibrates BMR & caloric formulas
+          </Text>
+        </View>
+        <View className="flex-row bg-input dark:bg-input-dark p-0.5 rounded-lg border border-input-border dark:border-input-border-dark gap-1">
+          {(['MALE', 'FEMALE'] as const).map((g) => {
+            const isSelected = gender === g;
+            const label = g === 'MALE' ? 'Male' : 'Female';
+            return (
+              <Pressable
+                key={g}
+                onPress={() => {
+                  hapticFeedback.light();
+                  onGenderChange(g);
+                }}
+                className={`flex-1 py-1.5 rounded-md items-center justify-center ${
+                  isSelected ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
+                }`}
+              >
+                <Text
+                  className={`text-xs font-bold ${
+                    isSelected ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
+                  }`}
+                >
+                  {label}
+                </Text>
+              </Pressable>
+            );
+          })}
         </View>
       </View>
 

@@ -1,4 +1,6 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback, ReactNode, useEffect } from 'react';
+import { DeviceEventEmitter } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationToast, { NotificationType } from '../components/ui/NotificationToast';
 
@@ -27,6 +29,7 @@ interface ToastContextValue {
 const ToastContext = createContext<ToastContextValue | undefined>(undefined);
 
 export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
+  const router = useRouter();
   const [toastState, setToastState] = useState<{
     visible: boolean;
     message: string;
@@ -72,6 +75,35 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const hideToast = useCallback(() => {
     setToastState((prev) => ({ ...prev, visible: false }));
   }, []);
+
+  // Listen for global in-app notification toasts (e.g. when app is foregrounded)
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('SHOW_NOTIFICATION_TOAST', (payload: any) => {
+      if (payload && (payload.title || payload.message)) {
+        showToast({
+          message: payload.title || payload.message,
+          description: payload.title ? payload.message : undefined,
+          type: payload.type === 'error' ? 'error' : payload.type === 'warning' ? 'warning' : 'info',
+          duration: 3500,
+          actionLabel: payload.linkUrl ? 'View' : undefined,
+          onAction: payload.linkUrl
+            ? () => {
+                hideToast();
+                try {
+                  router.push(payload.linkUrl);
+                } catch (err) {
+                  console.warn('[ToastContext] Navigation error:', err);
+                }
+              }
+            : undefined,
+        });
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, [showToast, hideToast, router]);
 
   const showSuccess = useCallback((message: string, description?: string, actionLabel?: string, onAction?: () => void) => {
     showToast({

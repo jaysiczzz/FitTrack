@@ -3,7 +3,7 @@ import { ScrollView, View, Text, TouchableOpacity, Pressable, DeviceEventEmitter
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
@@ -41,11 +41,20 @@ export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 export default function FoodLog() {
   const { colors } = useThemeColors();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const userId = user?.id;
   const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
   const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
-  const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<FoodLogTabType>('today');
+  const params = useLocalSearchParams<{ tab?: FoodLogTabType }>();
+  const [activeTab, setActiveTab] = useState<FoodLogTabType>(
+    params.tab && ['today', 'library', 'history'].includes(params.tab) ? params.tab : 'today'
+  );
+
+  useEffect(() => {
+    if (params.tab && ['today', 'library', 'history'].includes(params.tab)) {
+      setActiveTab(params.tab);
+    }
+  }, [params.tab]);
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
@@ -78,7 +87,7 @@ export default function FoodLog() {
   // Targets computed dynamically based on user body stats & goal
   const targets: MacroTargets = useMemo(() => {
     return calculatePersonalizedTargets(user, goal);
-  }, [user?.weight, user?.height, user?.age, user?.goal, goal]);
+  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, goal]);
 
   // Load user profile & cached food log
   const loadInitialData = async () => {
@@ -682,6 +691,7 @@ export default function FoodLog() {
       todayCompletedWorkoutStats: null,
       currentStreak: 0,
       userName: user?.name || 'Athlete',
+      gender: user?.gender,
     });
     // all[1] is nutrition insight, all[2] is hydration insight
     return all.slice(1).filter(Boolean);
@@ -736,50 +746,55 @@ export default function FoodLog() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}>
-        <View className="w-full max-w-5xl self-center mx-auto">
-          {/* Streamlined Screen Header */}
-          <View className="mb-3.5">
-            <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Nutrition
-            </Text>
-          </View>
+      {/* Top Fixed Screen Header & Tabs */}
+      <View className="w-full max-w-5xl self-center mx-auto px-4 pt-3 pb-1">
+        <View className="mb-3.5">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+            Nutrition
+          </Text>
+        </View>
 
-          {/* Top Navigation Tabs (Today's Log | Library | History) */}
-          <FoodLogTabs
-            activeTab={activeTab}
-            onChange={(tab) => {
-              setActiveTab(tab);
-              if (tab === 'today') {
-                setScanTargetMeal(undefined);
-              }
+        {/* Top Navigation Tabs (Today's Log | Library | History) */}
+        <FoodLogTabs
+          activeTab={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === 'today') {
+              setScanTargetMeal(undefined);
+            }
+          }}
+        />
+      </View>
+
+      {activeTab === 'library' ? (
+        /* Food Library Tab View with fixed search & filter header */
+        <View className="flex-1 min-h-0 w-full max-w-5xl self-center mx-auto px-4 pt-1">
+          <FoodLibraryTab
+            onAddFood={handleAddMealItem}
+            defaultMeal={scanTargetMeal}
+            onSwitchToToday={() => {
+              setScanTargetMeal(undefined);
+              setActiveTab('today');
             }}
           />
-
-          {activeTab === 'history' ? (
-            /* History & Trends Tab View */
-            <FoodHistoryTab
-              targets={targets}
-              onReLogItem={handleAddMealItem}
-              onSwitchToToday={() => {
-                setScanTargetMeal(undefined);
-                setActiveTab('today');
-              }}
-            />
-          ) : activeTab === 'library' ? (
-            /* Food Library Tab View */
-            <FoodLibraryTab
-              onAddFood={handleAddMealItem}
-              defaultMeal={scanTargetMeal}
-              onSwitchToToday={() => {
-                setScanTargetMeal(undefined);
-                setActiveTab('today');
-              }}
-            />
-          ) : (
-            /* Today's Log Tab View */
-            <>
-              {/* 1. Daily Macro & Calorie Budget Summary Card */}
+        </View>
+      ) : (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 125 }}>
+          <View className="w-full max-w-5xl self-center mx-auto">
+            {activeTab === 'history' ? (
+              /* History & Trends Tab View */
+              <FoodHistoryTab
+                targets={targets}
+                onReLogItem={handleAddMealItem}
+                onSwitchToToday={() => {
+                  setScanTargetMeal(undefined);
+                  setActiveTab('today');
+                }}
+              />
+            ) : (
+              /* Today's Log Tab View */
+              <>
+                {/* 1. Daily Macro & Calorie Budget Summary Card */}
               <MacroSummaryCard
                 targets={targets}
                 loggedCalories={isDayCompleted ? sealedCalories : loggedCalories}
@@ -933,6 +948,7 @@ export default function FoodLog() {
           )}
         </View>
       </ScrollView>
+      )}
 
       {/* AI Scan & Photo Modal */}
       <AiScanModal
@@ -966,6 +982,10 @@ export default function FoodLog() {
         remainingCalories={remainingCalories}
         remainingProtein={remainingProtein}
         initialMealType={aiSuggestTargetMeal}
+        onUpgradePress={() => {
+          setShowAiSuggestModal(false);
+          setShowSubscriptionModal(true);
+        }}
       />
 
       {/* Edit Meal / Portion Adjustment Modal */}

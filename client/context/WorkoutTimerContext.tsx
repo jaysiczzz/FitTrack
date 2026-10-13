@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
+import { DeviceEventEmitter } from 'react-native';
 import { hapticFeedback } from '@/utils/haptics';
+import { useSocket } from './SocketContext';
 
 export interface WorkoutTimerState {
   visible: boolean;
@@ -36,9 +38,57 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   // an existing rest timer was already running when a new set is completed.
   const [timerSessionId, setTimerSessionId] = useState(0);
 
+  const { emitWorkoutTimerTick } = useSocket();
   const targetEndTimeRef = useRef<number | null>(null);
   const pausedRemainingMsRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cross-device incoming timer sync
+  useEffect(() => {
+    const sub = DeviceEventEmitter.addListener('WORKOUT_CROSS_DEVICE_TIMER', (payload) => {
+      if (!payload) return;
+      if (payload.action === 'start') {
+        const remainingSecs = payload.targetEndTime
+          ? Math.max(0, Math.ceil((payload.targetEndTime - Date.now()) / 1000))
+          : payload.secondsLeft;
+        targetEndTimeRef.current = payload.targetEndTime || (Date.now() + remainingSecs * 1000);
+        pausedRemainingMsRef.current = null;
+        setTotalSeconds(payload.totalSeconds);
+        setSecondsLeft(remainingSecs);
+        setExerciseName(payload.exerciseName);
+        setIsCompleted(false);
+        setIsRunning(true);
+        setIsMinimized(false);
+        setVisible(true);
+        setTimerSessionId((prev) => prev + 1);
+      } else if (payload.action === 'stop') {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setIsRunning(false);
+        setVisible(false);
+        targetEndTimeRef.current = null;
+        pausedRemainingMsRef.current = null;
+      } else if (payload.action === 'pause') {
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setSecondsLeft(payload.secondsLeft);
+        setIsRunning(false);
+      } else if (payload.action === 'resume') {
+        targetEndTimeRef.current = Date.now() + (payload.secondsLeft || 60) * 1000;
+        pausedRemainingMsRef.current = null;
+        setIsRunning(true);
+        setTimerSessionId((prev) => prev + 1);
+      }
+    });
+
+    return () => {
+      sub.remove();
+    };
+  }, []);
 
   // Main countdown effect syncing against Date.now() timestamp
   useEffect(() => {
@@ -84,7 +134,8 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
 
   const startRestTimer = useCallback((seconds: number = 90, name?: string) => {
     const duration = Math.max(1, seconds);
-    targetEndTimeRef.current = Date.now() + duration * 1000;
+    const targetEnd = Date.now() + duration * 1000;
+    targetEndTimeRef.current = targetEnd;
     pausedRemainingMsRef.current = null;
 
     setTotalSeconds(duration);
@@ -94,11 +145,18 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setIsRunning(true);
     setIsMinimized(false);
     setVisible(true);
-    // Increment sessionId so that even if timer was already running, the interval effect restarts
     setTimerSessionId((prev) => prev + 1);
 
+    emitWorkoutTimerTick({
+      action: 'start',
+      totalSeconds: duration,
+      secondsLeft: duration,
+      exerciseName: name,
+      targetEndTime: targetEnd,
+    });
+
     hapticFeedback.light();
-  }, []);
+  }, [emitWorkoutTimerTick]);
 
   const stopRestTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -109,24 +167,27 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     setVisible(false);
     targetEndTimeRef.current = null;
     pausedRemainingMsRef.current = null;
+
+    emitWorkoutTimerTick({ action: 'stop' });
     hapticFeedback.light();
-  }, []);
+  }, [emitWorkoutTimerTick]);
 
   const togglePlayPause = useCallback(() => {
     hapticFeedback.light();
     if (isCompleted) {
-      // Restart countdown
+      const targetEnd = Date.now() + totalSeconds * 1000;
       setSecondsLeft(totalSeconds);
       setIsCompleted(false);
       setIsRunning(true);
-      targetEndTimeRef.current = Date.now() + totalSeconds * 1000;
+      targetEndTimeRef.current = targetEnd;
       pausedRemainingMsRef.current = null;
       setTimerSessionId((prev) => prev + 1);
+
+      emitWorkoutTimerTick({ action: 'start', totalSeconds, secondsLeft: totalSeconds, targetEndTime: targetEnd });
       return;
     }
 
     if (isRunning) {
-      // Pause
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
@@ -137,14 +198,16 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         pausedRemainingMsRef.current = secondsLeft * 1000;
       }
       setIsRunning(false);
+      emitWorkoutTimerTick({ action: 'pause', secondsLeft });
     } else {
-      // Resume
-      const remainingMs = pausedRemainingMsRef.current ?? (secondsLeft * 1000);
-      targetEndTimeRef.current = Date.now() + remainingMs;
+      const remainingMs = pausedRemainingMsRef.current || (secondsLeft * 1000);
+      const targetEnd = Date.now() + remainingMs;
+      targetEndTimeRef.current = targetEnd;
       pausedRemainingMsRef.current = null;
       setIsRunning(true);
+      setTimerSessionId((prev) => prev + 1);
     }
-  }, [isCompleted, isRunning, secondsLeft, totalSeconds]);
+  }, [isCompleted, isRunning, totalSeconds, secondsLeft, emitWorkoutTimerTick]);
 
   const addSeconds = useCallback((secs: number = 30) => {
     hapticFeedback.light();

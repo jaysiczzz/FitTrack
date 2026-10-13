@@ -66,6 +66,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   const [weightUnit] = useWeightUnit();
   const stepDelta = weightUnit === 'LBS' ? 5 : 2.5;
   const [setToDelete, setSetToDelete] = useState<{ id: string; setNumber: number } | null>(null);
+  const [showTerminologyTip, setShowTerminologyTip] = useState(false);
   const isCardio = type.toLowerCase() === 'cardio';
   const isBodyweight =
     type.toLowerCase() === 'bodyweight' ||
@@ -195,21 +196,74 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           ) : null}
         </View>
 
-        {onViewDetails ? (
+        <View className="flex-row items-center gap-1.5">
           <TouchableOpacity
-            onPress={onViewDetails}
+            onPress={() => setShowTerminologyTip((v) => !v)}
             activeOpacity={0.7}
-            className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-lg border border-accent/30"
+            className={`px-2.5 py-1 rounded-lg border flex-row items-center gap-1 ${
+              showTerminologyTip
+                ? 'bg-accent border-accent'
+                : 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40'
+            }`}
           >
-            <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-              Guide & Tips
+            <Ionicons
+              name={showTerminologyTip ? 'bulb' : 'bulb-outline'}
+              size={12}
+              color={showTerminologyTip ? colors.accentContrast : colors.accent}
+            />
+            <Text
+              className={`text-[10px] font-extrabold ${
+                showTerminologyTip
+                  ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                  : 'text-accent dark:text-accent-dark'
+              }`}
+            >
+              Sets & Reps?
             </Text>
           </TouchableOpacity>
-        ) : null}
+
+          {onViewDetails ? (
+            <TouchableOpacity
+              onPress={onViewDetails}
+              activeOpacity={0.7}
+              className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark flex-row items-center gap-1"
+            >
+              <Ionicons name="book-outline" size={12} color={colors.textMuted} />
+              <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+                Guide
+              </Text>
+            </TouchableOpacity>
+          ) : null}
+        </View>
       </View>
 
       {/* Sets Table Header */}
       <View>
+        {/* Beginner Terminology Helper Tooltip Banner */}
+        {showTerminologyTip && (
+          <View className="mb-2.5 p-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 flex-row items-start justify-between gap-2 shadow-xs">
+            <View className="flex-row items-start gap-2 flex-1">
+              <Ionicons name="bulb" size={15} color={colors.accent} style={{ marginTop: 1 }} />
+              <View className="flex-1">
+                <Text className="text-xs font-bold text-accent dark:text-accent-dark mb-0.5">
+                  Beginner Lifting Guide:
+                </Text>
+                <Text className="text-[11px] text-text-primary dark:text-text-primary-dark leading-4">
+                  • <Text className="font-extrabold text-accent">Rep (Repetition):</Text> How many times you perform the movement (e.g. 10 push-ups).{'\n'}
+                  • <Text className="font-extrabold text-accent">Set:</Text> One block of reps followed by a rest interval before your next set.
+                </Text>
+              </View>
+            </View>
+            <TouchableOpacity
+              onPress={() => setShowTerminologyTip(false)}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="px-2 py-1 rounded-lg bg-accent/20 border border-accent/30 self-start"
+            >
+              <Text className="text-[10px] font-black text-accent dark:text-accent-dark">Got it</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
         <View className="mb-2 flex-row items-center gap-1.5 px-0.5 w-full">
           <Text className="w-8 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
             Set
@@ -462,6 +516,16 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             </Text>
           </TouchableOpacity>
         ) : null}
+
+        {/* Beginner Barbell Weight Helper Note */}
+        {(equipment?.toLowerCase().includes('barbell') || name.toLowerCase().includes('barbell')) && (
+          <View className="mt-2.5 px-2.5 py-1.5 rounded-lg bg-input/50 dark:bg-input-dark/50 border border-input-border/40 flex-row items-center gap-1.5">
+            <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} />
+            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-3.5 flex-1">
+              Barbell tip: A standard gym Olympic bar weighs 20kg (45 lbs) on its own. Total weight includes the bar + plates!
+            </Text>
+          </View>
+        )}
       </View>
 
       {/* Delete Set Confirmation Modal */}

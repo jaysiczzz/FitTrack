@@ -81,6 +81,7 @@ interface TodayWorkoutTabProps {
   onUpdateExercisePreset?: (exerciseKey: string, customized: LibraryExercise) => void;
   onNavigateToLibrary: () => void;
   onOpenAiGenerator?: () => void;
+  onStartBeginnerRoutine?: () => void;
   onCompleteSession: () => void;
   onStartRestTimer?: (seconds: number, exerciseName?: string) => void;
 }
@@ -102,6 +103,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onUpdateExercisePreset,
   onNavigateToLibrary,
   onOpenAiGenerator,
+  onStartBeginnerRoutine,
   onCompleteSession,
   onStartRestTimer,
 }) => {
@@ -119,6 +121,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   const [pendingRestAction, setPendingRestAction] = useState<'library' | 'ai' | null>(null);
   const [weightUnit] = useWeightUnit();
   const unitLabel = weightUnit.toLowerCase();
+  const [hideBeginnerSpotlight, setHideBeginnerSpotlight] = useState(false);
 
   const handleToggleSetWithRest = (exercise: TodayExerciseItem, setId: string) => {
     const targetSet = exercise.sets.find((s) => s.id === setId);
@@ -504,54 +507,100 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
             </SurfaceCard>
           ) : (
             /* Default Empty State */
-            <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center my-2 bg-surface dark:bg-surface-dark">
-              <View className="w-14 h-14 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
-                <Ionicons name="barbell" size={26} color={colors.textMuted} />
-              </View>
-              <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-base mb-1">
-                No exercises scheduled yet
-              </Text>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
-                Choose exercises from the library, generate a quick routine with AI, or plan your weekly split.
-              </Text>
-              <View className="flex-row flex-wrap justify-center gap-2">
-                <TouchableOpacity
-                  onPress={onNavigateToLibrary}
-                  accessibilityRole="button"
-                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                  className="bg-accent dark:bg-accent-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-90"
-                >
-                  <Ionicons name="barbell" size={15} color={colors.accentContrast} />
-                  <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
-                    Library
+            <View className="my-2">
+              {/* Beginner Quick-Start Spotlight: Displayed only for new users with 0 logged workouts */}
+              {onStartBeginnerRoutine && completedSessionsCount === 0 && !hideBeginnerSpotlight && (
+                <View className="mb-3.5 p-4 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/40 shadow-xs">
+                  <View className="flex-row items-center justify-between mb-1.5">
+                    <View className="flex-row items-center gap-1.5">
+                      <Ionicons name="sparkles" size={14} color={colors.accent} />
+                      <Text className="text-[10px] font-black uppercase text-accent dark:text-accent-dark tracking-wider">
+                        New to lifting?
+                      </Text>
+                    </View>
+                    <View className="flex-row items-center gap-2">
+                      <View className="px-2 py-0.5 rounded-full bg-accent/20 border border-accent/30">
+                        <Text className="text-[9px] font-extrabold text-accent dark:text-accent-dark">
+                          Beginner Recommended
+                        </Text>
+                      </View>
+                      <TouchableOpacity
+                        onPress={() => setHideBeginnerSpotlight(true)}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                        accessibilityLabel="Dismiss beginner routine suggestion"
+                      >
+                        <Ionicons name="close" size={16} color={colors.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                  <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark mb-1">
+                    Day 1: Full-Body Foundations
                   </Text>
-                </TouchableOpacity>
-                {onOpenAiGenerator && (
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4 mb-3">
+                    Safe, guided movements (Dumbbells & Bodyweight) with light starter weights, clear form cues, and built-in rest periods.
+                  </Text>
                   <TouchableOpacity
-                    onPress={onOpenAiGenerator}
-                    accessibilityRole="button"
-                    hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
+                    onPress={onStartBeginnerRoutine}
+                    activeOpacity={0.8}
+                    className="bg-accent dark:bg-accent-dark min-h-[44px] py-2.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-xs active:opacity-90"
                   >
-                    <Ionicons name="sparkles" size={13} color={colors.accent} />
-                    <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                      AI Routine
+                    <Ionicons name="play" size={14} color={colors.accentContrast} />
+                    <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black">
+                      Start Beginner Routine (4 Exercises)
                     </Text>
                   </TouchableOpacity>
-                )}
-                {onNavigateToPlanner && (
+                </View>
+              )}
+
+              <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center bg-surface dark:bg-surface-dark">
+                <View className="w-14 h-14 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
+                  <Ionicons name="barbell" size={26} color={colors.textMuted} />
+                </View>
+                <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-base mb-1">
+                  Build Your Own Workout
+                </Text>
+                <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mb-4 max-w-[260px]">
+                  Choose exercises from the library, generate a quick routine with AI, or plan your weekly split.
+                </Text>
+                <View className="flex-row flex-wrap justify-center gap-2">
                   <TouchableOpacity
-                    onPress={onNavigateToPlanner}
+                    onPress={onNavigateToLibrary}
                     accessibilityRole="button"
                     hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                    className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
+                    className="bg-accent dark:bg-accent-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-90"
                   >
-                    <Ionicons name="calendar-outline" size={14} color={colors.accent} />
-                    <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-                      Planner
+                    <Ionicons name="barbell" size={15} color={colors.accentContrast} />
+                    <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
+                      Library
                     </Text>
                   </TouchableOpacity>
-                )}
+                  {onOpenAiGenerator && (
+                    <TouchableOpacity
+                      onPress={onOpenAiGenerator}
+                      accessibilityRole="button"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
+                    >
+                      <Ionicons name="sparkles" size={13} color={colors.accent} />
+                      <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
+                        AI Routine
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                  {onNavigateToPlanner && (
+                    <TouchableOpacity
+                      onPress={onNavigateToPlanner}
+                      accessibilityRole="button"
+                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                      className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-4 py-2.5 min-h-[44px] rounded-xl flex-row items-center justify-center gap-1.5 active:opacity-80"
+                    >
+                      <Ionicons name="calendar-outline" size={14} color={colors.accent} />
+                      <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                        Planner
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
             </View>
           )}

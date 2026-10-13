@@ -79,13 +79,13 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
       ];
 
   const movementTypeLabel = isCardio
-    ? 'Cardiovascular Endurance Pattern'
+    ? 'Cardio & Stamina'
     : isIsometric
-    ? 'Isometric Anti-Extension Hold'
+    ? 'Core Stability & Hold'
     : isPush
-    ? 'Push Pattern (Concentric Force Drive)'
+    ? 'Push Movement (Chest & Shoulders)'
     : isPull
-    ? 'Pull Pattern (Concentric Force Retraction)'
+    ? 'Pull Movement (Back & Biceps)'
     : `${exercise.type || 'Compound'} Movement`;
 
   return (
@@ -135,7 +135,7 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
 
         {/* Setup & Stance Card */}
         {exercise.startingPosition && (
-          <View className="rounded-xl p-3 bg-surface/60 dark:bg-surface-dark/60 border border-input-border/60 dark:border-input-border-dark/60 mb-3">
+          <View className="rounded-xl p-3 bg-surface/60 dark:bg-surface-dark/60 border border-input-border/60 dark:border-input-border-dark/60">
             <View className="flex-row items-center gap-1.5 mb-1">
               <Ionicons name="locate-outline" size={14} color={theme.color} />
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -147,23 +147,6 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
             </Text>
           </View>
         )}
-
-        {/* Equipment & Movement Meta Badges */}
-        <View className="flex-row flex-wrap gap-2">
-          <View className="px-2.5 py-1 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5">
-            <Ionicons name="barbell-outline" size={13} color={colors.accent} />
-            <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
-              Equipment: {Array.isArray(exercise.equipment) ? exercise.equipment.join(', ') : exercise.equipment || 'Bodyweight'}
-            </Text>
-          </View>
-
-          <View className="px-2.5 py-1 rounded-lg bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1.5">
-            <Ionicons name="git-branch-outline" size={13} color={theme.color} />
-            <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
-              {movementTypeLabel}
-            </Text>
-          </View>
-        </View>
       </View>
 
       {/* 2. HOW TO DO IT: STEP-BY-STEP EXECUTION GUIDE */}
@@ -277,60 +260,6 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
           </View>
         )}
       </View>
-
-      {/* 4. PROGRESSIONS & ALTERNATIVES */}
-      {(exercise.beginnerModification || exercise.advancedVariation || exercise.equipmentFreeAlternative) && (
-        <View className="rounded-2xl p-4 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark overflow-hidden">
-          <View className="flex-row items-center gap-2 mb-3">
-            <View className="w-8 h-8 rounded-xl items-center justify-center bg-purple-500/15 border border-purple-500/30 shrink-0">
-              <Ionicons name="swap-horizontal-outline" size={18} color="#A855F7" />
-            </View>
-            <View className="flex-1 min-w-0">
-              <Text className="text-xs font-extrabold text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
-                Progressions & Equipment Alternatives
-              </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                Scale difficulty up or down depending on gym availability and experience
-              </Text>
-            </View>
-          </View>
-
-          <View className="gap-2">
-            {exercise.beginnerModification ? (
-              <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border/60">
-                <Text className="text-[11px] font-bold text-accent dark:text-accent-dark mb-0.5">
-                  Beginner Modification:
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
-                  {exercise.beginnerModification}
-                </Text>
-              </View>
-            ) : null}
-
-            {exercise.advancedVariation ? (
-              <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border/60">
-                <Text className="text-[11px] font-bold text-purple-500 dark:text-purple-400 mb-0.5">
-                  Advanced Progression:
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
-                  {exercise.advancedVariation}
-                </Text>
-              </View>
-            ) : null}
-
-            {exercise.equipmentFreeAlternative ? (
-              <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border/60">
-                <Text className="text-[11px] font-bold text-sky-500 dark:text-sky-400 mb-0.5">
-                  No Equipment Alternative:
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
-                  {exercise.equipmentFreeAlternative}
-                </Text>
-              </View>
-            ) : null}
-          </View>
-        </View>
-      )}
     </View>
   );
 }

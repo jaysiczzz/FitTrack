@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { Platform, DeviceEventEmitter } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authStorage } from './authStorage';
@@ -6,6 +6,7 @@ import {
   getNotificationSettingsApi,
   updateNotificationSettingsApi,
   resetNotificationSettingsApi,
+  savePushTokenApi,
 } from '../api/notifications';
 
 export interface NotificationSettings {
@@ -46,26 +47,18 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
   quietHoursEnd: '07:00',
 };
 
-// Configure foreground presentation behavior (Alert banner + sound on native)
+// Configure foreground presentation behavior
+// When actively using the app, suppress intrusive native system banners and sounds.
+// Native system banners and lock-screen alerts will automatically present when app is in background or device is locked!
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
     handleNotification: async () => {
-      let playSound = true;
-      try {
-        const saved = await AsyncStorage.getItem('fittrack_notification_settings');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (parsed && typeof parsed.soundEnabled === 'boolean') {
-            playSound = parsed.soundEnabled;
-          }
-        }
-      } catch {}
       return {
-        shouldShowAlert: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-        shouldPlaySound: playSound,
-        shouldSetBadge: false,
+        shouldShowAlert: false, // Suppress native popup alert when app is foregrounded!
+        shouldShowBanner: false, // Suppress native drop-down banner when app is foregrounded!
+        shouldShowList: false, // Don't clutter native shade when actively inside the app!
+        shouldPlaySound: false, // No disruptive system chime while browsing!
+        shouldSetBadge: true,
       };
     },
   });
@@ -127,7 +120,7 @@ async function setupAndroidChannel(soundEnabled = true, vibrationEnabled = true)
       importance: Notifications.AndroidImportance.HIGH,
       vibrationPattern: vibrationEnabled ? [0, 250, 250, 250] : undefined,
       enableVibrate: vibrationEnabled,
-      lightColor: '#0D7A57',
+      lightColor: '#10B981',
       sound: soundEnabled ? 'default' : undefined,
     });
   }
@@ -282,6 +275,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
             title: '🍳 Breakfast Reminder',
             body: 'Fuel your day with quality protein and wholesome carbs!',
             sound: soundOption,
+            data: {
+              linkUrl: '/(screen)/foodlog?tab=today',
+              type: 'NUTRITION',
+            },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -299,6 +296,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
             title: '🥗 Lunch Time',
             body: 'Log your midday meal to stay on top of your macros!',
             sound: soundOption,
+            data: {
+              linkUrl: '/(screen)/foodlog?tab=today',
+              type: 'NUTRITION',
+            },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -316,6 +317,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
             title: '🍽️ Dinner Check-In',
             body: 'Wrap up your daily nutrition and hit your remaining calorie target.',
             sound: soundOption,
+            data: {
+              linkUrl: '/(screen)/foodlog?tab=today',
+              type: 'NUTRITION',
+            },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -336,6 +341,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
             title: '💧 Hydration Check',
             body: 'Drink a glass of water! Aim to reach your daily hydration target.',
             sound: soundOption,
+            data: {
+              linkUrl: '/(screen)/foodlog?tab=today',
+              type: 'NUTRITION',
+            },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -353,6 +362,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
             title: '💧 Midday Water Break',
             body: 'Keep hydrated for optimal energy, recovery, and focus.',
             sound: soundOption,
+            data: {
+              linkUrl: '/(screen)/foodlog?tab=today',
+              type: 'NUTRITION',
+            },
           },
           trigger: {
             type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -372,6 +385,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
           title: '💪 Workout Time',
           body: 'Your scheduled session is ready. Consistency builds results!',
           sound: soundOption,
+          data: {
+            linkUrl: '/(screen)/workouts?tab=today',
+            type: 'WORKOUT',
+          },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -390,6 +407,10 @@ export async function rescheduleAllNotifications(settings: NotificationSettings)
           title: '⚡ Daily Readiness Check',
           body: 'How are you feeling today? Tap to record your energy level and calibrate advice.',
           sound: soundOption,
+          data: {
+            linkUrl: '/(screen)/calendar',
+            type: 'STREAK',
+          },
         },
         trigger: {
           type: Notifications.SchedulableTriggerInputTypes.DAILY,
@@ -421,6 +442,10 @@ export async function sendTestNotification(soundEnabled = true): Promise<boolean
         title: '🔔 FitTrack Notifications Active',
         body: 'Custom alert timings and reminders are active and ready to keep you accountable!',
         sound: soundEnabled ? 'default' : undefined,
+        data: {
+          linkUrl: '/(screen)/notifications',
+          type: 'SYSTEM',
+        },
       },
       trigger: {
         type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
@@ -434,4 +459,77 @@ export async function sendTestNotification(soundEnabled = true): Promise<boolean
     console.warn('[notificationService] Failed to send test notification:', err);
     return false;
   }
+}
+
+/**
+ * Registers the device with Expo Push Service and saves token to server
+ */
+export async function registerForPushNotificationsAsync(): Promise<string | null> {
+  if (Platform.OS === 'web') return null;
+
+  try {
+    const hasPermission = await hasNotificationPermission();
+    if (!hasPermission) return null;
+
+    const tokenResponse = await Notifications.getExpoPushTokenAsync({
+      projectId: '5b6eca05-53a5-4057-a149-508beaf6be25',
+    }).catch(() => null);
+
+    const token = tokenResponse?.data;
+    if (token) {
+      await savePushTokenApi(token).catch(() => {});
+      return token;
+    }
+  } catch (err) {
+    // Non-blocking in simulators / unconfigured dev clients
+  }
+  return null;
+}
+
+/**
+ * Initializes global foreground & tap notification listeners
+ * - When received in foreground: triggers non-intrusive in-app toast & updates badge
+ * - When tapped from mobile lock screen: deep links directly to the cause of notification
+ */
+export function setupNotificationListeners(router: any): () => void {
+  if (Platform.OS === 'web') {
+    return () => {};
+  }
+
+  // 1. Foreground listener: User receives notification while using the app
+  const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+    const { title, body, data } = notification.request.content;
+
+    // Emit event for in-app toast
+    DeviceEventEmitter.emit('SHOW_NOTIFICATION_TOAST', {
+      title: title || 'FitTrack',
+      message: body || '',
+      linkUrl: data?.linkUrl,
+      type: data?.type || 'info',
+    });
+
+    // Notify any active badge or unread counters
+    DeviceEventEmitter.emit('IN_APP_NOTIFICATIONS_UPDATED');
+  });
+
+  // 2. Response listener: User taps notification from mobile lock screen / notification drawer
+  const responseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+    const data = response.notification.request.content.data;
+    const linkUrl = data?.linkUrl;
+
+    if (linkUrl && router) {
+      setTimeout(() => {
+        try {
+          router.push(linkUrl);
+        } catch (err) {
+          console.warn('[notificationService] Failed to navigate to notification target:', err);
+        }
+      }, 300);
+    }
+  });
+
+  return () => {
+    receivedSubscription.remove();
+    responseSubscription.remove();
+  };
 }

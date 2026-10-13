@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -62,6 +64,10 @@ export default function AdminUsersTab({
   const [overrideTier, setOverrideTier] = useState<SubscriptionTierType>('PRO_MONTHLY');
   const [savingOverride, setSavingOverride] = useState(false);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+
+  const hasActiveFilters = roleFilter !== 'ALL' || (tierFilter && tierFilter !== 'ALL');
+  const activeFilterCount = (roleFilter !== 'ALL' ? 1 : 0) + (tierFilter && tierFilter !== 'ALL' ? 1 : 0);
 
   // Confirmation modal states
   const [roleConfirmTarget, setRoleConfirmTarget] = useState<{ user: AdminUserItem; newRole: 'USER' | 'ADMIN' } | null>(null);
@@ -187,75 +193,202 @@ export default function AdminUsersTab({
   };
 
   return (
-    <View className="gap-3">
-      {/* Search Bar */}
-      <View className="flex-row items-center bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
-        <Ionicons name="search" size={16} color={colors.textMuted} className="mr-2" />
-        <TextInput
-          className="flex-1 text-sm text-text-primary dark:text-text-primary-dark p-0"
-          placeholder="Search athletes by name or email..."
-          placeholderTextColor={colors.textMuted}
-          value={search}
-          onChangeText={onSearchChange}
-          onSubmitEditing={onSearchSubmit}
-          returnKeyType="search"
-        />
-        {search.length > 0 && (
+    <View className="flex-1 min-h-0">
+      {/* Pinned Search & Filter Header */}
+      <View className="pb-3 gap-2">
+        {/* Row 1: Search Bar + Collapsible Filters Toggle Button */}
+        <View className="flex-row items-center gap-2">
+          <View className="flex-1 flex-row items-center bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+            <Ionicons name="search" size={16} color={colors.textMuted} className="mr-2" />
+            <TextInput
+              className="flex-1 text-sm text-text-primary dark:text-text-primary-dark p-0"
+              placeholder="Search athletes by name or email..."
+              placeholderTextColor={colors.textMuted}
+              value={search}
+              onChangeText={onSearchChange}
+              onSubmitEditing={onSearchSubmit}
+              returnKeyType="search"
+            />
+            {search.length > 0 && (
+              <TouchableOpacity
+                onPress={() => onSearchChange('')}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+            )}
+          </View>
+
           <TouchableOpacity
-            onPress={() => onSearchChange('')}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            onPress={() => {
+              triggerHapticFeedback();
+              setShowFilters((prev) => !prev);
+            }}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            className={`min-h-[42px] px-3 rounded-xl border flex-row items-center gap-1.5 ${
+              hasActiveFilters
+                ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40'
+                : showFilters
+                ? 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
+            }`}
+            accessibilityRole="button"
+            accessibilityLabel="Toggle role and plan filters"
           >
-            <Ionicons name="close-circle" size={18} color={colors.textMuted} />
+            <Ionicons
+              name={showFilters ? 'options' : 'options-outline'}
+              size={15}
+              color={hasActiveFilters ? colors.accent : colors.textPrimary}
+            />
+            <Text
+              className={`text-xs font-bold ${
+                hasActiveFilters
+                  ? 'text-accent dark:text-accent-dark'
+                  : 'text-text-primary dark:text-text-primary-dark'
+              }`}
+            >
+              Filters
+            </Text>
+            {activeFilterCount > 0 && (
+              <View className="px-1.5 py-0.2 rounded-full bg-accent dark:bg-accent-dark">
+                <Text className="text-[10px] font-black text-accent-contrast dark:text-accent-contrast-dark">
+                  {activeFilterCount}
+                </Text>
+              </View>
+            )}
+            <Ionicons
+              name={showFilters ? 'chevron-up' : 'chevron-down'}
+              size={13}
+              color={colors.textMuted}
+            />
           </TouchableOpacity>
+        </View>
+
+        {/* Active Filter Indicators when drawer is collapsed */}
+        {!showFilters && hasActiveFilters && (
+          <View className="flex-row items-center gap-1.5 flex-wrap pt-0.5">
+            <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
+              Active:
+            </Text>
+            {roleFilter !== 'ALL' && (
+              <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded-lg flex-row items-center gap-1">
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                  {roleFilter === 'USER' ? 'Athletes' : 'Admins'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    onRoleFilterChange('ALL');
+                  }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="close" size={11} color={colors.accent} />
+                </TouchableOpacity>
+              </View>
+            )}
+            {tierFilter !== 'ALL' && (
+              <View className="bg-success/15 border border-success/30 px-2 py-0.5 rounded-lg flex-row items-center gap-1">
+                <Text className="text-[10px] font-bold text-success dark:text-success-dark">
+                  {tierFilter === 'PRO' ? 'Pro Tier' : 'Free Tier'}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    onTierFilterChange?.('ALL');
+                  }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Ionicons name="close" size={11} color={colors.accent} />
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Collapsible Role & Tier Drawer */}
+        {showFilters && (
+          <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-2xl border border-input-border dark:border-input-border-dark gap-2.5">
+            <View className="flex-row items-center justify-between">
+              <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+                Filter Athletes
+              </Text>
+              {hasActiveFilters && (
+                <TouchableOpacity
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    onRoleFilterChange('ALL');
+                    onTierFilterChange?.('ALL');
+                  }}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                >
+                  <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
+                    Reset Filters
+                  </Text>
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Role Filter Chips */}
+            <View className="flex-row items-center gap-2">
+              <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
+                Role:
+              </Text>
+              <View className="flex-row flex-1 flex-wrap gap-1.5">
+                {(['ALL', 'USER', 'ADMIN'] as const).map((filter) => (
+                  <FilterChip
+                    key={filter}
+                    label={filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes' : 'Admins'}
+                    selected={roleFilter === filter}
+                    onPress={() => {
+                      triggerHapticFeedback();
+                      onRoleFilterChange(filter);
+                    }}
+                  />
+                ))}
+              </View>
+            </View>
+
+            {/* Tier Filter Chips */}
+            {onTierFilterChange ? (
+              <View className="flex-row items-center gap-2">
+                <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
+                  Plan:
+                </Text>
+                <View className="flex-row flex-1 flex-wrap gap-1.5">
+                  {(['ALL', 'PRO', 'FREE'] as const).map((tFilter) => (
+                    <FilterChip
+                      key={tFilter}
+                      label={tFilter === 'ALL' ? 'All Plans' : tFilter === 'PRO' ? 'Pro Tier' : 'Free Tier'}
+                      selected={tierFilter === tFilter}
+                      onPress={() => {
+                        triggerHapticFeedback();
+                        onTierFilterChange(tFilter);
+                      }}
+                    />
+                  ))}
+                </View>
+              </View>
+            ) : null}
+          </View>
         )}
       </View>
 
-      {/* Role & Tier Filter Chips */}
-      <View className="gap-2">
-        <View className="flex-row items-center gap-2">
-          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
-            Role:
-          </Text>
-          <View className="flex-row flex-1 flex-wrap gap-1.5">
-            {(['ALL', 'USER', 'ADMIN'] as const).map((filter) => (
-              <FilterChip
-                key={filter}
-                label={filter === 'ALL' ? 'All Roles' : filter === 'USER' ? 'Athletes' : 'Admins'}
-                selected={roleFilter === filter}
-                onPress={() => {
-                  triggerHapticFeedback();
-                  onRoleFilterChange(filter);
-                }}
-              />
-            ))}
-          </View>
-        </View>
-
-        {onTierFilterChange ? (
-          <View className="flex-row items-center gap-2">
-            <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark w-10">
-              Plan:
-            </Text>
-            <View className="flex-row flex-1 flex-wrap gap-1.5">
-              {(['ALL', 'PRO', 'FREE'] as const).map((tFilter) => (
-                <FilterChip
-                  key={tFilter}
-                  label={tFilter === 'ALL' ? 'All Plans' : tFilter === 'PRO' ? 'Pro Tier' : 'Free Tier'}
-                  selected={tierFilter === tFilter}
-                  onPress={() => {
-                    triggerHapticFeedback();
-                    onTierFilterChange(tFilter);
-                  }}
-                />
-              ))}
-            </View>
-          </View>
-        ) : null}
-      </View>
-
-      {/* User List */}
-      {loading && !refreshing ? (
-        <View className="py-20 items-center justify-center">
+      {/* Scrollable User List */}
+      <ScrollView
+        className="flex-1 min-h-0"
+        contentContainerStyle={{ paddingBottom: 90, gap: 12 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onReloadUsers}
+            tintColor={colors.accent}
+          />
+        }
+      >
+        {loading && !refreshing ? (
+          <View className="py-20 items-center justify-center">
           <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
             Loading user records...
@@ -340,6 +473,7 @@ export default function AdminUsersTab({
           );
         })
       )}
+      </ScrollView>
 
       {/* ── Manage User Modal ── */}
       {selectedUser && (
