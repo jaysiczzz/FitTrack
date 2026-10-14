@@ -15,6 +15,7 @@ interface OnboardingPlanStepProps {
   onLaunchDashboard: () => void;
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | '';
   userName: string;
+  gender?: 'MALE' | 'FEMALE';
   height: number;
   weight: number;
   age: number;
@@ -36,6 +37,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   onLaunchDashboard,
   goal,
   userName,
+  gender,
   height,
   weight,
   age,
@@ -72,7 +74,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
     const a = age || 25;
 
     const targets = calculatePersonalizedTargets(
-      { weight: w, height: h, age: a, goal },
+      { weight: w, height: h, age: a, gender, goal },
       (goal as any) || 'MUSCLE_GAIN'
     );
 
@@ -87,7 +89,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
           ? 'Optimized for progressive overload, muscle synthesis, and high-protein recovery.'
           : 'Optimized for a sustainable caloric deficit while preserving lean muscle mass.',
     };
-  }, [height, weight, age, goal]);
+  }, [height, weight, age, gender, goal]);
 
   // If there's an error from the backend registration
   if (error) {

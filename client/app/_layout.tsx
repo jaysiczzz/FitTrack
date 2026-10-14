@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { View, Text, TouchableOpacity } from "react-native";
-import { Slot } from "expo-router";
+import { Slot, useRouter } from "expo-router";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import {
@@ -12,12 +12,14 @@ import {
 } from "@expo-google-fonts/baloo-2";
 import { ToastProvider } from "../context/ToastContext";
 import { AuthProvider } from "../context/AuthContext";
+import { SocketProvider } from "../context/SocketContext";
 import { WorkoutTimerProvider } from "../context/WorkoutTimerContext";
 import { useColorScheme } from "nativewind";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { initWebAriaFix } from "@/utils/webAriaFix";
 import { THEME_STORAGE_KEY } from "@/constants/storageKeys";
+import { setupNotificationListeners, registerForPushNotificationsAsync } from "@/utils/notificationService";
 import "../global.css";
 
 initWebAriaFix();
@@ -78,11 +80,22 @@ export default function RootLayout() {
       .catch(() => {});
   }, []);
 
+  const router = useRouter();
+
   useEffect(() => {
     if (fontsLoaded) {
       SplashScreen.hideAsync();
     }
   }, [fontsLoaded]);
+
+  // Unified Mobile Notification Listeners & Push Token Sync
+  useEffect(() => {
+    const cleanup = setupNotificationListeners(router);
+    registerForPushNotificationsAsync().catch(() => {});
+    return () => {
+      cleanup();
+    };
+  }, [router]);
 
   if (!fontsLoaded) {
     return null;
@@ -93,13 +106,15 @@ export default function RootLayout() {
       <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
       <ToastProvider>
         <AuthProvider>
-          <WorkoutTimerProvider>
-            <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
-              <View className="flex-1 min-h-0 w-full">
-                <Slot />
+          <SocketProvider>
+            <WorkoutTimerProvider>
+              <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
+                <View className="flex-1 min-h-0 w-full">
+                  <Slot />
+                </View>
               </View>
-            </View>
-          </WorkoutTimerProvider>
+            </WorkoutTimerProvider>
+          </SocketProvider>
         </AuthProvider>
       </ToastProvider>
     </SafeAreaProvider>

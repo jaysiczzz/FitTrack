@@ -289,6 +289,7 @@ export default function WorkoutPlannerTab({
     setMonthlySchedule(newMonthly);
     try {
       await AsyncStorage.setItem(monthlyScheduleKey, JSON.stringify(newMonthly));
+      DeviceEventEmitter.emit('WORKOUT_SCHEDULE_UPDATED', { monthlySchedule: newMonthly });
       updateWorkoutPlanApi({ monthlySchedule: newMonthly }).catch(() => {});
     } catch (err) {
       console.log('Error saving monthly schedule:', err);
@@ -693,19 +694,17 @@ export default function WorkoutPlannerTab({
         </View>
       )}
 
-      {/* VIEW 3: MONTHLY PLANNER & PERIODIZATION */}
+      {/* VIEW 2: MONTHLY HABIT & CONSISTENCY CALENDAR */}
       {viewMode === 'monthly' && (
         <MonthlyPlannerView
           routines={routines}
           weeklySplit={weeklySplit}
           monthlySchedule={monthlySchedule}
           monthlyTargetDays={monthlyTargetDays}
-          currentMesocycleWeek={currentMesocycleWeek}
           onUpdateScheduleDay={handleUpdateScheduleDay}
           onAutoFillMonthFromSplit={handleAutoFillMonthFromSplit}
           onClearMonthSchedule={handleClearMonthSchedule}
           onUpdateTargetDays={handleUpdateTargetDays}
-          onUpdateMesocycleWeek={handleUpdateMesocycleWeek}
           onStartRoutine={onStartRoutine}
           onCreateRoutine={() => setShowCreateModal(true)}
           workoutHistory={workoutHistory}

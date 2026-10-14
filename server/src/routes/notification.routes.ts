@@ -6,6 +6,7 @@ import {
   getNotificationPreferences,
   updateNotificationPreferences,
   resetNotificationPreferences,
+  savePushToken,
 } from '../controllers/notification.controller'
 
 const router = Router()
@@ -15,5 +16,6 @@ router.use(authMiddleware)
 router.get('/', getNotificationPreferences)
 router.put('/', validate(updateNotificationSettingsSchema), updateNotificationPreferences)
 router.post('/reset', resetNotificationPreferences)
+router.post('/push-token', savePushToken)
 
 export default router

@@ -34,13 +34,16 @@
     "jsonwebtoken": "^9.0.3",
     "nodemailer": "^10.0.10",
     "prisma": "^7.8.0",
+    "socket.io": "^4.8.4",
     "stripe": "^17.7.0",
     "typescript": "^7.0.2",
     "zod": "^4.6.4"
   },
   "devDependencies": {
     "nodemon": "^3.1.14",
-    "tsx": "^4.23.0"
+    "socket.io-client": "^4.8.4",
+    "tsx": "^4.23.0",
+    "typescript": "^7.0.2"
   },
   "allowScripts": {
     "prisma@7.8.0": true,

@@ -8,7 +8,12 @@ import {
   Modal,
   Image,
   TextInput,
+  RefreshControl,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
@@ -48,6 +53,7 @@ export default function AdminExercisesTab({
   onReloadExercises,
 }: AdminExercisesTabProps) {
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { showSuccess, showError, showWarning } = useToast();
 
   // ── Search State ──
@@ -438,67 +444,83 @@ export default function AdminExercisesTab({
   }, [exercises, exerciseSearch]);
 
   return (
-    <View className="gap-3">
-      {/* Header + Add button */}
-      <View className="flex-row items-center justify-between">
-        <View>
-          <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-            Exercise Catalog ({filteredExercises.length}{exerciseSearch ? ` of ${exercises.length}` : ''})
-          </Text>
-          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-            Synchronized with live workout library & gifs
-          </Text>
-        </View>
-        <TouchableOpacity
-          onPress={handleOpenAddModal}
-          hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-          className="bg-accent min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 shadow-sm"
-        >
-          <Ionicons name="add" size={18} color={colors.textPrimary} />
-          <Text className="text-xs font-bold text-accent-contrast">Add Exercise</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Exercise Search Input */}
-      <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
-        <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-        <TextInput
-          value={exerciseSearch}
-          onChangeText={setExerciseSearch}
-          placeholder="Search by exercise name, equipment, muscle..."
-          placeholderTextColor={colors.textMuted}
-          className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
-          autoCapitalize="none"
-        />
-        {exerciseSearch.length > 0 && (
-          <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+    <View className="flex-1 min-h-0">
+      {/* Pinned Catalog Header, Search Input, and Muscle Filters */}
+      <View className="pb-3 gap-2.5">
+        {/* Header + Add button */}
+        <View className="flex-row items-center justify-between">
+          <View>
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+              Exercise Catalog ({filteredExercises.length}{exerciseSearch ? ` of ${exercises.length}` : ''})
+            </Text>
+            <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+              Synchronized with live workout library & gifs
+            </Text>
+          </View>
+          <TouchableOpacity
+            onPress={handleOpenAddModal}
+            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+            className="bg-accent min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 shadow-sm"
+          >
+            <Ionicons name="add" size={18} color={colors.textPrimary} />
+            <Text className="text-xs font-bold text-accent-contrast">Add Exercise</Text>
           </TouchableOpacity>
-        )}
+        </View>
+
+        {/* Exercise Search Input */}
+        <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+          <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+          <TextInput
+            value={exerciseSearch}
+            onChangeText={setExerciseSearch}
+            placeholder="Search by exercise name, equipment, muscle..."
+            placeholderTextColor={colors.textMuted}
+            className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+            autoCapitalize="none"
+          />
+          {exerciseSearch.length > 0 && (
+            <TouchableOpacity onPress={() => setExerciseSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* Muscle Filter Scroll */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 6 }}
+        >
+          {MUSCLE_GROUPS.map((m) => (
+            <FilterChip
+              key={m}
+              label={m}
+              selected={selectedMuscle === m}
+              onPress={() => {
+                triggerHapticFeedback();
+                onSelectMuscle(m);
+              }}
+            />
+          ))}
+        </ScrollView>
       </View>
 
-      {/* Muscle Filter Scroll */}
+      {/* Scrollable Exercise List */}
       <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 6 }}
-      >
-        {MUSCLE_GROUPS.map((m) => (
-          <FilterChip
-            key={m}
-            label={m}
-            selected={selectedMuscle === m}
-            onPress={() => {
-              triggerHapticFeedback();
-              onSelectMuscle(m);
-            }}
+        className="flex-1 min-h-0"
+        contentContainerStyle={{ paddingBottom: 90, gap: 12 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onReloadExercises}
+            tintColor={colors.accent}
           />
-        ))}
-      </ScrollView>
-
-      {/* Exercise List */}
-      {loading && !refreshing ? (
-        <View className="py-20 items-center justify-center">
+        }
+      >
+        {loading && !refreshing ? (
+          <View className="py-20 items-center justify-center">
           <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
             Fetching catalog from database...
@@ -600,18 +622,30 @@ export default function AdminExercisesTab({
           );
         })
       )}
+      </ScrollView>
 
       {/* ── Add Exercise Modal ── */}
       {showAddModal && (
         <Modal
           visible={showAddModal}
           transparent
-          animationType="fade"
+          animationType="slide"
           onRequestClose={() => setShowAddModal(false)}
         >
-          <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
-              <View className="flex-row items-center justify-between mb-3">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
+          >
+            <Pressable className="hidden md:flex flex-1 w-full" onPress={() => setShowAddModal(false)} />
+
+            <View
+              style={{
+                paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16,
+                paddingBottom: Platform.OS !== 'web' && insets.bottom > 0 ? insets.bottom + 8 : 16,
+              }}
+              className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
+            >
+              <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
                 <View>
                   <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                     Add Exercise to Catalog
@@ -624,6 +658,8 @@ export default function AdminExercisesTab({
               </View>
 
               <ScrollView
+                className="flex-1 my-3"
+                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ gap: 12, paddingBottom: 16 }}
               >
@@ -909,21 +945,21 @@ export default function AdminExercisesTab({
                     onChangeText={setAddBreathingTechnique}
                   />
                 </View>
-
-                <TouchableOpacity
-                  onPress={handleCreateExercise}
-                  disabled={savingExercise}
-                  className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center mt-2 shadow-sm"
-                >
-                  {savingExercise ? (
-                    <ActivityIndicator size="small" color={colors.accentContrast} />
-                  ) : (
-                    <Text className="text-xs font-bold text-accent-contrast">Save to Catalog</Text>
-                  )}
-                </TouchableOpacity>
               </ScrollView>
+
+              <TouchableOpacity
+                onPress={handleCreateExercise}
+                disabled={savingExercise}
+                className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center mt-2 shadow-sm"
+              >
+                {savingExercise ? (
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
+                ) : (
+                  <Text className="text-xs font-bold text-accent-contrast">Save to Catalog</Text>
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       )}
 
@@ -932,12 +968,23 @@ export default function AdminExercisesTab({
         <Modal
           visible={showEditModal}
           transparent
-          animationType="fade"
+          animationType="slide"
           onRequestClose={() => setShowEditModal(false)}
         >
-          <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark max-h-[85%]">
-              <View className="flex-row items-center justify-between mb-3">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
+          >
+            <Pressable className="hidden md:flex flex-1 w-full" onPress={() => setShowEditModal(false)} />
+
+            <View
+              style={{
+                paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16,
+                paddingBottom: Platform.OS !== 'web' && insets.bottom > 0 ? insets.bottom + 8 : 16,
+              }}
+              className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
+            >
+              <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
                 <View>
                   <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                     Edit Exercise
@@ -950,6 +997,8 @@ export default function AdminExercisesTab({
               </View>
 
               <ScrollView
+                className="flex-1 my-3"
+                keyboardShouldPersistTaps="handled"
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={{ gap: 12, paddingBottom: 16 }}
               >
@@ -1255,21 +1304,21 @@ export default function AdminExercisesTab({
                     onChangeText={setEditBreathingTechnique}
                   />
                 </View>
-
-                <TouchableOpacity
-                  onPress={handleUpdateExercise}
-                  disabled={updatingExercise}
-                  className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center mt-2 shadow-sm"
-                >
-                  {updatingExercise ? (
-                    <ActivityIndicator size="small" color={colors.accentContrast} />
-                  ) : (
-                    <Text className="text-xs font-bold text-accent-contrast">Save Changes</Text>
-                  )}
-                </TouchableOpacity>
               </ScrollView>
+
+              <TouchableOpacity
+                onPress={handleUpdateExercise}
+                disabled={updatingExercise}
+                className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center mt-2 shadow-sm"
+              >
+                {updatingExercise ? (
+                  <ActivityIndicator size="small" color={colors.accentContrast} />
+                ) : (
+                  <Text className="text-xs font-bold text-accent-contrast">Save Changes</Text>
+                )}
+              </TouchableOpacity>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       )}
 

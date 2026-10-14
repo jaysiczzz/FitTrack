@@ -2,6 +2,8 @@ import { z } from 'zod'
 
 export const createTestimonialSchema = z.object({
   body: z.object({
+    id: z.string().trim().optional().nullable(),
+    avatarUrl: z.string().trim().optional().nullable(),
     rating: z.number().int().min(1, 'Rating must be at least 1 star').max(5, 'Rating cannot exceed 5 stars'),
     content: z.string().trim().min(8, 'Testimony must be at least 8 characters').max(1000, 'Testimony cannot exceed 1000 characters'),
     highlightBadge: z.string().trim().max(60, 'Highlight badge too long').optional().nullable(),

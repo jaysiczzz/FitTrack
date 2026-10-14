@@ -5,9 +5,11 @@ import { validateEnv } from './config/env'
 validateEnv()
 
 import express from 'express'
+import http from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
 import { prisma } from './config/db'
+import { initSocketServer } from './socket'
 import authRoutes from './routes/auth.routes'
 import userRoutes from './routes/user.routes'
 import workoutRoutes from './routes/workout.routes'
@@ -17,6 +19,7 @@ import supportRoutes from './routes/support.routes'
 import testimonialRoutes from './routes/testimonial.routes'
 import checkinRoutes from './routes/checkin.routes'
 import notificationRoutes from './routes/notification.routes'
+import inAppNotificationRoutes from './routes/inAppNotification.routes'
 import weightRoutes from './routes/weight.routes'
 import subscriptionRoutes from './routes/subscription.routes'
 import walletRoutes from './routes/wallet.routes'
@@ -24,6 +27,8 @@ import adminRevenueRoutes from './routes/adminRevenue.routes'
 import adminRoutes from './routes/admin.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
+import { optionalAuthMiddleware } from './middleware/auth.middleware'
+import { getSubscriptionPlans } from './controllers/subscription.controller'
 
 const app = express()
 
@@ -105,8 +110,11 @@ app.use('/api/support', supportRoutes)
 app.use('/api/testimonials', testimonialRoutes)
 app.use('/api/checkin', checkinRoutes)
 app.use('/api/user/notifications', notificationRoutes)
+app.use('/api/notifications', inAppNotificationRoutes)
 app.use('/api/weight', weightRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
+app.get('/plans', optionalAuthMiddleware, getSubscriptionPlans)
+app.get('/api/plans', optionalAuthMiddleware, getSubscriptionPlans)
 app.use('/api/wallet', walletRoutes)
 app.use('/api/admin/revenue', adminRevenueRoutes)
 app.use('/api/admin', adminRoutes)
@@ -114,7 +122,10 @@ app.use('/api/admin', adminRoutes)
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000
-const server = app.listen(PORT, () => {
+const httpServer = http.createServer(app)
+initSocketServer(httpServer, allowedOrigins)
+
+const server = httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 

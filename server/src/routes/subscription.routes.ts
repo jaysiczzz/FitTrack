@@ -7,7 +7,7 @@ import {
   cancelSubscription,
   reactivateSubscription,
 } from '../controllers/subscription.controller'
-import { authMiddleware } from '../middleware/auth.middleware'
+import { authMiddleware, optionalAuthMiddleware } from '../middleware/auth.middleware'
 import { validate } from '../middleware/validate.middleware'
 import {
   createCheckoutSessionSchema,
@@ -16,8 +16,8 @@ import {
 
 const router = Router()
 
-// Public plans definition (can be viewed before or after logging in)
-router.get('/plans', getSubscriptionPlans)
+// Public plans definition (can be viewed before or after logging in; populates userUsage if logged in)
+router.get('/plans', optionalAuthMiddleware, getSubscriptionPlans)
 
 // Authenticated user subscription operations
 router.use(authMiddleware)

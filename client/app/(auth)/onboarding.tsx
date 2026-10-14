@@ -23,6 +23,7 @@ export default function OnboardingScreen() {
 
   // Form State
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS' | ''>('');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE'>('MALE');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
@@ -133,6 +134,7 @@ export default function OnboardingScreen() {
 
       const res = await registerUser({
         ...data,
+        gender,
         height: Math.round(hNum),
         weight: Number(wNum.toFixed(1)),
         age: Math.round(aNum),
@@ -167,23 +169,34 @@ export default function OnboardingScreen() {
   // If user navigated directly to /onboarding without registering first or without verifying
   if ((!data || !data.isVerified) && !registeredPayload) {
     return (
-      <SafeAreaView className="flex-1 bg-background dark:bg-background-dark justify-center px-6">
-        <View className="w-full max-w-[440px] mx-auto bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70 rounded-3xl p-6 items-center text-center">
-          <View className="w-16 h-16 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-4">
-            <Ionicons name="mail-unread-outline" size={32} color={colors.accent} />
+      <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
+        <View className="flex-1 justify-center items-center px-6">
+          <View className="w-full max-w-[400px] bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70 rounded-3xl p-6 items-center">
+            <View className="w-14 h-14 rounded-2xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center mb-4">
+              <Ionicons name="mail-unread-outline" size={28} color={colors.accent} />
+            </View>
+            <Text className="text-xl font-bold text-text-primary dark:text-text-primary-dark mb-2 text-center">
+              {!data ? 'Registration Required' : 'Verification Required'}
+            </Text>
+            <Text className="text-text-muted dark:text-text-muted-dark text-sm text-center leading-relaxed mb-6">
+              {!data
+                ? 'To personalize your AI fitness plan, please start by setting up your login credentials.'
+                : 'Please verify your email address with the 6-digit confirmation code before proceeding.'}
+            </Text>
+            <View className="w-full">
+              <Button
+                className="w-full"
+                title={!data ? 'Go to Registration' : 'Verify Email'}
+                onPress={() => {
+                  if (!data) {
+                    router.replace('/(auth)?tab=register' as any);
+                  } else {
+                    router.replace('/(auth)/verify');
+                  }
+                }}
+              />
+            </View>
           </View>
-          <Text className="text-xl font-bold text-text-primary dark:text-text-primary-dark mb-2 text-center">
-            {!data ? 'Registration Required' : 'Verification Required'}
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center leading-relaxed mb-6">
-            {!data
-              ? 'To personalize your AI fitness plan, please start by setting up your login credentials.'
-              : 'Please verify your email address with the 6-digit confirmation code before proceeding.'}
-          </Text>
-          <Button
-            title={!data ? 'Go to Registration' : 'Verify Email'}
-            onPress={() => router.replace(!data ? '/(auth)' : '/(auth)/verify')}
-          />
         </View>
       </SafeAreaView>
     );
@@ -246,6 +259,8 @@ export default function OnboardingScreen() {
                   if (ageError) setAgeError('');
                 }}
                 ageError={ageError}
+                gender={gender}
+                onGenderChange={setGender}
                 goal={goal}
                 onNext={handleMetricsNext}
               />
@@ -258,6 +273,7 @@ export default function OnboardingScreen() {
                 isRegistered={!!registeredPayload}
                 userName={capitalizeWords(data?.firstName || '')}
                 goal={goal}
+                gender={gender}
                 height={Number(height)}
                 weight={Number(weight)}
                 age={Number(age)}

@@ -15,6 +15,11 @@ import { getUserProfile } from '@/api/user';
 import { getWorkoutHistory } from '@/api/workout';
 import { getCheckInHistoryApi } from '@/api/checkin';
 import { getFoodLogHistoryApi } from '@/api/foodlog';
+import {
+  getInAppNotificationsApi,
+  getCachedUnreadNotifCount,
+  setCachedUnreadNotifCount,
+} from '@/api/notifications';
 import { calculateActiveStreak, extractActiveDatesFromHistory, formatDateKey } from '@/utils/streakUtils';
 import { useAuth } from '@/context/AuthContext';
 import { useThemeColors } from '@/constants/colors';
@@ -30,6 +35,11 @@ import { isTemporaryBlobUrl } from '@/utils/imageUtils';
 import { authStorage } from '@/utils/authStorage';
 import { hapticFeedback } from '@/utils/haptics';
 import { useHeightUnit, useWeightUnit, formatHeightDisplay, formatWeightDisplay } from '@/constants/units';
+import {
+  DEFAULT_WATER_TARGET_ML,
+  MIN_WATER_TARGET_ML,
+  WATER_INCREMENT_SMALL_ML,
+} from '@/constants/fitnessDefaults';
 
 interface UserData {
   id?: string;
@@ -51,7 +61,21 @@ interface UserData {
 export default function Profile() {
   const router = useRouter();
   const { user: authUser, updateUser } = useAuth();
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(getCachedUnreadNotifCount);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await getInAppNotificationsApi();
+      if (res && res.success) {
+        const count = res.unreadCount ?? 0;
+        setUnreadNotifCount(count);
+        setCachedUnreadNotifCount(count);
+      }
+    } catch {
+      // Offline fallback
+    }
+  }, []);
 
   const [savedUser, setSavedUser] = useState<UserData | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
@@ -84,6 +108,7 @@ export default function Profile() {
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [goal, setGoal] = useState<'muscle' | 'loss'>('muscle');
+  const [gender, setGender] = useState<'MALE' | 'FEMALE' | ''>('');
 
   // Athletic metrics
   const [streakCount, setStreakCount] = useState(0);
@@ -97,6 +122,9 @@ export default function Profile() {
     if (u.weight !== undefined) setWeight(String(u.weight));
     if (u.goal) {
       setGoal(u.goal === 'MUSCLE_GAIN' ? 'muscle' : 'loss');
+    }
+    if ((u as any).gender) {
+      setGender((u as any).gender);
     }
   };
 
@@ -170,8 +198,14 @@ export default function Profile() {
         foodLogs = foodRes.history;
       }
 
+      // Dynamic water target matching dashboard personalized metrics
+      const parsedWeight = authUser?.weight || (weight ? parseFloat(weight) : undefined);
+      const userTargetWater = parsedWeight
+        ? Math.max(MIN_WATER_TARGET_ML, Math.round((parsedWeight * 35) / WATER_INCREMENT_SMALL_ML) * WATER_INCREMENT_SMALL_ML)
+        : DEFAULT_WATER_TARGET_ML;
+
       // Extract all active dates across history (workout, check-in, nutrition, hydration)
-      const activeDates = extractActiveDatesFromHistory(workoutSessions, checkIns, foodLogs, 2000);
+      const activeDates = extractActiveDatesFromHistory(workoutSessions, checkIns, foodLogs, userTargetWater);
 
       // Check if at least 1 goal in "Today's Goals" is completed today
       const today = new Date();
@@ -192,7 +226,7 @@ export default function Profile() {
 
       const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
       const cachedWater = await AsyncStorage.getItem(waterKey);
-      const isWaterDoneToday = (parseInt(cachedWater || '0', 10) || 0) >= 2000;
+      const isWaterDoneToday = (parseInt(cachedWater || '0', 10) || 0) >= userTargetWater;
 
       const isAnyGoalDoneToday = Boolean(hasWorkoutToday || isCheckinToday || isNutritionDoneToday || isWaterDoneToday);
 
@@ -204,7 +238,8 @@ export default function Profile() {
   useFocusEffect(
     useCallback(() => {
       loadAthleticHistory();
-    }, [loadAthleticHistory])
+      loadNotifications();
+    }, [loadAthleticHistory, loadNotifications])
   );
 
   useEffect(() => {
@@ -214,6 +249,7 @@ export default function Profile() {
       loadAvatar();
     }
     loadAthleticHistory();
+    loadNotifications();
 
     const fetchProfile = async () => {
       try {
@@ -243,6 +279,14 @@ export default function Profile() {
     const subF = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', () => {
       loadAthleticHistory();
     });
+    const subN = DeviceEventEmitter.addListener('IN_APP_NOTIFICATIONS_UPDATED', (evt?: { unreadCount?: number }) => {
+      if (typeof evt?.unreadCount === 'number') {
+        setUnreadNotifCount(evt.unreadCount);
+        setCachedUnreadNotifCount(evt.unreadCount);
+      } else {
+        loadNotifications();
+      }
+    });
 
     return () => {
       isMounted = false;
@@ -250,8 +294,9 @@ export default function Profile() {
       subWD.remove();
       subC.remove();
       subF.remove();
+      subN.remove();
     };
-  }, [authUser?.id, loadAvatar, loadAthleticHistory]);
+  }, [authUser?.id, loadAvatar, loadAthleticHistory, loadNotifications]);
 
   const bmi = useMemo(() => {
     const h = parseFloat(height);
@@ -297,16 +342,53 @@ export default function Profile() {
               Profile
             </Text>
 
-            {/* Single Settings Button */}
-            <TouchableOpacity
-              onPress={() => router.push('/(screen)/settings' as any)}
-              activeOpacity={0.7}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shadow-sm"
-              accessibilityLabel="Open settings"
-            >
-              <Ionicons name="settings-sharp" size={18} color={colors.textPrimary} />
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-2">
+              {/* Notification Inbox Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  router.push('/(screen)/notifications' as any);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className={`relative w-10 h-10 rounded-xl items-center justify-center shadow-xs border transition-colors ${
+                  unreadNotifCount > 0
+                    ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30 dark:border-emerald-500/40'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+                accessibilityLabel={`Notifications, ${unreadNotifCount} unread`}
+              >
+                <Ionicons
+                  name={unreadNotifCount > 0 ? 'notifications' : 'notifications-outline'}
+                  size={19}
+                  color={unreadNotifCount > 0 ? '#10B981' : colors.textPrimary}
+                />
+                {unreadNotifCount > 0 ? (
+                  <View
+                    className="absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 items-center justify-center border-2 border-surface dark:border-surface-dark shadow-sm"
+                    accessibilityLabel={`${unreadNotifCount} unread notifications`}
+                  >
+                    <Text className="text-[9px] font-black text-white leading-none text-center">
+                      {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                    </Text>
+                  </View>
+                ) : null}
+              </TouchableOpacity>
+
+              {/* Settings Button */}
+              <TouchableOpacity
+                onPress={() => {
+                  hapticFeedback.light();
+                  router.push('/(screen)/settings' as any);
+                }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shadow-sm"
+                accessibilityLabel="Open settings"
+              >
+                <Ionicons name="settings-sharp" size={18} color={colors.textPrimary} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* Athlete Identity Card */}
@@ -407,6 +489,17 @@ export default function Profile() {
                     </Text>
                   </Text>
                 </View>
+
+                {gender ? (
+                  <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2.5 py-1 rounded-lg">
+                    <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium tracking-wide">
+                      Sex:{' '}
+                      <Text className="text-text-primary dark:text-text-primary-dark font-bold">
+                        {gender === 'MALE' ? 'Male' : 'Female'}
+                      </Text>
+                    </Text>
+                  </View>
+                ) : null}
 
                 {/* Edit Personal Information Button */}
                 <TouchableOpacity

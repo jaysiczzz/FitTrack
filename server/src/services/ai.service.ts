@@ -184,12 +184,13 @@ export async function generateAIInsights(userProfile: {
   height: number
   age: number
   goal: string
+  gender?: string
   workoutCount?: number
   caloriesLoggedToday?: number
 }): Promise<AIInsight[]> {
   const prompt = `You are FitTrack's AI fitness and nutrition coach.
 Generate 3 dynamic, personalized health insights/predictions for user ${userProfile.firstName}:
-- User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old.
+- User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old, biological sex: ${userProfile.gender || 'Not specified'}.
 - Fitness Goal: ${userProfile.goal} (e.g., MUSCLE_GAIN or WEIGHT_LOSS).
 - Completed Workouts This Week: ${userProfile.workoutCount || 0}.
 
@@ -235,12 +236,13 @@ export async function generateAIWorkout(userProfile: {
   weight: number
   height: number
   goal: string
+  gender?: string
   targetArea?: string
 }): Promise<AIWorkoutPlan> {
   const prompt = `Design a customized workout routine for a user with:
 - Fitness Goal: ${userProfile.goal}
 - Target focus: ${userProfile.targetArea || 'Full Body'}
-- Weight: ${userProfile.weight}kg, Height: ${userProfile.height}cm.
+- Weight: ${userProfile.weight}kg, Height: ${userProfile.height}cm, Sex: ${userProfile.gender || 'Not specified'}.
 
 Return a JSON object containing:
 - title: Name of the workout session
@@ -427,6 +429,7 @@ export interface ChatMessage {
 
 export interface UserChatContext {
   firstName?: string
+  gender?: string
   weight?: number
   height?: number
   age?: number
@@ -462,7 +465,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
-- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
@@ -478,6 +481,9 @@ You are conversing directly with ${context.firstName || 'the user'}.
    - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
    - If feeling strong or energized, urge progressive overload and intensity.
    - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+   - Factor in sex-specific metabolic nuances:
+     * For female athletes: be mindful of iron needs (~18mg/day), natural muscle hypertrophy pacing (~0.5-1 lb/month), and potential luteal phase water retention or energy shifts.
+     * For male athletes: factor in standard hypertrophy pacing (~1-2 lbs/month) and caloric burn baselines.
 2. Structure answers specifically for clean mobile reading:
    - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
    - When suggesting meals or snacks, include estimated calories and protein.
@@ -517,7 +523,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
-- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
@@ -533,6 +539,9 @@ You are conversing directly with ${context.firstName || 'the user'}.
    - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
    - If feeling strong or energized, urge progressive overload and intensity.
    - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+   - Factor in sex-specific metabolic nuances:
+     * For female athletes: be mindful of iron needs (~18mg/day), natural muscle hypertrophy pacing (~0.5-1 lb/month), and potential luteal phase water retention or energy shifts.
+     * For male athletes: factor in standard hypertrophy pacing (~1-2 lbs/month) and caloric burn baselines.
 2. Structure answers specifically for clean mobile reading:
    - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
    - When suggesting meals or snacks, include estimated calories and protein.

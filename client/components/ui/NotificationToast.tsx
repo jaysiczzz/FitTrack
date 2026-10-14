@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import ToastPortal from './ToastPortal';
 
 export type NotificationType = 'success' | 'info' | 'warning' | 'error';
 
@@ -34,23 +35,23 @@ const TYPE_CONFIG: Record<
   { borderColor: string; bgBadge: string; defaultIcon: keyof typeof Ionicons.glyphMap }
 > = {
   success: {
-    borderColor: 'border-accent/40 dark:border-transparent',
-    bgBadge: 'bg-accent/15 dark:bg-accent-dark/25',
+    borderColor: 'border-emerald-500/30 dark:border-emerald-400/30',
+    bgBadge: 'bg-emerald-500/15 dark:bg-emerald-400/20 border border-emerald-500/25 dark:border-emerald-400/40',
     defaultIcon: 'checkmark-circle',
   },
   info: {
-    borderColor: 'border-info/40 dark:border-info-dark/40',
-    bgBadge: 'bg-info/15 dark:bg-info-dark/25',
+    borderColor: 'border-sky-500/30 dark:border-sky-400/30',
+    bgBadge: 'bg-sky-500/15 dark:bg-sky-400/20 border border-sky-500/25 dark:border-sky-400/40',
     defaultIcon: 'information-circle',
   },
   warning: {
-    borderColor: 'border-warning/40 dark:border-warning-dark/40',
-    bgBadge: 'bg-warning/15 dark:bg-warning-dark/25',
+    borderColor: 'border-amber-500/30 dark:border-amber-400/30',
+    bgBadge: 'bg-amber-500/15 dark:bg-amber-400/20 border border-amber-500/25 dark:border-amber-400/40',
     defaultIcon: 'alert-circle',
   },
   error: {
-    borderColor: 'border-danger/40 dark:border-danger-dark/40',
-    bgBadge: 'bg-danger/15 dark:bg-danger-dark/25',
+    borderColor: 'border-rose-500/30 dark:border-rose-400/30',
+    bgBadge: 'bg-rose-500/15 dark:bg-rose-400/20 border border-rose-500/25 dark:border-rose-400/40',
     defaultIcon: 'close-circle',
   },
 };
@@ -67,7 +68,6 @@ export default function NotificationToast({
   onDismiss,
   duration = 2000,
   topOffset,
-  bottomOffset,
 }: NotificationToastProps) {
   const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
@@ -158,122 +158,136 @@ export default function NotificationToast({
   const config = TYPE_CONFIG[type] || TYPE_CONFIG.success;
   const iconColor = {
     success: isDark ? '#34D399' : colors.accent,
-    info: colors.info,
-    warning: colors.warning,
-    error: colors.danger,
+    info: isDark ? '#38BDF8' : colors.info,
+    warning: isDark ? '#FBBF24' : colors.warning,
+    error: isDark ? '#FB7185' : colors.danger,
   }[type];
 
   return (
-    <View style={styles.overlay} pointerEvents="box-none">
-      <View
-        style={[styles.container, { top: resolvedTop }]}
-        pointerEvents="box-none"
-      >
-        <Animated.View
-          pointerEvents="auto"
-          style={[
-            styles.toastWrapper,
-            Platform.select({
-              web: {
-                boxShadow:
-                  '0 12px 36px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.3)',
-              } as any,
-              default: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 8 },
-                shadowOpacity: 0.4,
-                shadowRadius: 16,
-                elevation: 12,
-              },
-            }),
-            {
-              opacity: opacityAnim,
-              transform: [{ translateY: translateYAnim }],
-            },
-          ]}
+    <ToastPortal visible={toastVisible || visible}>
+      <View style={styles.overlay} pointerEvents="box-none">
+        <View
+          style={[styles.container, { top: resolvedTop }]}
+          pointerEvents="box-none"
         >
-          <View
-            className={`flex-row items-center bg-surface/95 dark:bg-surface-dark/95 border ${config.borderColor} rounded-2xl p-3.5 backdrop-blur-md`}
+          <Animated.View
+            pointerEvents="auto"
+            style={[
+              styles.toastWrapper,
+              Platform.select({
+                web: {
+                  boxShadow:
+                    '0 12px 36px rgba(0, 0, 0, 0.45), 0 2px 10px rgba(0, 0, 0, 0.3)',
+                } as any,
+                default: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 8 },
+                  shadowOpacity: 0.4,
+                  shadowRadius: 16,
+                  elevation: 12,
+                },
+              }),
+              {
+                opacity: opacityAnim,
+                transform: [{ translateY: translateYAnim }],
+              },
+            ]}
           >
-            {/* Icon Badge */}
             <View
-              className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${config.bgBadge}`}
+              className={`flex-row items-center bg-surface dark:bg-surface-dark border ${config.borderColor} rounded-2xl p-3.5`}
             >
-              {iconName ? (
-                <Ionicons name={iconName} size={20} color={iconColor} />
-              ) : icon ? (
-                <Text className="text-base">{icon}</Text>
-              ) : (
-                <Ionicons name={config.defaultIcon} size={20} color={iconColor} />
-              )}
-            </View>
-
-            {/* Text Content */}
-            <View className="flex-1 pr-2">
-              <Text
-                className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs leading-4"
-                numberOfLines={2}
+              {/* Icon Badge */}
+              <View
+                className={`w-9 h-9 rounded-xl items-center justify-center mr-3 ${config.bgBadge}`}
               >
-                {message}
-              </Text>
-              {description ? (
+                {iconName ? (
+                  <Ionicons name={iconName} size={20} color={iconColor} />
+                ) : icon ? (
+                  <Text className="text-base">{icon}</Text>
+                ) : (
+                  <Ionicons name={config.defaultIcon} size={20} color={iconColor} />
+                )}
+              </View>
+
+              {/* Text Content */}
+              <View className="flex-1 pr-2">
                 <Text
-                  className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium mt-0.5 leading-3.5"
+                  className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs leading-4"
                   numberOfLines={2}
                 >
-                  {description}
+                  {message}
                 </Text>
-              ) : null}
-            </View>
+                {description ? (
+                  <Text
+                    className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium mt-0.5 leading-3.5"
+                    numberOfLines={2}
+                  >
+                    {description}
+                  </Text>
+                ) : null}
+              </View>
 
-            {/* Optional Action Button */}
-            {actionLabel && onAction ? (
+              {/* Optional Action Button */}
+              {actionLabel && onAction ? (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => {
+                    onAction();
+                    handleDismiss();
+                  }}
+                  className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-2xl mr-2"
+                >
+                  <Text className="text-white font-bold text-[11px]">
+                    {actionLabel}
+                  </Text>
+                </TouchableOpacity>
+              ) : null}
+
+              {/* Close Button */}
               <TouchableOpacity
-                activeOpacity={0.8}
-                onPress={() => {
-                  onAction();
-                  handleDismiss();
-                }}
-                className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-2xl mr-2"
+                activeOpacity={0.7}
+                onPress={handleDismiss}
+                className="w-6 h-6 rounded-full bg-input dark:bg-input-dark items-center justify-center"
               >
-                <Text className="text-white font-bold text-[11px]">
-                  {actionLabel}
+                <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px]">
+                  ✕
                 </Text>
               </TouchableOpacity>
-            ) : null}
-
-            {/* Close Button */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={handleDismiss}
-              className="w-6 h-6 rounded-full bg-input dark:bg-input-dark items-center justify-center"
-            >
-              <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px]">
-                ✕
-              </Text>
-            </TouchableOpacity>
-          </View>
-        </Animated.View>
+            </View>
+          </Animated.View>
+        </View>
       </View>
-    </View>
+    </ToastPortal>
   );
 }
 
 const styles = StyleSheet.create({
   overlay: {
-    ...StyleSheet.absoluteFill,
+    ...(Platform.OS === 'web'
+      ? ({
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 2147483647,
+        } as any)
+      : {
+          ...StyleSheet.absoluteFill,
+          zIndex: 999999,
+          elevation: 999999,
+        }),
     backgroundColor: 'transparent',
     alignItems: 'center',
-    zIndex: 999999,
-    elevation: 999999,
     pointerEvents: 'box-none',
   },
   container: {
-    position: 'absolute',
+    position: (Platform.OS === 'web' ? 'fixed' : 'absolute') as any,
     left: 0,
     right: 0,
     alignItems: 'center',
-    zIndex: 999999,
+    zIndex: 2147483647,
+    elevation: 999999,
     paddingHorizontal: 16,
     borderRadius: 12,
     pointerEvents: 'box-none',
@@ -282,6 +296,6 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 440,
     borderRadius: 16,
-    zIndex: 999999,
+    zIndex: 2147483647,
   },
 });

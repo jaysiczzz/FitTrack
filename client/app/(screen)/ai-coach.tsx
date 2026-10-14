@@ -28,6 +28,7 @@ import {
 import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
+import QuotaUsageMeter from '@/components/ui/QuotaUsageMeter';
 
 interface PromptCategory {
   id: string;
@@ -98,6 +99,8 @@ export default function AiCoachScreen() {
   // Quota & tier tracking
   const [isPro, setIsPro] = useState(false);
   const [remainingMessages, setRemainingMessages] = useState<number | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<number | null>(null);
+  const [resetsAt, setResetsAt] = useState<string | null>(null);
   const [quotaReached, setQuotaReached] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
@@ -129,9 +132,11 @@ export default function AiCoachScreen() {
         const cloudRes = await getChatHistoryApi();
         if (cloudRes?.success && isMounted) {
           if (cloudRes.isPro !== undefined) setIsPro(cloudRes.isPro);
-          if (cloudRes.remainingMessages !== undefined) {
+          if (cloudRes.dailyLimit !== undefined) setDailyLimit(cloudRes.dailyLimit);
+          if (cloudRes.resetsAt !== undefined) setResetsAt(cloudRes.resetsAt);
+          if (cloudRes.remainingMessages !== undefined && cloudRes.remainingMessages !== null) {
             setRemainingMessages(cloudRes.remainingMessages);
-            if (!cloudRes.isPro && cloudRes.remainingMessages === 0) {
+            if (cloudRes.remainingMessages === 0) {
               setQuotaReached(true);
             }
           }
@@ -280,9 +285,11 @@ export default function AiCoachScreen() {
         const res = await chatWithCoachApi(apiPayload);
         if (res.success && res.message) {
           if (res.isPro !== undefined) setIsPro(res.isPro);
+          if (res.dailyLimit !== undefined) setDailyLimit(res.dailyLimit);
+          if (res.resetsAt !== undefined) setResetsAt(res.resetsAt);
           if (res.remainingMessages !== undefined && res.remainingMessages !== null) {
             setRemainingMessages(res.remainingMessages);
-            if (!res.isPro && res.remainingMessages === 0) setQuotaReached(true);
+            if (res.remainingMessages === 0) setQuotaReached(true);
           }
           const coachMsg: ChatMessage = {
             role: 'model',
@@ -301,16 +308,19 @@ export default function AiCoachScreen() {
     } catch (err: any) {
       console.error('Coach Chat Error:', err);
       const errText = err?.message || '';
-      if (errText.includes('DAILY_AI_LIMIT_REACHED') || errText.includes('limit of 15')) {
+      if (
+        errText.includes('LIMIT_REACHED') ||
+        errText.includes('DAILY_AI_LIMIT_REACHED') ||
+        err?.status === 429
+      ) {
         setMessages(updatedMessages);
         setQuotaReached(true);
         setRemainingMessages(0);
-        setShowSubscriptionModal(true);
-        showError('Daily Limit Reached', 'You have used all 15 free AI Coach messages for today. Upgrade to FitTrack Pro for unlimited coaching.');
-      } else if (errText.includes('PRO_FAIR_USE_LIMIT_REACHED') || errText.includes('Fair Use limit')) {
-        setMessages(updatedMessages);
-        setRemainingMessages(0);
-        showError('Fair Use Limit Reached', "You have reached today's Fair Use limit of 100 AI Coach messages. Your quota will refresh at midnight.");
+        if (err?.resetsAt) setResetsAt(err.resetsAt);
+        showError(
+          'Daily Limit Reached',
+          `Daily message limit of ${dailyLimit || (isPro ? 150 : 15)} reached. Resets at midnight UTC.`
+        );
       } else {
         setMessages(updatedMessages);
         setFailedMessage(textToSend);
@@ -467,11 +477,11 @@ export default function AiCoachScreen() {
             </Text>
             {!isPro && remainingMessages !== null ? (
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                {remainingMessages} of 15 free messages left today
+                {remainingMessages} of {dailyLimit || 15} free messages left today
               </Text>
             ) : isPro ? (
               <Text className="text-[10px] text-accent dark:text-accent-dark font-semibold">
-                FitTrack Pro · {remainingMessages !== null ? `${remainingMessages} of 100 messages left today` : '100 messages / day'}
+                FitTrack Pro · {remainingMessages !== null ? `${remainingMessages} of ${dailyLimit || 150} messages left today` : `${dailyLimit || 150} messages / day`}
               </Text>
             ) : null}
           </View>
@@ -506,6 +516,19 @@ export default function AiCoachScreen() {
             </TouchableOpacity>
           ))}
         </ScrollView>
+      </View>
+
+      {/* Reusable Quota Usage Meter */}
+      <View className="px-4 py-2 border-b border-input-border/30 dark:border-input-border-dark/30">
+        <QuotaUsageMeter
+          isPro={isPro}
+          used={dailyLimit !== null && remainingMessages !== null ? Math.max(0, dailyLimit - remainingMessages) : 0}
+          limit={dailyLimit || (isPro ? 150 : 15)}
+          unit="messages"
+          period="day"
+          resetsAt={resetsAt || undefined}
+          onUpgradePress={() => setShowSubscriptionModal(true)}
+        />
       </View>
 
       {/* Main Chat Stream */}
@@ -608,21 +631,23 @@ export default function AiCoachScreen() {
           )}
 
           {/* Quota Exhausted Banner */}
-          {!isPro && quotaReached && (
+          {quotaReached && (
             <View className="mx-4 mb-2 p-3 rounded-xl bg-accent/10 border border-accent/25 flex-row items-center justify-between">
               <View className="flex-1 mr-2">
                 <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                  Daily Free Limit Reached (15/15)
+                  Daily Limit Reached ({dailyLimit || (isPro ? 150 : 15)}/{dailyLimit || (isPro ? 150 : 15)})
                 </Text>
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                  Upgrade to FitTrack Pro for unlimited 24/7 coaching, or wait until midnight.
+                  Daily messages reset at midnight UTC. {isPro ? 'Thank you for being a Pro member!' : 'Upgrade to FitTrack Pro for 150 messages/day.'}
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={() => setShowSubscriptionModal(true)}
                 className="px-3 py-1.5 rounded-lg bg-accent"
               >
-                <Text className="text-xs font-bold text-accent-contrast">Upgrade</Text>
+                <Text className="text-xs font-bold text-accent-contrast">
+                  {isPro ? 'View Plan' : 'See Pro plan'}
+                </Text>
               </TouchableOpacity>
             </View>
           )}
@@ -635,8 +660,8 @@ export default function AiCoachScreen() {
                   value={inputText}
                   onChangeText={setInputText}
                   placeholder={
-                    !isPro && quotaReached
-                      ? 'Daily free limit reached (15/15). Upgrade for unlimited...'
+                    quotaReached
+                      ? `Daily limit reached (${dailyLimit || (isPro ? 150 : 15)}/${dailyLimit || (isPro ? 150 : 15)}). Resets at midnight UTC...`
                       : 'Ask your coach anything about food, workouts, or goals...'
                   }
                   placeholderTextColor={colors.textMuted}

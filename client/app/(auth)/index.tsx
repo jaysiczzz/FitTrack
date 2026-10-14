@@ -5,7 +5,7 @@ import AuthHeader from '@/components/auth/AuthHeader';
 import AuthTabs from '@/components/auth/AuthTabs';
 import LoginForm from '@/components/auth/LoginForm';
 import RegisterForm from '@/components/auth/RegisterForm';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { loginUser, sendVerificationCodeApi } from '@/api/auth';
 import { useRegistration } from '@/context/RegistrationContext';
 import { useAuth } from '@/context/AuthContext';
@@ -14,14 +14,24 @@ import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 export default function AuthIndex() {
   const { isLandscape } = useResponsive();
+  const params = useLocalSearchParams<{ tab?: 'login' | 'register' }>();
   const { data: registrationData, setData } = useRegistration();
-  const [active, setActive] = useState<'login' | 'register'>(registrationData ? 'register' : 'login');
+  const [active, setActive] = useState<'login' | 'register'>(
+    params.tab === 'register' || (!params.tab && registrationData) ? 'register' : 'login'
+  );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
+
+  // Sync active tab when route params change (e.g. redirected with ?tab=register)
+  useEffect(() => {
+    if (params.tab === 'register' || params.tab === 'login') {
+      setActive(params.tab);
+    }
+  }, [params.tab]);
 
   // Listen for keyboard show/hide events to adapt layout dynamically (Android / Web)
   useEffect(() => {

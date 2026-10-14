@@ -116,65 +116,75 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
   };
 
   return (
-    <View className="mt-1">
-      {/* Top Header */}
-      <View className="flex-row items-center justify-between mb-3">
-        <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-          Exercise Library ({filteredExercises.length})
-        </Text>
-      </View>
-
-      {/* Row 1: Search Input + Difficulty Selector Pill Inline */}
-      <View className="flex-row items-center gap-2 mb-2.5">
-        <View className="flex-1 flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3 min-h-[34px] py-1">
-          <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
-          <TextInput
-            className="flex-1 py-2 text-xs text-text-primary dark:text-text-primary-dark font-medium"
-            placeholder="Search exercises, muscles, tags..."
-            placeholderTextColor={colors.textMuted}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            autoCorrect={false}
-          />
-          {searchQuery ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-          ) : null}
+    <View className="flex-1 min-h-0 mt-1">
+      {/* Pinned Search & Filter Header */}
+      <View className="pb-1">
+        {/* Top Header */}
+        <View className="flex-row items-center justify-between mb-3">
+          <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+            Exercise Library ({filteredExercises.length})
+          </Text>
         </View>
 
-        <DifficultySelectorPill
-          selectedDifficulty={selectedDifficulty}
-          onSelectDifficulty={setSelectedDifficulty}
-          compact
-        />
-      </View>
-
-      {/* Row 2: Muscle Group Filter Chips (Horizontal Scroll matching Nutrition Library) */}
-      <View className="relative mb-3">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="flex-row"
-          contentContainerStyle={{ paddingRight: 20, alignItems: 'center' }}
-        >
-          {MUSCLE_GROUPS.map((group) => (
-            <FilterChip
-              key={group}
-              label={group}
-              selected={selectedMuscle === group}
-              onPress={() => setSelectedMuscle(group)}
-              className="mr-1.5"
+        {/* Row 1: Search Input + Difficulty Selector Pill Inline */}
+        <View className="flex-row items-center gap-2 mb-2.5">
+          <View className="flex-1 flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3 min-h-[34px] py-1">
+            <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
+            <TextInput
+              className="flex-1 py-2 text-xs text-text-primary dark:text-text-primary-dark font-medium"
+              placeholder="Search exercises, muscles, tags..."
+              placeholderTextColor={colors.textMuted}
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              autoCorrect={false}
             />
-          ))}
-        </ScrollView>
+            {searchQuery ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <DifficultySelectorPill
+            selectedDifficulty={selectedDifficulty}
+            onSelectDifficulty={setSelectedDifficulty}
+            compact
+          />
+        </View>
+
+        {/* Row 2: Muscle Group Filter Chips (Horizontal Scroll matching Nutrition Library) */}
+        <View className="relative mb-3">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-row"
+            contentContainerStyle={{ paddingRight: 20, alignItems: 'center' }}
+          >
+            {MUSCLE_GROUPS.map((group) => (
+              <FilterChip
+                key={group}
+                label={group}
+                selected={selectedMuscle === group}
+                onPress={() => setSelectedMuscle(group)}
+                className="mr-1.5"
+              />
+            ))}
+          </ScrollView>
+        </View>
       </View>
 
-      {/* Loading Skeletons */}
-      {loading ? (
-        <View className="py-2 gap-y-3">
+      {/* Scrollable Exercises List */}
+      <ScrollView
+        className="flex-1 min-h-0"
+        contentContainerStyle={{ paddingBottom: 135 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+      >
+        {/* Loading Skeletons */}
+        {loading ? (
+          <View className="py-2 gap-y-3">
           <CardSkeleton lines={3} />
           <CardSkeleton lines={3} />
           <CardSkeleton lines={2} />
@@ -300,6 +310,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
           );
         })
       )}
+      </ScrollView>
 
       {/* Details View Modal */}
       <ExerciseDetailsModal

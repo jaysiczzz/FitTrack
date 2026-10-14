@@ -8,6 +8,7 @@ export interface UserProfilePayload {
   targetWeight?: number | null;
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
+  gender?: 'MALE' | 'FEMALE';
   avatarUrl?: string | null;
 }
 

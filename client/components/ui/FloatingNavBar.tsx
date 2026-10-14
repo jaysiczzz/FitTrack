@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, TouchableOpacity, Platform, StyleSheet, DeviceEventEmitter } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -8,6 +8,11 @@ import AiScanModal from '@/components/foodlog/AiScanModal';
 import SubscriptionModal from '@/components/subscription/SubscriptionModal';
 import { FoodLogItem, getTodayDateString } from '@/components/foodlog/foodLogTypes';
 import { autoSyncFoodAndWater, saveFoodToRecentHistory } from '@/api/foodlog';
+import {
+  getInAppNotificationsApi,
+  getCachedUnreadNotifCount,
+  setCachedUnreadNotifCount,
+} from '@/api/notifications';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -65,6 +70,37 @@ export default function FloatingNavBar() {
   const { colors } = useThemeColors();
   const [showScanModal, setShowScanModal] = useState(false);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [unreadNotifCount, setUnreadNotifCount] = useState<number>(getCachedUnreadNotifCount);
+
+  const loadNotifications = useCallback(async () => {
+    try {
+      const res = await getInAppNotificationsApi();
+      if (res && res.success) {
+        const count = res.unreadCount ?? 0;
+        setUnreadNotifCount(count);
+        setCachedUnreadNotifCount(count);
+      }
+    } catch {
+      // Offline fallback
+    }
+  }, []);
+
+  useEffect(() => {
+    loadNotifications();
+
+    const subN = DeviceEventEmitter.addListener('IN_APP_NOTIFICATIONS_UPDATED', (evt?: { unreadCount?: number }) => {
+      if (typeof evt?.unreadCount === 'number') {
+        setUnreadNotifCount(evt.unreadCount);
+        setCachedUnreadNotifCount(evt.unreadCount);
+      } else {
+        loadNotifications();
+      }
+    });
+
+    return () => {
+      subN.remove();
+    };
+  }, [loadNotifications]);
 
   // Determine active route
   const getIsActive = (route: string) => {
@@ -128,6 +164,7 @@ export default function FloatingNavBar() {
     pathname.includes('ai-coach') ||
     pathname.includes('settings') ||
     pathname.includes('calendar') ||
+    pathname.includes('notifications') ||
     pathname.includes('admin') ||
     pathname.includes('auth')
   ) {
@@ -239,11 +276,23 @@ export default function FloatingNavBar() {
                   className="flex-1 items-center justify-center min-h-[48px] py-1.5"
                 >
                   <View className="w-10 h-7 items-center justify-center mb-0.5">
-                    <Ionicons
-                      name={isActive ? item.activeIcon : item.inactiveIcon}
-                      size={21}
-                      color={isActive ? colors.accent : colors.textMuted}
-                    />
+                    <View className="relative">
+                      <Ionicons
+                        name={isActive ? item.activeIcon : item.inactiveIcon}
+                        size={21}
+                        color={isActive ? colors.accent : colors.textMuted}
+                      />
+                      {item.key === 'profile' && unreadNotifCount > 0 ? (
+                        <View
+                          className="absolute -top-1.5 -right-2.5 min-w-[16px] h-[16px] px-1 rounded-full bg-rose-500 items-center justify-center border-[1.5px] border-surface dark:border-surface-dark shadow-sm"
+                          accessibilityLabel={`${unreadNotifCount} unread notifications`}
+                        >
+                          <Text className="text-[9px] font-black text-white leading-none text-center">
+                            {unreadNotifCount > 9 ? '9+' : unreadNotifCount}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
                   </View>
 
                   <Text

@@ -11,6 +11,8 @@ import {
   createCustomFoodInDb,
   deleteCustomFoodFromDb,
 } from '../services/foodlog.service'
+import { createNotification } from './inAppNotification.controller'
+import { emitToUser } from '../socket'
 
 export async function saveDayLogController(
   req: AuthRequest,
@@ -34,6 +36,8 @@ export async function saveDayLogController(
       waterMl: Number(waterMl) || 0,
       isCompleted: typeof isCompleted === 'boolean' ? isCompleted : undefined,
     })
+
+    emitToUser(userId, 'nutrition:updated', { date, savedLog })
 
     return res.status(200).json({
       success: true,
@@ -64,6 +68,16 @@ export async function completeDayLogController(
     const completedLog = Array.isArray(items) && items.length > 0
       ? await saveDailyFoodLogInDb(userId, { date, items, waterMl: Number(waterMl) || 0, isCompleted: true })
       : await completeDailyFoodLogInDb(userId, date)
+
+    createNotification({
+      userId,
+      type: 'NUTRITION',
+      title: 'Daily Nutrition Complete! 🥗',
+      message: `Great job! You logged your nutrition targets for ${date}. Consistency in fueling drives real progress.`,
+      linkUrl: '/(screen)/foodlog?tab=today',
+    }).catch(() => {})
+
+    emitToUser(userId, 'nutrition:updated', { date, completedLog })
 
     return res.status(200).json({
       success: true,
@@ -141,6 +155,8 @@ export async function deleteDayLogController(
     }
 
     await deleteDailyFoodLogFromDb(userId, dateParam)
+
+    emitToUser(userId, 'nutrition:updated', { date: dateParam, deleted: true })
 
     return res.status(200).json({
       success: true,

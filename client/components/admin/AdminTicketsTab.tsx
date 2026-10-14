@@ -8,6 +8,8 @@ import {
   Modal,
   TextInput,
   Image,
+  DeviceEventEmitter,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -36,6 +38,7 @@ interface AdminTicketsTabProps {
   ticketFilter: 'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED';
   onFilterChange: (f: 'ALL' | 'OPEN' | 'IN_PROGRESS' | 'RESOLVED') => void;
   onReloadTickets: () => void;
+  initialSubSection?: 'tickets' | 'stories';
 }
 
 export default function AdminTicketsTab({
@@ -45,11 +48,18 @@ export default function AdminTicketsTab({
   ticketFilter,
   onFilterChange,
   onReloadTickets,
+  initialSubSection = 'tickets',
 }: AdminTicketsTabProps) {
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
-  const [subSection, setSubSection] = useState<'tickets' | 'stories'>('tickets');
+  const [subSection, setSubSection] = useState<'tickets' | 'stories'>(initialSubSection);
+
+  useEffect(() => {
+    if (initialSubSection) {
+      setSubSection(initialSubSection);
+    }
+  }, [initialSubSection]);
 
   // Support Tickets State
   const [ticketSearch, setTicketSearch] = useState('');
@@ -90,6 +100,25 @@ export default function AdminTicketsTab({
       loadStories();
     }
   }, [refreshing, loadStories]);
+
+  // Real-time live ticket queue listener across devices
+  useEffect(() => {
+    const subCreated = DeviceEventEmitter.addListener('TICKET_CREATED_LIVE', () => {
+      onReloadTickets();
+    });
+    const subUpdated = DeviceEventEmitter.addListener('TICKET_UPDATED_LIVE', () => {
+      onReloadTickets();
+    });
+    const subDeleted = DeviceEventEmitter.addListener('TICKET_DELETED_LIVE', () => {
+      onReloadTickets();
+    });
+
+    return () => {
+      subCreated.remove();
+      subUpdated.remove();
+      subDeleted.remove();
+    };
+  }, [onReloadTickets]);
 
   const handleUpdateTicketStatus = async (status: 'OPEN' | 'IN_PROGRESS' | 'RESOLVED') => {
     if (!selectedTicket) return;
@@ -138,6 +167,7 @@ export default function AdminTicketsTab({
       triggerHapticFeedback();
       const res = await moderateTestimonialApi(id, { status });
       if (res.success) {
+        DeviceEventEmitter.emit('testimonials:updated');
         showSuccess(
           status === 'APPROVED' ? 'Story Approved' : 'Story Rejected',
           status === 'APPROVED'
@@ -203,122 +233,190 @@ export default function AdminTicketsTab({
   }, [filteredStories, storySearch]);
 
   return (
-    <View className="gap-3">
-      {/* ── Sub-Section Switcher ── */}
-      <View className="flex-row bg-surface-card dark:bg-surface-card-dark p-1 rounded-xl border border-input-border dark:border-input-border-dark">
-        <TouchableOpacity
-          onPress={() => {
-            triggerHapticFeedback();
-            setSubSection('tickets');
-          }}
-          className={`flex-1 py-2 rounded-lg items-center justify-center flex-row gap-1.5 ${
-            subSection === 'tickets' ? 'bg-accent' : ''
-          }`}
-        >
-          <Text
-            className={`text-xs font-bold ${
-              subSection === 'tickets' ? 'text-accent-contrast' : 'text-text-muted dark:text-text-muted-dark'
+    <View className="flex-1 min-h-0">
+      {/* Pinned Sub-Section Switcher, Search Input & Filters */}
+      <View className="pb-3 gap-2.5">
+        {/* ── Sub-Section Switcher ── */}
+        <View className="flex-row bg-surface-card dark:bg-surface-card-dark p-1 rounded-xl border border-input-border dark:border-input-border-dark">
+          <TouchableOpacity
+            onPress={() => {
+              triggerHapticFeedback();
+              setSubSection('tickets');
+            }}
+            className={`flex-1 py-2 rounded-lg items-center justify-center flex-row gap-1.5 ${
+              subSection === 'tickets' ? 'bg-accent' : ''
             }`}
           >
-            Support Tickets
-          </Text>
-          {openTicketsCount > 0 && (
-            <View
-              className={`px-1.5 py-0.5 rounded-full ${
-                subSection === 'tickets' ? 'bg-accent-contrast/25' : 'bg-warning/20 border border-warning/30'
+            <Text
+              className={`text-xs font-bold ${
+                subSection === 'tickets' ? 'text-accent-contrast' : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
-              <Text
-                className={`text-[9px] font-black ${
-                  subSection === 'tickets' ? 'text-accent-contrast' : 'text-warning dark:text-warning-dark'
+              Support Tickets
+            </Text>
+            {openTicketsCount > 0 && (
+              <View
+                className={`px-1.5 py-0.5 rounded-full ${
+                  subSection === 'tickets'
+                    ? 'bg-white/20 border border-white/35'
+                    : 'bg-emerald-500/15 dark:bg-emerald-400/25 border border-emerald-500/30'
                 }`}
               >
-                {openTicketsCount}
-              </Text>
-            </View>
-          )}
-        </TouchableOpacity>
+                <Text
+                  className={`text-[9px] font-black ${
+                    subSection === 'tickets'
+                      ? 'text-white'
+                      : 'text-accent dark:text-emerald-400'
+                  }`}
+                >
+                  {openTicketsCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
 
-        <TouchableOpacity
-          onPress={() => {
-            triggerHapticFeedback();
-            setSubSection('stories');
-          }}
-          className={`flex-1 py-2 rounded-lg items-center justify-center flex-row gap-1.5 ${
-            subSection === 'stories' ? 'bg-accent' : ''
-          }`}
-        >
-          <Text
-            className={`text-xs font-bold ${
-              subSection === 'stories' ? 'text-accent-contrast' : 'text-text-muted dark:text-text-muted-dark'
+          <TouchableOpacity
+            onPress={() => {
+              triggerHapticFeedback();
+              setSubSection('stories');
+            }}
+            className={`flex-1 py-2 rounded-lg items-center justify-center flex-row gap-1.5 ${
+              subSection === 'stories' ? 'bg-accent' : ''
             }`}
           >
-            Story Moderation
-          </Text>
-          {pendingStoriesCount > 0 && (
-            <View
-              className={`px-1.5 py-0.5 rounded-full ${
-                subSection === 'stories' ? 'bg-accent-contrast/25' : 'bg-warning/20 border border-warning/30'
+            <Text
+              className={`text-xs font-bold ${
+                subSection === 'stories' ? 'text-accent-contrast' : 'text-text-muted dark:text-text-muted-dark'
               }`}
             >
-              <Text
-                className={`text-[9px] font-black ${
-                  subSection === 'stories' ? 'text-accent-contrast' : 'text-warning dark:text-warning-dark'
+              Story Moderation
+            </Text>
+            {pendingStoriesCount > 0 && (
+              <View
+                className={`px-1.5 py-0.5 rounded-full ${
+                  subSection === 'stories'
+                    ? 'bg-white/20 border border-white/35'
+                    : 'bg-emerald-500/15 dark:bg-emerald-400/25 border border-emerald-500/30'
                 }`}
               >
-                {pendingStoriesCount}
-              </Text>
+                <Text
+                  className={`text-[9px] font-black ${
+                    subSection === 'stories'
+                      ? 'text-white'
+                      : 'text-accent dark:text-emerald-400'
+                  }`}
+                >
+                  {pendingStoriesCount}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {subSection === 'tickets' ? (
+          <>
+            {/* Ticket Search Input */}
+            <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+              <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                value={ticketSearch}
+                onChangeText={setTicketSearch}
+                placeholder="Search tickets by user, email, subject, ID..."
+                placeholderTextColor={colors.textMuted}
+                className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                autoCapitalize="none"
+              />
+              {ticketSearch.length > 0 && (
+                <TouchableOpacity onPress={() => setTicketSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
             </View>
-          )}
-        </TouchableOpacity>
+
+            {/* Filter chips */}
+            <View className="flex-row flex-wrap gap-2">
+              {(
+                [
+                  { id: 'ALL', label: 'All' },
+                  { id: 'OPEN', label: 'Open' },
+                  { id: 'IN_PROGRESS', label: 'In Progress' },
+                  { id: 'RESOLVED', label: 'Resolved' },
+                ] as const
+              ).map((filter) => (
+                <FilterChip
+                  key={filter.id}
+                  label={filter.label}
+                  selected={ticketFilter === filter.id}
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    onFilterChange(filter.id);
+                  }}
+                />
+              ))}
+            </View>
+          </>
+        ) : (
+          <>
+            {/* Story Search Input */}
+            <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+              <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                value={storySearch}
+                onChangeText={setStorySearch}
+                placeholder="Search stories by athlete name, review content, goal..."
+                placeholderTextColor={colors.textMuted}
+                className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                autoCapitalize="none"
+              />
+              {storySearch.length > 0 && (
+                <TouchableOpacity onPress={() => setStorySearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Moderation filter chips */}
+            <View className="flex-row flex-wrap gap-2">
+              {(
+                [
+                  { id: 'PENDING', label: `Pending (${pendingStoriesCount})` },
+                  { id: 'ALL', label: `All Stories (${stories.length})` },
+                  { id: 'APPROVED', label: 'Approved' },
+                  { id: 'REJECTED', label: 'Rejected' },
+                ] as const
+              ).map((filter) => (
+                <FilterChip
+                  key={filter.id}
+                  label={filter.label}
+                  selected={storyFilter === filter.id}
+                  onPress={() => {
+                    triggerHapticFeedback();
+                    setStoryFilter(filter.id);
+                  }}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </View>
 
-      {/* ────────────────────────────────────────── */}
-      {/* SECTION 1: Support Tickets                 */}
-      {/* ────────────────────────────────────────── */}
-      {subSection === 'tickets' && (
-        <>
-          {/* Ticket Search Input */}
-          <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
-            <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              value={ticketSearch}
-              onChangeText={setTicketSearch}
-              placeholder="Search tickets by user, email, subject, ID..."
-              placeholderTextColor={colors.textMuted}
-              className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
-              autoCapitalize="none"
-            />
-            {ticketSearch.length > 0 && (
-              <TouchableOpacity onPress={() => setTicketSearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Filter chips */}
-          <View className="flex-row flex-wrap gap-2">
-            {(
-              [
-                { id: 'ALL', label: 'All' },
-                { id: 'OPEN', label: 'Open' },
-                { id: 'IN_PROGRESS', label: 'In Progress' },
-                { id: 'RESOLVED', label: 'Resolved' },
-              ] as const
-            ).map((filter) => (
-              <FilterChip
-                key={filter.id}
-                label={filter.label}
-                selected={ticketFilter === filter.id}
-                onPress={() => {
-                  triggerHapticFeedback();
-                  onFilterChange(filter.id);
-                }}
-              />
-            ))}
-          </View>
-
-          {/* Ticket List */}
+      {/* Scrollable Support Queue or Story Moderation List */}
+      <ScrollView
+        className="flex-1 min-h-0"
+        contentContainerStyle={{ paddingBottom: 90, gap: 12 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={subSection === 'tickets' ? onReloadTickets : loadStories}
+            tintColor={colors.accent}
+          />
+        }
+      >
+        {subSection === 'tickets' && (
+          <>
+            {/* Ticket List */}
           {loading && !refreshing ? (
             <View className="py-20 items-center justify-center">
               <ActivityIndicator size="small" color={colors.accent} />
@@ -429,46 +527,6 @@ export default function AdminTicketsTab({
       {/* ────────────────────────────────────────── */}
       {subSection === 'stories' && (
         <>
-          {/* Story Search Input */}
-          <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
-            <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-            <TextInput
-              value={storySearch}
-              onChangeText={setStorySearch}
-              placeholder="Search stories by athlete name, review content, goal..."
-              placeholderTextColor={colors.textMuted}
-              className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
-              autoCapitalize="none"
-            />
-            {storySearch.length > 0 && (
-              <TouchableOpacity onPress={() => setStorySearch('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-            )}
-          </View>
-
-          {/* Moderation filter chips */}
-          <View className="flex-row flex-wrap gap-2">
-            {(
-              [
-                { id: 'PENDING', label: `Pending (${pendingStoriesCount})` },
-                { id: 'ALL', label: `All Stories (${stories.length})` },
-                { id: 'APPROVED', label: 'Approved' },
-                { id: 'REJECTED', label: 'Rejected' },
-              ] as const
-            ).map((filter) => (
-              <FilterChip
-                key={filter.id}
-                label={filter.label}
-                selected={storyFilter === filter.id}
-                onPress={() => {
-                  triggerHapticFeedback();
-                  setStoryFilter(filter.id);
-                }}
-              />
-            ))}
-          </View>
-
           {loadingStories && !refreshing ? (
             <View className="py-20 items-center justify-center">
               <ActivityIndicator size="small" color={colors.accent} />
@@ -716,6 +774,7 @@ export default function AdminTicketsTab({
           )}
         </>
       )}
+      </ScrollView>
 
       {/* ── Review Support Ticket Modal ── */}
       {selectedTicket && (

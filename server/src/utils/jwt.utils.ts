@@ -6,6 +6,8 @@ import { prisma } from '../config/db'
 export interface jwtPayload {
   id: string
   role?: string
+  iat?: number
+  exp?: number
 }
 
 export const ACCESS_TOKEN_EXPIRATION = '15m'
@@ -122,4 +124,55 @@ export const revokeAllUserTokens = async (userId: string): Promise<void> => {
     where: { userId, revoked: false },
     data: { revoked: true },
   })
+}
+
+// In-memory cache for fast O(1) password change timestamp checks: email -> timestamp (ms)
+const passwordChangeTimestamps = new Map<string, number>()
+
+/**
+ * Records that a user's password was changed, immediately invalidating any active access tokens
+ * and refresh tokens across all devices.
+ */
+export const recordPasswordChangeTimestamp = async (email: string): Promise<number> => {
+  const normalizedEmail = email.toLowerCase().trim()
+  const now = Date.now()
+  passwordChangeTimestamps.set(normalizedEmail, now)
+
+  // Persist to database so session invalidation survives server restarts
+  await prisma.passwordResetToken.create({
+    data: {
+      email: normalizedEmail,
+      code: 'PASSWORD_CHANGED',
+      expiresAt: new Date(now + 30 * 24 * 60 * 60 * 1000), // 30-day validity marker
+      used: true,
+    },
+  }).catch((err) => {
+    console.error('[Auth] Failed to persist password change marker:', err)
+  })
+
+  return now
+}
+
+/**
+ * Retrieves the latest password change timestamp for an email, with in-memory caching.
+ */
+export const getLatestPasswordChangeTimestamp = async (email: string): Promise<number> => {
+  const normalizedEmail = email.toLowerCase().trim()
+  if (passwordChangeTimestamps.has(normalizedEmail)) {
+    return passwordChangeTimestamps.get(normalizedEmail)!
+  }
+
+  const record = await prisma.passwordResetToken.findFirst({
+    where: {
+      email: normalizedEmail,
+      code: 'PASSWORD_CHANGED',
+      used: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    select: { createdAt: true },
+  })
+
+  const timestamp = record ? record.createdAt.getTime() : 0
+  passwordChangeTimestamps.set(normalizedEmail, timestamp)
+  return timestamp
 }

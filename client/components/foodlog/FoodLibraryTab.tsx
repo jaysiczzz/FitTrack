@@ -270,154 +270,173 @@ export default function FoodLibraryTab({
   };
 
   return (
-    <View className="flex-1">
-      <View className="flex-row items-center justify-between mb-2">
-        <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
-          Food Library
-        </Text>
-      </View>
-      {/* Session Added Banner */}
-      {sessionAddedCount > 0 && onSwitchToToday && (
-        <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 rounded-2xl p-3 mb-3 flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2 flex-1 pr-2">
-            <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-            <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-              {sessionAddedCount} item{sessionAddedCount === 1 ? '' : 's'} added to your day
-            </Text>
-          </View>
-          <TouchableOpacity
-            onPress={onSwitchToToday}
-            activeOpacity={0.85}
-            className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl justify-center items-center shadow-xs active:opacity-85"
-          >
-            <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
-              View Today's Log →
-            </Text>
-          </TouchableOpacity>
+    <View className="flex-1 min-h-0">
+      {/* Pinned Search & Filter Header */}
+      <View className="pb-1">
+        <View className="flex-row items-center justify-between mb-2">
+          <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark uppercase tracking-wider">
+            Food Library
+          </Text>
         </View>
-      )}
-
-      {/* Row 2: Search Input + Meal Selector Pill Inline */}
-      <View className="flex-row items-center gap-2 mb-2.5">
-        <View className="flex-1 flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3 min-h-[34px] py-1">
-          <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder={
-              libraryMode === 'combos'
-                ? 'Search meal combos...'
-                : libraryMode === 'recent'
-                ? 'Search recents...'
-                : 'Search foods & brands...'
-            }
-            placeholderTextColor={colors.textMuted}
-            className="flex-1 py-2 text-xs text-text-primary dark:text-text-primary-dark font-medium"
-            returnKeyType="search"
-            clearButtonMode="while-editing"
-            autoCorrect={false}
-          />
-          {isLoadingOff ? (
-            <ActivityIndicator size="small" color={colors.accent} className="ml-1" />
-          ) : searchQuery.length > 0 ? (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+        {/* Session Added Banner */}
+        {sessionAddedCount > 0 && onSwitchToToday && (
+          <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 rounded-2xl p-3 mb-3 flex-row items-center justify-between">
+            <View className="flex-row items-center gap-2 flex-1 pr-2">
+              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                {sessionAddedCount} item{sessionAddedCount === 1 ? '' : 's'} added to your day
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={onSwitchToToday}
+              activeOpacity={0.85}
+              className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl justify-center items-center shadow-xs active:opacity-85"
+            >
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
+                View Today's Log →
+              </Text>
             </TouchableOpacity>
-          ) : null}
+          </View>
+        )}
+
+        {/* Row 2: Search Input + Meal Selector Pill Inline */}
+        <View className="flex-row items-center gap-2 mb-2.5">
+          <View className="flex-1 flex-row items-center bg-input dark:bg-input-dark rounded-xl border border-input-border dark:border-input-border-dark px-3 min-h-[34px] py-1">
+            <Ionicons name="search" size={16} color={colors.textMuted} style={{ marginRight: 6 }} />
+            <TextInput
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              placeholder={
+                libraryMode === 'combos'
+                  ? 'Search meal combos...'
+                  : libraryMode === 'recent'
+                  ? 'Search recents...'
+                  : 'Search foods & brands...'
+              }
+              placeholderTextColor={colors.textMuted}
+              className="flex-1 py-2 text-xs text-text-primary dark:text-text-primary-dark font-medium"
+              returnKeyType="search"
+              clearButtonMode="while-editing"
+              autoCorrect={false}
+            />
+            {isLoadingOff ? (
+              <ActivityIndicator size="small" color={colors.accent} className="ml-1" />
+            ) : searchQuery.length > 0 ? (
+              <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+                <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
+          <MealSelectorPill
+            selectedMeal={selectedMeal}
+            onSelectMeal={setSelectedMeal}
+            compact
+          />
         </View>
 
-        <MealSelectorPill
-          selectedMeal={selectedMeal}
-          onSelectMeal={setSelectedMeal}
-          compact
-        />
+        {/* Row 3: Source Chips + Contextual Filters with Scroll Hint */}
+        <View className="relative mb-3">
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            className="flex-row"
+            contentContainerStyle={{ paddingRight: 28, alignItems: 'center' }}
+          >
+            {/* Leading Source Chips */}
+            <FilterChip
+              label="Meals"
+              selected={libraryMode === 'combos'}
+              onPress={() => setLibraryMode('combos')}
+              className="mr-1.5"
+            />
+            <FilterChip
+              label="Foods"
+              selected={libraryMode === 'search'}
+              onPress={() => setLibraryMode('search')}
+              className="mr-1.5"
+            />
+            <FilterChip
+              label="Recents"
+              count={recentFoods.length > 0 ? recentFoods.length : undefined}
+              selected={libraryMode === 'recent'}
+              onPress={() => setLibraryMode('recent')}
+              className="mr-2"
+            />
+
+            {/* Visual Divider between Source Chips and Category Sub-Filters */}
+            <View className="h-5 w-[1px] bg-input-border dark:bg-input-border-dark mr-2" />
+
+            {/* Sub-Filters: Combos */}
+            {libraryMode === 'combos' && (
+              <>
+                {[
+                  { key: 'ALL', label: 'All Combos' },
+                  { key: 'High Protein', label: 'High Protein' },
+                  { key: 'Fat Loss', label: 'Fat Loss' },
+                  { key: 'Post-Workout', label: 'Post-Workout' },
+                  { key: 'Clean Bulking', label: 'Clean Bulking' },
+                  { key: 'breakfast', label: 'Breakfast' },
+                  { key: 'lunch', label: 'Lunch' },
+                  { key: 'dinner', label: 'Dinner' },
+                  { key: 'snack', label: 'Snacks' },
+                ].map((f) => (
+                  <FilterChip
+                    key={f.key}
+                    label={f.label}
+                    selected={activeComboFilter === f.key}
+                    onPress={() => setActiveComboFilter(f.key as ComboFilter)}
+                    className="mr-1.5"
+                  />
+                ))}
+              </>
+            )}
+
+            {/* Sub-Filters: Search Foods */}
+            {libraryMode === 'search' && (
+              <>
+                {[
+                  { key: 'ALL', label: 'All' },
+                  { key: 'Protein', label: 'Protein' },
+                  { key: 'Carbs', label: 'Carbs' },
+                  { key: 'Fats', label: 'Fats' },
+                  { key: 'Vegetables', label: 'Veggies' },
+                  { key: 'Fruits', label: 'Fruits' },
+                  { key: 'Dairy', label: 'Dairy' },
+                ].map((cat) => (
+                  <FilterChip
+                    key={cat.key}
+                    label={cat.label}
+                    selected={activeCategory === cat.key}
+                    onPress={() => setActiveCategory(cat.key as FilterCategory)}
+                    className="mr-1.5"
+                  />
+                ))}
+              </>
+            )}
+          </ScrollView>
+        </View>
       </View>
 
-      {/* Row 3: Source Chips + Contextual Filters with Scroll Hint */}
-      <View className="relative mb-3">
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          className="flex-row"
-          contentContainerStyle={{ paddingRight: 28, alignItems: 'center' }}
-        >
-          {/* Leading Source Chips */}
-          <FilterChip
-            label="Meals"
-            selected={libraryMode === 'combos'}
-            onPress={() => setLibraryMode('combos')}
-            className="mr-1.5"
-          />
-          <FilterChip
-            label="Foods"
-            selected={libraryMode === 'search'}
-            onPress={() => setLibraryMode('search')}
-            className="mr-1.5"
-          />
-          <FilterChip
-            label="Recents"
-            count={recentFoods.length > 0 ? recentFoods.length : undefined}
-            selected={libraryMode === 'recent'}
-            onPress={() => setLibraryMode('recent')}
-            className="mr-2"
-          />
-
-          {/* Visual Divider between Source Chips and Category Sub-Filters */}
-          <View className="h-5 w-[1px] bg-input-border dark:bg-input-border-dark mr-2" />
-
-          {/* Sub-Filters: Combos */}
-          {libraryMode === 'combos' && (
-            <>
-              {[
-                { key: 'ALL', label: 'All Combos' },
-                { key: 'High Protein', label: 'High Protein' },
-                { key: 'Fat Loss', label: 'Fat Loss' },
-                { key: 'Post-Workout', label: 'Post-Workout' },
-                { key: 'Clean Bulking', label: 'Clean Bulking' },
-                { key: 'breakfast', label: 'Breakfast' },
-                { key: 'lunch', label: 'Lunch' },
-                { key: 'dinner', label: 'Dinner' },
-                { key: 'snack', label: 'Snacks' },
-              ].map((f) => (
-                <FilterChip
-                  key={f.key}
-                  label={f.label}
-                  selected={activeComboFilter === f.key}
-                  onPress={() => setActiveComboFilter(f.key as ComboFilter)}
-                  className="mr-1.5"
-                />
-              ))}
-            </>
-          )}
-
-          {/* Sub-Filters: Search Foods */}
-          {libraryMode === 'search' && (
-            <>
-              {[
-                { key: 'ALL', label: 'All' },
-                { key: 'Protein', label: 'Protein' },
-                { key: 'Carbs', label: 'Carbs' },
-                { key: 'Fats', label: 'Fats' },
-                { key: 'Vegetables', label: 'Veggies' },
-                { key: 'Fruits', label: 'Fruits' },
-                { key: 'Dairy', label: 'Dairy' },
-              ].map((cat) => (
-                <FilterChip
-                  key={cat.key}
-                  label={cat.label}
-                  selected={activeCategory === cat.key}
-                  onPress={() => setActiveCategory(cat.key as FilterCategory)}
-                  className="mr-1.5"
-                />
-              ))}
-            </>
-          )}
-        </ScrollView>
-      </View>
-
-      {/* ===================== MODE 1: BALANCED MEAL COMBOS ===================== */}
-      {libraryMode === 'combos' && (
-        <View>
+      {/* Scrollable Data Lists */}
+      <ScrollView
+        className="flex-1 min-h-0"
+        contentContainerStyle={{ paddingBottom: 135 }}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        onScroll={({ nativeEvent }) => {
+          const { layoutMeasurement, contentOffset, contentSize } = nativeEvent;
+          if (layoutMeasurement.height + contentOffset.y >= contentSize.height - 250) {
+            if (currentTotalItems > visibleCount) {
+              setVisibleCount((prev) => prev + PAGE_SIZE);
+            }
+          }
+        }}
+        scrollEventThrottle={100}
+      >
+        {/* ===================== MODE 1: BALANCED MEAL COMBOS ===================== */}
+        {libraryMode === 'combos' && (
+          <View>
 
           {/* Combos Cards List */}
           {filteredCombos.length === 0 ? (
@@ -630,6 +649,7 @@ export default function FoodLibraryTab({
           )}
         </View>
       )}
+      </ScrollView>
 
       {/* Meal Combo Details & Scaler Modal */}
       <MealComboDetailsModal

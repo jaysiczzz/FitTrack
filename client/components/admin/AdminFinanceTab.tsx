@@ -6,6 +6,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Modal,
+  ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -155,158 +157,180 @@ export default function AdminFinanceTab({
   if (!revenueData) return null;
 
   return (
-    <View className="gap-4">
-      {/* Treasury Card */}
-      <SurfaceCard className="p-4 border-accent/30 dark:border-accent-dark/30">
-        <View className="flex-row items-center justify-between mb-3">
-          <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase">
-            Settlement & Treasury
-          </Text>
-          <TouchableOpacity
-            onPress={() => {
-              triggerHapticFeedback();
-              setShowPayoutModal(true);
-            }}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            className="bg-accent min-h-[34px] px-3 py-1.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
-          >
-            <Text className="text-xs font-bold text-accent-contrast">Manual Transfer</Text>
-          </TouchableOpacity>
-        </View>
-
-        {(() => {
-          const rawBal = revenueData.platformWallet?.balance || 0;
-          const currency = (revenueData.platformWallet?.currency || 'PHP').toUpperCase();
-          const isPhp = currency === 'PHP';
-          const phpBal = isPhp ? rawBal : rawBal * 58;
-          const usdBal = isPhp ? rawBal / 58 : rawBal;
-
-          return (
-            <View>
-              <View className="flex-row items-baseline gap-1.5 mb-0.5">
-                <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
-                  ₱{phpBal.toLocaleString(undefined, {
-                    minimumFractionDigits: 2,
-                    maximumFractionDigits: 2,
-                  })}
-                </Text>
-                <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
-                  PHP
-                </Text>
-              </View>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                USD approx: ${usdBal.toLocaleString(undefined, {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })} USD
-              </Text>
-            </View>
-          );
-        })()}
-
-        {/* Real-World Gateway Settlement Info */}
-        <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50 gap-1.5">
-          <View className="flex-row items-center justify-between">
-            <View className="flex-row items-center gap-1.5">
-              <View className="w-2 h-2 rounded-full bg-emerald-500" />
-              <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
-                Auto-Deposit: Rolling 2 Business Days
-              </Text>
-            </View>
-            <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-              Stripe & PayMongo
-            </Text>
-          </View>
-          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-            Customer card & e-wallet payments settle automatically into your linked business bank account.
-          </Text>
-        </View>
-      </SurfaceCard>
-
-      {/* Recent Ledger Transactions Header */}
-      <View className="flex-row items-center justify-between">
-        <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-          Live Transactions Ledger ({filteredTransactions.length}{searchQuery ? ` of ${recentTxList.length}` : ''})
-        </Text>
-      </View>
-
-      {/* Ledger Search Input */}
-      {recentTxList.length > 0 && (
-        <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
-          <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
-          <TextInput
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            placeholder="Search by email, payment method, status, notes..."
-            placeholderTextColor={colors.textMuted}
-            className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
-            autoCapitalize="none"
+    <View className="flex-1 min-h-0">
+      <ScrollView
+        className="flex-1 min-h-0"
+        stickyHeaderIndices={[1]}
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={true}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onReloadFinance}
+            tintColor={colors.accent}
           />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="close-circle" size={16} color={colors.textMuted} />
-            </TouchableOpacity>
-          )}
-        </View>
-      )}
+        }
+        contentContainerStyle={{ paddingBottom: 90 }}
+      >
+        {/* Child 0: Treasury Card */}
+        <View className="mb-3">
+          <SurfaceCard className="p-4 border-accent/30 dark:border-accent-dark/30">
+            <View className="flex-row items-center justify-between mb-3">
+              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark uppercase">
+                Settlement & Treasury
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  triggerHapticFeedback();
+                  setShowPayoutModal(true);
+                }}
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                className="bg-accent min-h-[34px] px-3 py-1.5 rounded-xl flex-row items-center gap-1.5 shadow-xs"
+              >
+                <Text className="text-xs font-bold text-accent-contrast">Manual Transfer</Text>
+              </TouchableOpacity>
+            </View>
 
-      {recentTxList.length === 0 ? (
-        <SurfaceCard className="p-6 items-center justify-center">
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-            No transactions recorded in database yet.
-          </Text>
-        </SurfaceCard>
-      ) : filteredTransactions.length === 0 ? (
-        <SurfaceCard className="p-6 items-center justify-center">
-          <Ionicons name="search-outline" size={28} color={colors.textMuted} />
-          <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mt-2">
-            No matching transactions found
-          </Text>
-          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 text-center">
-            No ledger records match "{searchQuery}".
-          </Text>
-          <TouchableOpacity
-            onPress={() => setSearchQuery('')}
-            className="mt-3 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30"
-          >
-            <Text className="text-xs font-bold text-accent dark:text-accent-mint">Clear Search</Text>
-          </TouchableOpacity>
-        </SurfaceCard>
-      ) : (
-        filteredTransactions.map((tx: any) => (
-          <SurfaceCard key={tx.id} className="p-3">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1">
-                <View className="flex-row items-center gap-2">
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    {tx.type}
-                  </Text>
-                  <View className="bg-success/15 border border-success/30 px-1.5 py-0.5 rounded">
-                    <Text className="text-[9px] font-bold text-success dark:text-success-dark">{tx.status}</Text>
+            {(() => {
+              const rawBal = revenueData.platformWallet?.balance || 0;
+              const currency = (revenueData.platformWallet?.currency || 'PHP').toUpperCase();
+              const isPhp = currency === 'PHP';
+              const phpBal = isPhp ? rawBal : rawBal * 58;
+              const usdBal = isPhp ? rawBal / 58 : rawBal;
+
+              return (
+                <View>
+                  <View className="flex-row items-baseline gap-1.5 mb-0.5">
+                    <Text className="text-2xl font-extrabold text-accent dark:text-accent-dark">
+                      ₱{phpBal.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}
+                    </Text>
+                    <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                      PHP
+                    </Text>
                   </View>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                    USD approx: ${usdBal.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })} USD
+                  </Text>
                 </View>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                  {tx.user?.email || 'System Platform'} · {tx.paymentMethod}
-                </Text>
+              );
+            })()}
+
+            {/* Real-World Gateway Settlement Info */}
+            <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50 gap-1.5">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-1.5">
+                  <View className="w-2 h-2 rounded-full bg-emerald-500" />
+                  <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+                    Auto-Deposit: Rolling 2 Business Days
+                  </Text>
+                </View>
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                  {new Date(tx.createdAt).toLocaleDateString()} at{' '}
-                  {new Date(tx.createdAt).toLocaleTimeString([], {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                  })}
+                  Stripe & PayMongo
                 </Text>
               </View>
-              <Text
-                className={`text-sm font-extrabold ${
-                  tx.type === 'PAYOUT' ? 'text-danger dark:text-danger-dark' : 'text-success dark:text-success-dark'
-                }`}
-              >
-                {tx.type === 'PAYOUT' ? '-' : '+'}${tx.amount.toFixed(2)}
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                Customer card & e-wallet payments settle automatically into your linked business bank account.
               </Text>
             </View>
           </SurfaceCard>
-        ))
-      )}
+        </View>
+
+        {/* Child 1: STICKY Ledger Header & Search Input */}
+        <View className="bg-background dark:bg-background-dark pb-3 pt-1 gap-2.5 border-b border-input-border/40 dark:border-input-border-dark/40 mb-3">
+          <View className="flex-row items-center justify-between">
+            <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+              Live Transactions Ledger ({filteredTransactions.length}{searchQuery ? ` of ${recentTxList.length}` : ''})
+            </Text>
+          </View>
+
+          {/* Ledger Search Input */}
+          {recentTxList.length > 0 && (
+            <View className="flex-row items-center bg-input dark:bg-input-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark">
+              <Ionicons name="search" size={15} color={colors.textMuted} style={{ marginRight: 8 }} />
+              <TextInput
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholder="Search by email, payment method, status, notes..."
+                placeholderTextColor={colors.textMuted}
+                className="flex-1 text-xs text-text-primary dark:text-text-primary-dark font-medium py-0"
+                autoCapitalize="none"
+              />
+              {searchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setSearchQuery('')} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+                  <Ionicons name="close-circle" size={16} color={colors.textMuted} />
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+        </View>
+
+        {/* Child 2: Transactions List */}
+        <View className="gap-3">
+          {recentTxList.length === 0 ? (
+            <SurfaceCard className="p-6 items-center justify-center">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                No transactions recorded in database yet.
+              </Text>
+            </SurfaceCard>
+          ) : filteredTransactions.length === 0 ? (
+            <SurfaceCard className="p-6 items-center justify-center">
+              <Ionicons name="search-outline" size={28} color={colors.textMuted} />
+              <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mt-2">
+                No matching transactions found
+              </Text>
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 text-center">
+                No ledger records match "{searchQuery}".
+              </Text>
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                className="mt-3 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30"
+              >
+                <Text className="text-xs font-bold text-accent dark:text-accent-mint">Clear Search</Text>
+              </TouchableOpacity>
+            </SurfaceCard>
+          ) : (
+            filteredTransactions.map((tx: any) => (
+              <SurfaceCard key={tx.id} className="p-3">
+                <View className="flex-row items-center justify-between">
+                  <View className="flex-1">
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                        {tx.type}
+                      </Text>
+                      <View className="bg-success/15 border border-success/30 px-1.5 py-0.5 rounded">
+                        <Text className="text-[9px] font-bold text-success dark:text-success-dark">{tx.status}</Text>
+                      </View>
+                    </View>
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                      {tx.user?.email || 'System Platform'} · {tx.paymentMethod}
+                    </Text>
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                      {new Date(tx.createdAt).toLocaleDateString()} at{' '}
+                      {new Date(tx.createdAt).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Text>
+                  </View>
+                  <Text
+                    className={`text-sm font-extrabold ${
+                      tx.type === 'PAYOUT' ? 'text-danger dark:text-danger-dark' : 'text-success dark:text-success-dark'
+                    }`}
+                  >
+                    {tx.type === 'PAYOUT' ? '-' : '+'}${tx.amount.toFixed(2)}
+                  </Text>
+                </View>
+              </SurfaceCard>
+            ))
+          )}
+        </View>
+      </ScrollView>
 
       {/* ── Process Payout Modal ── */}
       {showPayoutModal && (

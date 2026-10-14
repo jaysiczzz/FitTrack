@@ -2,6 +2,8 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
+import { createNotification } from './inAppNotification.controller'
+import { emitToUser } from '../socket'
 
 function getLocalDateString(d: Date = new Date()): string {
   const year = d.getFullYear()
@@ -160,6 +162,22 @@ export const saveCheckIn = asyncHandler(async (req: AuthRequest, res: Response) 
   const dates = allUserCheckIns.map((c) => c.date)
   const streakStats = calculateStreakStats(dates, targetDate)
 
+  if (streakStats.currentStreak >= 2) {
+    createNotification({
+      userId,
+      type: 'STREAK',
+      title: `${streakStats.currentStreak}-Day Streak Active! 🔥`,
+      message: `You've checked in for ${streakStats.currentStreak} consecutive days. Consistency is paying off!`,
+      linkUrl: '/(screen)/calendar',
+    }).catch(() => {})
+  }
+
+  emitToUser(userId, 'checkin:updated', {
+    date: targetDate,
+    checkIn: saved,
+    streak: streakStats,
+  })
+
   res.status(200).json({
     success: true,
     message: 'Daily readiness check-in recorded successfully!',
@@ -254,6 +272,11 @@ export const deleteTodayCheckIn = asyncHandler(async (req: AuthRequest, res: Res
       where: { id: existing.id },
     })
   }
+
+  emitToUser(userId, 'checkin:updated', {
+    date: targetDate,
+    deleted: true,
+  })
 
   res.json({
     success: true,

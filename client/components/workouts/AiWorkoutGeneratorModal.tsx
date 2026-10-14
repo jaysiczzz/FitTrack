@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { generateAIWorkout, AIWorkoutPlan } from '@/api/ai';
@@ -8,6 +8,8 @@ import ModalCloseButton from '../ui/ModalCloseButton';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
 import SubscriptionModal from '../subscription/SubscriptionModal';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '@/api/subscription';
+import QuotaUsageMeter from '../ui/QuotaUsageMeter';
 
 interface AiWorkoutGeneratorModalProps {
   visible: boolean;
@@ -40,7 +42,40 @@ export default function AiWorkoutGeneratorModal({
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
 
+  // Quota & tier tracking
+  const [isPro, setIsPro] = useState(false);
+  const [routineUsed, setRoutineUsed] = useState(0);
+  const [routineLimit, setRoutineLimit] = useState(5);
+  const [routineResetsAt, setRoutineResetsAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (visible) {
+      getCurrentSubscriptionApi()
+        .then((res) => {
+          if (res?.success && res.isPro) setIsPro(true);
+        })
+        .catch(() => {});
+
+      getSubscriptionPlansApi()
+        .then((res) => {
+          if (res?.userUsage?.usage?.WORKOUT_GENERATOR) {
+            const u = res.userUsage.usage.WORKOUT_GENERATOR;
+            setRoutineUsed(u.used);
+            setRoutineLimit(u.limit);
+            if (u.resetsAt) setRoutineResetsAt(u.resetsAt);
+          } else if (res?.limits) {
+            setRoutineLimit(isPro ? res.limits.PRO.WORKOUT_GENERATOR.max : res.limits.FREE.WORKOUT_GENERATOR.max);
+          }
+        })
+        .catch(() => {});
+    }
+  }, [visible, isPro]);
+
   const handleGenerate = async (areaToUse?: string) => {
+    if (routineUsed >= routineLimit) {
+      setGeneratorError(`Monthly limit of ${routineLimit} routines reached. Resets on the 1st of next month.`);
+      return;
+    }
     const area = areaToUse || selectedArea;
     setLoading(true);
     setWorkoutPlan(null);
@@ -49,12 +84,28 @@ export default function AiWorkoutGeneratorModal({
       const res = await generateAIWorkout({ targetArea: area });
       if (res.success && res.workoutPlan && res.workoutPlan.exercises?.length > 0) {
         setWorkoutPlan(res.workoutPlan);
+        setRoutineUsed((prev) => prev + 1);
       } else {
         setGeneratorError('No workout plan generated. Please try a different focus or try again.');
       }
     } catch (err: any) {
       console.log('AI Workout Generation Error:', err?.message);
-      setGeneratorError(getFriendlyErrorMessage(err, 'Unable to generate workout right now. Please check your connection and try again.'));
+      const errText = err?.message || '';
+      if (
+        errText.includes('LIMIT_REACHED') ||
+        errText.includes('MONTHLY_ROUTINE_LIMIT_REACHED') ||
+        err?.status === 429
+      ) {
+        setRoutineUsed(routineLimit);
+        setGeneratorError(`Monthly limit of ${routineLimit} routines reached. Resets on the 1st of next month.`);
+      } else {
+        setGeneratorError(
+          getFriendlyErrorMessage(
+            err,
+            'Unable to generate workout right now. Please check your connection and try again.'
+          )
+        );
+      }
     } finally {
       setLoading(false);
     }
@@ -118,13 +169,28 @@ export default function AiWorkoutGeneratorModal({
             <ModalCloseButton onClose={onClose} />
           </View>
 
+          {/* Reusable Quota Usage Meter */}
+          <QuotaUsageMeter
+            isPro={isPro}
+            used={routineUsed}
+            limit={routineLimit}
+            unit="routines"
+            period="month"
+            resetsAt={routineResetsAt || undefined}
+            onUpgradePress={() => setShowSubscriptionModal(true)}
+            className="mb-3"
+          />
+
           {/* Inline Error Banner */}
           <ModalErrorBanner
             error={generatorError}
             onDismiss={() => setGeneratorError(null)}
           />
 
-          {generatorError && (generatorError.includes('free AI') || generatorError.includes('MONTHLY_ROUTINE_LIMIT_REACHED') || generatorError.includes('limit of 5')) ? (
+          {generatorError &&
+          (generatorError.includes('routines reached') ||
+            generatorError.includes('LIMIT_REACHED') ||
+            generatorError.includes('MONTHLY_ROUTINE_LIMIT_REACHED')) ? (
             <TouchableOpacity
               onPress={() => setShowSubscriptionModal(true)}
               activeOpacity={0.8}
@@ -132,7 +198,7 @@ export default function AiWorkoutGeneratorModal({
             >
               <Ionicons name="sparkles" size={15} color={colors.accent} />
               <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                Upgrade to FitTrack Pro for 30 Routines / Month
+                {isPro ? 'View Pro Plan' : 'See Pro plan'}
               </Text>
             </TouchableOpacity>
           ) : null}
