@@ -105,7 +105,8 @@ export const autoSyncFoodAndWater = (
   userId: string | undefined,
   date: string,
   items: FoodLogItem[],
-  waterMl: number
+  waterMl: number,
+  immediate: boolean = false
 ) => {
   if (!userId) return;
 
@@ -113,11 +114,25 @@ export const autoSyncFoodAndWater = (
 
   if (syncTimer) {
     clearTimeout(syncTimer);
+    syncTimer = null;
+  }
+
+  if (immediate) {
+    const payload = { ...pendingSyncPayload };
+    pendingSyncPayload = null;
+    return saveDailyFoodLogApi({
+      date: payload.date,
+      items: payload.items,
+      waterMl: payload.waterMl,
+    }).catch((err) => {
+      console.log('[FoodLog API] Immediate sync failed:', err);
+    });
   }
 
   syncTimer = setTimeout(async () => {
     if (!pendingSyncPayload) return;
     const payload = { ...pendingSyncPayload };
+    pendingSyncPayload = null;
     try {
       await saveDailyFoodLogApi({
         date: payload.date,

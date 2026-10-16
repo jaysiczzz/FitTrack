@@ -14,9 +14,3 @@ export const APP_CONFIG = {
   openFoodFactsSearchUrl: 'https://world.openfoodfacts.net/cgi/search.pl',
 } as const;
 
-export const ONBOARDING_CHECKLIST_DELAYS = {
-  STEP_1_MS: 600,
-  STEP_2_MS: 1300,
-  STEP_3_MS: 2000,
-  COMPLETE_MS: 2700,
-} as const;

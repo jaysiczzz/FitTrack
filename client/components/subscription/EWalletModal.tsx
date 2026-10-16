@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import ModalCloseButton from '../ui/ModalCloseButton';
@@ -53,6 +54,7 @@ export default function EWalletModal({
   onClose,
   onBalanceUpdated,
 }: EWalletModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
@@ -210,7 +212,10 @@ export default function EWalletModal({
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-2xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-2xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-row items-center gap-2">

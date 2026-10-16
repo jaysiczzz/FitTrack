@@ -74,10 +74,10 @@ export default function TodayWorkoutCard({
             </View>
             <View>
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                Session Finished & Archived
+                Session Completed
               </Text>
               <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                Streak active · Great consistency!
+                Streak active
               </Text>
             </View>
           </View>
@@ -159,11 +159,11 @@ export default function TodayWorkoutCard({
                 <View className="flex-row items-center gap-1.5 mb-0.5">
                   <Ionicons name="moon-outline" size={14} color={colors.accent} />
                   <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                    Rest & Active Recovery
+                    Rest & Recovery
                   </Text>
                 </View>
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs">
-                  Scheduled rest day in your weekly split. Muscle grows during recovery!
+                  Scheduled rest day · Time to recover & rebuild
                 </Text>
               </View>
               <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3 py-1.5 rounded-xl items-center justify-center">
@@ -192,10 +192,10 @@ export default function TodayWorkoutCard({
             <>
               <View className="flex-1 mr-3">
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                  Ready to train today?
+                  Ready to train?
                 </Text>
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-                  Choose your routine or select exercises from the library.
+                  Start a routine or blank session
                 </Text>
               </View>
               <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">

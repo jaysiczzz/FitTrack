@@ -34,7 +34,7 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
   description: 'Easy-to-learn, safe dumbbell and bodyweight movements designed specifically for first-time lifters.',
   category: 'Foundations',
   targetMuscleGroup: 'Full Body',
-  estimatedDurationMinutes: 30,
+  estimatedDurationMinutes: 25,
   exercises: [
     {
       exerciseId: 'ex-goblet-squat',
@@ -44,22 +44,22 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
       primaryMuscle: 'Legs',
       muscleGroup: 'Legs',
       defaultSets: [
-        { weight: 10, reps: 10 },
-        { weight: 10, reps: 10 },
-        { weight: 12, reps: 10 },
+        { reps: 10 },
+        { reps: 10 },
+        { reps: 10 },
       ],
     },
     {
       exerciseId: 'ex-push-ups',
-      name: 'Push-ups',
+      name: 'Push-ups (or Knee Push-ups)',
       category: 'Strength',
       type: 'Compound',
       primaryMuscle: 'Chest',
       muscleGroup: 'Chest',
       defaultSets: [
-        { bodyweight: true, reps: 10 },
-        { bodyweight: true, reps: 10 },
         { bodyweight: true, reps: 8 },
+        { bodyweight: true, reps: 8 },
+        { bodyweight: true, reps: 6 },
       ],
     },
     {
@@ -70,9 +70,9 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
       primaryMuscle: 'Back',
       muscleGroup: 'Back',
       defaultSets: [
-        { weight: 10, reps: 10 },
-        { weight: 10, reps: 10 },
-        { weight: 12, reps: 10 },
+        { reps: 10 },
+        { reps: 10 },
+        { reps: 10 },
       ],
     },
     {
@@ -83,8 +83,8 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
       primaryMuscle: 'Core',
       muscleGroup: 'Core',
       defaultSets: [
-        { bodyweight: true, reps: 30 },
-        { bodyweight: true, reps: 30 },
+        { bodyweight: true, reps: 20 },
+        { bodyweight: true, reps: 20 },
       ],
     },
   ],
@@ -94,7 +94,7 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
   DEFAULT_BEGINNER_ROUTINE,
   {
     id: 'template-push-1',
-    title: 'Push Day (Chest, Shoulders & Triceps)',
+    title: 'Push Day (Chest, Shoulders & Triceps) - Intermediate',
     description: 'Targeted upper body pressing muscles with barbell and bodyweight compound movements.',
     category: 'Muscle Building',
     targetMuscleGroup: 'Chest & Shoulders',
@@ -156,7 +156,7 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
   },
   {
     id: 'template-pull-1',
-    title: 'Pull Day (Back, Biceps & Lats)',
+    title: 'Pull Day (Back, Biceps & Lats) - Intermediate',
     description: 'Upper body pulling routine designed for a wide V-taper, thick upper back, and strong biceps.',
     category: 'Muscle Building',
     targetMuscleGroup: 'Back & Biceps',
@@ -218,7 +218,7 @@ export const DEFAULT_ROUTINE_TEMPLATES: WorkoutRoutineTemplate[] = [
   },
   {
     id: 'template-legs-1',
-    title: 'Leg Day & Core (Quads, Glutes & Abs)',
+    title: 'Leg Day & Core (Quads, Glutes & Abs) - Intermediate',
     description: 'High-energy lower body session targeting quad drive, hamstring posterior chain, and core stability.',
     category: 'Strength',
     targetMuscleGroup: 'Legs & Core',

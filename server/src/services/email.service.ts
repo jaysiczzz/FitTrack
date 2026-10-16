@@ -4,10 +4,9 @@ const transporter = nodemailer.createTransport({
   host: 'smtp.gmail.com',
   port: 465,
   secure: true,
-  pool: true,
-  maxConnections: 3,
-  maxMessages: 100,
-  rateLimit: 5,
+  connectionTimeout: 5000,
+  greetingTimeout: 5000,
+  socketTimeout: 10000,
   auth: {
     user: process.env.SMTP_USER || 'fittrack.app.help@gmail.com',
     pass: process.env.SMTP_PASS, // 16-character Google App Password

@@ -10,6 +10,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
@@ -26,6 +27,7 @@ interface ResetPasswordModalProps {
 }
 
 export default function ResetPasswordModal({ visible, onClose }: ResetPasswordModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
   const { logout } = useAuth();
@@ -120,7 +122,10 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
       >
         <Pressable className="flex-1" onPress={handleClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>

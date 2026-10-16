@@ -290,10 +290,10 @@ export default function FoodLibraryTab({
             <TouchableOpacity
               onPress={onSwitchToToday}
               activeOpacity={0.85}
-              className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl justify-center items-center shadow-xs active:opacity-85"
+              className="bg-accent dark:bg-accent-dark min-h-[36px] px-3 py-1.5 rounded-xl justify-center items-center shadow-xs active:opacity-85 shrink-0"
             >
               <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
-                View Today's Log →
+                View Log →
               </Text>
             </TouchableOpacity>
           </View>

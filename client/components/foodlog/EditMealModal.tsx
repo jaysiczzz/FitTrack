@@ -19,6 +19,7 @@ import {
 } from './foodLogTypes';
 import { COLORS, useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import ResponsiveMacroRow from './ResponsiveMacroRow';
 import CollapsibleSection from './CollapsibleSection';
@@ -38,6 +39,7 @@ export default function EditMealModal({
   onSave,
   onDelete,
 }: EditMealModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const [selectedMeal, setSelectedMeal] = useState<MealType>('lunch');
   const basePortionRef = useRef('1 serving');
@@ -373,7 +375,10 @@ export default function EditMealModal({
             </CollapsibleSection>
 
             {/* Action Buttons */}
-            <View className="gap-2 pt-3 pb-6">
+            <View
+              className="gap-2 pt-3 pb-6"
+              style={{ paddingBottom: Math.max(24, insets.bottom + 12) }}
+            >
               <TouchableOpacity
                 onPress={handleSave}
                 activeOpacity={0.8}

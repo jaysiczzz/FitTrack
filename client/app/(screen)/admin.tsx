@@ -176,7 +176,7 @@ export default function AdminScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       {/* ── Top Navigation Header ── */}
       <View className="px-4 py-3 flex-row items-center justify-between border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
         <View className="flex-row items-center gap-3">

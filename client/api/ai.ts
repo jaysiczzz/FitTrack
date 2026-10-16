@@ -91,7 +91,42 @@ export const analyzeMeal = async (
   }
 };
 
-export const getAIInsights = async (): Promise<{ success: boolean; insights: AIInsight[] }> => {
+export interface NutritionInsightsPayload {
+  loggedMeals?: Array<{
+    title: string;
+    mealType?: string;
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+  }>;
+  targets?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    waterMl?: number;
+  };
+  loggedMacros?: {
+    calories: number;
+    protein: number;
+    carbs: number;
+    fat: number;
+    waterMl?: number;
+  };
+  userGoal?: string;
+}
+
+export const getAIInsights = async (
+  payload?: NutritionInsightsPayload
+): Promise<{ success: boolean; insights: AIInsight[] }> => {
+  if (payload) {
+    return apiRequest('/api/ai/insights', {
+      method: 'POST',
+      body: payload,
+      timeout: 30000,
+    });
+  }
   return apiRequest('/api/ai/insights', {
     method: 'GET',
     timeout: 30000,
@@ -213,7 +248,19 @@ export const streamChatWithCoachApi = async (
         if (xhr.status >= 200 && xhr.status < 300) {
           resolve({ success: true, message: accumulatedText.trim() });
         } else {
-          reject(new Error(`Chat error status: ${xhr.status}`));
+          try {
+            const errJson = JSON.parse(xhr.responseText);
+            if (errJson?.error === 'LIMIT_REACHED' || xhr.status === 429) {
+              const limitErr: any = new Error(errJson?.message || errJson?.error || 'LIMIT_REACHED');
+              limitErr.status = 429;
+              limitErr.resetsAt = errJson?.resetsAt;
+              reject(limitErr);
+              return;
+            }
+          } catch {}
+          const error: any = new Error(`Chat error status: ${xhr.status}`);
+          error.status = xhr.status;
+          reject(error);
         }
       };
 

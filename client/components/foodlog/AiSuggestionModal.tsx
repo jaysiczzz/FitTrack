@@ -3,11 +3,9 @@ import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Pla
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FoodLogItem, MealType } from './foodLogTypes';
 import { getAIMealSuggestions, MealSuggestion } from '../../api/ai';
-import { useToast } from '../../context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import InModalToast from '../ui/InModalToast';
 import ModalErrorBanner from '../ui/ModalErrorBanner';
 import QuotaUsageMeter from '../ui/QuotaUsageMeter';
 import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '../../api/subscription';
@@ -45,18 +43,12 @@ export default function AiSuggestionModal({
   onUpgradePress,
 }: AiSuggestionModalProps) {
   const { colors } = useThemeColors();
-  const { showWarning, showError } = useToast();
   const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState(false);
   const [cachedSlots, setCachedSlots] = useState<Partial<Record<SuggestionMealSlot, MealSuggestion[]>>>({});
   const [loggedMealTitles, setLoggedMealTitles] = useState<string[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<SuggestionMealSlot>(initialMealType || 'all');
-  const [inModalToast, setInModalToast] = useState<{
-    message: string;
-    description?: string;
-    icon?: string;
-  } | null>(null);
 
   // Quota & Pro state
   const [isPro, setIsPro] = useState(false);
@@ -77,12 +69,10 @@ export default function AiSuggestionModal({
     if (dailySuggestCount >= currentLimit) {
       const limitMsg = `Daily meal suggestion limit reached (${currentLimit}/${currentLimit}). Resets at midnight UTC.${!isPro ? ' Upgrade to Pro for 30 suggestions/day.' : ''}`;
       setSuggestionError(limitMsg);
-      showWarning('Daily Limit Reached', limitMsg);
       return;
     }
 
     setLoading(true);
-    setInModalToast(null);
     setSuggestionError(null);
     try {
       const res = await getAIMealSuggestions({
@@ -115,7 +105,6 @@ export default function AiSuggestionModal({
         setDailySuggestCount(currentLimit);
         const limitMsg = `Daily meal suggestion limit reached (${currentLimit}/${currentLimit}). Resets at midnight UTC.${!isPro ? ' Upgrade to Pro for 30 suggestions/day.' : ''}`;
         setSuggestionError(limitMsg);
-        showWarning('Daily Limit Reached', limitMsg);
         return;
       }
       setSuggestionError(getFriendlyErrorMessage(err, 'Unable to load meal recommendations right now. Please check your connection and try again.'));
@@ -131,7 +120,6 @@ export default function AiSuggestionModal({
       setCachedSlots({});
       setLoggedMealTitles([]);
       setSuggestionError(null);
-      setInModalToast(null);
 
       getCurrentSubscriptionApi()
         .then((res) => {
@@ -199,12 +187,6 @@ export default function AiSuggestionModal({
     const item = createFoodItem(rec);
     onSelectSuggestion(item);
     setLoggedMealTitles((prev) => [...prev, rec.title]);
-    const targetLabel = (selectedSlot !== 'all' ? selectedSlot : rec.category).toUpperCase();
-    setInModalToast({
-      message: `Added ${rec.title}`,
-      description: `${rec.calories} kcal · ${rec.protein}g Protein to ${targetLabel}`,
-      icon: rec.icon || '✓',
-    });
   };
 
   const handleLogAll = () => {
@@ -215,11 +197,6 @@ export default function AiSuggestionModal({
     onSelectSuggestion(itemsToAdd);
 
     setLoggedMealTitles((prev) => [...prev, ...unlogged.map((r) => r.title)]);
-    setInModalToast({
-      message: `Added ${unlogged.length} meals to food log`,
-      description: `${unlogged.reduce((s, r) => s + r.calories, 0)} total kcal added`,
-      icon: '🎉',
-    });
   };
 
   return (
@@ -465,7 +442,7 @@ export default function AiSuggestionModal({
                         </Text>
                       </View>
                     </View>
-                    <View className="flex-row items-center gap-1.5">
+                    <View className="flex-row items-center gap-1.5 shrink-0">
                       {remainingCalories > 0 && rec.calories <= remainingCalories ? (
                         <View className="px-2 py-0.5 rounded-md bg-emerald-500/10 dark:bg-emerald-500/15 border border-emerald-500/25">
                           <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
@@ -550,10 +527,10 @@ export default function AiSuggestionModal({
                       <TouchableOpacity
                         onPress={() => handleLogMeal(rec)}
                         activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark px-4 py-2 rounded-2xl"
+                        className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl"
                       >
                         <Text className="text-white font-bold text-xs">
-                          + Log This Meal
+                          + Log Meal
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -578,15 +555,6 @@ export default function AiSuggestionModal({
             </ScrollView>
           )}
 
-          {/* In-Modal Toast Notification */}
-          <InModalToast
-            visible={Boolean(inModalToast)}
-            message={inModalToast?.message || ''}
-            description={inModalToast?.description}
-            icon={inModalToast?.icon || '✓'}
-            onDismiss={() => setInModalToast(null)}
-            bottomOffset={20}
-          />
         </View>
       </View>
     </Modal>

@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import ModalErrorBanner from './ModalErrorBanner';
 
@@ -40,6 +41,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   onCancel,
 }) => {
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const destructive = Boolean(isDanger || danger);
 
   return (
@@ -55,6 +57,7 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
       >
         <Pressable
           className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
+          style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
           onPress={(e) => e.stopPropagation()}
         >
           {/* Action Sheet Drag Indicator / Pull Bar (Phone only) */}

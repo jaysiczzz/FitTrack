@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { useWeightUnit, convertFromKg, convertToKg } from '@/constants/units';
@@ -45,6 +46,7 @@ export default function LogWeightModal({
   currentWeight = 70,
   onSaveWeight,
 }: LogWeightModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showWarning, showError } = useToast();
   const [unit] = useWeightUnit();
@@ -130,7 +132,10 @@ export default function LogWeightModal({
       >
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] w-full md:max-w-lg shadow-2xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] w-full md:max-w-lg shadow-2xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>

@@ -15,6 +15,28 @@ const COMMON_TYPO_DOMAINS: Record<string, string> = {
   'iclud.com': 'icloud.com',
 }
 
+const KNOWN_MAJOR_DOMAINS = new Set([
+  'gmail.com',
+  'googlemail.com',
+  'yahoo.com',
+  'ymail.com',
+  'outlook.com',
+  'hotmail.com',
+  'live.com',
+  'msn.com',
+  'icloud.com',
+  'me.com',
+  'mac.com',
+  'aol.com',
+  'protonmail.com',
+  'proton.me',
+  'zoho.com',
+  'mail.com',
+  'gmx.com',
+])
+
+const domainMxCache = new Map<string, boolean>()
+
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 /**
@@ -43,25 +65,45 @@ export async function validateEmailDeliverability(email: string): Promise<{ vali
     }
   }
 
-  // Verify domain has active Mail Exchange (MX) records
+  // Fast path for trusted major email providers (no network DNS call needed)
+  if (KNOWN_MAJOR_DOMAINS.has(domain)) {
+    return { valid: true }
+  }
+
+  // Fast path: cached DNS lookup
+  if (domainMxCache.has(domain)) {
+    const isCachedValid = domainMxCache.get(domain)
+    if (!isCachedValid) {
+      return {
+        valid: false,
+        error: `The email domain '@${domain}' does not exist or has no active mail servers.`,
+      }
+    }
+    return { valid: true }
+  }
+
+  // Verify custom domain has active Mail Exchange (MX) records
   try {
     const mxPromise = dns.promises.resolveMx(domain)
     const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error('DNS_TIMEOUT')), 3000)
+      setTimeout(() => reject(new Error('DNS_TIMEOUT')), 1200)
     )
     const mxRecords = await Promise.race([mxPromise, timeoutPromise])
     if (!mxRecords || mxRecords.length === 0) {
+      if (domainMxCache.size < 500) domainMxCache.set(domain, false)
       return {
         valid: false,
         error: `The domain '@${domain}' cannot receive emails. Please check your email address.`,
       }
     }
+    if (domainMxCache.size < 500) domainMxCache.set(domain, true)
   } catch (err: any) {
     if (err.message === 'DNS_TIMEOUT') {
-      console.warn(`[DNS MX Timeout] Resolving MX for ${domain} timed out after 3s, proceeding.`)
+      console.warn(`[DNS MX Timeout] Resolving MX for ${domain} timed out after 1.2s, proceeding.`)
       return { valid: true }
     }
     if (err.code === 'ENOTFOUND' || err.code === 'ENODATA' || err.code === 'ESERVFAIL') {
+      if (domainMxCache.size < 500) domainMxCache.set(domain, false)
       return {
         valid: false,
         error: `The email domain '@${domain}' does not exist or has no active mail servers.`,

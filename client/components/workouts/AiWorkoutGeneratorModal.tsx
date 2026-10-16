@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { generateAIWorkout, AIWorkoutPlan } from '@/api/ai';
 import { useToast } from '@/context/ToastContext';
 import { useThemeColors } from '@/constants/colors';
@@ -33,6 +34,7 @@ export default function AiWorkoutGeneratorModal({
   onAddExercises,
   userGoal = 'MUSCLE_GAIN',
 }: AiWorkoutGeneratorModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showToast, showError } = useToast();
   const [selectedArea, setSelectedArea] = useState('Full Body');
@@ -140,6 +142,7 @@ export default function AiWorkoutGeneratorModal({
         <View
           style={[
             styles.modalContent,
+            { paddingBottom: Math.max(32, insets.bottom + 12) },
             Platform.select({
               web: {
                 boxShadow: '0 -4px 24px rgba(0, 0, 0, 0.25)',

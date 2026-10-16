@@ -21,6 +21,7 @@ router.use(aiLimiter)
 
 router.post('/analyze-meal', featureLimitMiddleware('FOOD_SCAN'), analyzeMeal)
 router.get('/insights', getInsights)
+router.post('/insights', getInsights)
 router.post('/generate-workout', featureLimitMiddleware('WORKOUT_GENERATOR'), generateWorkout)
 router.post('/suggest-meals', featureLimitMiddleware('MEAL_SUGGESTION'), suggestMeals)
 router.post('/chat', featureLimitMiddleware('COACH'), chatCoach)

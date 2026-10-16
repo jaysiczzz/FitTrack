@@ -44,13 +44,13 @@ export default function WaterTrackerCard({
           <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-sm" numberOfLines={1}>
             Daily Hydration
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5" numberOfLines={1}>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] sm:text-xs mt-0.5" numberOfLines={2}>
             {waterMl.toLocaleString()} / {targetMl.toLocaleString()} ml ({glasses}/{targetGlasses} glasses)
           </Text>
         </View>
 
         <View
-          className={`px-3 py-1 rounded-full border ${
+          className={`px-2.5 py-1 rounded-full border shrink-0 ${
             isTargetMet
               ? 'bg-accent/15 border-accent/30'
               : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -75,11 +75,11 @@ export default function WaterTrackerCard({
       />
 
       {isTargetMet ? (
-        <View className="flex-row items-center justify-center bg-accent/10 dark:bg-accent-dark/15 py-2 px-3.5 rounded-2xl mb-3 border border-accent/25 dark:border-accent-dark/30">
-          <View className="w-5 h-5 rounded-full bg-accent/20 border border-accent/40 items-center justify-center mr-2">
+        <View className="flex-row items-center bg-accent/10 dark:bg-accent-dark/15 py-2 px-3 rounded-2xl mb-3 border border-accent/25 dark:border-accent-dark/30">
+          <View className="w-5 h-5 rounded-full bg-accent/20 border border-accent/40 items-center justify-center mr-2 shrink-0">
             <Ionicons name="checkmark" size={12} color={accentColor} />
           </View>
-          <Text className="text-accent dark:text-accent-dark font-baloo-bold text-xs">
+          <Text className="text-accent dark:text-accent-dark font-baloo-bold text-xs flex-1">
             Daily target reached. Great hydration today!
           </Text>
         </View>
@@ -94,7 +94,7 @@ export default function WaterTrackerCard({
           accessibilityRole="button"
           accessibilityLabel="Subtract 250 milliliters of water"
           hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
-          className={`px-3.5 min-h-[44px] py-2 rounded-xl border items-center justify-center active:opacity-60 ${
+          className={`px-3 min-h-[40px] py-1.5 rounded-xl border items-center justify-center active:opacity-60 ${
             waterMl <= 0
               ? 'opacity-30 border-input-border dark:border-input-border-dark bg-input/40'
               : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
@@ -108,7 +108,7 @@ export default function WaterTrackerCard({
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Add 250 milliliters glass of water"
-          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+          className="flex-1 min-h-[40px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
         >
           <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-xs">
             +250 ml
@@ -121,7 +121,7 @@ export default function WaterTrackerCard({
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Add 500 milliliters bottle of water"
-          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+          className="flex-1 min-h-[40px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
         >
           <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-xs">
             +500 ml
@@ -134,7 +134,7 @@ export default function WaterTrackerCard({
           activeOpacity={0.8}
           accessibilityRole="button"
           accessibilityLabel="Add 750 milliliters shaker of water"
-          className="flex-1 min-h-[44px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
+          className="flex-1 min-h-[40px] py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-70"
         >
           <Text className="text-text-primary dark:text-text-primary-dark font-baloo-bold text-xs">
             +750 ml

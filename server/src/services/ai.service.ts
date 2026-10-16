@@ -187,8 +187,74 @@ export async function generateAIInsights(userProfile: {
   gender?: string
   workoutCount?: number
   caloriesLoggedToday?: number
+  loggedMeals?: Array<{
+    title: string
+    mealType?: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+  }>
+  targets?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number
+  }
+  loggedMacros?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number
+  }
 }): Promise<AIInsight[]> {
-  const prompt = `You are FitTrack's AI fitness and nutrition coach.
+  const isNutritionFocused = Boolean(
+    (userProfile.loggedMeals && userProfile.loggedMeals.length > 0) ||
+    userProfile.targets ||
+    userProfile.loggedMacros
+  )
+
+  let prompt: string
+
+  if (isNutritionFocused) {
+    let contextDetails = `- Athlete: ${userProfile.firstName}, ${userProfile.weight}kg, ${userProfile.height}cm, Sex: ${userProfile.gender || 'Not specified'}.
+- Goal: ${userProfile.goal}`
+
+    if (userProfile.targets) {
+      contextDetails += `\n- Daily Targets: ${userProfile.targets.calories} kcal | ${userProfile.targets.protein}g Protein | ${userProfile.targets.carbs}g Carbs | ${userProfile.targets.fat}g Fat${userProfile.targets.waterMl ? ` | ${userProfile.targets.waterMl}ml Water` : ''}`
+    }
+
+    if (userProfile.loggedMacros) {
+      contextDetails += `\n- Logged So Far: ${userProfile.loggedMacros.calories} kcal | ${userProfile.loggedMacros.protein}g Protein | ${userProfile.loggedMacros.carbs}g Carbs | ${userProfile.loggedMacros.fat}g Fat${userProfile.loggedMacros.waterMl !== undefined ? ` | ${userProfile.loggedMacros.waterMl}ml Water` : ''}`
+    }
+
+    if (Array.isArray(userProfile.loggedMeals) && userProfile.loggedMeals.length > 0) {
+      const mealList = userProfile.loggedMeals
+        .map((m) => `  * [${m.mealType || 'Meal'}] ${m.title}: ${m.calories} kcal, ${m.protein}g P, ${m.carbs}g C, ${m.fat}g F`)
+        .join('\n')
+      contextDetails += `\n- Today's Logged Meals:\n${mealList}`
+    } else {
+      contextDetails += `\n- Today's Logged Meals: None logged yet today.`
+    }
+
+    prompt = `You are FitTrack's expert sports nutrition and hydration coach.
+Analyze the user's logged nutrition for today and generate 2 concise, highly personalized coaching insights.
+
+User Context:
+${contextDetails}
+
+Rules for insights:
+1. Insight 1 (Macronutrient & Energy Pacing): Analyze their meal choices, protein pacing, and give actionable guidance for remaining meals based on their target budget.
+2. Insight 2 (Hydration, Recovery, or Micronutrients): Actionable advice considering water logged, electrolytes, or meal timing.
+3. Be practical, friendly, and direct. Do NOT just repeat raw numbers; explain what the athlete should actually eat or do next.
+
+Return a JSON array of 2 insight objects with:
+- title: Short catchphrase (e.g., "Protein Distribution", "Hydration Timing", "Carbohydrate Satiety")
+- lines: Array of exactly 2 concise, actionable bullet point strings.`
+  } else {
+    prompt = `You are FitTrack's AI fitness and nutrition coach.
 Generate 3 dynamic, personalized health insights/predictions for user ${userProfile.firstName}:
 - User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old, biological sex: ${userProfile.gender || 'Not specified'}.
 - Fitness Goal: ${userProfile.goal} (e.g., MUSCLE_GAIN or WEIGHT_LOSS).
@@ -197,6 +263,7 @@ Generate 3 dynamic, personalized health insights/predictions for user ${userProf
 Return a JSON array of 3 insights, each having:
 - title: Short catchphrase (e.g., "Trend prediction", "Meal timing", "Recovery", "Hydration strategy")
 - lines: Array of 2 concise, actionable bullet point strings giving realistic calculations or tips for their specific goal.`
+  }
 
   const text = await generateWithFallback(prompt, {
     responseMimeType: 'application/json',

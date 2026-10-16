@@ -69,13 +69,18 @@ export const getInsights = asyncHandler(async (req: AuthRequest, res: Response) 
     user = await userModel.findById(userId)
   }
 
+  const { loggedMeals, targets, loggedMacros, userGoal } = req.body || {}
+
   const userProfile = {
-    firstName: user?.firstName || 'User',
+    firstName: user?.firstName || 'Athlete',
     weight: user?.weight || 70,
     height: user?.height || 175,
     age: user?.age || 25,
-    goal: user?.goal || 'FITNESS',
+    goal: userGoal || user?.goal || 'FITNESS',
     gender: user?.gender || 'MALE',
+    loggedMeals,
+    targets,
+    loggedMacros,
   }
 
   const insights = await generateAIInsights(userProfile)

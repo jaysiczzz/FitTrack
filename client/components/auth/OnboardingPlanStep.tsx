@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
 import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
-import { ONBOARDING_CHECKLIST_DELAYS } from '@/constants/appConfig';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -44,27 +44,20 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   isRegistered,
 }) => {
   const { colors } = useThemeColors();
+  const router = useRouter();
   const [activeCheckIndex, setActiveCheckIndex] = useState(0);
   const [animationDone, setAnimationDone] = useState(false);
 
-  // Animated checklist timer progression
+  // Brief 600ms micro-moment for calibration
   useEffect(() => {
     if (error) return;
 
-    const t1 = setTimeout(() => setActiveCheckIndex(1), ONBOARDING_CHECKLIST_DELAYS.STEP_1_MS);
-    const t2 = setTimeout(() => setActiveCheckIndex(2), ONBOARDING_CHECKLIST_DELAYS.STEP_2_MS);
-    const t3 = setTimeout(() => setActiveCheckIndex(3), ONBOARDING_CHECKLIST_DELAYS.STEP_3_MS);
-    const t4 = setTimeout(() => {
+    const t = setTimeout(() => {
       setActiveCheckIndex(4);
       setAnimationDone(true);
-    }, ONBOARDING_CHECKLIST_DELAYS.COMPLETE_MS);
+    }, 600);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
+    return () => clearTimeout(t);
   }, [error]);
 
   // Derived plan calculations
@@ -295,11 +288,21 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
         </View>
       </View>
 
-      {/* Launch CTA */}
-      <Button
-        title="Enter Dashboard"
-        onPress={onLaunchDashboard}
-      />
+      {/* Launch CTAs */}
+      <View className="w-full gap-2.5">
+        <Button
+          title="Start Day 1 Workout"
+          onPress={async () => {
+            await onLaunchDashboard();
+            router.replace({ pathname: '/(screen)/workouts', params: { tab: 'today' } } as any);
+          }}
+        />
+        <Button
+          title="Go to Dashboard"
+          variant="outline"
+          onPress={onLaunchDashboard}
+        />
+      </View>
     </View>
   );
 };
