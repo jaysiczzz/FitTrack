@@ -73,7 +73,6 @@ export default function FoodLibraryTab({
 
   // Recent foods state
   const [recentFoods, setRecentFoods] = useState<FoodCatalogItem[]>([]);
-  const [sessionAddedCount, setSessionAddedCount] = useState(0);
 
   // Pagination state for progressive loading
   const PAGE_SIZE = 12;
@@ -266,7 +265,6 @@ export default function FoodLibraryTab({
 
     hapticFeedback.light();
     onAddFood(newLogItem);
-    setSessionAddedCount((prev) => prev + 1);
   };
 
   return (
@@ -278,26 +276,6 @@ export default function FoodLibraryTab({
             Food Library
           </Text>
         </View>
-        {/* Session Added Banner */}
-        {sessionAddedCount > 0 && onSwitchToToday && (
-          <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/40 rounded-2xl p-3 mb-3 flex-row items-center justify-between">
-            <View className="flex-row items-center gap-2 flex-1 pr-2">
-              <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                {sessionAddedCount} item{sessionAddedCount === 1 ? '' : 's'} added to your day
-              </Text>
-            </View>
-            <TouchableOpacity
-              onPress={onSwitchToToday}
-              activeOpacity={0.85}
-              className="bg-accent dark:bg-accent-dark min-h-[36px] px-3 py-1.5 rounded-xl justify-center items-center shadow-xs active:opacity-85 shrink-0"
-            >
-              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
-                View Log →
-              </Text>
-            </TouchableOpacity>
-          </View>
-        )}
 
         {/* Row 2: Search Input + Meal Selector Pill Inline */}
         <View className="flex-row items-center gap-2 mb-2.5">
@@ -652,27 +630,30 @@ export default function FoodLibraryTab({
       </ScrollView>
 
       {/* Meal Combo Details & Scaler Modal */}
-      <MealComboDetailsModal
-        visible={Boolean(selectedComboForDetails)}
-        combo={selectedComboForDetails}
-        defaultMeal={selectedMeal}
-        onClose={() => setSelectedComboForDetails(null)}
-        onLogCombo={handleLogMealCombo}
-      />
+      {Boolean(selectedComboForDetails) && (
+        <MealComboDetailsModal
+          visible={Boolean(selectedComboForDetails)}
+          combo={selectedComboForDetails}
+          defaultMeal={selectedMeal}
+          onClose={() => setSelectedComboForDetails(null)}
+          onLogCombo={handleLogMealCombo}
+        />
+      )}
 
       {/* Comprehensive Food Nutrition Facts & Portion Tuner Modal */}
-      <FoodDetailsInspectorModal
-        visible={Boolean(selectedFoodForInspection)}
-        food={selectedFoodForInspection}
-        defaultMeal={selectedMeal}
-        onClose={() => setSelectedFoodForInspection(null)}
-        onConfirmLog={(logItem) => {
-          onAddFood(logItem);
-          saveFoodToRecentHistory(selectedFoodForInspection);
-          getRecentLoggedFoods().then((list) => setRecentFoods(list));
-          setSessionAddedCount((prev) => prev + 1);
-        }}
-      />
+      {Boolean(selectedFoodForInspection) && (
+        <FoodDetailsInspectorModal
+          visible={Boolean(selectedFoodForInspection)}
+          food={selectedFoodForInspection}
+          defaultMeal={selectedMeal}
+          onClose={() => setSelectedFoodForInspection(null)}
+          onConfirmLog={(logItem) => {
+            onAddFood(logItem);
+            saveFoodToRecentHistory(selectedFoodForInspection);
+            getRecentLoggedFoods().then((list) => setRecentFoods(list));
+          }}
+        />
+      )}
     </View>
   );
 }

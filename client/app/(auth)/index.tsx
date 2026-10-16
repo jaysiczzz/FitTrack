@@ -21,7 +21,6 @@ export default function AuthIndex() {
   );
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
   const { login, isAuthenticated } = useAuth();
@@ -32,17 +31,6 @@ export default function AuthIndex() {
       setActive(params.tab);
     }
   }, [params.tab]);
-
-  // Listen for keyboard show/hide events to adapt layout dynamically (Android / Web)
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardOpen(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardOpen(false));
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   // If already authenticated, redirect to dashboard
   useEffect(() => {
@@ -98,17 +86,18 @@ export default function AuthIndex() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
-            paddingTop: isKeyboardOpen || isLandscape ? 12 : 20,
-            paddingBottom: isKeyboardOpen ? 36 : 24,
+            justifyContent: 'flex-start',
+            paddingTop: isLandscape ? 12 : 36,
+            paddingBottom: 24,
+            paddingHorizontal: 20,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View className="w-full max-w-[420px] mx-auto px-5">
-            <AuthHeader compact={isKeyboardOpen || isLandscape} />
+          <View className="w-full max-w-[420px] mx-auto">
+            <AuthHeader compact={isLandscape} />
             <AuthTabs active={active} onChange={handleTabChange} />
 
             {active === 'login' ? (

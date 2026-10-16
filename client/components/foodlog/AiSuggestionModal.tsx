@@ -10,6 +10,7 @@ import ModalErrorBanner from '../ui/ModalErrorBanner';
 import QuotaUsageMeter from '../ui/QuotaUsageMeter';
 import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '../../api/subscription';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import { hapticFeedback } from '@/utils/haptics';
 
 export type SuggestionMealSlot = 'all' | 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -117,8 +118,6 @@ export default function AiSuggestionModal({
     if (visible) {
       const slot = initialMealType || 'all';
       setSelectedSlot(slot);
-      setCachedSlots({});
-      setLoggedMealTitles([]);
       setSuggestionError(null);
 
       getCurrentSubscriptionApi()
@@ -184,12 +183,14 @@ export default function AiSuggestionModal({
   };
 
   const handleLogMeal = (rec: MealSuggestion) => {
+    hapticFeedback.light();
     const item = createFoodItem(rec);
     onSelectSuggestion(item);
     setLoggedMealTitles((prev) => [...prev, rec.title]);
   };
 
   const handleLogAll = () => {
+    hapticFeedback.medium();
     const unlogged = currentRecommendations.filter((r) => !loggedMealTitles.includes(r.title));
     if (unlogged.length === 0) return;
 
@@ -217,20 +218,7 @@ export default function AiSuggestionModal({
                 AI meal suggestions based on your {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'} goals
               </Text>
             </View>
-            <View className="flex-row items-center gap-2">
-              {loggedMealTitles.length > 0 && (
-                <TouchableOpacity
-                  onPress={onClose}
-                  activeOpacity={0.8}
-                  className="bg-accent dark:bg-accent-dark px-3 py-1.5 rounded-xl shadow-xs"
-                >
-                  <Text className="text-white font-bold text-xs">
-                    Done ({loggedMealTitles.length})
-                  </Text>
-                </TouchableOpacity>
-              )}
-              <ModalCloseButton onClose={onClose} />
-            </View>
+            <ModalCloseButton onClose={onClose} />
           </View>
 
           {/* Subscription Quota Usage Meter */}

@@ -22,9 +22,13 @@ const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Cor
 const DIFFICULTY_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache_v3';
 
+const sortExercises = (list: LibraryExercise[]): LibraryExercise[] => {
+  return [...list].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+};
+
 const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) => {
   const { colors } = useThemeColors();
-  const [exercises, setExercises] = useState<LibraryExercise[]>(COMMON_EXERCISES_CATALOG);
+  const [exercises, setExercises] = useState<LibraryExercise[]>(() => sortExercises(COMMON_EXERCISES_CATALOG));
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMuscle, setSelectedMuscle] = useState('All');
@@ -53,7 +57,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
         try {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setExercises(enrichWithCatalog(parsed));
+            setExercises(sortExercises(enrichWithCatalog(parsed)));
           }
         } catch {}
       }
@@ -62,8 +66,8 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
       const res = await getWorkoutLibrary({});
       if (res.exercises && res.exercises.length > 0) {
         const dbNames = new Set(res.exercises.map((e: any) => (e.name || '').toLowerCase()));
-        const uniqueLocal = COMMON_EXERCISES_CATALOG.filter((c) => !dbNames.has(c.name.toLowerCase()));
-        const merged = enrichWithCatalog([...res.exercises, ...uniqueLocal]);
+        const uniqueLocal = COMMON_EXERCISES_CATALOG.filter((c) => !dbNames.has((c.name || '').toLowerCase()));
+        const merged = sortExercises(enrichWithCatalog([...res.exercises, ...uniqueLocal]));
         setExercises(merged);
         await AsyncStorage.setItem(EXERCISE_CACHE_KEY, JSON.stringify(merged));
       }
@@ -313,12 +317,14 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
       </ScrollView>
 
       {/* Details View Modal */}
-      <ExerciseDetailsModal
-        visible={showDetailsModal}
-        exercise={selectedDetailsExercise}
-        onClose={() => setShowDetailsModal(false)}
-        onAddExercise={(ex) => handleAdd(ex)}
-      />
+      {showDetailsModal && (
+        <ExerciseDetailsModal
+          visible={showDetailsModal}
+          exercise={selectedDetailsExercise}
+          onClose={() => setShowDetailsModal(false)}
+          onAddExercise={(ex) => handleAdd(ex)}
+        />
+      )}
     </View>
   );
 };

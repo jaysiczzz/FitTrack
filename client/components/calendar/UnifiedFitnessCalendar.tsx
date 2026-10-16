@@ -540,13 +540,16 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
         {/* Header */}
         {!hideHeader && (
           <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-input-border/40 dark:border-input-border-dark/40">
-            <View className="flex-row items-center gap-2">
+            <View className="flex-row items-center gap-2.5">
+              <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/30">
+                <Ionicons name="stats-chart" size={15} color={colors.accent} />
+              </View>
               <View>
                 <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
-                  Activity & Consistency Calendar
+                  Activity & Streak History
                 </Text>
                 <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                  Daily workouts, nutrition logs, and readiness history
+                  Past workout sessions, logged nutrition macros & check-ins
                 </Text>
               </View>
             </View>
@@ -752,7 +755,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       handleSelectDate(day.dateStr);
                     }
                   }}
-                  className={`h-11 items-center justify-center rounded-2xl border ${
+                  className={`aspect-square p-1 items-center justify-between rounded-xl mb-1 border ${
                     isSelected
                       ? 'bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark shadow-sm'
                       : day.isToday
@@ -760,33 +763,43 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                       : isFullyActive && filter === 'all'
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/50 dark:border-accent-dark/50'
                       : showWorkoutDot
-                      ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40 dark:border-accent-dark/40'
+                      ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30'
                       : showNutritionDot
-                      ? 'bg-amber-500/15 border-amber-500/40'
+                      ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/30'
                       : showNutritionPendingDot
                       ? 'bg-amber-500/5 border-dashed border-amber-500/30'
                       : 'bg-input/40 dark:bg-input-dark/40 border-input-border/40 dark:border-input-border-dark/40'
                   } ${!day.isCurrentMonth ? 'opacity-30' : 'opacity-100'}`}
                 >
-                  {/* Day Number */}
-                  <Text
-                    className={`text-xs ${
-                      isSelected
-                        ? 'font-black text-accent dark:text-accent-dark'
-                        : day.isToday
-                        ? 'font-black text-accent dark:text-accent-dark'
-                        : showWorkoutDot || showNutritionDot
-                        ? 'font-black text-text-primary dark:text-text-primary-dark'
-                        : showNutritionPendingDot
-                        ? 'font-bold text-amber-600 dark:text-amber-400'
-                        : 'font-semibold text-text-muted dark:text-text-muted-dark'
+                  {/* Day Number Badge */}
+                  <View
+                    className={`w-6 h-6 rounded-full items-center justify-center ${
+                      day.isToday
+                        ? 'bg-accent dark:bg-accent-dark'
+                        : isSelected
+                        ? 'bg-accent/20'
+                        : ''
                     }`}
                   >
-                    {day.dayNumber}
-                  </Text>
+                    <Text
+                      className={`text-xs ${
+                        day.isToday
+                          ? 'font-black text-white'
+                          : isSelected
+                          ? 'font-black text-accent dark:text-accent-dark'
+                          : showWorkoutDot || showNutritionDot
+                          ? 'font-black text-text-primary dark:text-text-primary-dark'
+                          : showNutritionPendingDot
+                          ? 'font-bold text-amber-600 dark:text-amber-400'
+                          : 'font-semibold text-text-muted dark:text-text-muted-dark'
+                      }`}
+                    >
+                      {day.dayNumber}
+                    </Text>
+                  </View>
 
                   {/* Dual or Single Activity Dots */}
-                  <View className="flex-row items-center justify-center gap-0.5 mt-0.5 h-2">
+                  <View className="flex-row items-center justify-center gap-1 h-3 w-full">
                     {showWorkoutDot && (
                       <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     )}

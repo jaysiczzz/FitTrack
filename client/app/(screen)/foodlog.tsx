@@ -375,6 +375,14 @@ export default function FoodLog() {
     });
     DeviceEventEmitter.emit('RECENT_FOODS_UPDATED');
 
+    const viewLogAction = activeTab !== 'today' ? {
+      actionLabel: 'View Log',
+      onAction: () => {
+        setScanTargetMeal(undefined);
+        setActiveTab('today');
+      },
+    } : {};
+
     if (toAdd.length === 1) {
       const single = toAdd[0];
       showToast({
@@ -382,6 +390,7 @@ export default function FoodLog() {
         description: `${single.calories} kcal · ${single.protein}g Protein to ${MEAL_LABELS[single.mealType] || single.mealType}`,
         type: 'success',
         iconName: 'restaurant',
+        ...viewLogAction,
       });
     } else {
       const totalCals = toAdd.reduce((sum, i) => sum + (i.calories || 0), 0);
@@ -390,6 +399,7 @@ export default function FoodLog() {
         description: `${totalCals} total kcal added to your log`,
         type: 'success',
         iconName: 'restaurant',
+        ...viewLogAction,
       });
     }
   };
@@ -1047,166 +1057,176 @@ export default function FoodLog() {
       )}
 
       {/* AI Scan & Photo Modal */}
-      <AiScanModal
-        visible={showScanModal}
-        onClose={() => {
-          setShowScanModal(false);
-          setScanTargetMeal(undefined);
-        }}
-        onAddMealItem={handleAddMealItem}
-        initialMealType={scanTargetMeal}
-        initialMode={scanInitialMode}
-        onUpgradePress={() => {
-          setShowScanModal(false);
-          setShowSubscriptionModal(true);
-        }}
-      />
+      {showScanModal && (
+        <AiScanModal
+          visible={showScanModal}
+          onClose={() => {
+            setShowScanModal(false);
+            setScanTargetMeal(undefined);
+          }}
+          onAddMealItem={handleAddMealItem}
+          initialMealType={scanTargetMeal}
+          initialMode={scanInitialMode}
+          onUpgradePress={() => {
+            setShowScanModal(false);
+            setShowSubscriptionModal(true);
+          }}
+        />
+      )}
 
       {/* Subscription Modal for In-App Upgrades */}
-      <SubscriptionModal
-        visible={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-      />
-
+      {showSubscriptionModal && (
+        <SubscriptionModal
+          visible={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+        />
+      )}
 
       {/* AI "What should I eat next?" Suggestions Modal */}
-      <AiSuggestionModal
-        visible={showAiSuggestModal}
-        onClose={() => setShowAiSuggestModal(false)}
-        onSelectSuggestion={handleAddMealItem}
-        goal={goal}
-        remainingCalories={remainingCalories}
-        remainingProtein={remainingProtein}
-        initialMealType={aiSuggestTargetMeal}
-        onUpgradePress={() => {
-          setShowAiSuggestModal(false);
-          setShowSubscriptionModal(true);
-        }}
-      />
+      {showAiSuggestModal && (
+        <AiSuggestionModal
+          visible={showAiSuggestModal}
+          onClose={() => setShowAiSuggestModal(false)}
+          onSelectSuggestion={handleAddMealItem}
+          goal={goal}
+          remainingCalories={remainingCalories}
+          remainingProtein={remainingProtein}
+          initialMealType={aiSuggestTargetMeal}
+          onUpgradePress={() => {
+            setShowAiSuggestModal(false);
+            setShowSubscriptionModal(true);
+          }}
+        />
+      )}
 
       {/* Edit Meal / Portion Adjustment Modal */}
-      <EditMealModal
-        visible={Boolean(itemToEdit)}
-        item={itemToEdit}
-        onClose={() => setItemToEdit(null)}
-        onSave={handleUpdateMealItem}
-        onDelete={(id) => {
-          setItemToEdit(null);
-          promptDeleteItem(id);
-        }}
-      />
+      {Boolean(itemToEdit) && (
+        <EditMealModal
+          visible={Boolean(itemToEdit)}
+          item={itemToEdit}
+          onClose={() => setItemToEdit(null)}
+          onSave={handleUpdateMealItem}
+          onDelete={(id) => {
+            setItemToEdit(null);
+            promptDeleteItem(id);
+          }}
+        />
+      )}
 
       {/* Delete Item Confirmation Modal */}
-      <RemoveFoodModal
-        visible={Boolean(itemToDelete)}
-        item={itemToDelete}
-        onConfirm={handleConfirmDelete}
-        onCancel={() => setItemToDelete(null)}
-      />
+      {Boolean(itemToDelete) && (
+        <RemoveFoodModal
+          visible={Boolean(itemToDelete)}
+          item={itemToDelete}
+          onConfirm={handleConfirmDelete}
+          onCancel={() => setItemToDelete(null)}
+        />
+      )}
 
       {/* Complete Day Confirmation Modal */}
-      <ConfirmModal
-        visible={showCompleteConfirm}
-        title="Complete Day's Log?"
-        message="This will seal your logged meals, calories, and hydration into your history trends. You can reopen it anytime if you need to log more."
-        confirmText="Complete Day"
-        cancelText="Keep Logging"
-        onConfirm={() => {
-          setShowCompleteConfirm(false);
-          handleSaveAndCompleteDay();
-        }}
-        onCancel={() => setShowCompleteConfirm(false)}
-      />
+      {showCompleteConfirm && (
+        <ConfirmModal
+          visible={showCompleteConfirm}
+          title="Complete Day's Log?"
+          message="This will seal your logged meals, calories, and hydration into your history trends. You can reopen it anytime if you need to log more."
+          confirmText="Complete Day"
+          cancelText="Keep Logging"
+          onConfirm={() => {
+            setShowCompleteConfirm(false);
+            handleSaveAndCompleteDay();
+          }}
+          onCancel={() => setShowCompleteConfirm(false)}
+        />
+      )}
 
       {/* Reopen Day Choice Modal (Relog Previous Meals vs Start Fresh) */}
-      <Modal
-        visible={showReopenModal}
-        transparent
-        animationType="slide"
-        onRequestClose={() => setShowReopenModal(false)}
-      >
-        <Pressable
-          className="flex-1 bg-black/70 justify-end md:justify-center p-0 md:p-6"
-          onPress={() => setShowReopenModal(false)}
+      {showReopenModal && (
+        <Modal
+          visible={showReopenModal}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowReopenModal(false)}
         >
           <Pressable
-            className="w-full max-w-[480px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
-            style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
-            onPress={(e) => e.stopPropagation()}
+            className="flex-1 bg-black/70 justify-end md:justify-center p-0 md:p-6"
+            onPress={() => setShowReopenModal(false)}
           >
-            {/* Action Sheet Drag Indicator (Phone only) */}
-            <View className="w-12 h-1.5 bg-input-border dark:bg-input-border-dark rounded-full mb-5 md:hidden" />
-
-            {/* Header Icon */}
-            <View className="w-14 h-14 rounded-2xl bg-accent/15 items-center justify-center mb-3.5">
-              <Ionicons name="refresh" size={28} color={colors.accent} />
-            </View>
-
-            <Text className="text-xl font-baloo-bold text-text-primary dark:text-text-primary-dark text-center mb-1.5">
-              Reopen Today's Log
-            </Text>
-
-            <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center leading-relaxed mb-6 px-3">
-              How would you like to continue tracking today's food log? You can restore your previously logged meals or start completely fresh.
-            </Text>
-
-            {/* Option 1: Relog Previous Meals */}
-            <TouchableOpacity
-              onPress={handleReopenWithMeals}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Relog previous meals"
-              className="w-full p-4 mb-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
+            <Pressable
+              className="w-full max-w-[480px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
+              style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
+              onPress={(e) => e.stopPropagation()}
             >
-              <View className="w-11 h-11 rounded-xl bg-accent/20 items-center justify-center">
-                <Ionicons name="receipt-outline" size={22} color={colors.accent} />
+              {/* Header Icon */}
+              <View className="w-14 h-14 rounded-2xl bg-accent/15 items-center justify-center mb-3.5 mt-2">
+                <Ionicons name="refresh" size={28} color={colors.accent} />
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
-                  Relog Previous Meals
-                </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
-                  Restore {archivedTodayMeals.length} previous items ({sealedCalories} kcal) to edit or add more meals.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
 
-            {/* Option 2: Start Fresh */}
-            <TouchableOpacity
-              onPress={handleReopenStartFresh}
-              activeOpacity={0.8}
-              accessibilityRole="button"
-              accessibilityLabel="Start fresh food log"
-              className="w-full p-4 mb-4 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
-            >
-              <View className="w-11 h-11 rounded-xl bg-orange-500/20 items-center justify-center">
-                <Ionicons name="sparkles-outline" size={22} color="#f97316" />
-              </View>
-              <View className="flex-1">
-                <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
-                  Start Fresh
-                </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
-                  Clear today's logged meals and start tracking from a clean 0 kcal slate.
-                </Text>
-              </View>
-              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
-            </TouchableOpacity>
-
-            {/* Cancel Button */}
-            <TouchableOpacity
-              onPress={() => setShowReopenModal(false)}
-              activeOpacity={0.7}
-              className="w-full py-3 items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark active:opacity-60"
-            >
-              <Text className="text-xs font-baloo-bold text-text-muted dark:text-text-muted-dark">
-                Cancel
+              <Text className="text-xl font-baloo-bold text-text-primary dark:text-text-primary-dark text-center mb-1.5">
+                Reopen Today's Log
               </Text>
-            </TouchableOpacity>
+
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark text-center leading-relaxed mb-6 px-3">
+                How would you like to continue tracking today's food log? You can restore your previously logged meals or start completely fresh.
+              </Text>
+
+              {/* Option 1: Relog Previous Meals */}
+              <TouchableOpacity
+                onPress={handleReopenWithMeals}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Relog previous meals"
+                className="w-full p-4 mb-3 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
+              >
+                <View className="w-11 h-11 rounded-xl bg-accent/20 items-center justify-center">
+                  <Ionicons name="receipt-outline" size={22} color={colors.accent} />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
+                    Relog Previous Meals
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
+                    Restore {archivedTodayMeals.length} previous items ({sealedCalories} kcal) to edit or add more meals.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Option 2: Start Fresh */}
+              <TouchableOpacity
+                onPress={handleReopenStartFresh}
+                activeOpacity={0.8}
+                accessibilityRole="button"
+                accessibilityLabel="Start fresh food log"
+                className="w-full p-4 mb-4 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-3.5 active:opacity-70"
+              >
+                <View className="w-11 h-11 rounded-xl bg-orange-500/20 items-center justify-center">
+                  <Ionicons name="sparkles-outline" size={22} color="#f97316" />
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-baloo-bold text-text-primary dark:text-text-primary-dark">
+                    Start Fresh
+                  </Text>
+                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight">
+                    Clear today's logged meals and start tracking from a clean 0 kcal slate.
+                  </Text>
+                </View>
+                <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+              </TouchableOpacity>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                onPress={() => setShowReopenModal(false)}
+                activeOpacity={0.7}
+                className="w-full py-3 items-center justify-center rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark active:opacity-60"
+              >
+                <Text className="text-xs font-baloo-bold text-text-muted dark:text-text-muted-dark">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </Pressable>
           </Pressable>
-        </Pressable>
-      </Modal>
+        </Modal>
+      )}
     </SafeAreaView>
   );
 }

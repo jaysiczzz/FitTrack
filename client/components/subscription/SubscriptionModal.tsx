@@ -361,8 +361,8 @@ export default function SubscriptionModal({
           >
             {/* Header */}
             <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-              <View className="flex-row items-center gap-2">
-                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+              <View className="flex-1 pr-2 min-w-0">
+                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
                   FitTrack Pro Subscription
                 </Text>
               </View>
@@ -371,8 +371,8 @@ export default function SubscriptionModal({
 
             <ScrollView className="flex-1 mt-3" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Currency Selector */}
-            <View className="flex-row items-center justify-between p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
-              <View>
+            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2 p-2.5 rounded-2xl bg-input/40 dark:bg-input-dark/40 border border-input-border dark:border-input-border-dark mb-3">
+              <View className="flex-1 pr-1">
                 <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark">
                   Select Currency
                 </Text>
@@ -380,7 +380,7 @@ export default function SubscriptionModal({
                   Tailored for Philippines & Global athletes
                 </Text>
               </View>
-              <View className="flex-row bg-surface dark:bg-surface-dark p-0.5 rounded-xl border border-input-border dark:border-input-border-dark">
+              <View className="flex-row bg-surface dark:bg-surface-dark p-0.5 rounded-xl border border-input-border dark:border-input-border-dark self-start sm:self-auto">
                 <TouchableOpacity
                   onPress={() => handleCurrencyChange('PHP')}
                   className={`px-3 py-1.5 rounded-lg flex-row items-center gap-1 ${

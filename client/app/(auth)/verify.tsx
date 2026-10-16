@@ -8,7 +8,9 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
@@ -41,14 +43,65 @@ export default function VerifyEmailScreen() {
     }
   }, [data?.email, router]);
 
-  // Resend cooldown timer
+  // Persistent wall-clock cooldown timer synced with AppState & AsyncStorage
   useEffect(() => {
-    if (cooldown <= 0) return;
-    const timer = setInterval(() => {
-      setCooldown((prev) => (prev > 0 ? prev - 1 : 0));
+    if (!data?.email) return;
+    const cooldownKey = `verify_cooldown_${data.email.toLowerCase()}`;
+    let intervalId: any = null;
+
+    const syncCooldown = async () => {
+      try {
+        const storedTimestamp = await AsyncStorage.getItem(cooldownKey);
+        const now = Date.now();
+        if (storedTimestamp) {
+          const target = parseInt(storedTimestamp, 10);
+          const remaining = Math.max(0, Math.ceil((target - now) / 1000));
+          setCooldown(remaining);
+          if (remaining === 0) {
+            await AsyncStorage.removeItem(cooldownKey);
+          }
+        } else {
+          // If first entry without a stored timestamp, establish initial 60s cooldown
+          const initialTarget = now + 60 * 1000;
+          await AsyncStorage.setItem(cooldownKey, initialTarget.toString());
+          setCooldown(60);
+        }
+      } catch {
+        // Fallback to in-memory state
+      }
+    };
+
+    syncCooldown();
+
+    // Re-sync immediately whenever app returns to active foreground (e.g. from Gmail)
+    const appStateSub = AppState.addEventListener('change', (nextState) => {
+      if (nextState === 'active') {
+        syncCooldown();
+      }
+    });
+
+    intervalId = setInterval(async () => {
+      try {
+        const storedTimestamp = await AsyncStorage.getItem(cooldownKey);
+        if (storedTimestamp) {
+          const remaining = Math.max(0, Math.ceil((parseInt(storedTimestamp, 10) - Date.now()) / 1000));
+          setCooldown(remaining);
+          if (remaining === 0) {
+            await AsyncStorage.removeItem(cooldownKey);
+          }
+        } else {
+          setCooldown(0);
+        }
+      } catch {
+        setCooldown((prev) => Math.max(0, prev - 1));
+      }
     }, 1000);
-    return () => clearInterval(timer);
-  }, [cooldown]);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+      appStateSub.remove();
+    };
+  }, [data?.email]);
 
   // Auto-focus code input on mount
   useEffect(() => {
@@ -81,6 +134,9 @@ export default function VerifyEmailScreen() {
 
       await verifyEmailCodeApi({ email: data.email, code: trimmed });
 
+      // Clean up cooldown on successful verification
+      await AsyncStorage.removeItem(`verify_cooldown_${data.email.toLowerCase()}`).catch(() => {});
+
       // Mark registration context as verified and proceed to Onboarding
       setVerified(true);
       router.replace('/(auth)/onboarding');
@@ -104,6 +160,8 @@ export default function VerifyEmailScreen() {
         firstName: data.firstName,
       });
 
+      const newTarget = Date.now() + 60 * 1000;
+      await AsyncStorage.setItem(`verify_cooldown_${data.email.toLowerCase()}`, newTarget.toString());
       setSuccessMsg('New verification code sent! Check your inbox.');
       setCooldown(60);
       setCode('');
@@ -201,7 +259,7 @@ export default function VerifyEmailScreen() {
             <TouchableOpacity
               activeOpacity={1}
               onPress={() => inputRef.current?.focus()}
-              className="flex-row justify-between mb-4 w-full"
+              className="flex-row justify-between mb-4 w-full gap-1 sm:gap-2"
             >
               {codeDigits.map((digit, index) => {
                 const isCurrent = code.length === index;
@@ -224,9 +282,9 @@ export default function VerifyEmailScreen() {
                 return (
                   <View
                     key={index}
-                    className={`w-[48px] h-[56px] rounded-2xl border-2 items-center justify-center ${borderClass} ${bgClass}`}
+                    className={`flex-1 max-w-[48px] h-[52px] sm:h-[56px] rounded-xl sm:rounded-2xl border-2 items-center justify-center ${borderClass} ${bgClass}`}
                   >
-                    <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark">
+                    <Text className="text-xl sm:text-2xl font-black text-text-primary dark:text-text-primary-dark">
                       {digit.trim()}
                     </Text>
                   </View>

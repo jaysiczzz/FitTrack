@@ -408,14 +408,33 @@ export default function Workouts() {
             imageUrl: e.imageUrl || meta.imageUrl || null,
             thumbnailUrl: e.thumbnailUrl || meta.thumbnailUrl || null,
             gifUrl: e.gifUrl || meta.gifUrl || null,
-            sets: (e.sets || []).map((s: any, idx: number) => ({
-              id: s.id,
-              setNumber: s.setNumber || idx + 1,
-              weight: s.weight ? String(s.weight) : undefined,
-              reps: s.reps ? String(s.reps) : undefined,
-              bodyweight: s.bodyweight || false,
-              done: s.done,
-            })),
+            sets: (e.sets || []).map((s: any, idx: number) => {
+              const isSetBodyweight = Boolean(
+                s.bodyweight ||
+                meta.equipment === 'Bodyweight' ||
+                e.type === 'Bodyweight' ||
+                meta.type === 'Isometric' ||
+                meta.category === 'Core' ||
+                e.name.toLowerCase().includes('push-up') ||
+                e.name.toLowerCase().includes('pull-up') ||
+                e.name.toLowerCase().includes('plank')
+              );
+              let weightStr: string | undefined = undefined;
+              if (s.weight !== undefined && s.weight !== null && Number(s.weight) > 0) {
+                weightStr = String(s.weight);
+              } else if (!isSetBodyweight) {
+                weightStr = s.weight !== undefined && s.weight !== null && s.weight !== '' ? String(s.weight) : '20';
+              }
+
+              return {
+                id: s.id,
+                setNumber: s.setNumber || idx + 1,
+                weight: weightStr,
+                reps: s.reps ? String(s.reps) : '10',
+                bodyweight: isSetBodyweight,
+                done: s.done,
+              };
+            }),
           };
         });
         setTodayExercises(formatted);
@@ -1137,24 +1156,43 @@ export default function Workouts() {
     // 1. Create optimistic items
     const optimisticItems: TodayExerciseItem[] = routine.exercises.map((ex, exIdx) => {
       const tempKey = `temp-routine-${Date.now()}-${exIdx}-${Math.random().toString(36).slice(2, 6)}`;
-      const defaultSets = ex.defaultSets && ex.defaultSets.length > 0
+      const meta = getExerciseMetadata(ex.exerciseId, ex.name);
+      const isExBodyweight = Boolean(
+        meta.equipment === 'Bodyweight' ||
+        ex.type === 'Bodyweight' ||
+        meta.type === 'Isometric' ||
+        meta.category === 'Core' ||
+        ex.name.toLowerCase().includes('push-up') ||
+        ex.name.toLowerCase().includes('pull-up') ||
+        ex.name.toLowerCase().includes('plank')
+      );
+
+      const rawSets = ex.defaultSets && ex.defaultSets.length > 0
         ? ex.defaultSets
         : [
-          { reps: 10, weight: 20, bodyweight: false },
-          { reps: 10, weight: 20, bodyweight: false },
-          { reps: 10, weight: 20, bodyweight: false },
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
         ];
 
-      const sets = defaultSets.map((s, idx) => ({
-        id: `${tempKey}-set-${idx + 1}`,
-        setNumber: idx + 1,
-        weight: s.weight !== undefined && s.weight !== null ? String(s.weight) : undefined,
-        reps: s.reps !== undefined && s.reps !== null ? String(s.reps) : undefined,
-        bodyweight: Boolean(s.bodyweight),
-        done: false,
-      }));
+      const sets = rawSets.map((s, idx) => {
+        const isBodyweight = s.bodyweight !== undefined ? Boolean(s.bodyweight) : isExBodyweight;
+        let weightStr: string | undefined = undefined;
+        if (s.weight !== undefined && s.weight !== null && s.weight !== '') {
+          weightStr = String(s.weight);
+        } else if (!isBodyweight) {
+          weightStr = '20';
+        }
 
-      const meta = getExerciseMetadata(ex.exerciseId, ex.name);
+        return {
+          id: `${tempKey}-set-${idx + 1}`,
+          setNumber: idx + 1,
+          weight: weightStr,
+          reps: s.reps !== undefined && s.reps !== null && s.reps !== '' ? String(s.reps) : '10',
+          bodyweight: isBodyweight,
+          done: false,
+        };
+      });
 
       return {
         key: tempKey,
@@ -1204,13 +1242,32 @@ export default function Workouts() {
     // 3. Sequential background sync to guarantee exact order preserved on server
     try {
       for (const ex of routine.exercises) {
-        const defaultSets = ex.defaultSets && ex.defaultSets.length > 0
-          ? ex.defaultSets.map((s) => ({
-            weight: s.weight !== undefined && s.weight !== '' ? Number(s.weight) : undefined,
-            reps: s.reps !== undefined && s.reps !== '' ? Number(s.reps) : undefined,
-            bodyweight: Boolean(s.bodyweight),
-          }))
-          : undefined;
+        const meta = getExerciseMetadata(ex.exerciseId, ex.name);
+        const isExBodyweight = Boolean(
+          meta.equipment === 'Bodyweight' ||
+          ex.type === 'Bodyweight' ||
+          meta.type === 'Isometric' ||
+          meta.category === 'Core' ||
+          ex.name.toLowerCase().includes('push-up') ||
+          ex.name.toLowerCase().includes('pull-up') ||
+          ex.name.toLowerCase().includes('plank')
+        );
+
+        const defaultSets = (ex.defaultSets && ex.defaultSets.length > 0 ? ex.defaultSets : [
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
+          { reps: 10, weight: isExBodyweight ? undefined : 20, bodyweight: isExBodyweight },
+        ]).map((s) => {
+          const isBodyweight = s.bodyweight !== undefined ? Boolean(s.bodyweight) : isExBodyweight;
+          const weightNum = s.weight !== undefined && s.weight !== null && s.weight !== ''
+            ? Number(s.weight)
+            : (!isBodyweight ? 20 : undefined);
+          return {
+            weight: weightNum,
+            reps: s.reps !== undefined && s.reps !== null && s.reps !== '' ? Number(s.reps) : 10,
+            bodyweight: isBodyweight,
+          };
+        });
 
         await addExerciseToTodaySession({
           exerciseId: ex.exerciseId,
@@ -1309,60 +1366,68 @@ export default function Workouts() {
       )}
 
       {/* AI Workout Generator Modal */}
-      <AiWorkoutGeneratorModal
-        visible={showAiModal}
-        onClose={() => setShowAiModal(false)}
-        onAddExercises={handleAddAiExercises}
-        userGoal={user?.goal}
-      />
+      {showAiModal && (
+        <AiWorkoutGeneratorModal
+          visible={showAiModal}
+          onClose={() => setShowAiModal(false)}
+          onAddExercises={handleAddAiExercises}
+          userGoal={user?.goal}
+        />
+      )}
 
       {/* Completion Modal */}
-      <ConfirmModal
-        visible={showCompleteModal}
-        title="Complete Session"
-        message="Ready to log and complete today's workout session?"
-        iconName="trophy"
-        confirmText="Finish & Save"
-        cancelText="Keep Training"
-        onConfirm={handleConfirmCompleteSession}
-        onCancel={() => setShowCompleteModal(false)}
-      />
+      {showCompleteModal && (
+        <ConfirmModal
+          visible={showCompleteModal}
+          title="Complete Session"
+          message="Ready to log and complete today's workout session?"
+          iconName="trophy"
+          confirmText="Finish & Save"
+          cancelText="Keep Training"
+          onConfirm={handleConfirmCompleteSession}
+          onCancel={() => setShowCompleteModal(false)}
+        />
+      )}
 
       {/* Remove Exercise Confirmation Modal */}
-      <ConfirmModal
-        visible={Boolean(exerciseToRemove)}
-        title="Remove Exercise"
-        message={`Are you sure you want to remove "${exerciseToRemove?.name}" and all its logged sets from today's workout?`}
-        confirmText="Remove"
-        cancelText="Keep"
-        isDanger
-        iconName="trash-outline"
-        onConfirm={handleConfirmRemoveExercise}
-        onCancel={() => setExerciseToRemove(null)}
-      />
+      {Boolean(exerciseToRemove) && (
+        <ConfirmModal
+          visible={Boolean(exerciseToRemove)}
+          title="Remove Exercise"
+          message={`Are you sure you want to remove "${exerciseToRemove?.name}" and all its logged sets from today's workout?`}
+          confirmText="Remove"
+          cancelText="Keep"
+          isDanger
+          iconName="trash-outline"
+          onConfirm={handleConfirmRemoveExercise}
+          onCancel={() => setExerciseToRemove(null)}
+        />
+      )}
 
       {/* Rest Day Override Confirmation Modal */}
-      <ConfirmModal
-        visible={showRestDayAddConfirm}
-        title="Scheduled Rest Day"
-        message="Today is designated as your rest day for muscular recovery. Do you still want to log a workout session today?"
-        confirmText="Log Workout Anyway"
-        cancelText="Keep Resting"
-        iconName="fitness-outline"
-        onConfirm={() => {
-          setShowRestDayAddConfirm(false);
-          setRestDayOverridden(true);
-          if (pendingRestDayAction) {
-            const action = pendingRestDayAction;
+      {showRestDayAddConfirm && (
+        <ConfirmModal
+          visible={showRestDayAddConfirm}
+          title="Scheduled Rest Day"
+          message="Today is designated as your rest day for muscular recovery. Do you still want to log a workout session today?"
+          confirmText="Log Workout Anyway"
+          cancelText="Keep Resting"
+          iconName="fitness-outline"
+          onConfirm={() => {
+            setShowRestDayAddConfirm(false);
+            setRestDayOverridden(true);
+            if (pendingRestDayAction) {
+              const action = pendingRestDayAction;
+              setPendingRestDayAction(null);
+              action();
+            }
+          }}
+          onCancel={() => {
+            setShowRestDayAddConfirm(false);
             setPendingRestDayAction(null);
-            action();
-          }
-        }}
-        onCancel={() => {
-          setShowRestDayAddConfirm(false);
-          setPendingRestDayAction(null);
-        }}
-      />
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }

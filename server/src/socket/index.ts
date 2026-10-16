@@ -1,7 +1,9 @@
 import { Server as HttpServer } from 'http'
 import { Server as SocketIOServer, Socket } from 'socket.io'
+import { createAdapter } from '@socket.io/redis-adapter'
 import { verifyToken, jwtPayload } from '../utils/jwt.utils'
 import { prisma } from '../config/db'
+import { createRedisClient, isRedisConfigured } from '../config/redis'
 
 export interface AuthenticatedSocket extends Socket {
   user?: jwtPayload & { role?: string }
@@ -26,6 +28,25 @@ export function initSocketServer(httpServer: HttpServer, allowedOrigins: string[
     pingTimeout: 30000,
     pingInterval: 25000,
   })
+
+  // Attach distributed Redis adapter if REDIS_URL is configured
+  if (isRedisConfigured()) {
+    const pubClient = createRedisClient('socket-pub')
+    const subClient = createRedisClient('socket-sub')
+
+    if (pubClient && subClient) {
+      Promise.all([pubClient.connect(), subClient.connect()])
+        .then(() => {
+          io?.adapter(createAdapter(pubClient, subClient))
+          console.log('✅ [Socket.IO] Distributed Redis adapter attached successfully.')
+        })
+        .catch((err) => {
+          console.warn('⚠️ [Socket.IO] Redis connection failed, falling back to in-memory adapter:', err?.message || err)
+        })
+    }
+  } else {
+    console.log('ℹ️  [Socket.IO] Running with in-memory adapter (single-node mode). Set REDIS_URL for multi-instance scaling.')
+  }
 
   // Authentication Middleware for Sockets
   io.use(async (socket: AuthenticatedSocket, next) => {

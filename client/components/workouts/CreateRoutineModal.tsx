@@ -201,11 +201,11 @@ export default function CreateRoutineModal({
         >
           {/* Modal Header */}
           <View className="flex-row justify-between items-center pb-3 border-b border-input-border/50 dark:border-input-border-dark/50">
-            <View>
-              <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+            <View className="flex-1 pr-2 min-w-0">
+              <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark tracking-tight" numberOfLines={1}>
                 Create Routine Template
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
                 Save a custom workout split to your personal library
               </Text>
             </View>

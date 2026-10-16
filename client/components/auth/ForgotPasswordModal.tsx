@@ -177,11 +177,11 @@ export default function ForgotPasswordModal({
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View>
-              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+            <View className="flex-1 pr-2 min-w-0">
+              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
                 {step === 'email' ? 'Forgot Password' : 'Reset Your Password'}
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
                 {step === 'email'
                   ? 'We will send a 6-digit reset code to your email'
                   : `Enter the code sent to ${email}`}

@@ -29,7 +29,7 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
             accessibilityState={{ selected: isActive }}
             hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
             onPress={() => onChange(tab.id)}
-            className={`flex-1 min-h-[44px] py-2 px-2 items-center justify-center rounded-xl border flex-row active:opacity-75 ${
+            className={`flex-1 min-h-[44px] py-2 px-1 sm:px-2 items-center justify-center rounded-xl border flex-row active:opacity-75 ${
               isActive
                 ? 'bg-surface dark:bg-surface-dark border-input-border/80 dark:border-input-border-dark/80'
                 : 'bg-transparent border-transparent'
@@ -48,12 +48,14 @@ const WorkoutTabs: React.FC<WorkoutTabsProps> = ({ activeTab, onChange }) => {
             }
           >
             <Text
-              className={`text-xs ${
+              className={`text-[11px] sm:text-xs text-center ${
                 isActive
                   ? 'text-accent dark:text-accent-dark font-baloo-bold'
                   : 'text-text-muted dark:text-text-muted-dark font-baloo-medium'
               }`}
               numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.85}
             >
               {tab.label}
             </Text>

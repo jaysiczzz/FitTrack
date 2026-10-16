@@ -44,9 +44,9 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
       primaryMuscle: 'Legs',
       muscleGroup: 'Legs',
       defaultSets: [
-        { reps: 10 },
-        { reps: 10 },
-        { reps: 10 },
+        { weight: 12, reps: 10 },
+        { weight: 12, reps: 10 },
+        { weight: 12, reps: 10 },
       ],
     },
     {
@@ -70,9 +70,9 @@ export const DEFAULT_BEGINNER_ROUTINE: WorkoutRoutineTemplate = {
       primaryMuscle: 'Back',
       muscleGroup: 'Back',
       defaultSets: [
-        { reps: 10 },
-        { reps: 10 },
-        { reps: 10 },
+        { weight: 10, reps: 10 },
+        { weight: 10, reps: 10 },
+        { weight: 10, reps: 10 },
       ],
     },
     {

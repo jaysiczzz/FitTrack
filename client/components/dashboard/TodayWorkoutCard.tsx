@@ -37,8 +37,8 @@ export default function TodayWorkoutCard({
       <SurfaceCard className="mb-3">
         {/* Header */}
         <View className="flex-row justify-between items-center mb-3">
-          <View className="flex-1 mr-2">
-            <View className="flex-row items-center gap-2">
+          <View className="flex-1 mr-2 min-w-0">
+            <View className="flex-row items-center gap-2 flex-wrap">
               <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
                 Today's Workout
               </Text>
@@ -101,8 +101,8 @@ export default function TodayWorkoutCard({
     <SurfaceCard className="mb-3">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-3">
-        <View className="flex-1 mr-2">
-          <View className="flex-row items-center gap-2">
+        <View className="flex-1 mr-2 min-w-0">
+          <View className="flex-row items-center gap-2 flex-wrap">
             <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
               {isRestDay ? "Today's Split" : "Today's Workout"}
             </Text>

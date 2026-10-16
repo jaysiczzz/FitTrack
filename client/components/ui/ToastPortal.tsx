@@ -7,21 +7,11 @@ interface ToastPortalProps {
 }
 
 /**
- * Native (iOS & Android) portal wrapping toast inside a transparent Modal
- * so it renders in the top-level native window layer above any other active modals.
+ * Native (iOS & Android) pass-through portal container.
+ * Avoids wrapping in a native Modal window so that screen touches beneath
+ * the toast pass cleanly through to the underlying app without blocking user interaction.
  */
 export default function ToastPortal({ children, visible }: ToastPortalProps) {
   if (!visible) return null;
-
-  return (
-    <Modal
-      transparent
-      visible={visible}
-      animationType="none"
-      statusBarTranslucent
-      onRequestClose={() => {}}
-    >
-      {children}
-    </Modal>
-  );
+  return <>{children}</>;
 }
