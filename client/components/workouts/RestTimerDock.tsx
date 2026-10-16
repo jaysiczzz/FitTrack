@@ -203,30 +203,31 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
         {/* Main Countdown Display & Action Controls */}
         <View className="flex-row items-center justify-between">
           {/* Large Digital Clock */}
-          <View>
+          <View className="flex-1 pr-2 min-w-0">
             <Text
-              className={`text-3xl font-black font-mono tracking-tighter ${
+              className={`text-2xl sm:text-3xl font-black font-mono tracking-tighter ${
                 isCompleted ? 'text-emerald-400' : 'text-white'
               }`}
+              numberOfLines={1}
             >
               {formatTime(secondsLeft)}
             </Text>
-            <Text className="text-[11px] font-medium text-zinc-400">
+            <Text numberOfLines={1} className="text-[10px] sm:text-[11px] font-medium text-zinc-400">
               {isCompleted
                 ? 'Time for your next set!'
                 : isRunning
-                ? 'Take deep breaths & hydrate'
+                ? 'Breathe & hydrate'
                 : 'Timer paused'}
             </Text>
           </View>
 
           {/* Controls: -15s, Play/Pause, +30s */}
-          <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center gap-1.5 sm:gap-2 shrink-0">
             <TouchableOpacity
               onPress={handleSubtract15}
               activeOpacity={0.7}
               disabled={isCompleted || secondsLeft <= 0}
-              className={`px-3 py-2 min-h-[44px] min-w-[44px] rounded-xl border border-zinc-700 bg-zinc-800 items-center justify-center ${
+              className={`px-2.5 sm:px-3 py-2 min-h-[44px] min-w-[38px] sm:min-w-[44px] rounded-xl border border-zinc-700 bg-zinc-800 items-center justify-center ${
                 isCompleted || secondsLeft <= 0 ? 'opacity-40' : 'active:opacity-80'
               }`}
             >
@@ -236,7 +237,7 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
             <TouchableOpacity
               onPress={handleTogglePlayPause}
               activeOpacity={0.8}
-              className={`w-12 h-12 rounded-2xl items-center justify-center min-h-[44px] min-w-[44px] ${
+              className={`w-11 h-11 sm:w-12 sm:h-12 rounded-2xl items-center justify-center min-h-[44px] min-w-[44px] ${
                 isCompleted
                   ? 'bg-emerald-500'
                   : isRunning
@@ -252,7 +253,7 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
                     ? 'pause'
                     : 'play'
                 }
-                size={22}
+                size={20}
                 color={colors.accentContrast}
               />
             </TouchableOpacity>
@@ -260,7 +261,7 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
             <TouchableOpacity
               onPress={handleAdd30}
               activeOpacity={0.7}
-              className="px-3 py-2 min-h-[44px] min-w-[44px] rounded-xl border border-zinc-700 bg-zinc-800 items-center justify-center active:opacity-80"
+              className="px-2.5 sm:px-3 py-2 min-h-[44px] min-w-[38px] sm:min-w-[44px] rounded-xl border border-zinc-700 bg-zinc-800 items-center justify-center active:opacity-80"
             >
               <Text className="text-zinc-300 font-bold text-xs">+30s</Text>
             </TouchableOpacity>

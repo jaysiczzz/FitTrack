@@ -7,8 +7,8 @@ import {
   Image,
   PanResponder,
   ActivityIndicator,
-  Dimensions,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -24,8 +24,6 @@ interface PhotoCropEditorModalProps {
   onSaveCroppedImage: (croppedUri: string) => Promise<void> | void;
 }
 
-const VIEWPORT_SIZE = 280; // Size of the circular crop area
-
 export default function PhotoCropEditorModal({
   visible,
   imageUri,
@@ -34,6 +32,12 @@ export default function PhotoCropEditorModal({
 }: PhotoCropEditorModalProps) {
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+
+  // Responsive crop viewport size fitting short/narrow screens
+  const viewportSize = useMemo(() => {
+    return Math.min(280, Math.max(200, Math.floor(Math.min(screenWidth - 48, screenHeight * 0.38))));
+  }, [screenWidth, screenHeight]);
 
   // Original image dimensions
   const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
@@ -76,7 +80,7 @@ export default function PhotoCropEditorModal({
 
   // Compute displayed base size to cover the circular viewport (cover mode)
   const baseDisplayedSize = useMemo(() => {
-    if (!imageSize) return { width: VIEWPORT_SIZE, height: VIEWPORT_SIZE };
+    if (!imageSize) return { width: viewportSize, height: viewportSize };
 
     const { width: origW, height: origH } = imageSize;
     // Swap dimensions if rotated by 90 or 270 deg
@@ -84,15 +88,15 @@ export default function PhotoCropEditorModal({
     const effectiveH = rotation % 180 === 0 ? origH : origW;
 
     if (effectiveW >= effectiveH) {
-      const height = VIEWPORT_SIZE;
-      const width = (effectiveW / effectiveH) * VIEWPORT_SIZE;
+      const height = viewportSize;
+      const width = (effectiveW / effectiveH) * viewportSize;
       return { width, height };
     } else {
-      const width = VIEWPORT_SIZE;
-      const height = (effectiveH / effectiveW) * VIEWPORT_SIZE;
+      const width = viewportSize;
+      const height = (effectiveH / effectiveW) * viewportSize;
       return { width, height };
     }
-  }, [imageSize, rotation]);
+  }, [imageSize, rotation, viewportSize]);
 
   // PanResponder to enable smooth drag/move of the image (Facebook-style)
   const panResponder = useMemo(
@@ -162,14 +166,14 @@ export default function PhotoCropEditorModal({
       const centerInDispY = currentDispH / 2 - pan.y;
 
       // Crop origin in display coordinates
-      const cropDispOriginX = centerInDispX - VIEWPORT_SIZE / 2;
-      const cropDispOriginY = centerInDispY - VIEWPORT_SIZE / 2;
+      const cropDispOriginX = centerInDispX - viewportSize / 2;
+      const cropDispOriginY = centerInDispY - viewportSize / 2;
 
       // Convert to original image pixel coordinates (accounting for zoom)
       const zoomRatio = 1 / zoom;
       let originX = Math.round(cropDispOriginX * scaleToOriginal * zoomRatio);
       let originY = Math.round(cropDispOriginY * scaleToOriginal * zoomRatio);
-      let cropSizeInOrig = Math.round(VIEWPORT_SIZE * scaleToOriginal * zoomRatio);
+      let cropSizeInOrig = Math.round(viewportSize * scaleToOriginal * zoomRatio);
 
       // Boundaries safety clamping
       const maxW = rotation % 180 === 0 ? origW : origH;
@@ -234,24 +238,24 @@ export default function PhotoCropEditorModal({
     <Modal visible={visible} animationType="slide" transparent={false} onRequestClose={onClose}>
       <View className="flex-1 bg-black">
         {/* Top Navigation Bar */}
-        <View className="pt-12 pb-3 px-5 flex-row items-center justify-between border-b border-zinc-800">
+        <View className="pt-12 pb-3 px-4 sm:px-5 flex-row items-center justify-between border-b border-zinc-800">
           <TouchableOpacity
             onPress={onClose}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            className="w-9 h-9 rounded-full bg-zinc-800 items-center justify-center"
+            className="w-9 h-9 rounded-full bg-zinc-800 items-center justify-center shrink-0"
           >
             <Ionicons name="close" size={20} color="#FFFFFF" />
           </TouchableOpacity>
 
-          <View className="items-center">
-            <Text className="text-white font-bold text-base">Adjust Profile Photo</Text>
-            <Text className="text-zinc-400 text-[11px] mt-0.5">Drag to move • Slider to zoom</Text>
+          <View className="items-center flex-1 px-2 min-w-0">
+            <Text numberOfLines={1} className="text-white font-bold text-sm sm:text-base">Adjust Profile Photo</Text>
+            <Text numberOfLines={1} className="text-zinc-400 text-[10px] sm:text-[11px] mt-0.5">Drag to move • Slider to zoom</Text>
           </View>
 
           <TouchableOpacity
             onPress={handleRotate}
             hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-            className="w-9 h-9 rounded-full bg-zinc-800 items-center justify-center"
+            className="w-9 h-9 rounded-full bg-zinc-800 items-center justify-center shrink-0"
             accessibilityLabel="Rotate 90 degrees"
           >
             <Ionicons name="refresh" size={18} color="#FFFFFF" />
@@ -265,9 +269,9 @@ export default function PhotoCropEditorModal({
           ) : (
             <View
               style={{
-                width: VIEWPORT_SIZE,
-                height: VIEWPORT_SIZE,
-                borderRadius: VIEWPORT_SIZE / 2,
+                width: viewportSize,
+                height: viewportSize,
+                borderRadius: viewportSize / 2,
                 overflow: 'hidden',
                 borderWidth: 2.5,
                 borderColor: '#FFFFFF',
@@ -314,7 +318,7 @@ export default function PhotoCropEditorModal({
                   inset: 0,
                   borderWidth: 1,
                   borderColor: 'rgba(255,255,255,0.15)',
-                  borderRadius: VIEWPORT_SIZE / 2,
+                  borderRadius: viewportSize / 2,
                 }}
               />
             </View>
@@ -329,7 +333,7 @@ export default function PhotoCropEditorModal({
 
         {/* Bottom Adjustment Controls */}
         <View
-          className="bg-zinc-950 border-t border-zinc-800/80 px-6 pt-4 pb-8"
+          className="bg-zinc-950 border-t border-zinc-800/80 px-4 sm:px-6 pt-3 sm:pt-4 pb-6 sm:pb-8"
           style={{ paddingBottom: Math.max(32, insets.bottom + 12) }}
         >
           {/* Zoom Slider / Stepper Bar (Facebook style) */}
@@ -337,25 +341,25 @@ export default function PhotoCropEditorModal({
             <TouchableOpacity
               onPress={() => handleZoomChange(zoom - 0.25)}
               disabled={zoom <= 1.0}
-              className="w-8 h-8 rounded-full bg-zinc-800 items-center justify-center opacity-90 disabled:opacity-40"
+              className="w-8 h-8 rounded-full bg-zinc-800 items-center justify-center opacity-90 disabled:opacity-40 shrink-0"
             >
               <Ionicons name="remove" size={18} color="#FFFFFF" />
             </TouchableOpacity>
 
             {/* Quick Zoom Pill Steps */}
-            <View className="flex-1 mx-3 flex-row items-center justify-between bg-zinc-900 border border-zinc-800 rounded-full px-2 py-1">
+            <View className="flex-1 mx-2 sm:mx-3 flex-row items-center justify-between bg-zinc-900 border border-zinc-800 rounded-full px-1.5 sm:px-2 py-1">
               {[1.0, 1.5, 2.0, 2.5, 3.0].map((step) => {
                 const isActive = Math.abs(zoom - step) < 0.2;
                 return (
                   <TouchableOpacity
                     key={step}
                     onPress={() => handleZoomChange(step)}
-                    className={`px-2.5 py-1 rounded-full ${
+                    className={`px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-full ${
                       isActive ? 'bg-accent' : 'bg-transparent'
                     }`}
                   >
                     <Text
-                      className={`text-[11px] font-bold ${
+                      className={`text-[10px] sm:text-[11px] font-bold ${
                         isActive ? 'text-white' : 'text-zinc-400'
                       }`}
                     >

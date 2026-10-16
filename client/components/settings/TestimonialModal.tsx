@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View,
   Text,
@@ -165,9 +165,11 @@ export default function TestimonialModal({
     }
   }, [storageKey]);
 
-  const fetchFeed = useCallback(async () => {
+  const fetchFeed = useCallback(async (isSilent = false) => {
     try {
-      setLoadingFeed(true);
+      if (!isSilent && testimonials.length === 0) {
+        setLoadingFeed(true);
+      }
       const goalQuery =
         selectedGoalFilter === 'ALL' ? undefined : selectedGoalFilter;
       const res = await getTestimonialsApi(goalQuery, sortBy);
@@ -194,7 +196,7 @@ export default function TestimonialModal({
     } finally {
       setLoadingFeed(false);
     }
-  }, [selectedGoalFilter, sortBy, storageKey]);
+  }, [selectedGoalFilter, sortBy, storageKey, testimonials.length]);
 
   const handleNewStory = useCallback(() => {
     setEditingId(null);
@@ -242,17 +244,22 @@ export default function TestimonialModal({
       setActiveTab(initialTab);
       setIsComposing(false);
       loadStoredVotes();
-      fetchFeed();
+      fetchFeed(testimonials.length > 0);
       fetchMyReview();
     }
   }, [visible, initialTab]);
 
   // Refetch feed when filter or sorting changes
+  const isFirstMountRef = useRef(true);
   useEffect(() => {
-    if (visible) {
-      fetchFeed();
+    if (isFirstMountRef.current) {
+      isFirstMountRef.current = false;
+      return;
     }
-  }, [visible, selectedGoalFilter, sortBy, fetchFeed]);
+    if (visible) {
+      fetchFeed(false);
+    }
+  }, [selectedGoalFilter, sortBy]);
 
   // Live update when any user submits or modifies testimonials
   useEffect(() => {
@@ -473,13 +480,13 @@ export default function TestimonialModal({
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View>
+            <View className="flex-1 pr-2 min-w-0">
               <View className="flex-row items-center gap-1.5">
-                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
                   Athlete Transformation Stories
                 </Text>
               </View>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
                 Real community transformations & experiences
               </Text>
             </View>
@@ -647,7 +654,7 @@ export default function TestimonialModal({
               </View>
 
               {/* Scrollable Stories Feed */}
-              {loadingFeed ? (
+              {loadingFeed && testimonials.length === 0 ? (
                 <View className="flex-1 items-center justify-center py-12">
                   <ActivityIndicator size="small" color={colors.accent} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">

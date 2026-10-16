@@ -26,33 +26,46 @@ export default function CommunityStoriesCard({
   const { user } = useAuth();
 
   const storageKey = `@fittrack_testimonial_votes_${user?.id || 'guest'}`;
+  const storiesCacheKey = `@fittrack_community_stories_cache_${user?.id || 'guest'}`;
 
   const [stories, setStories] = useState<TestimonialItem[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false);
   const [votedIds, setVotedIds] = useState<Set<string>>(new Set());
   const [previewPhoto, setPreviewPhoto] = useState<{ uri: string; label: string; author: string } | null>(null);
 
-  // Load persistent votes from AsyncStorage
-  const loadStoredVotes = useCallback(async () => {
+  // Load persistent votes & cached stories from AsyncStorage
+  const loadStoredData = useCallback(async () => {
     try {
-      const raw = await AsyncStorage.getItem(storageKey);
-      if (raw) {
-        const parsed = JSON.parse(raw);
-        if (Array.isArray(parsed)) {
-          setVotedIds((prev) => new Set([...prev, ...parsed]));
+      const [rawVotes, rawStories] = await Promise.all([
+        AsyncStorage.getItem(storageKey),
+        AsyncStorage.getItem(storiesCacheKey),
+      ]);
+      if (rawVotes) {
+        const parsedVotes = JSON.parse(rawVotes);
+        if (Array.isArray(parsedVotes)) {
+          setVotedIds((prev) => new Set([...prev, ...parsedVotes]));
+        }
+      }
+      if (rawStories) {
+        const parsedStories = JSON.parse(rawStories);
+        if (Array.isArray(parsedStories) && parsedStories.length > 0) {
+          setStories(parsedStories);
         }
       }
     } catch {
       // Ignored
     }
-  }, [storageKey]);
+  }, [storageKey, storiesCacheKey]);
 
   const loadStories = useCallback(async () => {
     try {
-      setLoading(true);
+      if (stories.length === 0) {
+        setLoading(true);
+      }
       const res = await getTestimonialsApi(undefined, 'featured', 6);
       if (res.testimonials) {
         setStories(res.testimonials);
+        AsyncStorage.setItem(storiesCacheKey, JSON.stringify(res.testimonials)).catch(() => {});
 
         // Hydrate votedIds from backend hasVoted flags
         const backendVoted = res.testimonials
@@ -72,10 +85,10 @@ export default function CommunityStoriesCard({
     } finally {
       setLoading(false);
     }
-  }, [storageKey]);
+  }, [storageKey, storiesCacheKey, stories.length]);
 
   useEffect(() => {
-    loadStoredVotes();
+    loadStoredData();
     loadStories();
 
     // Listen for live testimonial updates across the app
@@ -85,7 +98,7 @@ export default function CommunityStoriesCard({
     return () => {
       sub.remove();
     };
-  }, [loadStoredVotes, loadStories]);
+  }, [loadStoredData, loadStories]);
 
   const handleUpvote = async (item: TestimonialItem) => {
     const isVoted = votedIds.has(item.id);
@@ -168,7 +181,7 @@ export default function CommunityStoriesCard({
       </View>
 
       {/* Stories Horizontal Carousel */}
-      {loading ? (
+      {loading && stories.length === 0 ? (
         <View className="py-8 items-center justify-center">
           <ActivityIndicator size="small" color={colors.accent} />
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">

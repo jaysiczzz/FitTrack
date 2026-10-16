@@ -75,8 +75,14 @@ export default function DifficultySelectorPill({
             style={{
               position: 'absolute',
               top: (buttonLayout?.y || 100) + (buttonLayout?.height || 34) + 6,
-              right: Math.max(16, windowWidth - ((buttonLayout?.x || 0) + (buttonLayout?.width || 120))),
-              width: 175,
+              right: Math.max(
+                16,
+                Math.min(
+                  windowWidth - Math.min(175, windowWidth - 32) - 16,
+                  windowWidth - ((buttonLayout?.x || 0) + (buttonLayout?.width || 120))
+                )
+              ),
+              width: Math.min(175, windowWidth - 32),
             }}
             className="bg-surface dark:bg-surface-dark rounded-2xl p-2 border border-input-border dark:border-input-border-dark shadow-2xl"
             onPress={(e) => e.stopPropagation()}

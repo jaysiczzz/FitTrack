@@ -8,6 +8,8 @@ import {
   Pressable,
   KeyboardAvoidingView,
   ScrollView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -41,6 +43,22 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  React.useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => setIsKeyboardVisible(true)
+    );
+    const hideSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
+      () => setIsKeyboardVisible(false)
+    );
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+    };
+  }, []);
 
   const resetForm = () => {
     setCurrentPassword('');
@@ -55,6 +73,14 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   const handleClose = () => {
     resetForm();
     onClose();
+  };
+
+  const handleBackdropPress = () => {
+    if (isKeyboardVisible) {
+      Keyboard.dismiss();
+      return;
+    }
+    handleClose();
   };
 
   const handleSubmit = async () => {
@@ -118,9 +144,10 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
       <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
-        <Pressable className="flex-1" onPress={handleClose} />
+        <Pressable className="flex-1" onPress={handleBackdropPress} />
 
         <View
           className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl"
@@ -128,18 +155,18 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View>
-              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+            <View className="flex-1 pr-2 min-w-0">
+              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
                 Reset Password
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
                 Update account security credentials
               </Text>
             </View>
             <ModalCloseButton onClose={handleClose} />
           </View>
 
-          <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+          <ScrollView className="mt-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
             {/* Security Notice: Logout from all devices */}
             <View className="mb-3.5 p-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 flex-row items-start gap-2">
               <Ionicons name="shield-checkmark" size={16} color={colors.accent} style={{ marginTop: 1 }} />

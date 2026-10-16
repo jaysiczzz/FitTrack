@@ -3,6 +3,7 @@ import { DeviceEventEmitter } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import NotificationToast, { NotificationType } from '../components/ui/NotificationToast';
+import { hapticFeedback } from '@/utils/haptics';
 
 export interface ToastOptions {
   message: string;
@@ -49,6 +50,15 @@ export const ToastProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   });
 
   const showToast = useCallback((options: ToastOptions | string) => {
+    const toastType: NotificationType = typeof options === 'string' ? 'success' : options.type || 'success';
+    if (toastType === 'success') {
+      hapticFeedback.success();
+    } else if (toastType === 'error' || toastType === 'warning') {
+      hapticFeedback.warning();
+    } else {
+      hapticFeedback.light();
+    }
+
     if (typeof options === 'string') {
       setToastState({
         visible: true,

@@ -497,8 +497,22 @@ export function setupNotificationListeners(router: any): () => void {
   }
 
   // 1. Foreground listener: User receives notification while using the app
-  const receivedSubscription = Notifications.addNotificationReceivedListener((notification) => {
+  const receivedSubscription = Notifications.addNotificationReceivedListener(async (notification) => {
     const { title, body, data } = notification.request.content;
+
+    try {
+      const settings = await getNotificationSettings();
+      if (settings?.quietHoursEnabled) {
+        const now = new Date();
+        const currentStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+        if (isWithinQuietHours(currentStr, settings.quietHoursStart, settings.quietHoursEnd)) {
+          // Suppressed during Quiet Hours (Mute During Sleep/Rest)
+          // Increment unread badge silently without showing toast or playing sound
+          DeviceEventEmitter.emit('IN_APP_NOTIFICATIONS_UPDATED');
+          return;
+        }
+      }
+    } catch {}
 
     // Emit event for in-app toast
     DeviceEventEmitter.emit('SHOW_NOTIFICATION_TOAST', {

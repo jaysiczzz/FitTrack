@@ -489,9 +489,15 @@ export const sendVerification = asyncHandler(async (req: Request, res: Response)
     })
 
     // Dispatch email asynchronously without blocking the user response
-    sendEmailVerificationEmail(normalizedEmail, code, firstName).catch((err) => {
-        console.error('[EMAIL ERROR] Async verification email delivery failed:', err?.message || err)
-    })
+    sendEmailVerificationEmail(normalizedEmail, code, firstName)
+        .then((deliveryResult) => {
+            if (!deliveryResult.delivered) {
+                console.warn(`[AUTH] Email to ${normalizedEmail} was simulated or could not be delivered by SMTP provider.`)
+            }
+        })
+        .catch((err) => {
+            console.error('[EMAIL ERROR] Async verification email delivery failed:', err?.message || err)
+        })
 
     res.json({
         success: true,

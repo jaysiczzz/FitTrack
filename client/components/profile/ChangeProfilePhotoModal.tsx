@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   Pressable,
+  ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -158,151 +159,153 @@ export default function ChangeProfilePhotoModal({
         >
           <Pressable
             onPress={(e) => e.stopPropagation()}
-            className="w-full max-w-sm rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-5 shadow-2xl"
+            className="w-full max-w-sm max-h-[90%] rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark p-5 shadow-2xl flex-col"
           >
             {/* Header */}
             <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-              <View className="flex-row items-center gap-2">
-                <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center">
+              <View className="flex-row items-center gap-2 flex-1 pr-2 min-w-0">
+                <View className="w-8 h-8 rounded-full bg-accent/15 items-center justify-center shrink-0">
                   <Ionicons name="camera" size={16} color={colors.accent} />
                 </View>
-                <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
+                <Text numberOfLines={1} className="text-base font-bold text-text-primary dark:text-text-primary-dark flex-1">
                   Profile Photo Options
                 </Text>
               </View>
               <TouchableOpacity
                 onPress={onClose}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                className="w-7 h-7 rounded-full bg-input dark:bg-input-dark items-center justify-center"
+                className="w-7 h-7 rounded-full bg-input dark:bg-input-dark items-center justify-center shrink-0"
               >
                 <Ionicons name="close" size={16} color={colors.textMuted} />
               </TouchableOpacity>
             </View>
 
-            {/* Current Avatar Preview */}
-            <View className="items-center py-4">
-              {safeAvatarUrl ? (
-                <Image
-                  source={{ uri: safeAvatarUrl }}
-                  className="w-20 h-20 rounded-full border-2 border-accent dark:border-accent-dark bg-input dark:bg-input-dark"
-                  resizeMode="cover"
-                  onError={() => onAvatarUpdated(null)}
-                />
-              ) : (
-                <View className="w-20 h-20 rounded-full bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark items-center justify-center">
-                  <Text className="text-accent dark:text-accent-dark font-black text-2xl">
-                    {userInitials}
-                  </Text>
-                </View>
-              )}
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2 font-medium">
-                {safeAvatarUrl ? 'Custom photo active' : 'Default avatar'}
-              </Text>
-            </View>
+            <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={{ paddingBottom: 4 }}>
+              {/* Current Avatar Preview */}
+              <View className="items-center py-4">
+                {safeAvatarUrl ? (
+                  <Image
+                    source={{ uri: safeAvatarUrl }}
+                    className="w-20 h-20 rounded-full border-2 border-accent dark:border-accent-dark bg-input dark:bg-input-dark"
+                    resizeMode="cover"
+                    onError={() => onAvatarUpdated(null)}
+                  />
+                ) : (
+                  <View className="w-20 h-20 rounded-full bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark items-center justify-center">
+                    <Text className="text-accent dark:text-accent-dark font-black text-2xl">
+                      {userInitials}
+                    </Text>
+                  </View>
+                )}
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2 font-medium">
+                  {safeAvatarUrl ? 'Custom photo active' : 'Default avatar'}
+                </Text>
+              </View>
 
-            {/* Action Options */}
-            <View className="gap-2.5">
-              {/* Reposition Current Photo (if active) */}
-              {safeAvatarUrl && (
+              {/* Action Options */}
+              <View className="gap-2.5">
+                {/* Reposition Current Photo (if active) */}
+                {safeAvatarUrl && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleAdjustCurrent}
+                    className="flex-row items-center p-3.5 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30"
+                  >
+                    <View className="w-9 h-9 rounded-lg bg-accent/20 items-center justify-center mr-3">
+                      <Ionicons name="crop-outline" size={18} color={colors.accent} />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-accent dark:text-accent-dark">
+                        Adjust & Reposition Photo
+                      </Text>
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                        Zoom or move your current picture
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                  </TouchableOpacity>
+                )}
+
+                {/* Take Photo */}
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  onPress={handleAdjustCurrent}
-                  className="flex-row items-center p-3.5 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30"
+                  onPress={() => {
+                    hapticFeedback.light();
+                    handleTakePhoto();
+                  }}
+                  className="flex-row items-center p-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
-                  <View className="w-9 h-9 rounded-lg bg-accent/20 items-center justify-center mr-3">
-                    <Ionicons name="crop-outline" size={18} color={colors.accent} />
+                  <View className="w-9 h-9 rounded-lg bg-emerald-500/15 items-center justify-center mr-3">
+                    <Ionicons name="camera-outline" size={20} color={colors.accent} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-bold text-accent dark:text-accent-dark">
-                      Adjust & Reposition Photo
+                    <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+                      Take New Photo
                     </Text>
                     <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                      Zoom or move your current picture
+                      Use device camera for a fresh portrait
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
-              )}
 
-              {/* Take Photo */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  hapticFeedback.light();
-                  handleTakePhoto();
-                }}
-                className="flex-row items-center p-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
-              >
-                <View className="w-9 h-9 rounded-lg bg-emerald-500/15 items-center justify-center mr-3">
-                  <Ionicons name="camera-outline" size={20} color={colors.accent} />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-                    Take New Photo
-                  </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    Use device camera for a fresh portrait
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              {/* Choose from Library */}
-              <TouchableOpacity
-                activeOpacity={0.7}
-                onPress={() => {
-                  hapticFeedback.light();
-                  handlePickFromGallery();
-                }}
-                className="flex-row items-center p-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
-              >
-                <View className="w-9 h-9 rounded-lg bg-sky-500/15 items-center justify-center mr-3">
-                  <Ionicons name="images-outline" size={20} color="#0EA5E9" />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-                    Choose from Gallery
-                  </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                    Select an existing photo from your library
-                  </Text>
-                </View>
-                <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-              </TouchableOpacity>
-
-              {/* Remove Photo (if active) */}
-              {safeAvatarUrl && (
+                {/* Choose from Library */}
                 <TouchableOpacity
                   activeOpacity={0.7}
-                  onPress={handleRemovePhoto}
-                  className="flex-row items-center p-3.5 rounded-xl bg-danger/10 dark:bg-danger/15 border border-danger/25"
+                  onPress={() => {
+                    hapticFeedback.light();
+                    handlePickFromGallery();
+                  }}
+                  className="flex-row items-center p-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"
                 >
-                  <View className="w-9 h-9 rounded-lg bg-danger/20 items-center justify-center mr-3">
-                    <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                  <View className="w-9 h-9 rounded-lg bg-sky-500/15 items-center justify-center mr-3">
+                    <Ionicons name="images-outline" size={20} color="#0EA5E9" />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-sm font-bold text-danger dark:text-danger-dark">
-                      Remove Current Photo
+                    <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
+                      Choose from Gallery
                     </Text>
-                    <Text className="text-[11px] text-danger/80 dark:text-danger-dark/80">
-                      Revert back to athlete initials
+                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                      Select an existing photo from your library
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+                  <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
                 </TouchableOpacity>
-              )}
-            </View>
 
-            {/* Cancel Button */}
-            <TouchableOpacity
-              activeOpacity={0.7}
-              onPress={onClose}
-              className="mt-4 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-            >
-              <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
-                Cancel
-              </Text>
-            </TouchableOpacity>
+                {/* Remove Photo (if active) */}
+                {safeAvatarUrl && (
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={handleRemovePhoto}
+                    className="flex-row items-center p-3.5 rounded-xl bg-danger/10 dark:bg-danger/15 border border-danger/25"
+                  >
+                    <View className="w-9 h-9 rounded-lg bg-danger/20 items-center justify-center mr-3">
+                      <Ionicons name="trash-outline" size={18} color="#EF4444" />
+                    </View>
+                    <View className="flex-1">
+                      <Text className="text-sm font-bold text-danger dark:text-danger-dark">
+                        Remove Current Photo
+                      </Text>
+                      <Text className="text-[11px] text-danger/80 dark:text-danger-dark/80">
+                        Revert back to athlete initials
+                      </Text>
+                    </View>
+                    <Ionicons name="chevron-forward" size={16} color="#EF4444" />
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Cancel Button */}
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={onClose}
+                className="mt-4 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+              >
+                <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            </ScrollView>
           </Pressable>
         </Pressable>
       </Modal>

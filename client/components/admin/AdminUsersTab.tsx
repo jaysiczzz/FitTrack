@@ -484,133 +484,137 @@ export default function AdminUsersTab({
           onRequestClose={() => setSelectedUser(null)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md max-h-[90%] rounded-2xl p-5 border border-input-border dark:border-input-border-dark flex-col">
               <View className="flex-row items-center justify-between mb-4">
-                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
-                  Manage User
-                </Text>
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                    Manage User
+                  </Text>
+                </View>
                 <ModalCloseButton onClose={() => setSelectedUser(null)} />
               </View>
 
-              <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-xl mb-4">
-                <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                  {capitalizeWords(selectedUser.firstName)} {capitalizeWords(selectedUser.lastName)}
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  {selectedUser.email}
-                </Text>
-                <View className="flex-row flex-wrap gap-1.5 mt-2">
-                  <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                      Role: {selectedUser.role}
-                    </Text>
-                  </View>
-                  <View className="bg-info/10 border border-info/20 px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-info dark:text-info-dark">
-                      Tier: {selectedUser.subscription?.tier?.replace(/_/g, ' ') || 'FREE'}
-                    </Text>
-                  </View>
-                  <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded">
-                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
-                      Goal: {formatGoalLabel(selectedUser.goal)}
-                    </Text>
-                  </View>
-                  {selectedUser.isSuspended ? (
-                    <View className="bg-danger/15 border border-danger/30 px-2 py-0.5 rounded">
-                      <Text className="text-[10px] font-bold text-danger dark:text-danger-dark">
-                        STATUS: SUSPENDED
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={{ paddingBottom: 4 }}>
+                <View className="bg-surface-card dark:bg-surface-card-dark p-3 rounded-xl mb-4">
+                  <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
+                    {capitalizeWords(selectedUser.firstName)} {capitalizeWords(selectedUser.lastName)}
+                  </Text>
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark">
+                    {selectedUser.email}
+                  </Text>
+                  <View className="flex-row flex-wrap gap-1.5 mt-2">
+                    <View className="bg-accent/15 dark:bg-accent-dark/20 border border-accent/30 dark:border-accent-dark/30 px-2 py-0.5 rounded">
+                      <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                        Role: {selectedUser.role}
                       </Text>
                     </View>
-                  ) : null}
-                </View>
-
-                {/* Account Activity Detail */}
-                <View className="mt-2.5 pt-2.5 border-t border-input-border/40 dark:border-input-border-dark/40">
-                  <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
-                    Activity & Engagement
-                  </Text>
-                  <View className="flex-row justify-between">
-                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                      Workouts Completed: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.workoutSessions || 0}</Text>
-                    </Text>
-                    <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                      Nutrition Log Days: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.dailyFoodLogs || 0}</Text>
-                    </Text>
+                    <View className="bg-info/10 border border-info/20 px-2 py-0.5 rounded">
+                      <Text className="text-[10px] font-bold text-info dark:text-info-dark">
+                        Tier: {selectedUser.subscription?.tier?.replace(/_/g, ' ') || 'FREE'}
+                      </Text>
+                    </View>
+                    <View className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2 py-0.5 rounded">
+                      <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+                        Goal: {formatGoalLabel(selectedUser.goal)}
+                      </Text>
+                    </View>
+                    {selectedUser.isSuspended ? (
+                      <View className="bg-danger/15 border border-danger/30 px-2 py-0.5 rounded">
+                        <Text className="text-[10px] font-bold text-danger dark:text-danger-dark">
+                          STATUS: SUSPENDED
+                        </Text>
+                      </View>
+                    ) : null}
                   </View>
-                  {selectedUser.isSuspended && selectedUser.suspendedReason ? (
-                    <Text className="text-[11px] text-danger font-medium mt-1.5">
-                      Reason: {selectedUser.suspendedReason}
+
+                  {/* Account Activity Detail */}
+                  <View className="mt-2.5 pt-2.5 border-t border-input-border/40 dark:border-input-border-dark/40">
+                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mb-1">
+                      Activity & Engagement
                     </Text>
-                  ) : null}
+                    <View className="flex-row justify-between">
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                        Workouts Completed: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.workoutSessions || 0}</Text>
+                      </Text>
+                      <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                        Nutrition Log Days: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{selectedUser._count?.dailyFoodLogs || 0}</Text>
+                      </Text>
+                    </View>
+                    {selectedUser.isSuspended && selectedUser.suspendedReason ? (
+                      <Text className="text-[11px] text-danger font-medium mt-1.5">
+                        Reason: {selectedUser.suspendedReason}
+                      </Text>
+                    ) : null}
+                  </View>
                 </View>
-              </View>
 
-              {/* Action Buttons */}
-              <View className="gap-2.5">
-                {/* 1. Toggle Admin Role */}
-                <TouchableOpacity
-                  onPress={() => handleToggleUserRole(selectedUser)}
-                  disabled={updatingUserRole}
-                  className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
-                    selectedUser.role === 'ADMIN'
-                      ? 'bg-danger/15 border-danger/30'
-                      : 'bg-accent border-accent'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
+                {/* Action Buttons */}
+                <View className="gap-2.5">
+                  {/* 1. Toggle Admin Role */}
+                  <TouchableOpacity
+                    onPress={() => handleToggleUserRole(selectedUser)}
+                    disabled={updatingUserRole}
+                    className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
                       selectedUser.role === 'ADMIN'
-                        ? 'text-danger dark:text-danger-dark'
-                        : 'text-accent-contrast'
+                        ? 'bg-danger/15 border-danger/30'
+                        : 'bg-accent border-accent'
                     }`}
                   >
-                    {selectedUser.role === 'ADMIN' ? 'Demote to Athlete' : 'Promote to Admin'}
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      className={`text-xs font-bold ${
+                        selectedUser.role === 'ADMIN'
+                          ? 'text-danger dark:text-danger-dark'
+                          : 'text-accent-contrast'
+                      }`}
+                    >
+                      {selectedUser.role === 'ADMIN' ? 'Demote to Athlete' : 'Promote to Admin'}
+                    </Text>
+                  </TouchableOpacity>
 
-                {/* 2. Suspend / Lift Suspension */}
-                <TouchableOpacity
-                  onPress={() => handleToggleSuspension(selectedUser)}
-                  disabled={updatingSuspension}
-                  className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
-                    selectedUser.isSuspended
-                      ? 'bg-success/15 border-success/30'
-                      : 'bg-warning/15 border-warning/30'
-                  }`}
-                >
-                  <Text
-                    className={`text-xs font-bold ${
+                  {/* 2. Suspend / Lift Suspension */}
+                  <TouchableOpacity
+                    onPress={() => handleToggleSuspension(selectedUser)}
+                    disabled={updatingSuspension}
+                    className={`min-h-[48px] py-3.5 rounded-xl border items-center justify-center ${
                       selectedUser.isSuspended
-                        ? 'text-success dark:text-success-dark'
-                        : 'text-warning dark:text-warning-dark'
+                        ? 'bg-success/15 border-success/30'
+                        : 'bg-warning/15 border-warning/30'
                     }`}
                   >
-                    {selectedUser.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
-                  </Text>
-                </TouchableOpacity>
+                    <Text
+                      className={`text-xs font-bold ${
+                        selectedUser.isSuspended
+                          ? 'text-success dark:text-success-dark'
+                          : 'text-warning dark:text-warning-dark'
+                      }`}
+                    >
+                      {selectedUser.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
+                    </Text>
+                  </TouchableOpacity>
 
-                {/* 3. Override Subscription */}
-                <TouchableOpacity
-                  onPress={() => {
-                    setShowOverrideModal(true);
-                  }}
-                  className="min-h-[48px] py-3.5 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-                >
-                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                    Override Subscription Tier
-                  </Text>
-                </TouchableOpacity>
+                  {/* 3. Override Subscription */}
+                  <TouchableOpacity
+                    onPress={() => {
+                      setShowOverrideModal(true);
+                    }}
+                    className="min-h-[48px] py-3.5 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark items-center justify-center"
+                  >
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      Override Subscription Tier
+                    </Text>
+                  </TouchableOpacity>
 
-                {/* 4. Delete Account */}
-                <TouchableOpacity
-                  onPress={() => handleDeleteUserAccount(selectedUser)}
-                  className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-2"
-                >
-                  <Text className="text-xs font-bold text-danger dark:text-danger-dark">
-                    Delete User Account
-                  </Text>
-                </TouchableOpacity>
-              </View>
+                  {/* 4. Delete Account */}
+                  <TouchableOpacity
+                    onPress={() => handleDeleteUserAccount(selectedUser)}
+                    className="min-h-[48px] py-3.5 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center mt-2"
+                  >
+                    <Text className="text-xs font-bold text-danger dark:text-danger-dark">
+                      Delete User Account
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -625,65 +629,69 @@ export default function AdminUsersTab({
           onRequestClose={() => setShowOverrideModal(false)}
         >
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md max-h-[90%] rounded-2xl p-5 border border-input-border dark:border-input-border-dark flex-col">
               <View className="flex-row items-center justify-between mb-3">
-                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
-                  Grant Subscription Tier
-                </Text>
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                    Grant Subscription Tier
+                  </Text>
+                </View>
                 <ModalCloseButton onClose={() => setShowOverrideModal(false)} />
               </View>
 
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-4">
-                Assign testing or founder access for {selectedUser.firstName}.
-              </Text>
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false} contentContainerStyle={{ paddingBottom: 4 }}>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-4">
+                  Assign testing or founder access for {selectedUser.firstName}.
+                </Text>
 
-              <View className="gap-2 mb-5">
-                {(
-                  [
-                    { tier: 'FREE', label: 'Free Tier', desc: 'Standard quotas' },
-                    { tier: 'PRO_MONTHLY', label: 'Pro Monthly', desc: 'Full AI Vision & Routines' },
-                    { tier: 'PRO_ANNUAL', label: 'Pro Annual', desc: '12 Months access' },
-                  ] as const
-                ).map((item) => (
-                  <TouchableOpacity
-                    key={item.tier}
-                    onPress={() => {
-                      triggerHapticFeedback();
-                      setOverrideTier(item.tier);
-                    }}
-                    hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-                    className={`min-h-[48px] p-3 rounded-xl border flex-row items-center justify-between ${
-                      overrideTier === item.tier
-                        ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
-                        : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
-                    }`}
-                  >
-                    <View>
-                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                        {item.label}
-                      </Text>
-                      <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                        {item.desc}
-                      </Text>
-                    </View>
-                    {overrideTier === item.tier && (
-                      <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
-                    )}
-                  </TouchableOpacity>
-                ))}
-              </View>
+                <View className="gap-2 mb-5">
+                  {(
+                    [
+                      { tier: 'FREE', label: 'Free Tier', desc: 'Standard quotas' },
+                      { tier: 'PRO_MONTHLY', label: 'Pro Monthly', desc: 'Full AI Vision & Routines' },
+                      { tier: 'PRO_ANNUAL', label: 'Pro Annual', desc: '12 Months access' },
+                    ] as const
+                  ).map((item) => (
+                    <TouchableOpacity
+                      key={item.tier}
+                      onPress={() => {
+                        triggerHapticFeedback();
+                        setOverrideTier(item.tier);
+                      }}
+                      hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                      className={`min-h-[48px] p-3 rounded-xl border flex-row items-center justify-between ${
+                        overrideTier === item.tier
+                          ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
+                          : 'bg-surface-card dark:bg-surface-card-dark border-input-border dark:border-input-border-dark'
+                      }`}
+                    >
+                      <View>
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          {item.label}
+                        </Text>
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                          {item.desc}
+                        </Text>
+                      </View>
+                      {overrideTier === item.tier && (
+                        <Ionicons name="checkmark-circle" size={18} color={colors.accent} />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </View>
 
-              <TouchableOpacity
-                onPress={handleApplySubscriptionOverride}
-                disabled={savingOverride}
-                className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center"
-              >
-                {savingOverride ? (
-                  <ActivityIndicator size="small" color={colors.accentContrast} />
-                ) : (
-                  <Text className="text-xs font-bold text-accent-contrast">Apply Tier Override</Text>
-                )}
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={handleApplySubscriptionOverride}
+                  disabled={savingOverride}
+                  className="bg-accent min-h-[48px] py-3.5 rounded-xl items-center justify-center"
+                >
+                  {savingOverride ? (
+                    <ActivityIndicator size="small" color={colors.accentContrast} />
+                  ) : (
+                    <Text className="text-xs font-bold text-accent-contrast">Apply Tier Override</Text>
+                  )}
+                </TouchableOpacity>
+              </ScrollView>
             </View>
           </View>
         </Modal>
@@ -700,9 +708,11 @@ export default function AdminUsersTab({
           <View className="flex-1 bg-black/60 items-center justify-center p-4">
             <View className="bg-surface dark:bg-surface-dark w-full max-w-sm rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
               <View className="flex-row items-center justify-between mb-2">
-                <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
-                  {suspendConfirmTarget.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
-                </Text>
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                    {suspendConfirmTarget.isSuspended ? 'Lift Suspension / Unban' : 'Suspend / Ban Account'}
+                  </Text>
+                </View>
                 <ModalCloseButton onClose={() => setSuspendConfirmTarget(null)} />
               </View>
 

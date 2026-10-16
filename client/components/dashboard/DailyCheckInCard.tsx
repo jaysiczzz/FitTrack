@@ -367,7 +367,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       {/* Mood Selector Buttons */}
       {!isCheckedIn ? (
         <View className="mb-2">
-          <View className="flex-row justify-between gap-1.5 mb-2">
+          <View className="flex-row flex-wrap justify-between gap-1.5 mb-2">
             {MOODS.map((mood) => {
               const isSelected = selectedMoodId === mood.id;
               return (
@@ -376,7 +376,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                   activeOpacity={0.8}
                   disabled={isSavingMood}
                   onPress={() => handleSelectMood(mood)}
-                  className={`flex-1 py-1.5 px-0.5 rounded-xl items-center justify-center border transition-all ${
+                  className={`w-[31%] min-w-[80px] sm:w-auto sm:flex-1 py-2 px-1 rounded-xl items-center justify-center border transition-all ${
                     isSelected
                       ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark shadow-xs'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -384,6 +384,9 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 >
                   <Text className="text-base mb-0.5">{mood.emoji}</Text>
                   <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.8}
                     className={`text-[10px] font-bold text-center leading-tight ${
                       isSelected
                         ? 'text-accent dark:text-accent-dark'

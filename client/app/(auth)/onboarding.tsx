@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Keyboard } from 'react-native';
+import { View, Text, ScrollView, KeyboardAvoidingView, Platform, Keyboard } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -39,22 +39,10 @@ export default function OnboardingScreen() {
   const [loading, setLoading] = useState(false);
   const [registeredPayload, setRegisteredPayload] = useState<{ token: string; user: any; refreshToken?: string } | null>(null);
 
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const router = useRouter();
   const { data, clear } = useRegistration();
   const { login } = useAuth();
-
-  // Listen for mobile keyboard show/hide events (Android / Web)
-  useEffect(() => {
-    const showSub = Keyboard.addListener('keyboardDidShow', () => setIsKeyboardOpen(true));
-    const hideSub = Keyboard.addListener('keyboardDidHide', () => setIsKeyboardOpen(false));
-
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   // Step 1 -> Step 2 transition
   const handleGoalNext = () => {
@@ -204,25 +192,29 @@ export default function OnboardingScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-background dark:bg-background-dark">
-      <KeyboardAvoidingView className="flex-1">
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1"
+      >
         <ScrollView
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: isKeyboardOpen || isLandscape ? 'flex-start' : 'center',
-            paddingVertical: 16,
-            paddingBottom: isKeyboardOpen ? 120 : 24,
+            justifyContent: 'flex-start',
+            paddingTop: isLandscape ? 12 : 28,
+            paddingBottom: 24,
+            paddingHorizontal: 20,
           }}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View className="w-full max-w-[420px] mx-auto px-5">
+          <View className="w-full max-w-[420px] mx-auto">
             <OnboardingHeader
               step={step}
               totalSteps={3}
-              compact={isKeyboardOpen || isLandscape}
+              compact={isLandscape}
               showBack={step !== 3}
               onBack={handleHeaderBack}
             />

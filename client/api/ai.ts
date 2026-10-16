@@ -185,7 +185,8 @@ export interface ChatMessage {
 }
 
 export const chatWithCoachApi = async (
-  messages: { role: 'user' | 'model'; content: string }[]
+  messages: { role: 'user' | 'model'; content: string }[],
+  options?: { signal?: AbortSignal; timeout?: number }
 ): Promise<{
   success: boolean;
   message: string;
@@ -198,13 +199,16 @@ export const chatWithCoachApi = async (
   return apiRequest('/api/ai/chat', {
     method: 'POST',
     body: { messages },
-    timeout: 60000,
+    timeout: options?.timeout ?? 25000,
+    signal: options?.signal,
   });
 };
 
 export const streamChatWithCoachApi = async (
   messages: { role: 'user' | 'model'; content: string }[],
-  onChunk: (chunk: string) => void
+  onChunk: (chunk: string) => void,
+  onXhrCreated?: (xhr: XMLHttpRequest) => void,
+  timeoutMs: number = 25000
 ): Promise<{ success: boolean; message: string }> => {
   const token = await authStorage.getToken();
   const url = `${API_URL}/api/ai/chat?stream=true`;
@@ -212,6 +216,9 @@ export const streamChatWithCoachApi = async (
   return new Promise((resolve, reject) => {
     try {
       const xhr = new XMLHttpRequest();
+      if (onXhrCreated) {
+        onXhrCreated(xhr);
+      }
       xhr.open('POST', url, true);
       xhr.setRequestHeader('Content-Type', 'application/json');
       xhr.setRequestHeader('Accept', 'text/event-stream');
@@ -272,7 +279,11 @@ export const streamChatWithCoachApi = async (
         reject(new Error('AI stream timed out.'));
       };
 
-      xhr.timeout = 60000;
+      xhr.onabort = () => {
+        reject(new Error('Request aborted'));
+      };
+
+      xhr.timeout = timeoutMs;
       xhr.send(JSON.stringify({ messages, stream: true }));
     } catch (e) {
       reject(e);

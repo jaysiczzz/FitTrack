@@ -6,6 +6,7 @@ import {
   Animated,
   Platform,
   StyleSheet,
+  PanResponder,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -149,6 +150,36 @@ export default function NotificationToast({
     });
   };
 
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => false,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        // Detect upward swipe with higher vertical movement than horizontal
+        return gestureState.dy < -6 && Math.abs(gestureState.dy) > Math.abs(gestureState.dx);
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy < 0) {
+          translateYAnim.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        // If swiped up by >20px or with upward flick velocity, dismiss immediately
+        if (gestureState.dy < -20 || gestureState.vy < -0.4) {
+          handleDismiss();
+        } else {
+          // Snap back to top position
+          Animated.spring(translateYAnim, {
+            toValue: 0,
+            damping: 18,
+            stiffness: 240,
+            mass: 0.8,
+            useNativeDriver: Platform.OS !== 'web',
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   if (!toastVisible && !visible) return null;
 
   const resolvedTop =
@@ -171,6 +202,7 @@ export default function NotificationToast({
           pointerEvents="box-none"
         >
           <Animated.View
+            {...panResponder.panHandlers}
             pointerEvents="auto"
             style={[
               styles.toastWrapper,

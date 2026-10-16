@@ -387,7 +387,7 @@ export default function MonthlyPlannerView({
                 {MONTH_NAMES[currentMonth]} {currentYear}
               </Text>
               <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold" numberOfLines={1}>
-                Monthly Habit & Consistency Calendar
+                Workout Routine Schedule & Planner
               </Text>
             </View>
           </View>
@@ -516,9 +516,8 @@ export default function MonthlyPlannerView({
                   activeOpacity={0.8}
                   disabled={isAutoFilling || isClearing}
                   onPress={handleAutoFillMonth}
-                  className="px-3.5 py-2.5 rounded-xl bg-accent dark:bg-accent-dark flex-row items-center justify-center gap-1.5"
+                  className="px-3.5 py-2.5 rounded-xl bg-accent dark:bg-accent-dark"
                 >
-                  <Ionicons name="flash" size={14} color={colors.accentContrast} />
                   <Text className="text-xs font-black text-accent-contrast dark:text-accent-contrast-dark">
                     {isAutoFilling ? 'Scheduling...' : 'Auto-Fill Month'}
                   </Text>

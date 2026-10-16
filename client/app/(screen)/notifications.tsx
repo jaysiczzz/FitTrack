@@ -26,6 +26,9 @@ import {
 } from '@/api/notifications';
 import { hapticFeedback } from '@/utils/haptics';
 import FilterChip from '@/components/ui/FilterChip';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
+import { authStorage } from '@/utils/authStorage';
 
 export type FilterTab =
   | 'ALL'
@@ -40,23 +43,47 @@ export type FilterTab =
 export default function NotificationsScreen() {
   const router = useRouter();
   const { colors, isDark } = useThemeColors();
+  const { user } = useAuth();
+  const notifsCacheKey = authStorage.getScopedKey(user?.id, 'in_app_notifications_cache');
 
   const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [unreadCount, setUnreadCount] = useState<number>(getCachedUnreadNotifCount);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Load notifications from backend
+  // 1. Instant local cache load
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCached() {
+      try {
+        const cached = await AsyncStorage.getItem(notifsCacheKey);
+        if (cached && isMounted) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setNotifications(parsed);
+          }
+        }
+      } catch {}
+    }
+    loadCached();
+    return () => {
+      isMounted = false;
+    };
+  }, [notifsCacheKey]);
+
+  // 2. Load notifications from backend
   const loadNotifications = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (notifications.length === 0) setLoading(true);
 
     try {
       const res = await getInAppNotificationsApi();
       if (res && res.success) {
-        setNotifications(res.notifications || []);
+        const items = res.notifications || [];
+        setNotifications(items);
+        AsyncStorage.setItem(notifsCacheKey, JSON.stringify(items)).catch(() => {});
         const count = res.unreadCount ?? 0;
         setUnreadCount(count);
         setCachedUnreadNotifCount(count);
@@ -68,7 +95,7 @@ export default function NotificationsScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [notifsCacheKey, notifications.length]);
 
   useEffect(() => {
     loadNotifications();
@@ -373,7 +400,7 @@ export default function NotificationsScreen() {
       {/* ── Top Header Bar ── */}
       <View className="px-4 pt-2 pb-2.5 bg-background dark:bg-background-dark">
         <View className="w-full max-w-4xl self-center mx-auto flex-row items-center justify-between">
-          <View className="flex-row items-center gap-3">
+          <View className="flex-row items-center gap-2.5 flex-1 pr-2 min-w-0">
             <TouchableOpacity
               onPress={() => {
                 hapticFeedback.light();
@@ -385,18 +412,18 @@ export default function NotificationsScreen() {
               }}
               activeOpacity={0.7}
               accessibilityLabel="Go back"
-              className="w-10 h-10 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none"
+              className="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark items-center justify-center shadow-sm shadow-slate-200/50 dark:shadow-none shrink-0"
             >
               <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
             </TouchableOpacity>
 
-            <View>
-              <View className="flex-row items-center gap-2">
-                <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+            <View className="flex-1 min-w-0">
+              <View className="flex-row items-center gap-1.5 min-w-0">
+                <Text numberOfLines={1} className="text-lg sm:text-xl font-black text-text-primary dark:text-text-primary-dark tracking-tight shrink">
                   Notifications
                 </Text>
                 {unreadCount > 0 ? (
-                  <View className="bg-emerald-500/15 dark:bg-emerald-400/25 px-2 py-0.5 rounded-full border border-emerald-500/30">
+                  <View className="bg-emerald-500/15 dark:bg-emerald-400/25 px-1.5 sm:px-2 py-0.5 rounded-full border border-emerald-500/30 shrink-0">
                     <Text className="text-[10px] font-black text-accent dark:text-emerald-400">
                       {unreadCount} new
                     </Text>
@@ -411,10 +438,10 @@ export default function NotificationsScreen() {
             <TouchableOpacity
               onPress={handleMarkAllRead}
               activeOpacity={0.7}
-              className="px-3 py-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark shadow-sm shadow-slate-200/40 dark:shadow-none"
+              className="px-2 sm:px-3 py-1.5 rounded-xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark shadow-sm shadow-slate-200/40 dark:shadow-none shrink-0"
             >
-              <Text className="text-xs font-bold text-accent dark:text-emerald-400">
-                Mark all as read
+              <Text className="text-[11px] sm:text-xs font-bold text-accent dark:text-emerald-400">
+                Mark all read
               </Text>
             </TouchableOpacity>
           ) : null}
@@ -495,7 +522,7 @@ export default function NotificationsScreen() {
         }
       >
         <View className="w-full max-w-4xl self-center mx-auto">
-          {loading && !refreshing ? (
+          {loading && !refreshing && notifications.length === 0 ? (
             <View className="py-20 items-center justify-center">
               <ActivityIndicator size="small" color={colors.accent} />
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-3 font-medium">

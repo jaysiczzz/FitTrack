@@ -245,8 +245,8 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
         </View>
       </View>
 
-      {/* 2-column Height & Weight */}
-      <View className="flex-row gap-2.5 w-full">
+      {/* Height & Weight Section */}
+      <View className={`${heightUnit === 'FT_IN' ? 'flex-col sm:flex-row' : 'flex-row'} gap-2.5 w-full`}>
         {/* Height Section */}
         <View className="flex-1">
           {heightUnit === 'CM' ? (

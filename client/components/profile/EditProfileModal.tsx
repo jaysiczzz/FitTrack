@@ -272,18 +272,16 @@ export default function EditProfileModal({
           accessibilityLabel="Dismiss modal backdrop"
         />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg max-h-[88%] md:max-h-[90%] shadow-2xl flex-col">
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg h-[88%] md:h-[90%] max-h-[90%] shadow-2xl flex-col">
           {/* Header */}
           <View className="flex-row items-center justify-between px-5 pt-4 pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View className="flex-row items-center gap-2">
-              <View>
-                <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark">
-                  Edit Personal Information
-                </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
-                  Manage your athlete details and target focus
-                </Text>
-              </View>
+            <View className="flex-1 pr-2 min-w-0">
+              <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
+                Edit Personal Information
+              </Text>
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+                Manage your athlete details and target focus
+              </Text>
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>

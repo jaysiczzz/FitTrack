@@ -77,10 +77,8 @@ export default function Settings() {
     hapticFeedback.light();
     setIsDarkLocal(isDark);
     const newTheme = isDark ? 'dark' : 'light';
+    setColorScheme(newTheme);
     AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
-    setTimeout(() => {
-      setColorScheme(newTheme);
-    }, 40);
   };
 
   // Modals
@@ -143,7 +141,6 @@ export default function Settings() {
   // Notifications
   const [hasPermission, setHasPermission] = useState(false);
   const [notifSettings, setNotifSettings] = useState<NotificationSettings>(DEFAULT_NOTIFICATION_SETTINGS);
-  const [testingNotification, setTestingNotification] = useState(false);
   const [requestingPerm, setRequestingPerm] = useState(false);
   const [timePickerConfig, setTimePickerConfig] = useState<{
     key: keyof NotificationSettings;
@@ -236,27 +233,7 @@ export default function Settings() {
     }
   };
 
-  // Test notification button
-  const handleTestNotification = async () => {
-    if (Platform.OS === 'web') {
-      showWarning('Web Notice', 'Local notifications are supported natively on Android.');
-      return;
-    }
 
-    setTestingNotification(true);
-    try {
-      const sent = await sendTestNotification();
-      if (sent) {
-        showSuccess('Sample Reminder Sent', 'Check your device notification tray!');
-      } else {
-        showWarning('Permissions Needed', 'Enable notification permissions above first.');
-      }
-    } catch {
-      showError('Notification Error', 'Could not dispatch sample notification.');
-    } finally {
-      setTestingNotification(false);
-    }
-  };
 
   const handleConfirmLogout = async () => {
     setShowLogoutModal(false);
@@ -860,25 +837,8 @@ export default function Settings() {
             )}
           </View>
 
-          {/* Action Row: Test notification & Reset Defaults */}
+          {/* Action Row: Reset Defaults */}
           <View className="border-t border-input-border dark:border-input-border-dark pt-3 flex-col gap-2">
-            {Platform.OS !== 'web' ? (
-              <Pressable
-                onPress={handleTestNotification}
-                disabled={testingNotification}
-                className="py-2.5 px-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 border border-emerald-500/25 dark:border-emerald-400/35 flex-row items-center justify-center active:opacity-80"
-              >
-                {testingNotification ? (
-                  <ActivityIndicator size="small" color={isDarkLocal ? '#34D399' : colors.accent} className="mr-2" />
-                ) : (
-                  <Ionicons name="notifications" size={16} color={isDarkLocal ? '#34D399' : colors.accent} className="mr-2" />
-                )}
-                <Text className="text-xs font-bold text-accent dark:text-emerald-400">
-                  Verify Notification Reminders
-                </Text>
-              </Pressable>
-            ) : null}
-
             <Pressable
               onPress={handleResetSchedule}
               className="py-2.5 px-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-center active:opacity-80"
@@ -1154,76 +1114,90 @@ export default function Settings() {
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
-      <ConfirmModal
-        visible={showLogoutModal}
-        title="Log Out"
-        message="Are you sure you want to log out of your account?"
-        iconName="log-out-outline"
-        confirmText="Log Out"
-        cancelText="Cancel"
-        isDanger
-        onConfirm={handleConfirmLogout}
-        onCancel={() => setShowLogoutModal(false)}
-      />
+      {showLogoutModal && (
+        <ConfirmModal
+          visible={showLogoutModal}
+          title="Log Out"
+          message="Are you sure you want to log out of your account?"
+          iconName="log-out-outline"
+          confirmText="Log Out"
+          cancelText="Cancel"
+          isDanger
+          onConfirm={handleConfirmLogout}
+          onCancel={() => setShowLogoutModal(false)}
+        />
+      )}
 
       {/* Delete Account Confirmation Modal */}
-      <ConfirmModal
-        visible={showDeleteModal}
-        title="Delete Account"
-        message="Are you sure you want to permanently delete your account? All your workout history, food logs, subscriptions, and profile data will be permanently wiped. This action cannot be undone."
-        iconName="trash-outline"
-        confirmText={isDeletingAccount ? "Deleting..." : "Permanently Delete"}
-        cancelText="Cancel"
-        isDanger
-        onConfirm={handleConfirmDeleteAccount}
-        onCancel={() => {
-          if (!isDeletingAccount) setShowDeleteModal(false);
-        }}
-      />
-
+      {showDeleteModal && (
+        <ConfirmModal
+          visible={showDeleteModal}
+          title="Delete Account"
+          message="Are you sure you want to permanently delete your account? All your workout history, food logs, subscriptions, and profile data will be permanently wiped. This action cannot be undone."
+          iconName="trash-outline"
+          confirmText={isDeletingAccount ? "Deleting..." : "Permanently Delete"}
+          cancelText="Cancel"
+          isDanger
+          onConfirm={handleConfirmDeleteAccount}
+          onCancel={() => {
+            if (!isDeletingAccount) setShowDeleteModal(false);
+          }}
+        />
+      )}
 
       {/* Reset Password Modal */}
-      <ResetPasswordModal
-        visible={showResetPasswordModal}
-        onClose={() => setShowResetPasswordModal(false)}
-      />
+      {showResetPasswordModal && (
+        <ResetPasswordModal
+          visible={showResetPasswordModal}
+          onClose={() => setShowResetPasswordModal(false)}
+        />
+      )}
 
       {/* Help & Support Modal */}
-      <HelpSupportModal
-        visible={showHelpModal}
-        onClose={() => setShowHelpModal(false)}
-        initialTab={helpInitialTab}
-      />
-
+      {showHelpModal && (
+        <HelpSupportModal
+          visible={showHelpModal}
+          onClose={() => setShowHelpModal(false)}
+          initialTab={helpInitialTab}
+        />
+      )}
 
       {/* Privacy Policy Modal */}
-      <PrivacyPolicyModal
-        visible={showPrivacyModal}
-        onClose={() => setShowPrivacyModal(false)}
-      />
+      {showPrivacyModal && (
+        <PrivacyPolicyModal
+          visible={showPrivacyModal}
+          onClose={() => setShowPrivacyModal(false)}
+        />
+      )}
 
       {/* Subscription Modal */}
-      <SubscriptionModal
-        visible={showSubscriptionModal}
-        onClose={() => setShowSubscriptionModal(false)}
-        onSubscriptionUpdated={() => loadBillingSummary()}
-      />
+      {showSubscriptionModal && (
+        <SubscriptionModal
+          visible={showSubscriptionModal}
+          onClose={() => setShowSubscriptionModal(false)}
+          onSubscriptionUpdated={() => loadBillingSummary()}
+        />
+      )}
 
       {/* e-Wallet Modal */}
-      <EWalletModal
-        visible={showEWalletModal}
-        onClose={() => setShowEWalletModal(false)}
-        onBalanceUpdated={(newBal) => setWalletBalance(newBal)}
-      />
+      {showEWalletModal && (
+        <EWalletModal
+          visible={showEWalletModal}
+          onClose={() => setShowEWalletModal(false)}
+          onBalanceUpdated={(newBal) => setWalletBalance(newBal)}
+        />
+      )}
 
       {/* Edit Personal Information & Avatar Modal */}
-      <EditProfileModal
-        visible={showEditProfileModal}
-        onClose={() => setShowEditProfileModal(false)}
-        onProfileUpdated={() => {
-          refreshProfile().catch(() => {});
-        }}
-      />
+      {showEditProfileModal && (
+        <EditProfileModal
+          visible={showEditProfileModal}
+          onClose={() => setShowEditProfileModal(false)}
+          onProfileUpdated={() => {
+            refreshProfile().catch(() => {});
+          }}
+        />
+      )}
 
       {/* Customizable Time Picker Modal */}
       {timePickerConfig && (
