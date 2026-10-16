@@ -166,7 +166,6 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               secondaryMuscles={exercise.secondaryMuscles}
               imageUrl={exercise.imageUrl}
               thumbnailUrl={exercise.thumbnailUrl}
-              gifUrl={exercise.gifUrl}
               tempo={exercise.recommendedTempo}
               size="banner"
               onOpenVideo={() => setIsVideoModalVisible(true)}

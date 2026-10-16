@@ -251,7 +251,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
       difficultyPresets: exercise.difficultyPresets || catalogMatch?.difficultyPresets || null,
       imageUrl: exercise.imageUrl || catalogMatch?.imageUrl || null,
       thumbnailUrl: exercise.thumbnailUrl || catalogMatch?.thumbnailUrl || null,
-      gifUrl: exercise.gifUrl || catalogMatch?.gifUrl || null,
+      gifUrl: exercise.gifUrl || null,
       defaultSets: exercise.sets.map((s) => ({
         weight: s.weight ? String(s.weight) : '',
         reps: s.reps ? String(s.reps) : '',
@@ -269,7 +269,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           setSelectedExerciseDetail((prev) => ({
             ...details,
             ...res.exercise,
-            gifUrl: res.exercise.gifUrl || details.gifUrl || catalogMatch?.gifUrl || null,
+            gifUrl: res.exercise.gifUrl || details.gifUrl || null,
             difficulty: exercise.difficulty || res.exercise.difficulty || details.difficulty,
           }));
         }

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, Image, TouchableOpacity, Modal, ActivityIndicator } from 'react-native';
+import React from 'react';
+import { View, Text, Image, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
 export interface ExerciseVisualProps {
@@ -352,206 +352,40 @@ export default function ExerciseVisual({
   category,
   equipment,
   type,
+  difficulty,
   secondaryMuscles,
   imageUrl,
   thumbnailUrl,
-  gifUrl,
   tempo,
   size = 'md',
   allowStockImage = false,
   onOpenVideo,
 }: ExerciseVisualProps) {
-  const [hasLoaded, setHasLoaded] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
-
   const theme = getMuscleTheme(muscle, category, name);
   const activeUrl = thumbnailUrl || imageUrl;
   const isStock = isGenericStockPhoto(activeUrl);
 
-  // Preferred motion URL is gifUrl, followed by non-stock image
-  const motionUrl = gifUrl || (!isStock || allowStockImage ? activeUrl : null);
-
-  React.useEffect(() => {
-    setHasLoaded(false);
-    setHasError(false);
-  }, [motionUrl]);
-
-  // Banner view (Full-width motion showcase for Exercise Details Modal)
+  // Banner view (Full-width anatomy & technique hero showcase for Exercise Details Modal)
   if (size === 'banner') {
     const secMuscles = Array.isArray(secondaryMuscles)
       ? secondaryMuscles.join(', ')
       : secondaryMuscles;
 
-    const eqStr = Array.isArray(equipment) ? equipment.join(', ') : equipment || 'No Equipment';
+    const eqStr = Array.isArray(equipment) ? equipment.join(', ') : equipment || 'Bodyweight';
 
-    // If an animated motion demo or verified image exists and hasn't errored
-    if (motionUrl && !hasError) {
-      return (
-        <View className="w-full mb-4">
-          {/* Animated Demonstration Player Container */}
-          <View className="w-full h-64 rounded-2xl bg-zinc-950 dark:bg-black border border-input-border dark:border-input-border-dark overflow-hidden relative justify-center items-center">
-            {/* Background Loading Placeholder (Visible only before first frame renders, never overlays the GIF) */}
-            {!hasLoaded && (
-              <View
-                style={{ zIndex: 0 }}
-                className="absolute inset-0 items-center justify-center pointer-events-none"
-              >
-                <ActivityIndicator size="small" color="#10B981" />
-                <Text className="text-[10px] font-bold text-white/50 mt-2">Loading exercise preview...</Text>
-              </View>
-            )}
-
-            {/* Clickable Image Viewport (Tapping anywhere opens fullscreen view) */}
-            <TouchableOpacity
-              activeOpacity={0.92}
-              onPress={() => setIsFullscreen(true)}
-              style={{ zIndex: 1 }}
-              className="w-full h-full justify-center items-center"
-            >
-              <Image
-                source={{ uri: motionUrl }}
-                className="w-full h-full"
-                resizeMode="contain"
-                onLoad={() => setHasLoaded(true)}
-                onError={() => {
-                  setHasError(true);
-                }}
-              />
-            </TouchableOpacity>
-
-            {/* Top Controls Overlay (Elevated with zIndex 20 so it is never covered by the image) */}
-            <View
-              pointerEvents="box-none"
-              style={{ zIndex: 20 }}
-              className="absolute top-2.5 left-2.5 right-2.5 flex-row items-center justify-between"
-            >
-              <View className="flex-row items-center gap-1.5" pointerEvents="box-none">
-                <View className="px-2.5 py-1 rounded-full bg-black/85 border border-white/20 flex-row items-center gap-1.5 shadow-sm">
-                  <View className="w-2 h-2 rounded-full bg-emerald-400" />
-                  <Text className="text-[10px] font-black tracking-wider text-white uppercase">
-                    MOTION DEMO
-                  </Text>
-                </View>
-                {muscle ? (
-                  <View className="px-2 py-1 rounded-full bg-black/75 border border-white/15">
-                    <Text className="text-[9px] font-extrabold text-white/90 uppercase">
-                      {muscle}
-                    </Text>
-                  </View>
-                ) : null}
-              </View>
-
-              <View className="flex-row items-center gap-2" pointerEvents="box-none">
-                {onOpenVideo && (
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={onOpenVideo}
-                    style={{ zIndex: 30 }}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="px-2.5 py-1 rounded-full bg-red-600 border border-red-400/40 flex-row items-center gap-1 shadow-sm"
-                  >
-                    <Ionicons name="play" size={10} color="#FFFFFF" />
-                    <Text className="text-[10px] font-black tracking-wide text-white uppercase">
-                      Video
-                    </Text>
-                  </TouchableOpacity>
-                )}
-
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setIsFullscreen(true)}
-                  style={{ zIndex: 30 }}
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  className="w-7 h-7 rounded-full bg-black/85 border border-white/25 items-center justify-center shadow-sm"
-                  accessibilityLabel="Open Fullscreen"
-                >
-                  <Ionicons name="expand-outline" size={14} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-
-          {/* Rep Tempo Cadence Metronome Bar (Positioned cleanly below the demo player with no visual overlap) */}
-          <RepTempoBar tempo={tempo} />
-
-          {/* Fullscreen Motion Demo Modal */}
-          <Modal
-            visible={isFullscreen}
-            transparent
-            animationType="fade"
-            onRequestClose={() => setIsFullscreen(false)}
-          >
-            <View className="flex-1 bg-black/95 justify-between p-4">
-              {/* Header */}
-              <View className="flex-row items-center justify-between pt-8 pb-3 px-2" style={{ zIndex: 50 }}>
-                <View className="flex-1 pr-3">
-                  <Text className="text-white text-base font-black" numberOfLines={1}>
-                    {name || 'Exercise Motion Demo'}
-                  </Text>
-                  <Text className="text-white/60 text-xs mt-0.5">
-                    Target: {muscle || theme.label} • Rhythm: {tempo || '2-0-1-0'}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  activeOpacity={0.8}
-                  onPress={() => setIsFullscreen(false)}
-                  hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-                  style={{ zIndex: 60 }}
-                  className="w-10 h-10 rounded-full bg-white/15 items-center justify-center border border-white/20"
-                >
-                  <Ionicons name="close" size={20} color="#FFFFFF" />
-                </TouchableOpacity>
-              </View>
-
-              {/* Large Centered Visual */}
-              <TouchableOpacity
-                activeOpacity={1}
-                onPress={() => setIsFullscreen(false)}
-                className="flex-1 justify-center items-center py-4"
-              >
-                <Image
-                  source={{ uri: motionUrl }}
-                  className="w-full h-full max-h-[80%]"
-                  resizeMode="contain"
-                />
-              </TouchableOpacity>
-
-              {/* Footer with Dark Tempo & Video deep-link */}
-              <View className="pb-6" style={{ zIndex: 50 }}>
-                <RepTempoBar tempo={tempo} dark />
-                {onOpenVideo && (
-                  <TouchableOpacity
-                    activeOpacity={0.85}
-                    onPress={() => {
-                      setIsFullscreen(false);
-                      onOpenVideo();
-                    }}
-                    className="mt-3 bg-red-600 p-3 rounded-xl flex-row items-center justify-center gap-2 shadow-sm"
-                  >
-                    <Ionicons name="logo-youtube" size={16} color="#FFFFFF" />
-                    <Text className="text-white text-xs font-black">Open Form Breakdown Video</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </Modal>
-        </View>
-      );
-    }
-
-    // Fallback Banner view (when media is unavailable or offline)
     return (
       <View className="w-full mb-4">
+        {/* Pro Anatomy & Technique Hero Showcase (Hevy & Strong Style) */}
         <View className={`w-full rounded-2xl p-4 border ${theme.bgClass} ${theme.borderClass}`}>
-          <View className="flex-row items-center gap-3 mb-3">
+          <View className="flex-row items-start justify-between gap-3 mb-3">
+            {/* Muscle Group Emblem */}
             <View
-              className={`w-12 h-12 rounded-2xl items-center justify-center border ${theme.borderClass} bg-surface dark:bg-surface-dark`}
+              className={`w-12 h-12 rounded-2xl items-center justify-center border ${theme.borderClass} bg-surface dark:bg-surface-dark shadow-sm`}
             >
               <Ionicons name={theme.icon} size={24} color={theme.color} />
             </View>
 
-            <View className="flex-1">
+            <View className="flex-1 pr-1">
               <View className="flex-row items-center gap-2 mb-1">
                 <View className="px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark">
                   <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${theme.textClass}`}>
@@ -565,21 +399,33 @@ export default function ExerciseVisual({
                     </Text>
                   </View>
                 ) : null}
+                {difficulty ? (
+                  <View className="px-2 py-0.5 rounded-full bg-surface/60 dark:bg-surface-dark/60 border border-input-border/50 dark:border-input-border-dark/50">
+                    <Text className="text-[9px] font-semibold text-text-muted dark:text-text-muted-dark">
+                      {difficulty}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
 
-              <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-                Primary Target: {muscle || theme.label}
+              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
+                Target: {muscle || theme.label}
               </Text>
             </View>
 
+            {/* Option 3: Direct YouTube Video Form Tutorial Button */}
             {onOpenVideo && (
               <TouchableOpacity
-                activeOpacity={0.8}
+                activeOpacity={0.85}
                 onPress={onOpenVideo}
-                className="px-2.5 py-1.5 rounded-xl bg-red-600 flex-row items-center gap-1 shadow-sm"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="px-3 py-2 rounded-xl bg-red-600 flex-row items-center gap-1.5 shadow-sm active:opacity-85"
+                accessibilityLabel="Watch Form Video on YouTube"
               >
-                <Ionicons name="play" size={11} color="#FFFFFF" />
-                <Text className="text-[10px] font-black text-white uppercase">Video</Text>
+                <Ionicons name="logo-youtube" size={13} color="#FFFFFF" />
+                <Text className="text-[11px] font-black text-white uppercase tracking-wide">
+                  Form Video
+                </Text>
               </TouchableOpacity>
             )}
           </View>
@@ -593,8 +439,8 @@ export default function ExerciseVisual({
               </Text>
             ) : null}
 
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons name="hardware-chip-outline" size={13} color={theme.color} />
+            <View className="flex-row items-center gap-1.5 bg-surface/60 dark:bg-surface-dark/60 px-2.5 py-1 rounded-lg border border-input-border/50 dark:border-input-border-dark/50">
+              <Ionicons name="hardware-chip-outline" size={12} color={theme.color} />
               <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
                 {eqStr}
               </Text>
@@ -602,7 +448,7 @@ export default function ExerciseVisual({
           </View>
         </View>
 
-        {/* Rep Tempo Bar */}
+        {/* Rep Tempo Cadence Metronome Bar */}
         <RepTempoBar tempo={tempo} />
       </View>
     );
@@ -621,9 +467,6 @@ export default function ExerciseVisual({
           className={`${imgSizeClass} rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark`}
           resizeMode="cover"
         />
-        {gifUrl ? (
-          <View className="absolute bottom-1 right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 border border-white" />
-        ) : null}
       </View>
     );
   }
@@ -649,9 +492,6 @@ export default function ExerciseVisual({
       >
         {theme.label}
       </Text>
-      {gifUrl ? (
-        <View className="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-emerald-400" />
-      ) : null}
     </View>
   );
 }

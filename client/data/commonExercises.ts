@@ -62,7 +62,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0025.gif",
     "safetyInstructions": "Always use a spotter or safety pin arms when attempting heavy sets.",
     "injuryPreventionTips": "Warm up shoulders and wrists before pressing heavy loads.",
     "beginnerModification": "Push-ups or Machine Chest Press",
@@ -142,7 +141,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0314.gif",
     "safetyInstructions": "Control the weights when dropping them at the end of a set.",
     "injuryPreventionTips": "Do not overstretch shoulder joint at bottom position.",
     "beginnerModification": "Incline Push-ups",
@@ -218,7 +216,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0662.gif",
     "safetyInstructions": "Stop if you feel sharp wrist or shoulder discomfort.",
     "injuryPreventionTips": "Spread fingers wide on floor for optimal wrist support.",
     "beginnerModification": "Knee Push-ups or Incline Wall Push-ups",
@@ -295,7 +292,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0652.gif",
     "safetyInstructions": "Ensure bar is securely mounted.",
     "injuryPreventionTips": "Warm up lat muscles and shoulders before attempting reps.",
     "beginnerModification": "Assisted Pull-ups or Resistance Band Pull-ups",
@@ -373,7 +369,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0027.gif",
     "safetyInstructions": "Maintain lumbar arch to protect lower spine.",
     "injuryPreventionTips": "Brace core hard before initiating row.",
     "beginnerModification": "Single-arm Dumbbell Row",
@@ -453,7 +448,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0043.gif",
     "safetyInstructions": "Set safety pins inside squat rack at hip height.",
     "injuryPreventionTips": "Warm up hips, ankles, and quads prior to heavy squats.",
     "beginnerModification": "Goblet Squat or Bodyweight Squat",
@@ -528,7 +522,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0085.gif",
     "safetyInstructions": "Never allow lower spine to round under load.",
     "injuryPreventionTips": "Focus on hip movement rather than lowering bar to floor.",
     "beginnerModification": "Dumbbell Romanian Deadlift",
@@ -601,7 +594,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1456.gif",
     "safetyInstructions": "Avoid leaning backward excessively.",
     "injuryPreventionTips": "Warm up rotator cuff muscles prior to pressing.",
     "beginnerModification": "Seated Dumbbell Shoulder Press",
@@ -671,7 +663,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0334.gif",
     "safetyInstructions": "Use controlled light to moderate weights.",
     "injuryPreventionTips": "Keep elbows slightly bent throughout movement.",
     "beginnerModification": "Resistance Band Lateral Raise",
@@ -742,7 +733,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0031.gif",
     "safetyInstructions": "Do not overload bar beyond strict form capabilities.",
     "injuryPreventionTips": "Keep wrists straight throughout curl.",
     "beginnerModification": "Dumbbell Alternating Curl",
@@ -815,7 +805,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1409.gif",
     "safetyInstructions": "Use a barbell hip pad for comfort.",
     "injuryPreventionTips": "Lock out hips with glutes, not lower back.",
     "beginnerModification": "Bodyweight Glute Bridge on floor",
@@ -885,7 +874,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0472.gif",
     "safetyInstructions": "Maintain grip strength security on bar.",
     "injuryPreventionTips": "Control descent to prevent hip strain.",
     "beginnerModification": "Hanging Knee Tuck or Lying Leg Raise",
@@ -1174,7 +1162,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1270.gif",
     "safetyInstructions": "Do not overstretch shoulders behind torso plane under heavy load.",
     "injuryPreventionTips": "Warm up rotator cuff with light internal and external rotations.",
     "beginnerModification": "Pec Deck Machine Fly",
@@ -1253,7 +1240,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0251.gif",
     "safetyInstructions": "Stop descent if feeling acute pressure in the sternum or front shoulder capsule.",
     "injuryPreventionTips": "Ensure shoulder blades stay depressed and engaged throughout.",
     "beginnerModification": "Band-Assisted Dips or Bench Dips",
@@ -1335,7 +1321,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0032.gif",
     "safetyInstructions": "Do not bounce reps off the floor. Reset hip wedge on each rep.",
     "injuryPreventionTips": "Warm up hips and hamstrings thoroughly before loading heavy weight.",
     "beginnerModification": "Trap Bar Deadlift or Romanian Deadlift",
@@ -1416,7 +1401,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2330.gif",
     "safetyInstructions": "Always pull in front of head to the clavicle, never behind head.",
     "injuryPreventionTips": "Do not let weight stack slam at the top; keep continuous tension on lats.",
     "beginnerModification": "Band-Assisted Lat Pulldown",
@@ -1496,7 +1480,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0180.gif",
     "safetyInstructions": "Keep spine neutral; avoid rounding lumbar under load.",
     "injuryPreventionTips": "Keep knees softly bent throughout to protect hamstrings and lower back.",
     "beginnerModification": "Resistance Band Seated Row",
@@ -1576,7 +1559,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0292.gif",
     "safetyInstructions": "Keep three points of contact stable on bench and floor.",
     "injuryPreventionTips": "Keep neck aligned with spine; avoid looking straight up at mirror.",
     "beginnerModification": "Chest-Supported Incline DB Row",
@@ -1656,7 +1638,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0405.gif",
     "safetyInstructions": "Use spotter or safely drop dumbbells to knees when fatigued.",
     "injuryPreventionTips": "Warm up delts with light lateral raises and shoulder circles.",
     "beginnerModification": "Machine Shoulder Press",
@@ -1813,7 +1794,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0739.gif",
     "safetyInstructions": "Always keep safety stops in place at a safe depth.",
     "injuryPreventionTips": "Warm up knees with bodyweight squats or light leg extensions.",
     "beginnerModification": "Machine Seated Horizontal Leg Press",
@@ -1894,7 +1874,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0410.gif",
     "safetyInstructions": "Find your balance with bodyweight first before holding dumbbells.",
     "injuryPreventionTips": "Warm up hip flexors to prevent groin or quad tightness.",
     "beginnerModification": "Bodyweight Static Split Squat on floor",
@@ -1971,7 +1950,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0585.gif",
     "safetyInstructions": "Avoid hyper-extending knees violently at top.",
     "injuryPreventionTips": "Use moderate weight and high time-under-tension for knee joint longevity.",
     "beginnerModification": "Resistance Band Knee Extensions",
@@ -2050,7 +2028,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0586.gif",
     "safetyInstructions": "Do not allow weight to pull knees into hyperextension at bottom.",
     "injuryPreventionTips": "Crucial counterpart to quad extensions for ACL injury prevention.",
     "beginnerModification": "Stability Ball Hamstring Curls",
@@ -2128,7 +2105,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1372.gif",
     "safetyInstructions": "Ensure foot placement is secure so feet do not slip off step.",
     "injuryPreventionTips": "Stretch calves after heavy running or jumping workouts.",
     "beginnerModification": "Single-Leg Bodyweight Calf Raise on floor",
@@ -2206,7 +2182,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0313.gif",
     "safetyInstructions": "Select weight that allows strict control without elbow pain.",
     "injuryPreventionTips": "Do not hyperextend wrists at bottom.",
     "beginnerModification": "Seated Incline Dumbbell Hammer Curl",
@@ -2285,7 +2260,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0241.gif",
     "safetyInstructions": "Do not overload to the point of elbow tendinitis.",
     "injuryPreventionTips": "Warm up elbow joints with light sets before working weight.",
     "beginnerModification": "Resistance Band Pushdowns",
@@ -2363,7 +2337,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
     ],
     "imageUrl": null,
     "thumbnailUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0035.gif",
     "safetyInstructions": "Always use collars on the barbell and stop well before muscular failure.",
     "injuryPreventionTips": "Use an EZ-bar rather than straight barbell to relieve wrist strain.",
     "beginnerModification": "Dumbbell Lying Tricep Extension",
@@ -2531,7 +2504,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0033.gif",
     "thumbnailUrl": null
   },
   {
@@ -2609,7 +2581,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "strength"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0289.gif",
     "thumbnailUrl": null
   },
   {
@@ -2687,7 +2658,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0047.gif",
     "thumbnailUrl": null
   },
   {
@@ -2764,7 +2734,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0308.gif",
     "thumbnailUrl": null
   },
   {
@@ -2840,7 +2809,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0577.gif",
     "thumbnailUrl": null
   },
   {
@@ -2916,7 +2884,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0596.gif",
     "thumbnailUrl": null
   },
   {
@@ -2993,7 +2960,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0179.gif",
     "thumbnailUrl": null
   },
   {
@@ -3070,7 +3036,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "push"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0283.gif",
     "thumbnailUrl": null
   },
   {
@@ -3149,7 +3114,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1326.gif",
     "thumbnailUrl": null
   },
   {
@@ -3230,7 +3194,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0818.gif",
     "thumbnailUrl": null
   },
   {
@@ -3312,7 +3275,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "strength"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1349.gif",
     "thumbnailUrl": null
   },
   {
@@ -3391,7 +3353,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0327.gif",
     "thumbnailUrl": null
   },
   {
@@ -3469,7 +3430,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0238.gif",
     "thumbnailUrl": null
   },
   {
@@ -3548,7 +3508,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0095.gif",
     "thumbnailUrl": null
   },
   {
@@ -3625,7 +3584,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0406.gif",
     "thumbnailUrl": null
   },
   {
@@ -3702,7 +3660,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0178.gif",
     "thumbnailUrl": null
   },
   {
@@ -3780,7 +3737,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2137.gif",
     "thumbnailUrl": null
   },
   {
@@ -3858,7 +3814,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "posture"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0602.gif",
     "thumbnailUrl": null
   },
   {
@@ -3935,7 +3890,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0310.gif",
     "thumbnailUrl": null
   },
   {
@@ -4013,7 +3967,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0120.gif",
     "thumbnailUrl": null
   },
   {
@@ -4094,7 +4047,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "core"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0042.gif",
     "thumbnailUrl": null
   },
   {
@@ -4173,7 +4125,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1760.gif",
     "thumbnailUrl": null
   },
   {
@@ -4249,7 +4200,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0743.gif",
     "thumbnailUrl": null
   },
   {
@@ -4331,7 +4281,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "compound"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0336.gif",
     "thumbnailUrl": null
   },
   {
@@ -4408,7 +4357,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0599.gif",
     "thumbnailUrl": null
   },
   {
@@ -4484,7 +4432,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0594.gif",
     "thumbnailUrl": null
   },
   {
@@ -4637,7 +4584,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0315.gif",
     "thumbnailUrl": null
   },
   {
@@ -4715,7 +4661,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/1627.gif",
     "thumbnailUrl": null
   },
   {
@@ -4793,7 +4738,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "hypertrophy"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0868.gif",
     "thumbnailUrl": null
   },
   {
@@ -4873,7 +4817,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "strength"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0030.gif",
     "thumbnailUrl": null
   },
   {
@@ -4950,7 +4893,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "isolation"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/2188.gif",
     "thumbnailUrl": null
   },
   {
@@ -5106,7 +5048,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "bodyweight"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0857.gif",
     "thumbnailUrl": null
   },
   {
@@ -5182,7 +5123,6 @@ export const COMMON_EXERCISES_CATALOG: LibraryExercise[] = [
       "calisthenics"
     ],
     "imageUrl": null,
-    "gifUrl": "https://raw.githubusercontent.com/omercotkd/exercises-gifs/main/assets/0003.gif",
     "thumbnailUrl": null
   },
   {
