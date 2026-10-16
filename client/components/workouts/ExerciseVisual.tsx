@@ -294,18 +294,19 @@ export function RepTempoBar({
           : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
       }`}
     >
-      <View className="flex-row items-center justify-between mb-2">
-        <View className="flex-row items-center gap-1.5">
+      <View className="flex-row items-center justify-between gap-2 mb-2">
+        <View className="flex-row items-center gap-1.5 flex-1 min-w-0 pr-1">
           <Ionicons name="speedometer-outline" size={13} color="#10B981" />
           <Text
+            numberOfLines={1}
             className={`text-[10px] font-black uppercase tracking-wider ${
               dark ? 'text-white' : 'text-text-primary dark:text-text-primary-dark'
             }`}
           >
-            Rep Cadence & Execution Rhythm
+            Rep Cadence & Rhythm
           </Text>
         </View>
-        <View className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30">
+        <View className="px-2 py-0.5 rounded-full bg-accent/15 border border-accent/30 shrink-0">
           <Text className="text-[10px] font-extrabold text-accent dark:text-accent-dark">
             {tempoStr}
           </Text>
@@ -315,7 +316,7 @@ export function RepTempoBar({
         {phases.map((p, i) => (
           <View
             key={i}
-            className={`flex-1 p-1.5 rounded-lg border items-center ${
+            className={`flex-1 min-w-0 p-1.5 rounded-lg border items-center ${
               dark
                 ? 'bg-zinc-800/80 border-zinc-700/60'
                 : 'bg-input dark:bg-input-dark border-input-border/50 dark:border-input-border-dark/50'
@@ -377,30 +378,33 @@ export default function ExerciseVisual({
       <View className="w-full mb-4">
         {/* Pro Anatomy & Technique Hero Showcase (Hevy & Strong Style) */}
         <View className={`w-full rounded-2xl p-4 border ${theme.bgClass} ${theme.borderClass}`}>
-          <View className="flex-row items-start justify-between gap-3 mb-3">
-            {/* Muscle Group Emblem */}
+          {/* Top Row: Muscle Emblem & Main Exercise Info */}
+          <View className="flex-row items-start gap-3">
+            {/* Muscle Group Emblem (Fixed width, never shrinks or gets covered) */}
             <View
-              className={`w-12 h-12 rounded-2xl items-center justify-center border ${theme.borderClass} bg-surface dark:bg-surface-dark shadow-sm`}
+              className={`w-12 h-12 rounded-2xl shrink-0 items-center justify-center border ${theme.borderClass} bg-surface dark:bg-surface-dark shadow-sm`}
             >
               <Ionicons name={theme.icon} size={24} color={theme.color} />
             </View>
 
-            <View className="flex-1 pr-1">
-              <View className="flex-row items-center gap-2 mb-1">
-                <View className="px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark">
+            {/* Title & Badges Column */}
+            <View className="flex-1 min-w-0">
+              {/* Category, Type & Difficulty Badges (Flex-wrapped so they NEVER overflow or collide) */}
+              <View className="flex-row flex-wrap items-center gap-1.5 mb-1.5">
+                <View className="px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark shrink-0">
                   <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${theme.textClass}`}>
                     {theme.label}
                   </Text>
                 </View>
                 {type ? (
-                  <View className="px-2.5 py-0.5 rounded-full bg-surface/80 dark:bg-surface-dark/80 border border-input-border/70 dark:border-input-border-dark/70">
+                  <View className="px-2.5 py-0.5 rounded-full bg-surface/80 dark:bg-surface-dark/80 border border-input-border/70 dark:border-input-border-dark/70 shrink-0">
                     <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
                       {type}
                     </Text>
                   </View>
                 ) : null}
                 {difficulty ? (
-                  <View className="px-2 py-0.5 rounded-full bg-surface/60 dark:bg-surface-dark/60 border border-input-border/50 dark:border-input-border-dark/50">
+                  <View className="px-2 py-0.5 rounded-full bg-surface/60 dark:bg-surface-dark/60 border border-input-border/50 dark:border-input-border-dark/50 shrink-0">
                     <Text className="text-[9px] font-semibold text-text-muted dark:text-text-muted-dark">
                       {difficulty}
                     </Text>
@@ -408,43 +412,53 @@ export default function ExerciseVisual({
                 ) : null}
               </View>
 
-              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
+              <Text
+                className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug"
+                numberOfLines={2}
+              >
                 Target: {muscle || theme.label}
+              </Text>
+
+              {secMuscles ? (
+                <Text
+                  className="text-xs text-text-muted dark:text-text-muted-dark mt-1 leading-snug"
+                  numberOfLines={2}
+                >
+                  <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Assists: </Text>
+                  {secMuscles}
+                </Text>
+              ) : null}
+            </View>
+          </View>
+
+          {/* Action & Equipment Bar (Cleanly separated row so it NEVER collides with badges or title) */}
+          <View className="mt-3 pt-3 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row items-center justify-between gap-2">
+            {/* Equipment Chip */}
+            <View className="flex-row items-center gap-1.5 bg-surface/80 dark:bg-surface-dark/80 px-2.5 py-1.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 shrink-0 max-w-[50%]">
+              <Ionicons name="hardware-chip-outline" size={13} color={theme.color} />
+              <Text
+                className="text-xs font-semibold text-text-primary dark:text-text-primary-dark"
+                numberOfLines={1}
+              >
+                {eqStr}
               </Text>
             </View>
 
-            {/* Option 3: Direct YouTube Video Form Tutorial Button */}
+            {/* Option 3: Form Video Action Button */}
             {onOpenVideo && (
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={onOpenVideo}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                className="px-3 py-2 rounded-xl bg-red-600 flex-row items-center gap-1.5 shadow-sm active:opacity-85"
+                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                className="px-3.5 py-1.5 rounded-xl bg-red-600 flex-row items-center gap-1.5 shadow-sm active:opacity-85 shrink-0"
                 accessibilityLabel="Watch Form Video on YouTube"
               >
-                <Ionicons name="logo-youtube" size={13} color="#FFFFFF" />
-                <Text className="text-[11px] font-black text-white uppercase tracking-wide">
-                  Form Video
+                <Ionicons name="logo-youtube" size={14} color="#FFFFFF" />
+                <Text className="text-[11px] font-black text-white uppercase tracking-wider">
+                  Watch Form Video
                 </Text>
               </TouchableOpacity>
             )}
-          </View>
-
-          {/* Secondary Muscles & Equipment Meta Footer */}
-          <View className="pt-2.5 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row flex-wrap items-center justify-between gap-2">
-            {secMuscles ? (
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark flex-1">
-                <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Assists: </Text>
-                {secMuscles}
-              </Text>
-            ) : null}
-
-            <View className="flex-row items-center gap-1.5 bg-surface/60 dark:bg-surface-dark/60 px-2.5 py-1 rounded-lg border border-input-border/50 dark:border-input-border-dark/50">
-              <Ionicons name="hardware-chip-outline" size={12} color={theme.color} />
-              <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark">
-                {eqStr}
-              </Text>
-            </View>
           </View>
         </View>
 
