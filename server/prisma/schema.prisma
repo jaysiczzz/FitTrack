@@ -16,6 +16,7 @@ model User {
   isSuspended     Boolean          @default(false)
   suspendedReason String?
   avatarUrl       String?
+  gender          Gender?          @default(MALE)
   height          Int              // cm
   weight          Float            // kg
   targetWeight    Float?           // kg
@@ -39,11 +40,18 @@ model User {
   walletTransactions WalletTransaction[]
   supportTickets  SupportTicket[]
   aiRoutineLogs   AiRoutineLog[]
+  inAppNotifications InAppNotification[]
+  featureUsages      FeatureUsage[]
 }
 
 enum Goal {
   MUSCLE_GAIN
   WEIGHT_LOSS
+}
+
+enum Gender {
+  MALE
+  FEMALE
 }
 
 enum Role {
@@ -326,6 +334,7 @@ model NotificationPreference {
   quietHoursEnabled  Boolean  @default(false)
   quietHoursStart    String   @default("22:00")
   quietHoursEnd      String   @default("07:00")
+  pushToken          String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
 }
@@ -506,5 +515,33 @@ enum TicketStatus {
   RESOLVED
 }
 
+model InAppNotification {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title     String
+  message   String
+  type      String   // 'STREAK' | 'WORKOUT' | 'NUTRITION' | 'SUPPORT' | 'AI' | 'SYSTEM' | 'ACHIEVEMENT'
+  linkUrl   String?  // Deep link path (e.g. '/(screen)/workouts', '/(screen)/foodlog')
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 
+  @@index([userId])
+  @@index([userId, isRead])
+  @@index([createdAt])
+}
 
+model FeatureUsage {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  feature   String
+  periodKey String
+  count     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, feature, periodKey])
+  @@index([userId])
+  @@index([userId, feature, periodKey])
+}

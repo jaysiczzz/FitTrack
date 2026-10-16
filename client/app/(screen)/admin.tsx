@@ -51,7 +51,7 @@ const TABS: { key: AdminTab; label: string; icon: keyof typeof Ionicons.glyphMap
 
 export default function AdminScreen() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ tab?: AdminTab }>();
+  const params = useLocalSearchParams<{ tab?: AdminTab; subTab?: 'tickets' | 'stories' }>();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { colors } = useThemeColors();
   const { showError } = useToast();
@@ -176,7 +176,7 @@ export default function AdminScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       {/* ── Top Navigation Header ── */}
       <View className="px-4 py-3 flex-row items-center justify-between border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
         <View className="flex-row items-center gap-3">
@@ -241,82 +241,85 @@ export default function AdminScreen() {
       </View>
 
       {/* ── Main Tab Content ── */}
-      <ScrollView
-        className="flex-1"
-        keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.accent}
-          />
-        }
-      >
-        <View className="w-full max-w-5xl self-center mx-auto">
-        {activeTab === 'overview' && (
-          <AdminOverviewTab
-            stats={stats}
-            loading={loadingStats}
-            refreshing={refreshing}
-            onNavigateTab={(tab) => {
-              setActiveTab(tab);
-            }}
-          />
-        )}
+      {activeTab === 'overview' ? (
+        <ScrollView
+          className="flex-1"
+          keyboardShouldPersistTaps="handled"
+          contentContainerStyle={{ padding: 16, paddingBottom: 90 }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.accent}
+            />
+          }
+        >
+          <View className="w-full max-w-5xl self-center mx-auto">
+            <AdminOverviewTab
+              stats={stats}
+              loading={loadingStats}
+              refreshing={refreshing}
+              onNavigateTab={(tab) => {
+                setActiveTab(tab);
+              }}
+            />
+          </View>
+        </ScrollView>
+      ) : (
+        <View className="flex-1 min-h-0 w-full max-w-5xl self-center mx-auto px-4 pt-3">
+          {activeTab === 'users' && (
+            <AdminUsersTab
+              users={users}
+              loading={loadingUsers}
+              refreshing={refreshing}
+              search={userSearch}
+              onSearchChange={setUserSearch}
+              onSearchSubmit={loadTabContent}
+              roleFilter={userRoleFilter}
+              onRoleFilterChange={(f) => {
+                setUserRoleFilter(f);
+              }}
+              tierFilter={userTierFilter}
+              onTierFilterChange={(t) => {
+                setUserTierFilter(t);
+              }}
+              onReloadUsers={loadTabContent}
+            />
+          )}
 
-        {activeTab === 'users' && (
-          <AdminUsersTab
-            users={users}
-            loading={loadingUsers}
-            refreshing={refreshing}
-            search={userSearch}
-            onSearchChange={setUserSearch}
-            onSearchSubmit={loadTabContent}
-            roleFilter={userRoleFilter}
-            onRoleFilterChange={(f) => {
-              setUserRoleFilter(f);
-            }}
-            tierFilter={userTierFilter}
-            onTierFilterChange={(t) => {
-              setUserTierFilter(t);
-            }}
-            onReloadUsers={loadTabContent}
-          />
-        )}
+          {activeTab === 'finance' && (
+            <AdminFinanceTab
+              revenueData={revenueData}
+              loading={loadingRevenue}
+              refreshing={refreshing}
+              onReloadFinance={loadTabContent}
+            />
+          )}
 
-        {activeTab === 'finance' && (
-          <AdminFinanceTab
-            revenueData={revenueData}
-            loading={loadingRevenue}
-            refreshing={refreshing}
-            onReloadFinance={loadTabContent}
-          />
-        )}
+          {activeTab === 'exercises' && (
+            <AdminExercisesTab
+              exercises={exercises}
+              loading={loadingExercises}
+              refreshing={refreshing}
+              selectedMuscle={selectedMuscle}
+              onSelectMuscle={setSelectedMuscle}
+              onReloadExercises={loadTabContent}
+            />
+          )}
 
-        {activeTab === 'exercises' && (
-          <AdminExercisesTab
-            exercises={exercises}
-            loading={loadingExercises}
-            refreshing={refreshing}
-            selectedMuscle={selectedMuscle}
-            onSelectMuscle={setSelectedMuscle}
-            onReloadExercises={loadTabContent}
-          />
-        )}
-
-        {activeTab === 'support' && (
-          <AdminTicketsTab
-            tickets={tickets}
-            loading={loadingTickets}
-            refreshing={refreshing}
-            ticketFilter={ticketFilter}
-            onFilterChange={setTicketFilter}
-            onReloadTickets={loadTabContent}
-          />
-        )}
+          {activeTab === 'support' && (
+            <AdminTicketsTab
+              tickets={tickets}
+              loading={loadingTickets}
+              refreshing={refreshing}
+              ticketFilter={ticketFilter}
+              onFilterChange={setTicketFilter}
+              onReloadTickets={loadTabContent}
+              initialSubSection={params.subTab === 'stories' ? 'stories' : 'tickets'}
+            />
+          )}
         </View>
-      </ScrollView>
+      )}
     </SafeAreaView>
   );
 }

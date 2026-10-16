@@ -105,3 +105,34 @@ export const resetNotificationPreferences = asyncHandler(async (req: AuthRequest
     settings: reset,
   })
 })
+
+/**
+ * POST /api/user/notifications/push-token
+ * Saves or updates user's Expo Push Token for mobile background alerts
+ */
+export const savePushToken = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
+  if (!userId) {
+    return res.status(401).json({ error: 'Unauthorized' })
+  }
+
+  const { pushToken } = req.body
+  if (!pushToken || typeof pushToken !== 'string') {
+    return res.status(400).json({ error: 'pushToken string is required' })
+  }
+
+  await prisma.notificationPreference.upsert({
+    where: { userId },
+    update: { pushToken },
+    create: {
+      userId,
+      ...DEFAULT_PREFERENCES,
+      pushToken,
+    },
+  })
+
+  res.json({
+    success: true,
+    message: 'Push token saved successfully',
+  })
+})

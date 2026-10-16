@@ -6542,6 +6542,9 @@ export const finishWorkoutSession = async (sessionId: string) => {
   const session = await prisma.workoutSession.findUnique({
     where: { id: sessionId },
     include: {
+      user: {
+        select: { weight: true, gender: true },
+      },
       exercises: {
         include: {
           sets: true,
@@ -6571,7 +6574,14 @@ export const finishWorkoutSession = async (sessionId: string) => {
       })
     })
 
-    caloriesBurned = Math.max(40, Math.round(durationMins * 5 + totalCompletedSets * 8 + totalVolume * 0.05))
+    const userWeight = session.user?.weight || 70
+    const isFemale = session.user?.gender === 'FEMALE'
+    // Metabolic factor: Females average ~15% lower expenditure due to muscle-to-fat mass ratio
+    const sexFactor = isFemale ? 0.85 : 1.0
+    const weightFactor = Math.max(0.6, Math.min(1.8, userWeight / 70))
+
+    const rawCalories = (durationMins * 5 + totalCompletedSets * 8 + totalVolume * 0.05) * weightFactor * sexFactor
+    caloriesBurned = Math.max(30, Math.round(rawCalories))
   }
 
   return prisma.workoutSession.update({

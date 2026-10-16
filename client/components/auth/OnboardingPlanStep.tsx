@@ -1,11 +1,11 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { View, Text, ActivityIndicator } from 'react-native';
+import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
 import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
-import { ONBOARDING_CHECKLIST_DELAYS } from '@/constants/appConfig';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -15,6 +15,7 @@ interface OnboardingPlanStepProps {
   onLaunchDashboard: () => void;
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | '';
   userName: string;
+  gender?: 'MALE' | 'FEMALE';
   height: number;
   weight: number;
   age: number;
@@ -36,33 +37,27 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   onLaunchDashboard,
   goal,
   userName,
+  gender,
   height,
   weight,
   age,
   isRegistered,
 }) => {
   const { colors } = useThemeColors();
+  const router = useRouter();
   const [activeCheckIndex, setActiveCheckIndex] = useState(0);
   const [animationDone, setAnimationDone] = useState(false);
 
-  // Animated checklist timer progression
+  // Brief 600ms micro-moment for calibration
   useEffect(() => {
     if (error) return;
 
-    const t1 = setTimeout(() => setActiveCheckIndex(1), ONBOARDING_CHECKLIST_DELAYS.STEP_1_MS);
-    const t2 = setTimeout(() => setActiveCheckIndex(2), ONBOARDING_CHECKLIST_DELAYS.STEP_2_MS);
-    const t3 = setTimeout(() => setActiveCheckIndex(3), ONBOARDING_CHECKLIST_DELAYS.STEP_3_MS);
-    const t4 = setTimeout(() => {
+    const t = setTimeout(() => {
       setActiveCheckIndex(4);
       setAnimationDone(true);
-    }, ONBOARDING_CHECKLIST_DELAYS.COMPLETE_MS);
+    }, 600);
 
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-      clearTimeout(t3);
-      clearTimeout(t4);
-    };
+    return () => clearTimeout(t);
   }, [error]);
 
   // Derived plan calculations
@@ -72,7 +67,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
     const a = age || 25;
 
     const targets = calculatePersonalizedTargets(
-      { weight: w, height: h, age: a, goal },
+      { weight: w, height: h, age: a, gender, goal },
       (goal as any) || 'MUSCLE_GAIN'
     );
 
@@ -87,7 +82,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
           ? 'Optimized for progressive overload, muscle synthesis, and high-protein recovery.'
           : 'Optimized for a sustainable caloric deficit while preserving lean muscle mass.',
     };
-  }, [height, weight, age, goal]);
+  }, [height, weight, age, gender, goal]);
 
   // If there's an error from the backend registration
   if (error) {
@@ -293,11 +288,21 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
         </View>
       </View>
 
-      {/* Launch CTA */}
-      <Button
-        title="Enter Dashboard"
-        onPress={onLaunchDashboard}
-      />
+      {/* Launch CTAs */}
+      <View className="w-full gap-2.5">
+        <Button
+          title="Start Day 1 Workout"
+          onPress={async () => {
+            await onLaunchDashboard();
+            router.replace({ pathname: '/(screen)/workouts', params: { tab: 'today' } } as any);
+          }}
+        />
+        <Button
+          title="Go to Dashboard"
+          variant="outline"
+          onPress={onLaunchDashboard}
+        />
+      </View>
     </View>
   );
 };

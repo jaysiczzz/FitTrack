@@ -3,6 +3,8 @@ import { AuthRequest } from '../middleware/auth.middleware'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { SubscriptionTier, SubscriptionStatus } from '@prisma/client'
+import { createNotification } from './inAppNotification.controller'
+import { emitToUser, emitToAdmin } from '../socket'
 import {
   verifyPaymentIntent,
   createStripeCheckoutSession,
@@ -16,6 +18,8 @@ import {
   convertCurrency,
   formatCurrencyString,
 } from '../utils/currency.utils'
+import { FEATURE_LIMITS } from '../config/limits'
+import { getUsage } from '../utils/usage.utils'
 
 
 export interface PlanDefinition {
@@ -47,9 +51,10 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
       'Unlimited workout logging, custom exercises & rest timers',
       'Complete calorie, macros, and water hydration logging',
       'Daily readiness check-in and workout streak tracking',
-      'Up to 3 AI Camera Food Scans per day',
-      'Up to 15 AI Coach messages per day',
-      'Up to 5 AI-generated workout routines per month',
+      `Up to ${FEATURE_LIMITS.FREE.FOOD_SCAN.max} AI Camera Food Scans per day`,
+      `Up to ${FEATURE_LIMITS.FREE.MEAL_SUGGESTION.max} AI Smart Meal Suggestions per day`,
+      `Up to ${FEATURE_LIMITS.FREE.COACH.max} AI Coach messages per day`,
+      `Up to ${FEATURE_LIMITS.FREE.WORKOUT_GENERATOR.max} AI-generated workout routines per month`,
     ],
   },
   PRO_MONTHLY: {
@@ -64,10 +69,11 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     interval: 'month',
     features: [
       'Everything in Free tier (workout tracker, food log & calendar)',
-      '30 AI Camera Food Scans / day (Free capped at 3/day)',
-      '100 AI Coach messages / day (Free capped at 15/day)',
-      '30 AI Workout Routines / month (Free capped at 5/month)',
-      'Verified Pro Athlete badge on your profile',
+      `${FEATURE_LIMITS.PRO.FOOD_SCAN.max} AI Camera Food Scans / day (Free capped at ${FEATURE_LIMITS.FREE.FOOD_SCAN.max}/day)`,
+      `${FEATURE_LIMITS.PRO.MEAL_SUGGESTION.max} AI Smart Meal Suggestions / day (Free capped at ${FEATURE_LIMITS.FREE.MEAL_SUGGESTION.max}/day)`,
+      `${FEATURE_LIMITS.PRO.COACH.max} AI Coach messages / day (Free capped at ${FEATURE_LIMITS.FREE.COACH.max}/day)`,
+      `${FEATURE_LIMITS.PRO.WORKOUT_GENERATOR.max} AI Workout Routines / month (Free capped at ${FEATURE_LIMITS.FREE.WORKOUT_GENERATOR.max}/month)`,
+      'Pro Athlete badge on profile & coaching screens',
       'Uninterrupted premium training experience',
     ],
   },
@@ -84,9 +90,10 @@ export const SUBSCRIPTION_PLANS: Record<string, PlanDefinition> = {
     features: [
       'All Pro Monthly features included',
       'Save 33% compared to monthly (₱333/month · 2 months free)',
-      '30 AI Food Scans / day & 100 AI Coach messages / day',
-      '30 AI Workout Routines / month',
-      'Verified Pro Athlete badge on your profile',
+      `${FEATURE_LIMITS.PRO.FOOD_SCAN.max} AI Food Scans / day & ${FEATURE_LIMITS.PRO.MEAL_SUGGESTION.max} AI Meal Suggestions / day`,
+      `${FEATURE_LIMITS.PRO.COACH.max} AI Coach messages / day`,
+      `${FEATURE_LIMITS.PRO.WORKOUT_GENERATOR.max} AI Workout Routines / month`,
+      'Pro Athlete badge on your profile',
     ],
   },
   LIFETIME_FOUNDER: {
@@ -168,11 +175,38 @@ export const getSubscriptionPlans = asyncHandler(async (req: AuthRequest, res: R
       symbol: isUSD ? '$' : '₱',
     }))
 
+  const userId = req.user?.id
+  let userUsage = null
+
+  if (userId) {
+    try {
+      const [coachUsage, foodScanUsage, routineUsage, mealUsage] = await Promise.all([
+        getUsage(userId, 'COACH'),
+        getUsage(userId, 'FOOD_SCAN'),
+        getUsage(userId, 'WORKOUT_GENERATOR'),
+        getUsage(userId, 'MEAL_SUGGESTION'),
+      ])
+      userUsage = {
+        tier: coachUsage.tier,
+        usage: {
+          COACH: coachUsage,
+          FOOD_SCAN: foodScanUsage,
+          WORKOUT_GENERATOR: routineUsage,
+          MEAL_SUGGESTION: mealUsage,
+        },
+      }
+    } catch {
+      // Graceful fallback
+    }
+  }
+
   res.json({
     success: true,
     currency: isUSD ? 'USD' : 'PHP',
     symbol: isUSD ? '$' : '₱',
     plans: formattedPlans,
+    limits: FEATURE_LIMITS,
+    userUsage,
   })
 })
 
@@ -502,6 +536,31 @@ export const confirmSubscription = asyncHandler(async (req: AuthRequest, res: Re
       },
     }),
   ])
+
+  createNotification({
+    userId,
+    type: 'ACHIEVEMENT',
+    title: 'FitTrack Pro Activated! 🌟',
+    message: `Welcome to ${plan.name}. Unlimited AI coach access and personalized nutrition analytics are now unlocked.`,
+    linkUrl: '/(screen)/settings?modal=subscription',
+  }).catch(() => {})
+
+  // Real-time live sync across user devices & admin dashboard
+  emitToUser(userId, 'subscription:updated', {
+    tier: plan.tier,
+    isPro: true,
+    status: updatedSub.status,
+    planInfo: { ...plan, price: pricing.price, currency: pricing.currency, symbol: pricing.symbol },
+  })
+
+  emitToAdmin('admin:event', {
+    type: 'NEW_SUBSCRIPTION',
+    userId,
+    planName: plan.name,
+    amount: pricing.price,
+    currency: pricing.currency,
+    timestamp: new Date().toISOString(),
+  })
 
   res.json({
     success: true,

@@ -35,7 +35,7 @@ export async function convertBlobToDataUrl(uri: string): Promise<string> {
   }
 
   // Convert web blob to persistent base64
-  if (Platform.OS === 'web' || typeof window !== 'undefined') {
+  if (uri.startsWith('blob:') || (Platform.OS === 'web' && !uri.startsWith('file:'))) {
     try {
       const response = await fetch(uri);
       const blob = await response.blob();

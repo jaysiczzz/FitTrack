@@ -5,9 +5,11 @@ import { validateEnv } from './config/env'
 validateEnv()
 
 import express from 'express'
+import http from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
 import { prisma } from './config/db'
+import { initSocketServer } from './socket'
 import authRoutes from './routes/auth.routes'
 import userRoutes from './routes/user.routes'
 import workoutRoutes from './routes/workout.routes'
@@ -17,6 +19,7 @@ import supportRoutes from './routes/support.routes'
 import testimonialRoutes from './routes/testimonial.routes'
 import checkinRoutes from './routes/checkin.routes'
 import notificationRoutes from './routes/notification.routes'
+import inAppNotificationRoutes from './routes/inAppNotification.routes'
 import weightRoutes from './routes/weight.routes'
 import subscriptionRoutes from './routes/subscription.routes'
 import walletRoutes from './routes/wallet.routes'
@@ -24,6 +27,8 @@ import adminRevenueRoutes from './routes/adminRevenue.routes'
 import adminRoutes from './routes/admin.routes'
 import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
+import { optionalAuthMiddleware } from './middleware/auth.middleware'
+import { getSubscriptionPlans } from './controllers/subscription.controller'
 
 const app = express()
 
@@ -33,17 +38,18 @@ app.set('trust proxy', 1)
 // 1. Security Headers
 app.use(helmet())
 
-// 2. CORS Whitelisting
-const isProduction = process.env.NODE_ENV === 'production'
-const allowedOrigins = process.env.CLIENT_ORIGIN
-  ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim())
-  : isProduction
-  ? []
+// 2. CORS Whitelisting & Dev Flexibility
+const rawClientOrigin = process.env.CLIENT_ORIGIN?.trim()
+const allowedOrigins = rawClientOrigin
+  ? rawClientOrigin.split(',').map((o) => o.trim()).filter(Boolean)
   : [
       'http://localhost:8081', // Expo mobile dev
       'http://localhost:3000', // Web client dev
       'http://localhost:19006', // Expo web dev
+      'http://localhost:5173', // Vite web dev
     ]
+
+const devOriginRegex = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/
 
 app.use(
   cors({
@@ -51,18 +57,27 @@ app.use(
       // Allow requests with no origin (e.g. mobile React Native apps, curl, server-to-server)
       if (!origin) return callback(null, true)
 
+      // Allow wildcard if configured in CLIENT_ORIGIN
+      if (rawClientOrigin === '*' || allowedOrigins.includes('*')) {
+        return callback(null, true)
+      }
+
+      // Check explicitly configured origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true)
       }
 
-      // In local development, permit localhost and loopback origins
-      if (!isProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      // Always permit local development and LAN IP origins (essential for Expo mobile & web testing against Render)
+      if (devOriginRegex.test(origin)) {
         return callback(null, true)
       }
 
-      return callback(new Error('Cross-Origin Request blocked by CORS policy'))
+      // Block unallowed origins cleanly without crashing Express with an unhandled 500 error
+      return callback(null, false)
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   })
 )
 
@@ -105,8 +120,11 @@ app.use('/api/support', supportRoutes)
 app.use('/api/testimonials', testimonialRoutes)
 app.use('/api/checkin', checkinRoutes)
 app.use('/api/user/notifications', notificationRoutes)
+app.use('/api/notifications', inAppNotificationRoutes)
 app.use('/api/weight', weightRoutes)
 app.use('/api/subscriptions', subscriptionRoutes)
+app.get('/plans', optionalAuthMiddleware, getSubscriptionPlans)
+app.get('/api/plans', optionalAuthMiddleware, getSubscriptionPlans)
 app.use('/api/wallet', walletRoutes)
 app.use('/api/admin/revenue', adminRevenueRoutes)
 app.use('/api/admin', adminRoutes)
@@ -114,7 +132,10 @@ app.use('/api/admin', adminRoutes)
 app.use(errorHandler)
 
 const PORT = process.env.PORT || 3000
-const server = app.listen(PORT, () => {
+const httpServer = http.createServer(app)
+initSocketServer(httpServer, allowedOrigins)
+
+const server = httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
 

@@ -66,12 +66,12 @@ export default function DailyGoalsCard({
   if (isRestDay) {
     workoutTitle = 'Rest & Recovery Day';
     if (isWorkoutDoneResolved) {
-      workoutSubtitle = `Rest day · Workout completed! 🏆 (${activeMinutes || 35} min)`;
+      workoutSubtitle = `Rest day · Workout done (${activeMinutes || 35} min)`;
       workoutCompleted = true;
       workoutProgressText = 'Done 🏆';
       workoutActionLabel = 'History';
     } else {
-      workoutSubtitle = 'Scheduled rest day in your weekly split · Time to recover';
+      workoutSubtitle = 'Weekly recovery target';
       workoutCompleted = true;
       workoutProgressText = 'Rest ✓';
       workoutActionLabel = 'Workouts';
@@ -79,26 +79,25 @@ export default function DailyGoalsCard({
   } else if (scheduledRoutine) {
     workoutTitle = scheduledRoutine.title;
     if (isWorkoutDoneResolved) {
-      workoutSubtitle = `Session completed for today 🏆 · ${activeMinutes || scheduledRoutine.estimatedDurationMinutes || 35} min`;
+      workoutSubtitle = `Session completed 🏆 (${activeMinutes || scheduledRoutine.estimatedDurationMinutes || 35} min)`;
       workoutCompleted = true;
       workoutProgressText = 'Done ✓';
       workoutActionLabel = 'History';
     } else if (totalExercisesCount > 0) {
-      workoutSubtitle = `${completedExercisesCount}/${totalExercisesCount} exercises checked (In Progress)`;
+      workoutSubtitle = `${completedExercisesCount}/${totalExercisesCount} exercises checked`;
       workoutCompleted = false;
       workoutProgressText = `${activeMinutes} min`;
       workoutActionLabel = 'Resume';
     } else {
       const exCount = scheduledRoutine.exercises?.length || 4;
-      const targetMuscle = scheduledRoutine.targetMuscleGroup ? `Target: ${scheduledRoutine.targetMuscleGroup}` : 'Weekly Split';
-      workoutSubtitle = `${exCount} exercises planned · ${targetMuscle}`;
+      workoutSubtitle = `${exCount} exercises planned`;
       workoutCompleted = false;
       workoutProgressText = `${scheduledRoutine.estimatedDurationMinutes || 45} min`;
       workoutActionLabel = 'Start';
     }
   } else {
     if (isWorkoutDoneResolved) {
-      workoutSubtitle = 'Session completed for today 🏆';
+      workoutSubtitle = 'Session completed 🏆';
       workoutCompleted = true;
       workoutProgressText = 'Done ✓';
       workoutActionLabel = 'History';
@@ -197,10 +196,7 @@ export default function DailyGoalsCard({
           </View>
           <View className="flex-1">
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-              All Goals Completed Today
-            </Text>
-            <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-              Excellent consistency! All daily targets have been met.
+              All Goals Completed Today 🎯
             </Text>
           </View>
         </View>
@@ -260,8 +256,8 @@ export default function DailyGoalsCard({
                 activeOpacity={0.8}
                 accessibilityRole="button"
                 accessibilityLabel={`${goal.actionLabel} for ${goal.title}`}
-                hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                className="min-h-[38px] px-3.5 py-1.5 items-center justify-center rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark active:opacity-75"
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                className="px-3 py-1 items-center justify-center rounded-xl bg-accent dark:bg-accent-dark border border-accent dark:border-accent-dark active:opacity-75"
               >
                 <Text className="text-xs font-bold text-accent-contrast dark:text-accent-contrast-dark">
                   {goal.actionLabel}

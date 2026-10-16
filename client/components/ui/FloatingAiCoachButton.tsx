@@ -17,6 +17,7 @@ export default function FloatingAiCoachButton() {
     pathname.includes('ai-coach') ||
     pathname.includes('settings') ||
     pathname.includes('calendar') ||
+    pathname.includes('notifications') ||
     pathname.includes('admin') ||
     pathname.includes('auth')
   ) {

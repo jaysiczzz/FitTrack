@@ -184,18 +184,86 @@ export async function generateAIInsights(userProfile: {
   height: number
   age: number
   goal: string
+  gender?: string
   workoutCount?: number
   caloriesLoggedToday?: number
+  loggedMeals?: Array<{
+    title: string
+    mealType?: string
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+  }>
+  targets?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number
+  }
+  loggedMacros?: {
+    calories: number
+    protein: number
+    carbs: number
+    fat: number
+    waterMl?: number
+  }
 }): Promise<AIInsight[]> {
-  const prompt = `You are FitTrack's AI fitness and nutrition coach.
+  const isNutritionFocused = Boolean(
+    (userProfile.loggedMeals && userProfile.loggedMeals.length > 0) ||
+    userProfile.targets ||
+    userProfile.loggedMacros
+  )
+
+  let prompt: string
+
+  if (isNutritionFocused) {
+    let contextDetails = `- Athlete: ${userProfile.firstName}, ${userProfile.weight}kg, ${userProfile.height}cm, Sex: ${userProfile.gender || 'Not specified'}.
+- Goal: ${userProfile.goal}`
+
+    if (userProfile.targets) {
+      contextDetails += `\n- Daily Targets: ${userProfile.targets.calories} kcal | ${userProfile.targets.protein}g Protein | ${userProfile.targets.carbs}g Carbs | ${userProfile.targets.fat}g Fat${userProfile.targets.waterMl ? ` | ${userProfile.targets.waterMl}ml Water` : ''}`
+    }
+
+    if (userProfile.loggedMacros) {
+      contextDetails += `\n- Logged So Far: ${userProfile.loggedMacros.calories} kcal | ${userProfile.loggedMacros.protein}g Protein | ${userProfile.loggedMacros.carbs}g Carbs | ${userProfile.loggedMacros.fat}g Fat${userProfile.loggedMacros.waterMl !== undefined ? ` | ${userProfile.loggedMacros.waterMl}ml Water` : ''}`
+    }
+
+    if (Array.isArray(userProfile.loggedMeals) && userProfile.loggedMeals.length > 0) {
+      const mealList = userProfile.loggedMeals
+        .map((m) => `  * [${m.mealType || 'Meal'}] ${m.title}: ${m.calories} kcal, ${m.protein}g P, ${m.carbs}g C, ${m.fat}g F`)
+        .join('\n')
+      contextDetails += `\n- Today's Logged Meals:\n${mealList}`
+    } else {
+      contextDetails += `\n- Today's Logged Meals: None logged yet today.`
+    }
+
+    prompt = `You are FitTrack's expert sports nutrition and hydration coach.
+Analyze the user's logged nutrition for today and generate 2 concise, highly personalized coaching insights.
+
+User Context:
+${contextDetails}
+
+Rules for insights:
+1. Insight 1 (Macronutrient & Energy Pacing): Analyze their meal choices, protein pacing, and give actionable guidance for remaining meals based on their target budget.
+2. Insight 2 (Hydration, Recovery, or Micronutrients): Actionable advice considering water logged, electrolytes, or meal timing.
+3. Be practical, friendly, and direct. Do NOT just repeat raw numbers; explain what the athlete should actually eat or do next.
+
+Return a JSON array of 2 insight objects with:
+- title: Short catchphrase (e.g., "Protein Distribution", "Hydration Timing", "Carbohydrate Satiety")
+- lines: Array of exactly 2 concise, actionable bullet point strings.`
+  } else {
+    prompt = `You are FitTrack's AI fitness and nutrition coach.
 Generate 3 dynamic, personalized health insights/predictions for user ${userProfile.firstName}:
-- User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old.
+- User Stats: ${userProfile.weight}kg, ${userProfile.height}cm, ${userProfile.age} years old, biological sex: ${userProfile.gender || 'Not specified'}.
 - Fitness Goal: ${userProfile.goal} (e.g., MUSCLE_GAIN or WEIGHT_LOSS).
 - Completed Workouts This Week: ${userProfile.workoutCount || 0}.
 
 Return a JSON array of 3 insights, each having:
 - title: Short catchphrase (e.g., "Trend prediction", "Meal timing", "Recovery", "Hydration strategy")
 - lines: Array of 2 concise, actionable bullet point strings giving realistic calculations or tips for their specific goal.`
+  }
 
   const text = await generateWithFallback(prompt, {
     responseMimeType: 'application/json',
@@ -235,12 +303,13 @@ export async function generateAIWorkout(userProfile: {
   weight: number
   height: number
   goal: string
+  gender?: string
   targetArea?: string
 }): Promise<AIWorkoutPlan> {
   const prompt = `Design a customized workout routine for a user with:
 - Fitness Goal: ${userProfile.goal}
 - Target focus: ${userProfile.targetArea || 'Full Body'}
-- Weight: ${userProfile.weight}kg, Height: ${userProfile.height}cm.
+- Weight: ${userProfile.weight}kg, Height: ${userProfile.height}cm, Sex: ${userProfile.gender || 'Not specified'}.
 
 Return a JSON object containing:
 - title: Name of the workout session
@@ -427,6 +496,7 @@ export interface ChatMessage {
 
 export interface UserChatContext {
   firstName?: string
+  gender?: string
   weight?: number
   height?: number
   age?: number
@@ -462,7 +532,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
-- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
@@ -478,6 +548,9 @@ You are conversing directly with ${context.firstName || 'the user'}.
    - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
    - If feeling strong or energized, urge progressive overload and intensity.
    - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+   - Factor in sex-specific metabolic nuances:
+     * For female athletes: be mindful of iron needs (~18mg/day), natural muscle hypertrophy pacing (~0.5-1 lb/month), and potential luteal phase water retention or energy shifts.
+     * For male athletes: factor in standard hypertrophy pacing (~1-2 lbs/month) and caloric burn baselines.
 2. Structure answers specifically for clean mobile reading:
    - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
    - When suggesting meals or snacks, include estimated calories and protein.
@@ -517,7 +590,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
-- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}
+- Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
@@ -533,6 +606,9 @@ You are conversing directly with ${context.firstName || 'the user'}.
    - If user reports low energy, fatigue, or soreness today, recommend active recovery, mobility, adequate sleep, and anti-inflammatory nutrition.
    - If feeling strong or energized, urge progressive overload and intensity.
    - If behind on protein or hydration, provide quick, convenient meal/beverage suggestions.
+   - Factor in sex-specific metabolic nuances:
+     * For female athletes: be mindful of iron needs (~18mg/day), natural muscle hypertrophy pacing (~0.5-1 lb/month), and potential luteal phase water retention or energy shifts.
+     * For male athletes: factor in standard hypertrophy pacing (~1-2 lbs/month) and caloric burn baselines.
 2. Structure answers specifically for clean mobile reading:
    - Use concise paragraphs, bullet points (•), and bold keywords (**bold**).
    - When suggesting meals or snacks, include estimated calories and protein.

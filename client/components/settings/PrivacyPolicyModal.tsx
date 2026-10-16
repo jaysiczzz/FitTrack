@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, Modal, ScrollView, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import { SUPPORT_EMAIL } from '@/constants/appConfig';
 
@@ -9,14 +10,17 @@ interface PrivacyPolicyModalProps {
 }
 
 export default function PrivacyPolicyModal({ visible, onClose }: PrivacyPolicyModalProps) {
-  
+  const insets = useSafeAreaInsets();
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[80%] md:h-[70%] w-full md:max-w-xl shadow-xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[80%] md:h-[70%] w-full md:max-w-xl shadow-xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
               <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">

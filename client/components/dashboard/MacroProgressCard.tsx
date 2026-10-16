@@ -38,14 +38,9 @@ export default function MacroProgressCard({
     <SurfaceCard className="mb-3">
       {/* Header */}
       <View className="flex-row justify-between items-center mb-3">
-        <View>
-          <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
-            Nutrition Intake
-          </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-            Daily calories & macronutrient targets
-          </Text>
-        </View>
+        <Text className="text-text-primary dark:text-text-primary-dark font-bold text-sm">
+          Nutrition Intake
+        </Text>
 
         <TouchableOpacity
           onPress={() => router.push('/(screen)/foodlog' as any)}

@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express'
-import { verifyToken, jwtPayload } from '../utils/jwt.utils'
+import { verifyToken, jwtPayload, getLatestPasswordChangeTimestamp } from '../utils/jwt.utils'
 import { prisma } from '../config/db'
 
 export interface AuthRequest extends Request {
@@ -20,13 +20,31 @@ export const authMiddleware = async (req: AuthRequest, res: Response, next: Next
     if (payload.id) {
       const user = await prisma.user.findUnique({
         where: { id: payload.id },
-        select: { isSuspended: true, suspendedReason: true },
+        select: { id: true, email: true, isSuspended: true, suspendedReason: true },
       })
-      if (user?.isSuspended) {
+      if (!user) {
+        return res.status(401).json({ error: 'User account no longer exists' })
+      }
+      if (user.isSuspended) {
         return res.status(403).json({
           error: 'ACCOUNT_SUSPENDED',
           message: user.suspendedReason || 'Your account has been suspended by an administrator.',
         })
+      }
+
+      // If password was changed/reset after this access token was issued, invalidate session
+      if (payload.iat && user.email) {
+        const lastChanged = await getLatestPasswordChangeTimestamp(user.email)
+        if (lastChanged > 0) {
+          const tokenIssuedMs = payload.iat * 1000
+          // Allow 2-second grace period for clock skew between integer seconds JWT iat and ms DB timestamp
+          if (lastChanged > tokenIssuedMs + 2000) {
+            return res.status(401).json({
+              error: 'SESSION_EXPIRED',
+              message: 'Your password was changed. Please log in again with your new password.',
+            })
+          }
+        }
       }
     }
 

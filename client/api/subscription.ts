@@ -120,10 +120,49 @@ export interface AdminRevenueResponse {
   >;
 }
 
+export type FeatureKey = 'COACH' | 'FOOD_SCAN' | 'WORKOUT_GENERATOR' | 'MEAL_SUGGESTION';
+export type TierKey = 'FREE' | 'PRO';
+
+export interface FeatureLimitItem {
+  max: number;
+  period: 'day' | 'month';
+  name: string;
+  unit: string;
+}
+
+export type FeatureLimitsMap = Record<TierKey, Record<FeatureKey, FeatureLimitItem>>;
+
+export interface FeatureUsageItem {
+  used: number;
+  limit: number;
+  remaining: number;
+  resetsAt: string;
+  resetsInSeconds?: number;
+  tier: TierKey;
+  featureName: string;
+  unit: string;
+  period: 'day' | 'month';
+  periodKey: string;
+}
+
+export interface UserUsageData {
+  tier: TierKey;
+  usage: Record<FeatureKey, FeatureUsageItem>;
+}
+
+export interface SubscriptionPlansResponse {
+  success: boolean;
+  currency: string;
+  symbol: string;
+  plans: SubscriptionPlanItem[];
+  limits?: FeatureLimitsMap;
+  userUsage?: UserUsageData | null;
+}
+
 // 1. Subscription endpoints
 export const getSubscriptionPlansApi = (
   currency: CurrencyType = 'PHP'
-): Promise<{ success: boolean; currency: string; symbol: string; plans: SubscriptionPlanItem[] }> =>
+): Promise<SubscriptionPlansResponse> =>
   apiRequest(`/api/subscriptions/plans?currency=${currency}`);
 
 export const getCurrentSubscriptionApi = (): Promise<CurrentSubscriptionResponse> =>

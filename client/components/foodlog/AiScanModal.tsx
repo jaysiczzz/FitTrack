@@ -11,13 +11,16 @@ import {
   Alert,
   Platform,
   Keyboard,
+  Pressable,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
-import { getCurrentSubscriptionApi } from '@/api/subscription';
+import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '@/api/subscription';
+import QuotaUsageMeter from '../ui/QuotaUsageMeter';
 import {
   MealType,
   FoodLogItem,
@@ -53,6 +56,7 @@ export default function AiScanModal({
   onUpgradePress,
 }: AiScanModalProps) {
   const { colors } = useThemeColors();
+  const insets = useSafeAreaInsets();
   const { showWarning, showError, showSuccess } = useToast();
 
   const [selectedMeal, setSelectedMeal] = useState<MealType>(initialMealType || getSmartMealType());
@@ -84,8 +88,9 @@ export default function AiScanModal({
   const { user } = useAuth();
   const [isPro, setIsPro] = useState(false);
   const [dailyScanCount, setDailyScanCount] = useState(0);
-  const FREE_DAILY_SCAN_LIMIT = 3;
-  const PRO_DAILY_SCAN_LIMIT = 30;
+  const [freeScanLimit, setFreeScanLimit] = useState(3);
+  const [proScanLimit, setProScanLimit] = useState(30);
+  const [scanResetsAt, setScanResetsAt] = useState<string | null>(null);
 
   React.useEffect(() => {
     if (visible) {
@@ -95,6 +100,23 @@ export default function AiScanModal({
         .then((res) => {
           if (res.success && res.isPro) {
             setIsPro(true);
+          }
+        })
+        .catch(() => {});
+
+      getSubscriptionPlansApi()
+        .then((res) => {
+          if (res?.limits?.FREE?.FOOD_SCAN?.max) {
+            setFreeScanLimit(res.limits.FREE.FOOD_SCAN.max);
+          }
+          if (res?.limits?.PRO?.FOOD_SCAN?.max) {
+            setProScanLimit(res.limits.PRO.FOOD_SCAN.max);
+          }
+          if (res?.userUsage?.usage?.FOOD_SCAN) {
+            setDailyScanCount(res.userUsage.usage.FOOD_SCAN.used);
+            if (res.userUsage.usage.FOOD_SCAN.resetsAt) {
+              setScanResetsAt(res.userUsage.usage.FOOD_SCAN.resetsAt);
+            }
           }
         })
         .catch(() => {});
@@ -208,22 +230,15 @@ export default function AiScanModal({
   };
 
   const handleAnalyze = async () => {
-    if (!isPro && dailyScanCount >= FREE_DAILY_SCAN_LIMIT) {
+    const dailyScanLimit = isPro ? proScanLimit : freeScanLimit;
+    if (dailyScanCount >= dailyScanLimit) {
       showWarning(
-        'Daily Free AI Limit Reached',
-        `You have used your ${FREE_DAILY_SCAN_LIMIT} free AI scans for today. Upgrade to FitTrack Pro for 30 scans per day!`
+        isPro ? 'Daily Pro Limit Reached' : 'Daily Free AI Limit Reached',
+        `You have used your ${dailyScanLimit} scans for today. Resets at midnight UTC.`
       );
-      if (onUpgradePress) {
+      if (!isPro && onUpgradePress) {
         onUpgradePress();
       }
-      return;
-    }
-
-    if (isPro && dailyScanCount >= PRO_DAILY_SCAN_LIMIT) {
-      showWarning(
-        'Daily Pro Limit Reached',
-        `You have reached your daily limit of ${PRO_DAILY_SCAN_LIMIT} AI food scans. Your quota will refresh at midnight.`
-      );
       return;
     }
 
@@ -280,6 +295,16 @@ export default function AiScanModal({
         showError('Image is Not Food', errorMsg);
       }
     } catch (err: any) {
+      const errText = err?.message || '';
+      const dailyScanLimit = isPro ? proScanLimit : freeScanLimit;
+      if (errText.includes('LIMIT_REACHED') || err?.status === 429) {
+        setDailyScanCount(dailyScanLimit);
+        const limitMsg = `Daily limit reached (${dailyScanLimit}/${dailyScanLimit}). Resets at midnight UTC.`;
+        setScanError(limitMsg);
+        showWarning('Scan Limit Reached', limitMsg);
+        return;
+      }
+
       const errMsg = getFriendlyErrorMessage(
         err,
         'Unable to analyze your meal right now. Please try again with a clearer photo or description.'
@@ -362,10 +387,18 @@ export default function AiScanModal({
 
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
-      <View className="flex-1 bg-black/60 justify-end">
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+      <View className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4">
+        <Pressable className="hidden md:flex flex-1 w-full" onPress={handleClose} />
+
+        <View
+          style={{
+            paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16,
+            paddingBottom: Platform.OS !== 'web' && insets.bottom > 0 ? insets.bottom + 8 : 16,
+          }}
+          className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[92%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
+        >
           {/* Modal Header */}
-          <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row justify-between items-center pb-3 border-b border-input-border dark:border-input-border-dark mb-3">
             <View className="flex-1 pr-2">
               <Text className="text-text-primary dark:text-text-primary-dark font-black text-xl">
                 AI Photo Scanner
@@ -378,37 +411,18 @@ export default function AiScanModal({
           </View>
 
           {/* Subscription Quota / Pro Perk Banner */}
-          <View className="mb-3 px-3.5 py-2.5 rounded-xl flex-row items-center justify-between border bg-input/60 dark:bg-input-dark/60 border-input-border dark:border-input-border-dark">
-            <View className="flex-row items-center gap-1.5">
-              <Ionicons
-                name={isPro ? 'sparkles' : 'flash'}
-                size={14}
-                color={colors.accent}
-              />
-              <Text className="text-xs font-baloo-bold text-text-primary dark:text-text-primary-dark">
-                {isPro ? 'FitTrack Pro Active' : 'Free Tier'}
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-2">
-              <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
-                {isPro
-                  ? `${Math.max(0, PRO_DAILY_SCAN_LIMIT - dailyScanCount)} of ${PRO_DAILY_SCAN_LIMIT} scans left today`
-                  : `${Math.max(0, FREE_DAILY_SCAN_LIMIT - dailyScanCount)} of ${FREE_DAILY_SCAN_LIMIT} scans left`}
-              </Text>
-              {!isPro && onUpgradePress && (
-                <TouchableOpacity
-                  onPress={onUpgradePress}
-                  accessibilityRole="button"
-                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  className="bg-accent/15 px-2.5 py-1 min-h-[36px] justify-center items-center rounded-full border border-accent/30"
-                >
-                  <Text className="text-[10px] font-baloo-bold text-accent dark:text-accent-dark">Upgrade</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          </View>
+          <QuotaUsageMeter
+            isPro={isPro}
+            used={dailyScanCount}
+            limit={isPro ? proScanLimit : freeScanLimit}
+            unit="scans"
+            period="day"
+            resetsAt={scanResetsAt || undefined}
+            onUpgradePress={onUpgradePress}
+            className="mb-3"
+          />
 
-          <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
+          <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled" className="flex-1 mb-2">
             {/* Meal Category Selector */}
             <View className="flex-row justify-between items-center mb-1.5">
               <Text className="text-text-muted dark:text-text-muted-dark text-[11px] font-baloo-bold uppercase">

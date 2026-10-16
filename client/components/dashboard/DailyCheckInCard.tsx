@@ -342,8 +342,8 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
           </View>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
             {isCheckedIn && selectedMood
-              ? `Today's Energy: ${selectedMood.label}`
-              : 'How is your energy and readiness today?'}
+              ? `Today: ${selectedMood.label}`
+              : 'Log morning energy'}
           </Text>
         </View>
 
@@ -413,7 +413,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             <View className="flex-1">
               <View className="flex-row items-center justify-between">
                 <Text className="text-text-primary dark:text-text-primary-dark font-black text-xs">
-                  Today's Focus: {selectedMood.label}
+                  {selectedMood.label} Focus
                 </Text>
                 <TouchableOpacity
                   onPress={handleResetCheckIn}
@@ -496,13 +496,13 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         </View>
       ) : null}
 
-      {/* Motivational Fitness Quote */}
-      <View className="pt-2 border-t border-input-border dark:border-input-border-dark flex-row items-center">
+      {/* Daily Motivation Quote */}
+      <View className="pt-2.5 mt-1 border-t border-input-border/50 dark:border-input-border-dark/50">
         <View className="flex-1">
           <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
             “{currentQuote.quote}”
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5">
+          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5 font-semibold">
             — {currentQuote.author}
           </Text>
         </View>

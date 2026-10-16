@@ -268,16 +268,9 @@ export default function WeeklyNutritionChartCard({
 
       {/* Header with Title and Navigation Link */}
       <View className="flex-row items-center justify-between mb-3">
-        <View className="flex-1 pr-2">
-          <Text className="text-sm font-extrabold text-text-primary dark:text-text-primary-dark">
-            {chartMode === 'nutrition' ? '7-Day Nutrition Trends' : '7-Day Workout Trends'}
-          </Text>
-          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-            {chartMode === 'nutrition'
-              ? `Weekly consistency vs ${targetCalories.toLocaleString()} kcal target`
-              : `Daily training volume vs ${targetWorkoutMinutes} min target`}
-          </Text>
-        </View>
+        <Text className="text-sm font-extrabold text-text-primary dark:text-text-primary-dark">
+          {chartMode === 'nutrition' ? '7-Day Nutrition' : '7-Day Workouts'}
+        </Text>
 
         <TouchableOpacity
           onPress={() =>
@@ -287,9 +280,9 @@ export default function WeeklyNutritionChartCard({
           accessibilityRole="button"
           accessibilityLabel={chartMode === 'nutrition' ? 'View food history' : 'View workout log'}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 min-h-[44px] justify-center items-center"
+          className="px-3 py-2 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-center"
         >
-          <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+          <Text className="text-[11px] font-bold text-accent dark:text-accent-dark">
             {chartMode === 'nutrition' ? 'Food History →' : 'Workout Log →'}
           </Text>
         </TouchableOpacity>

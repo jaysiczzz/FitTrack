@@ -12,7 +12,6 @@ import {
   getTodayDateString,
   getDateStringFromTimestamp,
 } from './workoutTypes';
-import { MESOCYCLE_WEEKS, getDayOfWeekFromDate } from './plannerPresets';
 import AssignRoutineModal from './AssignRoutineModal';
 import ConfirmModal from '../ui/ConfirmModal';
 
@@ -21,7 +20,7 @@ interface MonthlyPlannerViewProps {
   weeklySplit: WeeklySplit;
   monthlySchedule: MonthlySchedule;
   monthlyTargetDays: number;
-  currentMesocycleWeek: number;
+  currentMesocycleWeek?: number;
   onUpdateScheduleDay: (
     dateKey: string,
     routineId: string | null,
@@ -31,7 +30,7 @@ interface MonthlyPlannerViewProps {
   onAutoFillMonthFromSplit: (year: number, month: number) => Promise<void> | void;
   onClearMonthSchedule?: (year: number, month: number) => Promise<void> | void;
   onUpdateTargetDays: (targetDays: number) => Promise<void> | void;
-  onUpdateMesocycleWeek: (weekNumber: number) => Promise<void> | void;
+  onUpdateMesocycleWeek?: (weekNumber: number) => Promise<void> | void;
   onStartRoutine: (routine: WorkoutRoutineTemplate) => void;
   onCreateRoutine: () => void;
   workoutHistory?: CompletedSession[];
@@ -78,7 +77,6 @@ export default function MonthlyPlannerView({
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
   const [currentMonth, setCurrentMonth] = useState(today.getMonth()); // 0-11
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
-  const [showMesocycleDetails, setShowMesocycleDetails] = useState(false);
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
@@ -267,14 +265,6 @@ export default function MonthlyPlannerView({
       progressPercent,
     };
   }, [currentYear, currentMonth, monthlySchedule, completedWorkoutsByDate, monthlyTargetDays]);
-
-  // Active mesocycle phase
-  const activeMesocycle = useMemo(() => {
-    const safeWeek = Math.min(4, Math.max(1, currentMesocycleWeek || 1));
-    return (
-      MESOCYCLE_WEEKS.find((w) => w.weekNumber === safeWeek) || MESOCYCLE_WEEKS[0]
-    );
-  }, [currentMesocycleWeek]);
 
   // Inspector Selected Day Info
   const selectedDayInfo = useMemo(() => {
@@ -910,120 +900,6 @@ export default function MonthlyPlannerView({
         )}
       </SurfaceCard>
 
-      {/* 4. Progressive Workout Phases Block */}
-      <SurfaceCard className="mb-4 p-4 border border-accent/30 bg-accent/5 dark:bg-accent-dark/10">
-        <TouchableOpacity
-          activeOpacity={0.8}
-          onPress={() => setShowMesocycleDetails((v) => !v)}
-          className="flex-row items-center justify-between"
-        >
-          <View className="flex-row items-center gap-2 flex-1 pr-2 min-w-0">
-            <View className="w-8 h-8 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center shrink-0">
-              <Ionicons name="layers" size={16} color={colors.accent} />
-            </View>
-            <View className="flex-1 min-w-0">
-              <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
-                Weekly Training Focus & RPE (Optional)
-              </Text>
-              <Text className="text-[10px] text-accent dark:text-accent-dark font-bold mt-0.5">
-                Target: {activeMesocycle.title} · {activeMesocycle.intensityLabel}
-              </Text>
-            </View>
-          </View>
-
-          <Ionicons
-            name={showMesocycleDetails ? 'chevron-up' : 'chevron-down'}
-            size={18}
-            color={colors.textMuted}
-          />
-        </TouchableOpacity>
-
-        {/* 4 Week Switcher Pills */}
-        <View className="flex-row gap-1.5 mt-3">
-          {MESOCYCLE_WEEKS.map((w) => {
-            const isActive = (currentMesocycleWeek || 1) === w.weekNumber;
-            return (
-              <TouchableOpacity
-                key={w.weekNumber}
-                activeOpacity={0.8}
-                onPress={() => {
-                  onUpdateMesocycleWeek(w.weekNumber);
-                  showSuccess(
-                    'Training Focus Selected',
-                    `Targeting ${w.title} (${w.intensityLabel}). Review your effort guidelines below.`
-                  );
-                }}
-                className={`flex-1 py-2 rounded-xl items-center justify-center border ${
-                  isActive
-                    ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
-                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                }`}
-              >
-                <Text
-                  className={`text-[10px] font-black uppercase ${
-                    isActive ? 'text-white' : 'text-text-muted dark:text-text-muted-dark'
-                  }`}
-                >
-                  W{w.weekNumber}
-                </Text>
-                <Text
-                  numberOfLines={1}
-                  className={`text-[9px] font-bold ${
-                    isActive ? 'text-white/90' : 'text-text-primary dark:text-text-primary-dark'
-                  }`}
-                >
-                  {w.phase}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Mesocycle Detailed Coaching Guidance */}
-        {showMesocycleDetails && (
-          <View className="mt-3 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50">
-            {/* Beginner Cycle Explainer */}
-            <View className="mb-2.5 p-2.5 rounded-xl bg-accent/10 border border-accent/25">
-              <Text className="text-[10px] text-text-primary dark:text-text-primary-dark font-medium leading-normal">
-                📘 <Text className="font-bold">How does this work?</Text> Selecting a week sets your educational target effort (RPE/Volume) for your workouts this week. It serves as coaching guidance so you know how hard to push or when to deload—your logged exercise weights remain completely under your manual control.
-              </Text>
-            </View>
-
-            <View className="flex-row items-center justify-between mb-1.5">
-              <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                {activeMesocycle.subtitle}
-              </Text>
-              <View className="bg-accent/20 px-2 py-0.5 rounded-full">
-                <Text className="text-[10px] font-black text-accent dark:text-accent-dark">
-                  {activeMesocycle.intensityLabel}
-                </Text>
-              </View>
-            </View>
-
-            <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-relaxed">
-              {activeMesocycle.focus}
-            </Text>
-
-            <View className="bg-input/60 dark:bg-input-dark/60 p-2.5 rounded-xl border border-input-border/40 gap-1">
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-bold text-text-muted">Target Effort:</Text>
-                <Text className="text-[11px] font-black text-accent dark:text-accent-dark">
-                  {activeMesocycle.targetRPE}
-                </Text>
-              </View>
-              <View className="flex-row items-center justify-between">
-                <Text className="text-[11px] font-bold text-text-muted">Volume Target:</Text>
-                <Text className="text-[11px] font-black text-text-primary dark:text-text-primary-dark">
-                  {activeMesocycle.volumeMultiplier}
-                </Text>
-              </View>
-              <Text className="text-[10px] text-text-muted italic mt-1">
-                💡 Tip: {activeMesocycle.tips}
-              </Text>
-            </View>
-          </View>
-        )}
-      </SurfaceCard>
       <AssignRoutineModal
         visible={isAssignModalOpen}
         day={{

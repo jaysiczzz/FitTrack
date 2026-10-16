@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { ScrollView, View, Text, TouchableOpacity, Pressable, DeviceEventEmitter, Modal } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
@@ -20,7 +20,7 @@ import RemoveFoodModal from '@/components/foodlog/RemoveFoodModal';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import AiInsightsCard from '@/components/foodlog/AiInsightsCard';
 import { generateDynamicCoachingInsights } from '@/utils/dynamicCoaching';
-import { getAIInsights, AIInsight } from '@/api/ai';
+import { getAIInsights, AIInsight, NutritionInsightsPayload } from '@/api/ai';
 import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
@@ -39,13 +39,23 @@ import {
 export type { FoodLogItem, MealType } from '@/components/foodlog/foodLogTypes';
 
 export default function FoodLog() {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { user } = useAuth();
+  const { showToast } = useToast();
   const userId = user?.id;
   const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
   const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
-  const { showToast } = useToast();
-  const [activeTab, setActiveTab] = useState<FoodLogTabType>('today');
+  const params = useLocalSearchParams<{ tab?: FoodLogTabType }>();
+  const [activeTab, setActiveTab] = useState<FoodLogTabType>(
+    params.tab && ['today', 'library', 'history'].includes(params.tab) ? params.tab : 'today'
+  );
+
+  useEffect(() => {
+    if (params.tab && ['today', 'library', 'history'].includes(params.tab)) {
+      setActiveTab(params.tab);
+    }
+  }, [params.tab]);
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [items, setItems] = useState<FoodLogItem[]>([]);
   const [waterMl, setWaterMl] = useState(0);
@@ -60,6 +70,9 @@ export default function FoodLog() {
   const isLoadingRef = useRef(false);
   const waterMlRef = useRef(0);
   const itemsRef = useRef<FoodLogItem[]>([]);
+  const lastSaveTimeRef = useRef<number>(0);
+  const lastAnalyzedHashRef = useRef<string>('');
+  const insightDebounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Modals state
   const [showScanModal, setShowScanModal] = useState(false);
@@ -78,7 +91,7 @@ export default function FoodLog() {
   // Targets computed dynamically based on user body stats & goal
   const targets: MacroTargets = useMemo(() => {
     return calculatePersonalizedTargets(user, goal);
-  }, [user?.weight, user?.height, user?.age, user?.goal, goal]);
+  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, goal]);
 
   // Load user profile & cached food log
   const loadInitialData = async () => {
@@ -99,8 +112,10 @@ export default function FoodLog() {
 
       // 1. Read user-scoped local storage for instant UI render
       let localItems: FoodLogItem[] = [];
+      let hasLocalFoodCache = false;
       const savedFood = await AsyncStorage.getItem(foodKey);
-      if (savedFood) {
+      if (savedFood !== null) {
+        hasLocalFoodCache = true;
         try {
           const parsed = JSON.parse(savedFood);
           if (Array.isArray(parsed)) {
@@ -206,9 +221,10 @@ export default function FoodLog() {
               await AsyncStorage.setItem(foodKey, JSON.stringify([]));
             } else {
               // Day is still in progress: regular sync
+              // Only populate from cloud if there is NO existing local cache on this device (e.g. fresh login/new device)
               let resolvedItems = localItems;
               if (Array.isArray(cloudRes.data.meals) && cloudRes.data.meals.length > 0) {
-                if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+                if (!hasLocalFoodCache) {
                   resolvedItems = cloudRes.data.meals.map((m: any) => {
                     const badgeInfo = (m.goalBadge && m.goalBadgeColor)
                       ? { badge: m.goalBadge, color: m.goalBadgeColor }
@@ -233,11 +249,7 @@ export default function FoodLog() {
                   setItems(resolvedItems);
                   itemsRef.current = resolvedItems;
                   await AsyncStorage.setItem(foodKey, JSON.stringify(resolvedItems));
-                } else if (localItems.length > cloudRes.data.meals.length) {
-                  autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
                 }
-              } else if (localItems.length > 0) {
-                autoSyncFoodAndWater(userId, todayStr, localItems, waterMlRef.current);
               }
 
               const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
@@ -277,6 +289,7 @@ export default function FoodLog() {
   useEffect(() => {
     const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', (evt?: { sender?: string; waterMl?: number }) => {
       if (evt?.sender === 'foodlog_screen') return;
+      if (Date.now() - lastSaveTimeRef.current < 2500) return;
       loadInitialData();
     });
     return () => {
@@ -284,13 +297,14 @@ export default function FoodLog() {
     };
   }, [foodKey, waterKey, userId]);
 
-  const saveFoodLog = async (newItems: FoodLogItem[]) => {
+  const saveFoodLog = async (newItems: FoodLogItem[], immediate = false) => {
+    lastSaveTimeRef.current = Date.now();
     setItems(newItems);
     itemsRef.current = newItems;
     try {
       await AsyncStorage.setItem(foodKey, JSON.stringify(newItems));
       DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
-      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMlRef.current);
+      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMlRef.current, immediate);
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -337,17 +351,9 @@ export default function FoodLog() {
     const toAdd = Array.isArray(incoming) ? incoming : [incoming];
     if (toAdd.length === 0) return;
 
-    setItems((prevItems) => {
-      const updated = [...prevItems, ...toAdd];
-      itemsRef.current = updated;
-      AsyncStorage.setItem(foodKey, JSON.stringify(updated))
-        .then(() => {
-          DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
-          autoSyncFoodAndWater(userId, getTodayDateString(), updated, waterMlRef.current);
-        })
-        .catch((err) => console.log('Error saving food log:', err));
-      return updated;
-    });
+    lastSaveTimeRef.current = Date.now();
+    const updated = [...itemsRef.current, ...toAdd];
+    saveFoodLog(updated, false);
 
     // Automatically record to Recents history so all meals appear in Recents tab
     toAdd.forEach((item) => {
@@ -390,11 +396,9 @@ export default function FoodLog() {
 
   // Update Item handler
   const handleUpdateMealItem = (updatedItem: FoodLogItem) => {
-    setItems((prevItems) => {
-      const updated = prevItems.map((i) => (i.id === updatedItem.id ? updatedItem : i));
-      saveFoodLog(updated);
-      return updated;
-    });
+    lastSaveTimeRef.current = Date.now();
+    const updated = itemsRef.current.map((i) => (i.id === updatedItem.id ? updatedItem : i));
+    saveFoodLog(updated, true);
     showToast({
       message: `Updated ${updatedItem.title}`,
       description: `${updatedItem.calories} kcal · ${updatedItem.protein}g Protein (${MEAL_LABELS[updatedItem.mealType]})`,
@@ -419,7 +423,6 @@ export default function FoodLog() {
     if (found) {
       setItemToDelete(found);
     }
-
   };
 
   // Delete Item
@@ -428,11 +431,9 @@ export default function FoodLog() {
     const removedTitle = itemToDelete.title;
     const idToDelete = itemToDelete.id;
     setItemToDelete(null);
-    setItems((prevItems) => {
-      const updated = prevItems.filter((i) => i.id !== idToDelete);
-      saveFoodLog(updated);
-      return updated;
-    });
+    lastSaveTimeRef.current = Date.now();
+    const updated = itemsRef.current.filter((i) => i.id !== idToDelete);
+    saveFoodLog(updated, true);
     showToast({
       message: `Removed ${removedTitle}`,
       description: 'Item removed from food log',
@@ -682,6 +683,7 @@ export default function FoodLog() {
       todayCompletedWorkoutStats: null,
       currentStreak: 0,
       userName: user?.name || 'Athlete',
+      gender: user?.gender,
     });
     // all[1] is nutrition insight, all[2] is hydration insight
     return all.slice(1).filter(Boolean);
@@ -697,25 +699,129 @@ export default function FoodLog() {
     user?.name,
   ]);
 
-  const nutritionGeminiInsights = useMemo(() => {
-    if (!geminiInsights || geminiInsights.length === 0) return [];
-    const nutritionKeywords = ['nutrition', 'macro', 'calorie', 'protein', 'carb', 'fat', 'diet', 'meal', 'water', 'hydrat'];
-    const matches = geminiInsights.filter((item) =>
-      nutritionKeywords.some(
-        (kw) =>
-          item.title.toLowerCase().includes(kw) ||
-          item.lines.some((l) => l.toLowerCase().includes(kw))
-      )
-    );
-    return matches.length > 0 ? matches : geminiInsights.slice(1);
-  }, [geminiInsights]);
+  // Fetch & Cache Real Gemini Nutrition Insights
+  const syncGeminiNutritionInsights = useCallback(
+    async (currentItems: FoodLogItem[], currentWater: number) => {
+      const userId = user?.id;
+      if (!userId) return;
+
+      const todayStr = getTodayDateString();
+      const cacheKey = authStorage.getScopedKey(userId, `ai_nutrition_insights_${todayStr}`);
+      const mealHash = currentItems
+        .map((i) => `${i.id}_${i.calories}_${i.protein}_${i.carbs}_${i.fat}`)
+        .join('|');
+
+      // 1. If hash matches what was already loaded in memory, skip
+      if (lastAnalyzedHashRef.current === mealHash && geminiInsights && geminiInsights.length > 0) {
+        return;
+      }
+
+      // 2. Check disk cache first
+      try {
+        const cachedRaw = await AsyncStorage.getItem(cacheKey);
+        if (cachedRaw) {
+          const parsed = JSON.parse(cachedRaw);
+          if (
+            parsed &&
+            parsed.mealHash === mealHash &&
+            Array.isArray(parsed.insights) &&
+            parsed.insights.length > 0
+          ) {
+            setGeminiInsights(parsed.insights);
+            setInsightMode('gemini');
+            lastAnalyzedHashRef.current = mealHash;
+            return;
+          }
+        }
+      } catch {
+        // Cache miss or read error, proceed to fetch
+      }
+
+      // 3. Call Gemini API on server
+      try {
+        setLoadingAi(true);
+        const loggedCals = currentItems.reduce((acc, i) => acc + (i.calories || 0), 0);
+        const loggedProt = currentItems.reduce((acc, i) => acc + (i.protein || 0), 0);
+        const loggedCarbs = currentItems.reduce((acc, i) => acc + (i.carbs || 0), 0);
+        const loggedFat = currentItems.reduce((acc, i) => acc + (i.fat || 0), 0);
+
+        const payload: NutritionInsightsPayload = {
+          loggedMeals: currentItems.map((i) => ({
+            title: i.title,
+            mealType: i.mealType,
+            calories: i.calories,
+            protein: i.protein,
+            carbs: i.carbs,
+            fat: i.fat,
+          })),
+          targets: {
+            calories: targets.calories,
+            protein: targets.protein,
+            carbs: targets.carbs,
+            fat: targets.fat,
+            waterMl: targetWaterMl,
+          },
+          loggedMacros: {
+            calories: loggedCals,
+            protein: loggedProt,
+            carbs: loggedCarbs,
+            fat: loggedFat,
+            waterMl: currentWater,
+          },
+          userGoal: goal,
+        };
+
+        const res = await getAIInsights(payload);
+        if (res?.success && Array.isArray(res.insights) && res.insights.length > 0) {
+          setGeminiInsights(res.insights);
+          setInsightMode('gemini');
+          lastAnalyzedHashRef.current = mealHash;
+
+          // Save to local cache
+          await AsyncStorage.setItem(
+            cacheKey,
+            JSON.stringify({
+              mealHash,
+              insights: res.insights,
+              savedAt: Date.now(),
+            })
+          );
+        } else {
+          setInsightMode('local');
+        }
+      } catch (err) {
+        console.log('[FoodLog] Gemini insights call failed, keeping local fallback:', err);
+        setInsightMode('local');
+      } finally {
+        setLoadingAi(false);
+      }
+    },
+    [user?.id, targets, targetWaterMl, goal, geminiInsights]
+  );
+
+  useEffect(() => {
+    // When items change (user logs, edits, or deletes a meal), debounce and sync with Gemini
+    if (insightDebounceTimerRef.current) {
+      clearTimeout(insightDebounceTimerRef.current);
+    }
+
+    insightDebounceTimerRef.current = setTimeout(() => {
+      syncGeminiNutritionInsights(items, waterMl);
+    }, 1200);
+
+    return () => {
+      if (insightDebounceTimerRef.current) {
+        clearTimeout(insightDebounceTimerRef.current);
+      }
+    };
+  }, [items, waterMl, syncGeminiNutritionInsights]);
 
   const activeNutritionInsights = useMemo(() => {
-    if (insightMode === 'gemini' && nutritionGeminiInsights.length > 0) {
-      return nutritionGeminiInsights;
+    if (insightMode === 'gemini' && geminiInsights && geminiInsights.length > 0) {
+      return geminiInsights;
     }
     return dynamicNutritionInsights;
-  }, [insightMode, nutritionGeminiInsights, dynamicNutritionInsights]);
+  }, [insightMode, geminiInsights, dynamicNutritionInsights]);
 
   // Grouped by Meal Category
   const breakfastItems = items.filter((i) => i.mealType === 'breakfast');
@@ -736,50 +842,55 @@ export default function FoodLog() {
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}>
-        <View className="w-full max-w-5xl self-center mx-auto">
-          {/* Streamlined Screen Header */}
-          <View className="mb-3.5">
-            <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              Nutrition
-            </Text>
-          </View>
+      {/* Top Fixed Screen Header & Tabs */}
+      <View className="w-full max-w-5xl self-center mx-auto px-4 pt-3 pb-1">
+        <View className="mb-3.5">
+          <Text className="text-2xl font-black text-text-primary dark:text-text-primary-dark tracking-tight">
+            Nutrition
+          </Text>
+        </View>
 
-          {/* Top Navigation Tabs (Today's Log | Library | History) */}
-          <FoodLogTabs
-            activeTab={activeTab}
-            onChange={(tab) => {
-              setActiveTab(tab);
-              if (tab === 'today') {
-                setScanTargetMeal(undefined);
-              }
+        {/* Top Navigation Tabs (Today's Log | Library | History) */}
+        <FoodLogTabs
+          activeTab={activeTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            if (tab === 'today') {
+              setScanTargetMeal(undefined);
+            }
+          }}
+        />
+      </View>
+
+      {activeTab === 'library' ? (
+        /* Food Library Tab View with fixed search & filter header */
+        <View className="flex-1 min-h-0 w-full max-w-5xl self-center mx-auto px-4 pt-1">
+          <FoodLibraryTab
+            onAddFood={handleAddMealItem}
+            defaultMeal={scanTargetMeal}
+            onSwitchToToday={() => {
+              setScanTargetMeal(undefined);
+              setActiveTab('today');
             }}
           />
-
-          {activeTab === 'history' ? (
-            /* History & Trends Tab View */
-            <FoodHistoryTab
-              targets={targets}
-              onReLogItem={handleAddMealItem}
-              onSwitchToToday={() => {
-                setScanTargetMeal(undefined);
-                setActiveTab('today');
-              }}
-            />
-          ) : activeTab === 'library' ? (
-            /* Food Library Tab View */
-            <FoodLibraryTab
-              onAddFood={handleAddMealItem}
-              defaultMeal={scanTargetMeal}
-              onSwitchToToday={() => {
-                setScanTargetMeal(undefined);
-                setActiveTab('today');
-              }}
-            />
-          ) : (
-            /* Today's Log Tab View */
-            <>
-              {/* 1. Daily Macro & Calorie Budget Summary Card */}
+        </View>
+      ) : (
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 125 }}>
+          <View className="w-full max-w-5xl self-center mx-auto">
+            {activeTab === 'history' ? (
+              /* History & Trends Tab View */
+              <FoodHistoryTab
+                targets={targets}
+                onReLogItem={handleAddMealItem}
+                onSwitchToToday={() => {
+                  setScanTargetMeal(undefined);
+                  setActiveTab('today');
+                }}
+              />
+            ) : (
+              /* Today's Log Tab View */
+              <>
+                {/* 1. Daily Macro & Calorie Budget Summary Card */}
               <MacroSummaryCard
                 targets={targets}
                 loggedCalories={isDayCompleted ? sealedCalories : loggedCalories}
@@ -914,8 +1025,8 @@ export default function FoodLog() {
                       activeOpacity={0.7}
                       accessibilityRole="button"
                       accessibilityLabel="Reopen today's food log"
-                      hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                      className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-60"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      className="px-2.5 py-1.5 min-h-[36px] justify-center items-center rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark active:opacity-60 shrink-0"
                     >
                       <Text className="text-xs font-baloo-bold text-text-primary dark:text-text-primary-dark">
                         Reopen Day
@@ -933,6 +1044,7 @@ export default function FoodLog() {
           )}
         </View>
       </ScrollView>
+      )}
 
       {/* AI Scan & Photo Modal */}
       <AiScanModal
@@ -966,6 +1078,10 @@ export default function FoodLog() {
         remainingCalories={remainingCalories}
         remainingProtein={remainingProtein}
         initialMealType={aiSuggestTargetMeal}
+        onUpgradePress={() => {
+          setShowAiSuggestModal(false);
+          setShowSubscriptionModal(true);
+        }}
       />
 
       {/* Edit Meal / Portion Adjustment Modal */}
@@ -1015,6 +1131,7 @@ export default function FoodLog() {
         >
           <Pressable
             className="w-full max-w-[480px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
+            style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
             onPress={(e) => e.stopPropagation()}
           >
             {/* Action Sheet Drag Indicator (Phone only) */}

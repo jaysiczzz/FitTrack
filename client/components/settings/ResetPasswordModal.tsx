@@ -9,8 +9,11 @@ import {
   KeyboardAvoidingView,
   ScrollView,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
+import { useAuth } from '@/context/AuthContext';
 import { changePasswordApi } from '@/api/auth';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import PasswordRequirements from '../ui/PasswordRequirements';
@@ -24,8 +27,10 @@ interface ResetPasswordModalProps {
 }
 
 export default function ResetPasswordModal({ visible, onClose }: ResetPasswordModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
+  const { logout } = useAuth();
 
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -91,8 +96,12 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
     setLoading(true);
     try {
       await changePasswordApi({ currentPassword, newPassword });
-      showSuccess('Password Updated', 'Your password has been changed successfully.');
+      showSuccess(
+        'Password Changed',
+        'Your password has been changed. You have been logged out from all devices. Please log in with your new password.'
+      );
       handleClose();
+      await logout();
     } catch (err: any) {
       const errMsg = getFriendlyErrorMessage(err, 'Failed to update password. Please check your current password.');
       if (errMsg.toLowerCase().includes('current password')) {
@@ -113,7 +122,10 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
       >
         <Pressable className="flex-1" onPress={handleClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -121,13 +133,20 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
                 Reset Password
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                Update your account password
+                Update account security credentials
               </Text>
             </View>
             <ModalCloseButton onClose={handleClose} />
           </View>
 
           <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+            {/* Security Notice: Logout from all devices */}
+            <View className="mb-3.5 p-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 flex-row items-start gap-2">
+              <Ionicons name="shield-checkmark" size={16} color={colors.accent} style={{ marginTop: 1 }} />
+              <Text className="text-xs text-text-primary dark:text-text-primary-dark flex-1 leading-4">
+                <Text className="font-bold">Security Notice:</Text> Changing your password will immediately log you out of all active devices and sessions.
+              </Text>
+            </View>
             {/* Current Password */}
             <Input
               label="Current Password"

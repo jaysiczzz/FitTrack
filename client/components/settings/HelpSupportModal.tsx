@@ -9,7 +9,9 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   ActivityIndicator,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
@@ -134,6 +136,7 @@ export default function HelpSupportModal({
 }: HelpSupportModalProps) {
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
+  const insets = useSafeAreaInsets();
 
   const [activeTab, setActiveTab] = useState<'faq' | 'contact'>(initialTab);
   const [searchQuery, setSearchQuery] = useState('');
@@ -239,11 +242,15 @@ export default function HelpSupportModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
-        className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
       >
-        <Pressable className="flex-1" onPress={onClose} />
+        <Pressable className="hidden md:flex flex-1 w-full" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[88%] md:h-[80%] w-full md:max-w-xl shadow-xl">
+        <View
+          style={{ paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16 }}
+          className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[88%] w-full md:max-w-xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl"
+        >
           {/* Modal Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -319,38 +326,50 @@ export default function HelpSupportModal({
               </View>
 
               {/* Category Filter Chips */}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-2 max-h-8">
-                {[
-                  { id: 'all', label: 'All Topics' },
-                  { id: 'nutrition', label: 'Nutrition' },
-                  { id: 'workouts', label: 'Workouts' },
-                  { id: 'ai', label: 'AI Features' },
-                  { id: 'account', label: 'Account & Guides' },
-                ].map((cat) => (
-                  <TouchableOpacity
-                    key={cat.id}
-                    onPress={() => setSelectedCategory(cat.id)}
-                    className={`px-3 py-1.5 rounded-full mr-1.5 border ${
-                      selectedCategory === cat.id
-                        ? 'bg-accent/15 border-accent dark:border-accent-dark'
-                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                    }`}
-                  >
-                    <Text
-                      className={`text-[11px] font-bold ${
+              <View className="mb-2.5">
+                <ScrollView
+                  horizontal
+                  showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={{ alignItems: 'center', gap: 6, paddingRight: 10 }}
+                >
+                  {[
+                    { id: 'all', label: 'All Topics' },
+                    { id: 'nutrition', label: 'Nutrition' },
+                    { id: 'workouts', label: 'Workouts' },
+                    { id: 'ai', label: 'AI Features' },
+                    { id: 'account', label: 'Account & Guides' },
+                  ].map((cat) => (
+                    <TouchableOpacity
+                      key={cat.id}
+                      onPress={() => setSelectedCategory(cat.id)}
+                      hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                      className={`min-h-[32px] px-3.5 py-1.5 rounded-full border justify-center items-center ${
                         selectedCategory === cat.id
-                          ? 'text-accent dark:text-accent-dark'
-                          : 'text-text-muted dark:text-text-muted-dark'
+                          ? 'bg-accent/15 border-accent dark:border-accent-dark'
+                          : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                       }`}
                     >
-                      {cat.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+                      <Text
+                        className={`text-xs font-bold ${
+                          selectedCategory === cat.id
+                            ? 'text-accent dark:text-accent-dark'
+                            : 'text-text-muted dark:text-text-muted-dark'
+                        }`}
+                      >
+                        {cat.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
 
               {/* FAQ Accordion List */}
-              <ScrollView className="flex-1 mt-1" showsVerticalScrollIndicator={false}>
+              <ScrollView
+                className="flex-1 min-h-0 mt-1"
+                showsVerticalScrollIndicator={false}
+                keyboardShouldPersistTaps="handled"
+                contentContainerStyle={{ paddingBottom: 24 }}
+              >
                 {filteredFaqs.length === 0 ? (
                   <View className="py-10 items-center justify-center">
                     <Ionicons name="help-circle-outline" size={36} color={colors.textMuted} />
@@ -396,7 +415,12 @@ export default function HelpSupportModal({
             </View>
           ) : (
             /* TAB 2: CONTACT & FEEDBACK */
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
+            <ScrollView
+              className="flex-1 min-h-0"
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              contentContainerStyle={{ paddingBottom: 32 }}
+            >
               <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark mb-1.5">
                 Category
               </Text>
@@ -410,7 +434,8 @@ export default function HelpSupportModal({
                   <TouchableOpacity
                     key={item.id}
                     onPress={() => setFeedbackCategory(item.id as any)}
-                    className={`px-3 py-1.5 rounded-xl border ${
+                    hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                    className={`min-h-[32px] px-3.5 py-1.5 rounded-full border justify-center items-center ${
                       feedbackCategory === item.id
                         ? 'bg-accent/15 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'

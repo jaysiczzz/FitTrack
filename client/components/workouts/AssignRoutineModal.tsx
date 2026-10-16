@@ -1,6 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, ScrollView, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { WorkoutRoutineTemplate, DayOfWeek } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
@@ -24,6 +25,7 @@ export default function AssignRoutineModal({
   onClose,
   onCreateNew,
 }: AssignRoutineModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
 
   if (!visible || !day) return null;
@@ -33,7 +35,10 @@ export default function AssignRoutineModal({
       <TouchableWithoutFeedback onPress={onClose}>
         <View className="flex-1 bg-black/60 justify-end">
           <TouchableWithoutFeedback>
-            <View className="bg-background dark:bg-background-dark rounded-t-3xl p-5 pb-8 max-h-[85%] border-t border-input-border dark:border-input-border-dark">
+            <View
+              className="bg-background dark:bg-background-dark rounded-t-3xl p-5 pb-8 max-h-[85%] border-t border-input-border dark:border-input-border-dark"
+              style={{ paddingBottom: Math.max(32, insets.bottom + 12) }}
+            >
               {/* Header */}
               <View className="flex-row justify-between items-center mb-4">
                 <View>

@@ -670,13 +670,11 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                     {nutritionDaysInMonth} Meals
                   </Text>
                 </View>
-                {checkInDaysInMonth > 0 && (
-                  <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                    <Text className="text-[10px] font-bold text-emerald-500 dark:text-emerald-400">
-                      {checkInDaysInMonth} Check-Ins
-                    </Text>
-                  </View>
-                )}
+                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
+                  <Text className="text-[10px] font-bold text-sky-500 dark:text-sky-400">
+                    {checkInDaysInMonth} Check-Ins
+                  </Text>
+                </View>
               </View>
             </View>
           )}
@@ -756,7 +754,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   }}
                   className={`h-11 items-center justify-center rounded-2xl border ${
                     isSelected
-                      ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark shadow-sm'
+                      ? 'bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark shadow-sm'
                       : day.isToday
                       ? 'border-2 border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
                       : isFullyActive && filter === 'all'
@@ -774,7 +772,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   <Text
                     className={`text-xs ${
                       isSelected
-                        ? 'font-black text-accent-contrast dark:text-accent-contrast-dark'
+                        ? 'font-black text-accent dark:text-accent-dark'
                         : day.isToday
                         ? 'font-black text-accent dark:text-accent-dark'
                         : showWorkoutDot || showNutritionDot
@@ -790,32 +788,16 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
                   {/* Dual or Single Activity Dots */}
                   <View className="flex-row items-center justify-center gap-0.5 mt-0.5 h-2">
                     {showWorkoutDot && (
-                      <View
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-accent-contrast dark:bg-accent-contrast-dark' : 'bg-emerald-500'
-                        }`}
-                      />
+                      <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
                     )}
                     {showNutritionDot && (
-                      <View
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-amber-300 dark:bg-amber-900' : 'bg-amber-500'
-                        }`}
-                      />
+                      <View className="w-1.5 h-1.5 rounded-full bg-amber-500" />
                     )}
                     {showNutritionPendingDot && (
-                      <View
-                        className={`w-1.5 h-1.5 rounded-full border ${
-                          isSelected ? 'border-amber-200' : 'border-amber-500'
-                        }`}
-                      />
+                      <View className="w-1.5 h-1.5 rounded-full border border-amber-500" />
                     )}
                     {day.checkIn && (
-                      <View
-                        className={`w-1.5 h-1.5 rounded-full ${
-                          isSelected ? 'bg-sky-200' : 'bg-sky-400'
-                        }`}
-                      />
+                      <View className="w-1.5 h-1.5 rounded-full bg-sky-400" />
                     )}
                   </View>
                 </TouchableOpacity>

@@ -12,15 +12,15 @@ interface OnboardingGoalStepProps {
 const GOALS = [
   {
     id: 'MUSCLE_GAIN' as const,
-    title: 'Build Muscle & Strength',
-    badge: 'Hypertrophy & Power',
+    title: 'Muscle Gain',
+    badge: 'Hypertrophy & Strength',
     description: 'Optimize progressive overload, muscle synthesis, and high-protein nutrition.',
     tags: ['Progressive Overload', 'High Protein'],
   },
   {
     id: 'WEIGHT_LOSS' as const,
-    title: 'Burn Fat & Get Lean',
-    badge: 'Fat Loss & Recomp',
+    title: 'Weight Loss',
+    badge: 'Fat Loss & Lean Definition',
     description: 'Shed body fat and boost metabolism while preserving lean muscle mass.',
     tags: ['Caloric Deficit', 'Metabolic Split'],
   },

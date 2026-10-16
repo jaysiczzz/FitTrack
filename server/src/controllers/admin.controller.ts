@@ -12,6 +12,7 @@ import {
 } from '../services/ticket.service'
 import { sendTicketResolutionEmail } from '../services/email.service'
 import { capitalizeWords } from '../utils/formatters.utils'
+import { createNotification } from './inAppNotification.controller'
 
 /**
  * GET /api/admin/system-stats
@@ -398,6 +399,17 @@ export const updateAdminTicket = asyncHandler(async (req: AuthRequest, res: Resp
       status: updated.status,
       adminNotes: updated.adminNotes || undefined,
     }).catch((err) => console.error('[Support Email] Notification failed:', err))
+  }
+
+  // Also create persistent in-app notification for the user
+  if (updated.userId) {
+    createNotification({
+      userId: updated.userId,
+      title: `🎫 Ticket #${updated.id.slice(0, 6)} ${status === 'RESOLVED' ? 'Resolved' : 'Updated'}`,
+      message: adminNotes || `Your ticket regarding "${updated.subject}" has been marked as ${status.toLowerCase().replace('_', ' ')}.`,
+      type: 'SUPPORT',
+      linkUrl: '/(screen)/settings?modal=support&tab=contact',
+    }).catch(() => {})
   }
 
   res.json({

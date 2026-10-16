@@ -13,6 +13,7 @@ import {
   autocompleteExerciseWithAI,
   ChatMessage,
 } from '../services/ai.service'
+import { getUsage, releaseUsage } from '../utils/usage.utils'
 
 
 export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -29,6 +30,9 @@ export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) 
   })
 
   if (analysis.isFood === false) {
+    if (req.user?.id) {
+      await releaseUsage(req.user.id, 'FOOD_SCAN')
+    }
     const errorMsg =
       analysis.rejectionReason?.trim() ||
       'The provided image does not appear to contain food. Please take a clear photo of your meal, drink, or nutrition facts label.'
@@ -52,7 +56,9 @@ export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) 
     })
   }
 
-  res.json({ success: true, isFood: true, data: analysis })
+  const usage = req.user?.id ? await getUsage(req.user.id, 'FOOD_SCAN') : null
+
+  res.json({ success: true, isFood: true, data: analysis, usage })
 })
 
 export const getInsights = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -63,12 +69,18 @@ export const getInsights = asyncHandler(async (req: AuthRequest, res: Response) 
     user = await userModel.findById(userId)
   }
 
+  const { loggedMeals, targets, loggedMacros, userGoal } = req.body || {}
+
   const userProfile = {
-    firstName: user?.firstName || 'User',
+    firstName: user?.firstName || 'Athlete',
     weight: user?.weight || 70,
     height: user?.height || 175,
     age: user?.age || 25,
-    goal: user?.goal || 'FITNESS',
+    goal: userGoal || user?.goal || 'FITNESS',
+    gender: user?.gender || 'MALE',
+    loggedMeals,
+    targets,
+    loggedMacros,
   }
 
   const insights = await generateAIInsights(userProfile)
@@ -84,62 +96,26 @@ export const generateWorkout = asyncHandler(async (req: AuthRequest, res: Respon
     user = await userModel.findById(userId)
   }
 
-  // Tier check & routine generation quota
-  let isPro = false
-  if (userId) {
-    const sub = await prisma.subscription.findUnique({
-      where: { userId },
-      select: { tier: true, status: true },
-    })
-    isPro = !!(sub && sub.tier !== 'FREE' && sub.status === 'ACTIVE')
-  }
-
-  const FREE_MONTHLY_ROUTINE_LIMIT = 5
-  const PRO_MONTHLY_ROUTINE_LIMIT = 30
-
-  if (userId) {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const monthlyGeneratedCount = await prisma.aiRoutineLog.count({
-      where: {
-        userId,
-        createdAt: { gte: startOfMonth },
-      },
-    })
-
-    if (!isPro) {
-      if (monthlyGeneratedCount >= FREE_MONTHLY_ROUTINE_LIMIT) {
-        return res.status(429).json({
-          success: false,
-          error: 'MONTHLY_ROUTINE_LIMIT_REACHED',
-          message: 'You have reached your limit of 5 free AI-generated workout routines this month. Upgrade to FitTrack Pro for 30 routines per month.',
-          isPro: false,
-          monthlyLimit: FREE_MONTHLY_ROUTINE_LIMIT,
-          remaining: 0,
-        })
-      }
-    } else {
-      if (monthlyGeneratedCount >= PRO_MONTHLY_ROUTINE_LIMIT) {
-        return res.status(429).json({
-          success: false,
-          error: 'PRO_MONTHLY_ROUTINE_LIMIT_REACHED',
-          message: 'You have reached your monthly Pro limit of 30 AI-generated workout routines. Your quota will reset on the 1st of next month.',
-          isPro: true,
-          monthlyLimit: PRO_MONTHLY_ROUTINE_LIMIT,
-          remaining: 0,
-        })
-      }
-    }
-  }
-
   const { targetArea } = req.body
 
   const workoutPlan = await generateAIWorkout({
     weight: user?.weight || 70,
     height: user?.height || 175,
     goal: user?.goal || 'FITNESS',
+    gender: user?.gender || 'MALE',
     targetArea,
   })
+
+  if (!workoutPlan || !workoutPlan.exercises || workoutPlan.exercises.length === 0) {
+    if (userId) {
+      await releaseUsage(userId, 'WORKOUT_GENERATOR')
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'ROUTINE_GENERATION_FAILED',
+      message: 'Failed to generate workout routine. Please try again.',
+    })
+  }
 
   // Persist routine generation record
   if (userId && workoutPlan) {
@@ -156,10 +132,13 @@ export const generateWorkout = asyncHandler(async (req: AuthRequest, res: Respon
     }
   }
 
-  res.json({ success: true, workoutPlan })
+  const usage = userId ? await getUsage(userId, 'WORKOUT_GENERATOR') : null
+
+  res.json({ success: true, workoutPlan, usage })
 })
 
 export const suggestMeals = asyncHandler(async (req: AuthRequest, res: Response) => {
+  const userId = req.user?.id
   const { goal, remainingCalories, remainingProtein, mealType } = req.body
 
   const suggestions = await generateAIMealSuggestions({
@@ -169,7 +148,20 @@ export const suggestMeals = asyncHandler(async (req: AuthRequest, res: Response)
     mealType: mealType || 'all',
   })
 
-  res.json({ success: true, suggestions })
+  if (!suggestions || suggestions.length === 0) {
+    if (userId) {
+      await releaseUsage(userId, 'MEAL_SUGGESTION')
+    }
+    return res.status(500).json({
+      success: false,
+      error: 'SUGGESTIONS_FAILED',
+      message: 'Failed to generate meal suggestions. Please try again.',
+    })
+  }
+
+  const usage = userId ? await getUsage(userId, 'MEAL_SUGGESTION') : null
+
+  res.json({ success: true, suggestions, usage })
 })
 
 export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) => {
@@ -190,7 +182,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
   if (userId) {
     user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { firstName: true, height: true, weight: true, age: true, goal: true },
+      select: { firstName: true, height: true, weight: true, age: true, goal: true, gender: true },
     })
 
     const todayStr = new Date().toISOString().split('T')[0]
@@ -229,66 +221,20 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     })
   }
 
-  // Derive target calories and protein based on profile
+  // Derive target calories and protein dynamically based on profile & sex
+  const isFemale = user?.gender === 'FEMALE'
   const userWeight = user?.weight || 70
-  let targetCalories = 2100
-  let targetProtein = 140
-  if (user?.goal === 'WEIGHT_LOSS') {
-    targetCalories = Math.max(1500, Math.round(userWeight * 26))
-    targetProtein = Math.round(userWeight * 1.8)
-  } else if (user?.goal === 'MUSCLE_GAIN') {
-    targetCalories = Math.max(2200, Math.round(userWeight * 33))
-    targetProtein = Math.round(userWeight * 2.0)
-  }
+  const userHeight = user?.height || 175
+  const userAge = user?.age || 25
+  const bmrConstant = isFemale ? -161 : 5
+  const bmr = 10 * userWeight + 6.25 * userHeight - 5 * userAge + bmrConstant
+  const tdee = Math.round(bmr * 1.35)
 
-  // Tier check & daily quota enforcement
-  let isPro = false
-  if (userId) {
-    const sub = await prisma.subscription.findUnique({
-      where: { userId },
-      select: { tier: true, status: true },
-    })
-    isPro = !!(sub && sub.tier !== 'FREE' && sub.status === 'ACTIVE')
-  }
+  const minFloor = isFemale ? 1200 : 1400
+  let targetCalories = user?.goal === 'MUSCLE_GAIN' ? tdee + 300 : Math.max(minFloor, tdee - 450)
+  targetCalories = Math.max(minFloor, Math.min(4500, targetCalories))
 
-  const FREE_DAILY_CHAT_LIMIT = 15
-  const PRO_DAILY_CHAT_LIMIT = 100 // Fair Use Policy ceiling to prevent token exhaustion & bot abuse
-  let todayUserMessagesCount = 0
-
-  if (userId) {
-    const startOfDay = new Date()
-    startOfDay.setHours(0, 0, 0, 0)
-
-    todayUserMessagesCount = await prisma.aiChatMessage.count({
-      where: {
-        userId,
-        role: 'user',
-        createdAt: { gte: startOfDay },
-      },
-    })
-
-    if (!isPro && todayUserMessagesCount >= FREE_DAILY_CHAT_LIMIT) {
-      return res.status(429).json({
-        success: false,
-        error: 'DAILY_AI_LIMIT_REACHED',
-        message: 'You have reached your daily limit of 15 free AI Coach messages. Upgrade to FitTrack Pro for unlimited 24/7 coaching.',
-        isPro: false,
-        dailyLimit: FREE_DAILY_CHAT_LIMIT,
-        remaining: 0,
-      })
-    }
-
-    if (isPro && todayUserMessagesCount >= PRO_DAILY_CHAT_LIMIT) {
-      return res.status(429).json({
-        success: false,
-        error: 'PRO_FAIR_USE_LIMIT_REACHED',
-        message: 'You have reached the daily Fair Use limit of 100 AI Coach messages. Your quota will refresh at midnight.',
-        isPro: true,
-        dailyLimit: PRO_DAILY_CHAT_LIMIT,
-        remaining: 0,
-      })
-    }
-  }
+  let targetProtein = Math.round(userWeight * (user?.goal === 'MUSCLE_GAIN' ? (isFemale ? 1.8 : 2.0) : (isFemale ? 1.6 : 1.8)))
 
   // Persist user's latest incoming message to cloud database
   const lastUserMsg = [...messages].reverse().find((m) => m.role === 'user')
@@ -308,6 +254,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
 
   const chatContext = {
     firstName: user?.firstName || 'Friend',
+    gender: user?.gender || 'MALE',
     weight: user?.weight,
     height: user?.height,
     age: user?.age,
@@ -379,13 +326,14 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     }
   }
 
-  const remaining = isPro ? null : Math.max(0, FREE_DAILY_CHAT_LIMIT - todayUserMessagesCount - 1)
+  const usage = userId ? await getUsage(userId, 'COACH') : null
   res.json({
     success: true,
     message: responseText,
-    isPro,
-    remainingMessages: remaining,
-    dailyLimit: FREE_DAILY_CHAT_LIMIT,
+    isPro: usage?.tier === 'PRO',
+    remainingMessages: usage?.remaining,
+    dailyLimit: usage?.limit,
+    resetsAt: usage?.resetsAt,
   })
 })
 
@@ -396,7 +344,7 @@ export const getChatHistory = asyncHandler(async (req: AuthRequest, res: Respons
     return res.status(401).json({ error: 'Authentication required' })
   }
 
-  const [messages, sub] = await Promise.all([
+  const [messages, usage] = await Promise.all([
     prisma.aiChatMessage.findMany({
       where: { userId },
       orderBy: { createdAt: 'asc' },
@@ -408,34 +356,16 @@ export const getChatHistory = asyncHandler(async (req: AuthRequest, res: Respons
         createdAt: true,
       },
     }),
-    prisma.subscription.findUnique({
-      where: { userId },
-      select: { tier: true, status: true },
-    }),
+    getUsage(userId, 'COACH'),
   ])
-
-  const isPro = !!(sub && sub.tier !== 'FREE' && sub.status === 'ACTIVE')
-  const startOfDay = new Date()
-  startOfDay.setHours(0, 0, 0, 0)
-  const todayUserMsgs = await prisma.aiChatMessage.count({
-    where: {
-      userId,
-      role: 'user',
-      createdAt: { gte: startOfDay },
-    },
-  })
-  const FREE_DAILY_CHAT_LIMIT = 15
-  const PRO_DAILY_CHAT_LIMIT = 100
-  const remaining = isPro
-    ? Math.max(0, PRO_DAILY_CHAT_LIMIT - todayUserMsgs)
-    : Math.max(0, FREE_DAILY_CHAT_LIMIT - todayUserMsgs)
 
   res.json({
     success: true,
     messages,
-    isPro,
-    remainingMessages: remaining,
-    dailyLimit: isPro ? PRO_DAILY_CHAT_LIMIT : FREE_DAILY_CHAT_LIMIT,
+    isPro: usage.tier === 'PRO',
+    remainingMessages: usage.remaining,
+    dailyLimit: usage.limit,
+    resetsAt: usage.resetsAt,
   })
 })
 

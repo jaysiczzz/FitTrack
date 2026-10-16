@@ -59,7 +59,7 @@ export default function MealCategoryCard({
               {title}
             </Text>
           </View>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs font-normal mt-0.5" numberOfLines={1}>
+          <Text className="text-text-muted dark:text-text-muted-dark text-[11px] sm:text-xs font-normal mt-0.5" numberOfLines={2}>
             {items.length} {items.length === 1 ? 'item' : 'items'} ·{' '}
             <Text className="font-semibold text-text-primary dark:text-text-primary-dark">{totalCalories} kcal</Text>
             {totalProtein > 0 ? ` · ${totalProtein}g protein` : ''}
@@ -67,7 +67,7 @@ export default function MealCategoryCard({
         </View>
 
         {/* Header Actions */}
-        <View className="flex-row items-center gap-1.5">
+        <View className="flex-row items-center gap-1.5 shrink-0">
           {onScanPress ? (
             <TouchableOpacity
               onPress={() => onScanPress(type)}
@@ -75,9 +75,9 @@ export default function MealCategoryCard({
               accessibilityRole="button"
               accessibilityLabel={`Scan ${title}`}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
+              className="w-8 h-8 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
             >
-              <Ionicons name="camera" size={17} color={colors.accent} />
+              <Ionicons name="camera" size={15} color={colors.accent} />
             </TouchableOpacity>
           ) : null}
 
@@ -86,8 +86,8 @@ export default function MealCategoryCard({
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel={`Add food to ${title}`}
-            hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-            className="h-11 min-h-[44px] px-3.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="h-8 px-2.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center active:opacity-60"
           >
             <Text className="text-accent dark:text-accent-dark font-baloo-bold text-xs">+ Add</Text>
           </TouchableOpacity>
@@ -137,10 +137,10 @@ export default function MealCategoryCard({
                     </View>
                   )}
 
-                  <View className="flex-1">
+                  <View className="flex-1 min-w-0 pr-1">
                     <Text
                       className="text-text-primary dark:text-text-primary-dark font-bold text-xs leading-tight mb-0.5"
-                      numberOfLines={1}
+                      numberOfLines={2}
                     >
                       {item.title}
                     </Text>
@@ -148,7 +148,7 @@ export default function MealCategoryCard({
                     {displaySubtitle ? (
                       <Text
                         className="text-text-muted dark:text-text-muted-dark text-[11px] mb-0.5 leading-snug"
-                        numberOfLines={1}
+                        numberOfLines={2}
                       >
                         {displaySubtitle}
                       </Text>

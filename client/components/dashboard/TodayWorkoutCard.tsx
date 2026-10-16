@@ -74,10 +74,10 @@ export default function TodayWorkoutCard({
             </View>
             <View>
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
-                Session Finished & Archived
+                Session Completed
               </Text>
               <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                Streak active · Great consistency!
+                Streak active
               </Text>
             </View>
           </View>
@@ -131,7 +131,7 @@ export default function TodayWorkoutCard({
             onPress={() => router.push('/(screen)/workouts' as any)}
             activeOpacity={0.8}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
+            className="bg-accent/10 dark:bg-accent-dark/15 justify-center items-center px-3 py-1.5 rounded-xl border border-accent/30 dark:border-accent-dark/30"
           >
             <Text className="text-accent dark:text-accent-dark font-bold text-xs">
               Resume
@@ -159,14 +159,14 @@ export default function TodayWorkoutCard({
                 <View className="flex-row items-center gap-1.5 mb-0.5">
                   <Ionicons name="moon-outline" size={14} color={colors.accent} />
                   <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                    Rest & Active Recovery
+                    Rest & Recovery
                   </Text>
                 </View>
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs">
-                  Scheduled rest day in your weekly split. Muscle grows during recovery!
+                  Scheduled rest day · Time to recover & rebuild
                 </Text>
               </View>
-              <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3.5 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-input-border/50 dark:bg-input-border-dark/50 px-3 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
                   Split
                 </Text>
@@ -182,7 +182,7 @@ export default function TodayWorkoutCard({
                   {scheduledRoutine.exercises?.length || 4} exercises · {scheduledRoutine.targetMuscleGroup || 'Training'} · {scheduledRoutine.estimatedDurationMinutes || 45}m
                 </Text>
               </View>
-              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                   Start
                 </Text>
@@ -192,13 +192,13 @@ export default function TodayWorkoutCard({
             <>
               <View className="flex-1 mr-3">
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs">
-                  Ready to train today?
+                  Ready to train?
                 </Text>
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-                  Choose your routine or select exercises from the library.
+                  Start a routine or blank session
                 </Text>
               </View>
-              <View className="bg-accent dark:bg-accent-dark px-4 py-2.5 rounded-xl min-h-[44px] items-center justify-center">
+              <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">
                 <Text className="text-accent-contrast dark:text-accent-contrast-dark font-baloo-bold text-xs">
                   Start
                 </Text>

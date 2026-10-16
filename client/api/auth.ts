@@ -5,6 +5,7 @@ export const registerUser = (payload: {
   lastName: string;
   email: string;
   password: string;
+  gender?: 'MALE' | 'FEMALE';
   height: number;
   weight: number;
   age: number;
@@ -26,9 +27,6 @@ export const forgotPasswordApi = (email: string) =>
 
 export const resetPasswordWithCodeApi = (payload: { email: string; code: string; newPassword: string }) =>
   apiRequest('/api/auth/reset-password', { method: 'POST', body: payload });
-
-export const checkEmailApi = (email: string) =>
-  apiRequest('/api/auth/check-email', { method: 'POST', body: { email } });
 
 export const sendVerificationCodeApi = (payload: { email: string; firstName?: string }) =>
   apiRequest('/api/auth/send-verification', { method: 'POST', body: payload, timeout: 60000 });

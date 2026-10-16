@@ -12,7 +12,9 @@ import {
   RefreshControl,
   Image,
   DeviceEventEmitter,
+  Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { convertBlobToDataUrl } from '@/utils/imageUtils';
@@ -55,6 +57,7 @@ export default function TestimonialModal({
   const { colors, isDark } = useThemeColors();
   const { showSuccess, showError } = useToast();
   const { user } = useAuth();
+  const insets = useSafeAreaInsets();
 
   const storageKey = `@fittrack_testimonial_votes_${user?.id || 'guest'}`;
 
@@ -328,12 +331,20 @@ export default function TestimonialModal({
         mediaTypes: ['images'],
         allowsEditing: true,
         aspect: [4, 3],
-        quality: 0.8,
+        quality: 0.65,
+        base64: true,
       });
 
       if (!result.canceled && result.assets && result.assets.length > 0) {
-        const pickedUri = result.assets[0].uri;
-        const persistentUri = await convertBlobToDataUrl(pickedUri);
+        const asset = result.assets[0];
+        let persistentUri = '';
+        if (asset.base64) {
+          const mime = asset.mimeType || 'image/jpeg';
+          persistentUri = `data:${mime};base64,${asset.base64}`;
+        } else {
+          persistentUri = await convertBlobToDataUrl(asset.uri);
+        }
+
         if (type === 'before') {
           setBeforeImageUrl(persistentUri);
         } else {
@@ -395,13 +406,20 @@ export default function TestimonialModal({
       });
 
       DeviceEventEmitter.emit('testimonials:updated');
-      showSuccess('Success', res.message || 'Thank you for sharing your transformation story!');
+      showSuccess(
+        isAdmin && publishImmediately ? 'Published!' : 'Submitted for Review',
+        res.message || 'Thank you for sharing your transformation story!'
+      );
       setHasExistingReview(true);
       fetchFeed();
       await fetchMyReview();
       setIsComposing(false);
       setEditingId(null);
-      setActiveTab('feed');
+      if (!isAdmin || !publishImmediately) {
+        setActiveTab('write');
+      } else {
+        setActiveTab('feed');
+      }
     } catch (err: any) {
       showError('Submission Error', getFriendlyErrorMessage(err, 'Failed to submit testimony. Please try again.'));
     } finally {
@@ -444,17 +462,21 @@ export default function TestimonialModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
       >
-        <Pressable className="flex-1" onPress={onClose} />
+        <Pressable className="hidden md:flex flex-1 w-full absolute inset-0" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[90%] md:h-[82%] w-full md:max-w-xl shadow-2xl">
+        <View
+          style={{ paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16 }}
+          className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[92%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl"
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
               <View className="flex-row items-center gap-1.5">
                 <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
-                  Athlete Stories & Reviews
+                  Athlete Transformation Stories
                 </Text>
               </View>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
@@ -526,12 +548,13 @@ export default function TestimonialModal({
 
           {/* TAB 1: COMMUNITY STORIES FEED */}
           {activeTab === 'feed' ? (
-            <View className="flex-1">
-              {/* Rating Summary Card */}
-              <View className="p-3.5 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark mb-3 flex-row items-center justify-between">
+            <View className="flex-1 min-h-0">
+              {/* Rating Summary Banner (Fixed) */}
+              <View className="p-3 rounded-2xl bg-input/80 dark:bg-input-dark/80 border border-input-border/70 dark:border-input-border-dark/70 mb-3 flex-row items-center justify-between">
                 <View className="flex-row items-center gap-3">
-                  <View className="items-center justify-center bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-xl px-2.5 py-1.5 shadow-2xs">
-                    <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark">
+                  <View className="flex-row items-center bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark rounded-xl px-2.5 py-1.5 shadow-2xs gap-1.5">
+                    <Ionicons name="star" size={14} color="#F59E0B" />
+                    <Text className="text-base font-black text-text-primary dark:text-text-primary-dark">
                       {averageRating.toFixed(1)}
                     </Text>
                   </View>
@@ -541,20 +564,20 @@ export default function TestimonialModal({
                         <Ionicons
                           key={s}
                           name={s <= Math.round(averageRating) ? 'star' : 'star-outline'}
-                          size={13}
+                          size={12}
                           color="#F59E0B"
                         />
                       ))}
                     </View>
-                    <Text className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark mt-0.5">
+                    <Text className="text-xs font-medium text-text-muted dark:text-text-muted-dark mt-0.5">
                       Based on {totalCount} athlete verified reviews
                     </Text>
                   </View>
                 </View>
               </View>
 
-              {/* Goal Filter Chips & Sort Selector */}
-              <View className="gap-2 mb-3">
+              {/* Goal Filter Chips & Sort Selector (Fixed) */}
+              <View className="gap-2 mb-3.5">
                 {/* Goal Filters */}
                 <View className="flex-row gap-2">
                   {[
@@ -567,14 +590,15 @@ export default function TestimonialModal({
                       <TouchableOpacity
                         key={chip.key}
                         onPress={() => setSelectedGoalFilter(chip.key as any)}
-                        className={`px-3 py-1.5 rounded-full border ${
+                        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                        className={`min-h-[32px] px-3.5 py-1.5 rounded-full border ${
                           isActive
                             ? 'bg-accent/15 border-accent'
-                            : 'bg-input dark:bg-input-dark border-transparent'
+                            : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                         }`}
                       >
                         <Text
-                          className={`text-[11px] font-bold ${
+                          className={`text-xs font-bold ${
                             isActive
                               ? 'text-accent dark:text-accent-mint'
                               : 'text-text-muted dark:text-text-muted-dark'
@@ -588,7 +612,7 @@ export default function TestimonialModal({
                 </View>
 
                 {/* Sort Chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} className="pt-1">
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }} className="pt-0.5">
                   {[
                     { key: 'featured', label: '✨ Featured' },
                     { key: 'helpful', label: '🔥 Most Inspiring' },
@@ -600,14 +624,15 @@ export default function TestimonialModal({
                       <TouchableOpacity
                         key={sort.key}
                         onPress={() => setSortBy(sort.key as any)}
-                        className={`px-2.5 py-1 rounded-lg border ${
+                        hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                        className={`min-h-[30px] px-3 py-1 rounded-xl border ${
                           isCurrent
                             ? 'bg-accent/20 border-accent/40'
-                            : 'bg-transparent border-input-border/60 dark:border-input-border-dark/60'
+                            : 'bg-transparent border-input-border/70 dark:border-input-border-dark/70'
                         }`}
                       >
                         <Text
-                          className={`text-[10px] font-semibold ${
+                          className={`text-xs font-semibold ${
                             isCurrent
                               ? 'text-accent dark:text-accent-mint'
                               : 'text-text-muted dark:text-text-muted-dark'
@@ -621,16 +646,16 @@ export default function TestimonialModal({
                 </ScrollView>
               </View>
 
-              {/* Stories ScrollView */}
+              {/* Scrollable Stories Feed */}
               {loadingFeed ? (
-                <View className="flex-1 items-center justify-center">
+                <View className="flex-1 items-center justify-center py-12">
                   <ActivityIndicator size="small" color={colors.accent} />
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
                     Loading athlete stories...
                   </Text>
                 </View>
               ) : testimonials.length === 0 ? (
-                <View className="flex-1 items-center justify-center py-10 px-4">
+                <View className="flex-1 items-center justify-center py-12 px-4">
                   <Ionicons name="chatbox-ellipses-outline" size={40} color={colors.textMuted} />
                   <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark mt-2 text-center">
                     No stories found for this filter yet
@@ -649,6 +674,7 @@ export default function TestimonialModal({
                 <ScrollView
                   className="flex-1"
                   showsVerticalScrollIndicator={false}
+                  contentContainerStyle={{ paddingBottom: 24 }}
                   refreshControl={
                     <RefreshControl
                       refreshing={loadingFeed}
@@ -657,7 +683,7 @@ export default function TestimonialModal({
                     />
                   }
                 >
-                  <View className="gap-3 pb-8">
+                  <View className="gap-3 pb-4">
                     {testimonials.map((item) => {
                       const hasUpvoted = votedIds.has(item.id);
                       return (
@@ -1411,12 +1437,21 @@ export default function TestimonialModal({
                         <Text className="text-xs font-bold text-white">
                           {editingId
                             ? 'Update This Story'
-                            : isAdmin && !publishImmediately
-                            ? 'Submit for Moderation Review'
-                            : 'Publish Story'}
+                            : !isAdmin || !publishImmediately
+                            ? 'Submit for Admin Approval'
+                            : 'Publish Story Live'}
                         </Text>
                       )}
                     </TouchableOpacity>
+
+                    {!isAdmin && (
+                      <View className="flex-row items-center justify-center gap-1.5 mb-3 px-2">
+                        <Ionicons name="shield-checkmark-outline" size={13} color={colors.textMuted} />
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark text-center">
+                          Stories are reviewed by moderators before appearing in Community Stories.
+                        </Text>
+                      </View>
+                    )}
 
                     {/* Delete Option if currently editing an existing review */}
                     {editingId ? (

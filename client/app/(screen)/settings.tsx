@@ -7,12 +7,14 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import { THEME_STORAGE_KEY } from '@/constants/storageKeys';
@@ -92,6 +94,22 @@ export default function Settings() {
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeletingAccount, setIsDeletingAccount] = useState(false);
+
+  const params = useLocalSearchParams<{ modal?: string; tab?: string }>();
+
+  // Deep-link modal listener (e.g. from support or subscription notifications)
+  useEffect(() => {
+    if (params.modal === 'help' || params.modal === 'support') {
+      setHelpInitialTab(params.tab === 'contact' ? 'contact' : 'faq');
+      setShowHelpModal(true);
+    } else if (params.modal === 'subscription') {
+      setShowSubscriptionModal(true);
+    } else if (params.modal === 'wallet') {
+      setShowEWalletModal(true);
+    } else if (params.modal === 'profile') {
+      setShowEditProfileModal(true);
+    }
+  }, [params.modal, params.tab]);
 
   // Subscription & Wallet State
   const [currentSub, setCurrentSub] = useState<UserSubscription | null>(null);
@@ -302,12 +320,8 @@ export default function Settings() {
             </Text>
           </View>
 
-          <Text className="mb-4 text-xs font-normal text-text-muted dark:text-text-muted-dark mt-1">
-            Manage your account, preferences, and daily reminders
-          </Text>
-
         {/* Membership & Billing Section */}
-        <SurfaceCard className="mb-3">
+        <SurfaceCard className="my-3">
           <View className="flex-row items-center justify-between mb-2">
             <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
               Membership & Billing
@@ -499,10 +513,12 @@ export default function Settings() {
         <SurfaceCard className="mb-3">
           <View className="flex-row items-center justify-between mb-2">
             <View className="flex-1 pr-2">
-              <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                Notifications & Reminders
-              </Text>
-              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+              <View className="flex-row items-center gap-2 mb-0.5">
+                <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
+                  Notifications & Reminders
+                </Text>
+              </View>
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
                 Customize your daily schedules, alert sounds & quiet hours
               </Text>
             </View>
@@ -550,7 +566,7 @@ export default function Settings() {
           ) : null}
 
           {/* Subheader: Daily Reminders */}
-          <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mt-2 mb-1">
+          <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider mt-2.5 mb-1">
             Daily Reminders & Timings
           </Text>
 
@@ -850,14 +866,14 @@ export default function Settings() {
               <Pressable
                 onPress={handleTestNotification}
                 disabled={testingNotification}
-                className="py-2.5 px-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 flex-row items-center justify-center active:opacity-80"
+                className="py-2.5 px-3 rounded-xl bg-emerald-500/10 dark:bg-emerald-400/15 border border-emerald-500/25 dark:border-emerald-400/35 flex-row items-center justify-center active:opacity-80"
               >
                 {testingNotification ? (
-                  <ActivityIndicator size="small" color={colors.accent} className="mr-2" />
+                  <ActivityIndicator size="small" color={isDarkLocal ? '#34D399' : colors.accent} className="mr-2" />
                 ) : (
-                  <Ionicons name="notifications-outline" size={16} color={colors.accent} className="mr-2" />
+                  <Ionicons name="notifications" size={16} color={isDarkLocal ? '#34D399' : colors.accent} className="mr-2" />
                 )}
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                <Text className="text-xs font-bold text-accent dark:text-emerald-400">
                   Verify Notification Reminders
                 </Text>
               </Pressable>
@@ -1049,6 +1065,33 @@ export default function Settings() {
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Answers to common nutrition, workout, and app questions
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
+          {/* Quick Start Guide */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={async () => {
+              hapticFeedback.light();
+              if (user?.id) {
+                await AsyncStorage.removeItem(authStorage.getScopedKey(user.id, 'quick_start_guide_dismissed'));
+              }
+              DeviceEventEmitter.emit('RESET_QUICK_START_GUIDE');
+              showSuccess('Guide Activated', 'Quick Start Guide is now active on your Dashboard.');
+              router.replace('/(screen)/dashboard');
+            }}
+          >
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="rocket-outline" size={15} color={colors.accent} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                First-Day Quick Start Guide
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Re-open the 3-step beginner guide on your Dashboard
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />

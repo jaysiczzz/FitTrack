@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import { parseTime, formatTimeDisplay } from '@/utils/notificationService';
@@ -30,6 +31,7 @@ export default function TimePickerModal({
   initialTime,
   onSaveTime,
 }: TimePickerModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useThemeColors();
 
   const [selected12Hour, setSelected12Hour] = useState(8);
@@ -68,7 +70,10 @@ export default function TimePickerModal({
       <View className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark shadow-2xl max-h-[85%] w-full md:max-w-md">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark shadow-2xl max-h-[85%] w-full md:max-w-md"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>

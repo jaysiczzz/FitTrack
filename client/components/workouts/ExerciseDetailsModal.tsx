@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
@@ -21,7 +22,7 @@ interface ExerciseDetailsModalProps {
   onUpdateExercisePreset?: (exercise: LibraryExercise) => void;
 }
 
-type DetailsTab = 'all' | 'body' | 'looks' | 'guide' | 'presets';
+type DetailsTab = 'guide' | 'body' | 'presets' | 'all';
 
 export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   visible,
@@ -31,8 +32,9 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   onAddExercise,
   onUpdateExercisePreset,
 }) => {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
-  const [activeTab, setActiveTab] = useState<DetailsTab>('all');
+  const [activeTab, setActiveTab] = useState<DetailsTab>('guide');
 
   const initialTier = useMemo(() => {
     const d = (exercise?.difficulty || '').toLowerCase();
@@ -46,7 +48,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
   React.useEffect(() => {
     setActiveTier(initialTier);
-    setActiveTab('all');
+    setActiveTab('guide');
   }, [initialTier, exercise?.id]);
 
   if (!exercise) return null;
@@ -74,22 +76,20 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
     onClose();
   };
 
-  const secondaryMusclesStr = Array.isArray(exercise.secondaryMuscles)
-    ? exercise.secondaryMuscles.join(', ')
-    : exercise.secondaryMuscles;
+  const secondaryMusclesList = Array.isArray(exercise.secondaryMuscles)
+    ? exercise.secondaryMuscles
+    : exercise.secondaryMuscles
+    ? [exercise.secondaryMuscles]
+    : [];
 
-  const equipmentStr = Array.isArray(exercise.equipment)
-    ? exercise.equipment.join(', ')
-    : exercise.equipment;
-
-  const equipmentAltStr = Array.isArray(exercise.equipmentAlternatives)
-    ? exercise.equipmentAlternatives.join(', ')
-    : exercise.equipmentAlternatives;
-
-  const tagsList: string[] = Array.isArray(exercise.tags) ? exercise.tags : [];
   const similarList: string[] = Array.isArray(exercise.similarExercises)
     ? exercise.similarExercises
     : [];
+
+  // Consolidated scaling options without duplication
+  const easierOption = exercise.easierAlternative || exercise.beginnerModification;
+  const harderOption = exercise.harderAlternative || exercise.advancedVariation;
+  const equipmentFreeOption = exercise.equipmentFreeAlternative;
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -109,19 +109,18 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               <ModalCloseButton onClose={onClose} />
             </View>
 
-            {/* Navigation Tabs for Targeted Viewing */}
+            {/* Streamlined Navigation Tabs */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
               className="flex-row -mb-1 mt-1"
-              contentContainerStyle={{ paddingRight: 10 }}
+              contentContainerStyle={{ paddingRight: 10, gap: 8 }}
             >
               {[
+                { key: 'guide', label: 'Form Guide', icon: 'list-outline' as const },
+                { key: 'body', label: 'Muscles & Anatomy', icon: 'body-outline' as const },
+                { key: 'presets', label: 'Presets & Scaling', icon: 'speedometer-outline' as const },
                 { key: 'all', label: 'All Details', icon: 'grid-outline' as const },
-                { key: 'body', label: 'Body Target', icon: 'body-outline' as const },
-                { key: 'looks', label: 'How It Looks', icon: 'eye-outline' as const },
-                { key: 'guide', label: 'How To Do It', icon: 'list-outline' as const },
-                { key: 'presets', label: 'Prescriptions', icon: 'speedometer-outline' as const },
               ].map((tab) => {
                 const active = activeTab === tab.key;
                 return (
@@ -129,7 +128,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     key={tab.key}
                     activeOpacity={0.8}
                     onPress={() => setActiveTab(tab.key as DetailsTab)}
-                    className={`mr-2 px-3 py-1.5 min-h-[38px] rounded-xl border flex-row items-center gap-1.5 ${
+                    className={`px-3.5 py-1.5 min-h-[36px] rounded-xl border flex-row items-center gap-1.5 ${
                       active
                         ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
                         : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -144,7 +143,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                       className={`text-xs ${
                         active
                           ? 'text-accent dark:text-accent-dark font-extrabold'
-                          : 'text-text-muted dark:text-text-muted-dark font-medium'
+                          : 'text-text-muted dark:text-text-muted-dark font-semibold'
                       }`}
                     >
                       {tab.label}
@@ -156,7 +155,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
           </View>
 
           <ScrollView className="flex-1 px-5 pt-4" contentContainerStyle={{ paddingBottom: 40 }}>
-            {/* Target Muscle & Movement Showcase Banner */}
+            {/* Movement Demonstration Banner (Always visible across all tabs for instant visual reference) */}
             <ExerciseVisual
               name={exercise.name}
               muscle={exercise.primaryMuscle || exercise.muscleGroup}
@@ -173,178 +172,214 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               onOpenVideo={() => setIsVideoModalVisible(true)}
             />
 
-            {/* Description */}
-            {exercise.description ? (
-              <View className="mb-4 bg-surface dark:bg-surface-dark p-3.5 rounded-xl border border-input-border dark:border-input-border-dark">
-                <Text className="text-xs leading-5 text-text-muted dark:text-text-muted-dark">
-                  {exercise.description}
-                </Text>
-              </View>
-            ) : null}
-
-            {/* SECTION 1: WHICH PART OF THE BODY IT HITS (ANATOMY MAP) */}
-            {(activeTab === 'all' || activeTab === 'body') && (
+            {/* TAB 1: FORM & MOVEMENT EXECUTION */}
+            {(activeTab === 'guide' || activeTab === 'all') && (
               <View className="mb-4">
-                <BodyAnatomyMap
-                  primaryMuscle={exercise.primaryMuscle || exercise.muscleGroup || ''}
-                  secondaryMuscles={exercise.secondaryMuscles || []}
-                  category={exercise.category}
-                  size="md"
-                  showToggle={true}
-                />
-              </View>
-            )}
+                {/* Description */}
+                {exercise.description ? (
+                  <View className="mb-3.5 bg-surface dark:bg-surface-dark p-3.5 rounded-2xl border border-input-border dark:border-input-border-dark">
+                    <Text className="text-xs leading-5 text-text-muted dark:text-text-muted-dark">
+                      {exercise.description}
+                    </Text>
+                  </View>
+                ) : null}
 
-            {/* SECTION 2 & 3: HOW IT LOOKS & HOW TO DO IT */}
-            {(activeTab === 'all' || activeTab === 'looks' || activeTab === 'guide') && (
-              <View className="mb-4">
+                {/* Step-by-step Movement Guide & Form Cues */}
                 <ExerciseMovementGuide exercise={exercise} />
               </View>
             )}
 
-            {/* SECTION 4: WORKOUT PRESCRIPTION TIERS & SETS */}
-            {(activeTab === 'all' || activeTab === 'presets') && (
-              <View className="mb-4 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider mb-2.5">
-                  Target Intensity & Rep Scheme Presets
-                </Text>
+            {/* TAB 2: TARGET MUSCLES & ANATOMY MAP */}
+            {(activeTab === 'body' || activeTab === 'all') && (
+              <View className="mb-4">
+                <View className="mb-3">
+                  <BodyAnatomyMap
+                    primaryMuscle={exercise.primaryMuscle || exercise.muscleGroup || ''}
+                    secondaryMuscles={exercise.secondaryMuscles || []}
+                    category={exercise.category}
+                    size="md"
+                    showToggle={true}
+                  />
+                </View>
 
-                {/* Segmented Level Selector */}
-                <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60 dark:border-input-border-dark/60">
-                  {(['beginner', 'intermediate', 'advanced'] as const).map((tier) => {
-                    const active = activeTier === tier;
-                    const label = tier.charAt(0).toUpperCase() + tier.slice(1);
-                    const activeColor =
-                      tier === 'beginner'
-                        ? 'bg-accent dark:bg-accent-dark'
-                        : tier === 'advanced'
-                        ? 'bg-danger dark:bg-danger-dark'
-                        : 'bg-warning dark:bg-warning-dark';
-                    const activeTextColor =
-                      tier === 'beginner'
-                        ? 'text-accent-contrast dark:text-accent-contrast-dark'
-                        : 'text-white';
+                {/* Muscle Target Summary Card */}
+                <View className="p-4 rounded-2xl bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark">
+                  <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider mb-2.5">
+                    Muscular Engagement
+                  </Text>
+                  <View className="gap-2">
+                    <View className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                      <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                        Primary Target:
+                      </Text>
+                      <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
+                        {exercise.primaryMuscle || exercise.muscleGroup || 'Full Body'}
+                      </Text>
+                    </View>
+                    {secondaryMusclesList.length > 0 && (
+                      <View className="flex-row items-center justify-between p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                        <Text className="text-xs font-semibold text-text-muted dark:text-text-muted-dark">
+                          Assisting Muscles:
+                        </Text>
+                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                          {secondaryMusclesList.join(', ')}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            )}
 
-                    return (
-                      <TouchableOpacity
-                        key={tier}
-                        activeOpacity={0.8}
-                        onPress={() => setActiveTier(tier)}
-                        className={`flex-1 py-1.5 min-h-[38px] rounded-lg items-center justify-center ${
-                          active ? activeColor : ''
-                        }`}
-                      >
-                        <Text
-                          className={`text-xs font-extrabold ${
-                            active ? activeTextColor : 'text-text-muted dark:text-text-muted-dark'
+            {/* TAB 3: WORKOUT PRESCRIPTIONS & SCALING ALTERNATIVES */}
+            {(activeTab === 'presets' || activeTab === 'all') && (
+              <View className="mb-4">
+                <View className="mb-3.5 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
+                  <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider mb-2.5">
+                    Rep Scheme & Prescribed Intensity
+                  </Text>
+
+                  {/* Segmented Level Selector */}
+                  <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60 dark:border-input-border-dark/60">
+                    {(['beginner', 'intermediate', 'advanced'] as const).map((tier) => {
+                      const active = activeTier === tier;
+                      const label = tier.charAt(0).toUpperCase() + tier.slice(1);
+                      const activeColor =
+                        tier === 'beginner'
+                          ? 'bg-accent dark:bg-accent-dark'
+                          : tier === 'advanced'
+                          ? 'bg-danger dark:bg-danger-dark'
+                          : 'bg-warning dark:bg-warning-dark';
+                      const activeTextColor =
+                        tier === 'beginner'
+                          ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                          : 'text-white';
+
+                      return (
+                        <TouchableOpacity
+                          key={tier}
+                          activeOpacity={0.8}
+                          onPress={() => setActiveTier(tier)}
+                          className={`flex-1 py-1.5 min-h-[36px] rounded-lg items-center justify-center ${
+                            active ? activeColor : ''
                           }`}
                         >
-                          {label}
-                        </Text>
-                      </TouchableOpacity>
-                    );
-                  })}
+                          <Text
+                            className={`text-xs font-extrabold ${
+                              active ? activeTextColor : 'text-text-muted dark:text-text-muted-dark'
+                            }`}
+                          >
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  {/* Dynamic Preset Metrics */}
+                  <View className="flex-row justify-between mb-2">
+                    <View className="items-center flex-1">
+                      <Text className="text-xs text-text-muted dark:text-text-muted-dark">Target Sets</Text>
+                      <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
+                        {currentPreset.recommendedSets || 3}
+                      </Text>
+                    </View>
+                    <View className="items-center flex-1 border-x border-input-border dark:border-input-border-dark">
+                      <Text className="text-xs text-text-muted dark:text-text-muted-dark">Reps / Work</Text>
+                      <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
+                        {currentPreset.recommendedDuration
+                          ? `${currentPreset.recommendedDuration}s`
+                          : currentPreset.recommendedReps
+                          ? `${currentPreset.recommendedReps} reps`
+                          : '10 reps'}
+                      </Text>
+                    </View>
+                    <View className="items-center flex-1">
+                      <Text className="text-xs text-text-muted dark:text-text-muted-dark">Rest</Text>
+                      <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
+                        {currentPreset.recommendedRest || 60}s
+                      </Text>
+                    </View>
+                  </View>
+
+                  {currentPreset.cue ? (
+                    <Text className="text-[11px] font-semibold text-accent dark:text-accent-dark text-center mt-2.5 p-2 rounded-xl bg-accent/10 border border-accent/20">
+                      {currentPreset.cue}
+                    </Text>
+                  ) : null}
                 </View>
 
-                {/* Dynamic Preset Metrics */}
-                <View className="flex-row justify-between mb-2">
-                  <View className="items-center flex-1">
-                    <Text className="text-xs text-text-muted dark:text-text-muted-dark">Target Sets</Text>
-                    <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
-                      {currentPreset.recommendedSets || 3}
+                {/* Consolidated Scaling & Exercise Alternatives */}
+                {(easierOption || harderOption || equipmentFreeOption || similarList.length > 0) && (
+                  <View className="bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark mb-4">
+                    <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider mb-2.5">
+                      Scaling & Alternatives
                     </Text>
-                  </View>
-                  <View className="items-center flex-1 border-x border-input-border dark:border-input-border-dark">
-                    <Text className="text-xs text-text-muted dark:text-text-muted-dark">Reps / Duration</Text>
-                    <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
-                      {currentPreset.recommendedDuration
-                        ? `${currentPreset.recommendedDuration}s`
-                        : currentPreset.recommendedReps
-                        ? `${currentPreset.recommendedReps} reps`
-                        : '10 reps'}
-                    </Text>
-                  </View>
-                  <View className="items-center flex-1">
-                    <Text className="text-xs text-text-muted dark:text-text-muted-dark">Rest</Text>
-                    <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark mt-0.5">
-                      {currentPreset.recommendedRest || 60}s
-                    </Text>
-                  </View>
-                </View>
 
-                {currentPreset.cue ? (
-                  <Text className="text-[11px] font-medium text-accent dark:text-accent-dark text-center mt-2 p-2 rounded-xl bg-accent/10 border border-accent/20">
-                    {currentPreset.cue}
-                  </Text>
-                ) : null}
+                    <View className="gap-2">
+                      {easierOption ? (
+                        <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                          <Text className="text-[11px] font-bold text-accent dark:text-accent-dark mb-0.5">
+                            Easier / Beginner Modification:
+                          </Text>
+                          <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
+                            {easierOption}
+                          </Text>
+                        </View>
+                      ) : null}
 
-                {currentPreset.recommendedTempo ? (
-                  <Text className="text-[10px] text-text-muted dark:text-text-muted-dark text-center mt-1.5 italic">
-                    Tempo: {currentPreset.recommendedTempo} (Eccentric-Pause-Concentric-Pause)
-                  </Text>
-                ) : null}
+                      {harderOption ? (
+                        <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                          <Text className="text-[11px] font-bold text-purple-500 dark:text-purple-400 mb-0.5">
+                            Harder / Advanced Progression:
+                          </Text>
+                          <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
+                            {harderOption}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {equipmentFreeOption ? (
+                        <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                          <Text className="text-[11px] font-bold text-sky-500 dark:text-sky-400 mb-0.5">
+                            Equipment-Free Alternative:
+                          </Text>
+                          <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
+                            {equipmentFreeOption}
+                          </Text>
+                        </View>
+                      ) : null}
+
+                      {similarList.length > 0 ? (
+                        <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
+                            Similar Movements:
+                          </Text>
+                          <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
+                            {similarList.join(', ')}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+                  </View>
+                )}
               </View>
             )}
-
-            {/* Alternatives Tree */}
-            {(exercise.easierAlternative || exercise.harderAlternative || exercise.equipmentFreeAlternative || similarList.length > 0) && (
-              <View className="mb-4 bg-surface dark:bg-surface-dark p-4 rounded-2xl border border-input-border dark:border-input-border-dark">
-                <Text className="text-xs font-bold text-accent dark:text-accent-dark uppercase tracking-wider mb-2">
-                  Exercise Alternatives
-                </Text>
-
-                {exercise.easierAlternative ? (
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
-                    <Text className="font-semibold">├── Easier: </Text>
-                    {exercise.easierAlternative}
-                  </Text>
-                ) : null}
-
-                {exercise.harderAlternative ? (
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
-                    <Text className="font-semibold">├── Harder: </Text>
-                    {exercise.harderAlternative}
-                  </Text>
-                ) : null}
-
-                {exercise.equipmentFreeAlternative ? (
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
-                    <Text className="font-semibold">└── Equipment-free: </Text>
-                    {exercise.equipmentFreeAlternative}
-                  </Text>
-                ) : null}
-
-                {similarList.length > 0 ? (
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1.5">
-                    <Text className="font-semibold">Similar Exercises: </Text>
-                    {similarList.join(', ')}
-                  </Text>
-                ) : null}
-              </View>
-            )}
-
-            {/* Tags */}
-            {tagsList.length > 0 ? (
-              <View className="flex-row flex-wrap gap-1.5 mb-6">
-                {tagsList.map((tag, idx) => (
-                  <View key={idx} className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark">
-                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">#{tag}</Text>
-                  </View>
-                ))}
-              </View>
-            ) : null}
           </ScrollView>
 
-          {/* Bottom Action */}
-          <View className="p-4 pb-8 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
+          {/* Bottom Action Button */}
+          <View
+            className="p-4 pb-8 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark"
+            style={{ paddingBottom: Math.max(32, insets.bottom + 12) }}
+          >
             <TouchableOpacity
               onPress={handleApplyPreset}
               activeOpacity={0.8}
-              className="bg-accent dark:bg-accent-dark py-3.5 min-h-[48px] rounded-2xl items-center justify-center shadow-sm"
+              className="bg-accent dark:bg-accent-dark py-3.5 min-h-[48px] rounded-2xl items-center justify-center shadow-sm active:opacity-85"
             >
-              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-sm">
+              <Text className="text-accent-contrast dark:text-accent-contrast-dark font-black text-sm">
                 {mode === 'update'
-                   ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
+                  ? `Apply ${activeTier.toUpperCase()} Preset to Workout`
                   : `Add (${activeTier.toUpperCase()}) to Today's Workout`}
               </Text>
             </TouchableOpacity>
@@ -361,3 +396,4 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
     </Modal>
   );
 };
+export default ExerciseDetailsModal;
