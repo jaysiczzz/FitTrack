@@ -16,6 +16,7 @@ import {
   MonthlySchedule,
   CompletedSession,
   formatRawWorkoutSession,
+  RoutineExerciseSet,
 } from './workoutTypes';
 import {
   DEFAULT_ROUTINE_TEMPLATES,
@@ -24,6 +25,7 @@ import {
   getTodayDayOfWeek,
   getDayOfWeekFromDate,
 } from './plannerPresets';
+import { hapticFeedback } from '@/utils/haptics';
 import AssignRoutineModal from './AssignRoutineModal';
 import CreateRoutineModal from './CreateRoutineModal';
 import SplitPresetModal from './SplitPresetModal';
@@ -103,6 +105,30 @@ export default function WorkoutPlannerTab({
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showPresetModal, setShowPresetModal] = useState(false);
   const [routineToDelete, setRoutineToDelete] = useState<WorkoutRoutineTemplate | null>(null);
+  const [expandedRoutineIds, setExpandedRoutineIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpandRoutine = (id: string) => {
+    hapticFeedback.light();
+    setExpandedRoutineIds((prev) => ({
+      ...prev,
+      [id]: !prev[id],
+    }));
+  };
+
+  const formatSetsSummary = (sets: RoutineExerciseSet[]) => {
+    if (!sets || sets.length === 0) return '3 sets × 10 reps';
+    const first = sets[0];
+    const isUniform = sets.every(
+      (s) => s.reps === first.reps && s.weight === first.weight && Boolean(s.bodyweight) === Boolean(first.bodyweight)
+    );
+    if (isUniform) {
+      const weightDesc = first.bodyweight ? 'Bodyweight' : first.weight ? `${first.weight} kg` : '';
+      return `${sets.length} sets × ${first.reps || 10} reps${weightDesc ? ` · ${weightDesc}` : ''}`;
+    }
+    return sets
+      .map((s, i) => `S${i + 1}: ${s.reps || 10}r${s.bodyweight ? ' (BW)' : s.weight ? ` @ ${s.weight}kg` : ''}`)
+      .join(', ');
+  };
 
   // Load saved routines and split from storage first, then sync with backend
   const loadPlannerData = useCallback(async () => {
@@ -664,19 +690,95 @@ export default function WorkoutPlannerTab({
                 </Text>
               </View>
 
-              {/* Exercises Chips List */}
-              <View className="flex-row flex-wrap gap-1.5 mb-3.5">
-                {routine.exercises.map((ex, i) => (
-                  <View
-                    key={i}
-                    className="bg-input/60 dark:bg-input-dark/60 border border-input-border/40 dark:border-input-border-dark/40 px-2.5 py-1 rounded-lg"
-                  >
-                    <Text className="text-[11px] font-medium text-text-primary dark:text-text-primary-dark">
-                      {ex.name}
-                    </Text>
-                  </View>
-                ))}
-              </View>
+              {/* Exercise Breakdown Toggle Button */}
+              <TouchableOpacity
+                activeOpacity={0.75}
+                onPress={() => toggleExpandRoutine(routine.id)}
+                className="flex-row items-center justify-between py-2 px-3 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark mb-2.5 active:opacity-75"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  expandedRoutineIds[routine.id]
+                    ? 'Hide exercises breakdown'
+                    : `View exercises and sets for ${routine.title}`
+                }
+              >
+                <View className="flex-row items-center gap-2">
+                  <Ionicons
+                    name={expandedRoutineIds[routine.id] ? 'chevron-up-circle' : 'list-circle-outline'}
+                    size={16}
+                    color={colors.accent}
+                  />
+                  <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                    {expandedRoutineIds[routine.id]
+                      ? 'Hide Exercises'
+                      : `View Exercises & Sets (${routine.exercises.length})`}
+                  </Text>
+                </View>
+                <Ionicons
+                  name={expandedRoutineIds[routine.id] ? 'chevron-up' : 'chevron-down'}
+                  size={16}
+                  color={colors.textMuted}
+                />
+              </TouchableOpacity>
+
+              {/* Expanded Detailed Exercises & Sets List */}
+              {expandedRoutineIds[routine.id] ? (
+                <View className="mb-3.5 bg-input/40 dark:bg-input-dark/40 p-2 rounded-2xl border border-input-border/60 dark:border-input-border-dark/60">
+                  {routine.exercises.map((ex, exIdx) => (
+                    <View
+                      key={ex.exerciseId || exIdx}
+                      className="p-2.5 rounded-xl bg-surface dark:bg-surface-dark border border-input-border/60 dark:border-input-border-dark/60 mb-1.5 last:mb-0"
+                    >
+                      <View className="flex-row items-center justify-between mb-1">
+                        <View className="flex-row items-center gap-2 flex-1 pr-2">
+                          <View className="w-5 h-5 rounded-full bg-accent/20 items-center justify-center shrink-0">
+                            <Text className="text-[10px] font-black text-accent dark:text-accent-dark">
+                              {exIdx + 1}
+                            </Text>
+                          </View>
+                          <Text
+                            className="text-xs font-bold text-text-primary dark:text-text-primary-dark flex-1"
+                            numberOfLines={1}
+                          >
+                            {ex.name}
+                          </Text>
+                        </View>
+                        <View className="bg-accent/15 dark:bg-accent-dark/20 px-2 py-0.5 rounded-md shrink-0">
+                          <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                            {ex.primaryMuscle || ex.muscleGroup || routine.targetMuscleGroup || 'Full Body'}
+                          </Text>
+                        </View>
+                      </View>
+                      <View className="flex-row items-center justify-between ml-7">
+                        <Text className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark">
+                          {formatSetsSummary(ex.defaultSets)}
+                        </Text>
+                        <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
+                          {ex.type || 'Compound'}
+                        </Text>
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : (
+                /* Collapsed Exercises Chips Preview */
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => toggleExpandRoutine(routine.id)}
+                  className="flex-row flex-wrap gap-1.5 mb-3.5"
+                >
+                  {routine.exercises.map((ex, i) => (
+                    <View
+                      key={i}
+                      className="bg-input/60 dark:bg-input-dark/60 border border-input-border/40 dark:border-input-border-dark/40 px-2.5 py-1 rounded-lg"
+                    >
+                      <Text className="text-[11px] font-medium text-text-primary dark:text-text-primary-dark">
+                        {ex.name}
+                      </Text>
+                    </View>
+                  ))}
+                </TouchableOpacity>
+              )}
 
               {/* Action Button: Start Routine Now */}
               <TouchableOpacity
@@ -712,40 +814,48 @@ export default function WorkoutPlannerTab({
       )}
 
       {/* Modals */}
-      <AssignRoutineModal
-        visible={Boolean(assignModalDay)}
-        day={assignModalDay}
-        currentRoutineId={assignModalDay?.key ? weeklySplit[assignModalDay.key as DayOfWeek] : null}
-        routines={routines}
-        onSelect={handleAssignRoutineToDay}
-        onClose={() => setAssignModalDay(null)}
-        onCreateNew={() => setShowCreateModal(true)}
-      />
+      {Boolean(assignModalDay) && (
+        <AssignRoutineModal
+          visible={Boolean(assignModalDay)}
+          day={assignModalDay}
+          currentRoutineId={assignModalDay?.key ? weeklySplit[assignModalDay.key as DayOfWeek] : null}
+          routines={routines}
+          onSelect={handleAssignRoutineToDay}
+          onClose={() => setAssignModalDay(null)}
+          onCreateNew={() => setShowCreateModal(true)}
+        />
+      )}
 
-      <CreateRoutineModal
-        visible={showCreateModal}
-        onSave={handleCreateRoutine}
-        onClose={() => setShowCreateModal(false)}
-      />
+      {showCreateModal && (
+        <CreateRoutineModal
+          visible={showCreateModal}
+          onSave={handleCreateRoutine}
+          onClose={() => setShowCreateModal(false)}
+        />
+      )}
 
-      <SplitPresetModal
-        visible={showPresetModal}
-        onSelectPreset={handleApplyPreset}
-        onClose={() => setShowPresetModal(false)}
-      />
+      {showPresetModal && (
+        <SplitPresetModal
+          visible={showPresetModal}
+          onSelectPreset={handleApplyPreset}
+          onClose={() => setShowPresetModal(false)}
+        />
+      )}
 
       {/* Delete Routine Confirmation Modal */}
-      <ConfirmModal
-        visible={Boolean(routineToDelete)}
-        title="Delete Routine Template"
-        message={`Are you sure you want to delete "${routineToDelete?.title}"?`}
-        confirmText="Delete"
-        cancelText="Cancel"
-        isDanger
-        iconName="trash-outline"
-        onConfirm={handleConfirmDeleteRoutine}
-        onCancel={() => setRoutineToDelete(null)}
-      />
+      {Boolean(routineToDelete) && (
+        <ConfirmModal
+          visible={Boolean(routineToDelete)}
+          title="Delete Routine Template"
+          message={`Are you sure you want to delete "${routineToDelete?.title}"?`}
+          confirmText="Delete"
+          cancelText="Cancel"
+          isDanger
+          iconName="trash-outline"
+          onConfirm={handleConfirmDeleteRoutine}
+          onCancel={() => setRoutineToDelete(null)}
+        />
+      )}
     </View>
   );
 }

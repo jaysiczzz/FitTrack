@@ -253,11 +253,11 @@ export default function HelpSupportModal({
         >
           {/* Modal Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View>
-              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
+            <View className="flex-1 pr-2 min-w-0">
+              <Text numberOfLines={1} className="text-lg font-black text-text-primary dark:text-text-primary-dark">
                 Help & Support
               </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+              <Text numberOfLines={1} className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Guides, FAQs, and direct assistance
               </Text>
             </View>

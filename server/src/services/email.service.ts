@@ -1,17 +1,35 @@
-import nodemailer from 'nodemailer'
+import nodemailer, { Transporter } from 'nodemailer'
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true,
-  connectionTimeout: 5000,
-  greetingTimeout: 5000,
-  socketTimeout: 10000,
-  auth: {
-    user: process.env.SMTP_USER || 'fittrack.app.help@gmail.com',
-    pass: process.env.SMTP_PASS, // 16-character Google App Password
-  },
-})
+let cachedTransporter: Transporter | null = null
+
+function getTransporter() {
+  const host = (process.env.SMTP_HOST || 'smtp.gmail.com').trim()
+  const port = parseInt(process.env.SMTP_PORT || '465', 10)
+  const secure = port === 465
+  const user = (process.env.SMTP_USER || 'fittrack.app.help@gmail.com').trim().replace(/['"]/g, '')
+  const rawPass = process.env.SMTP_PASS || ''
+  const pass = rawPass.replace(/[\s"']/g, '')
+
+  if (!cachedTransporter) {
+    cachedTransporter = nodemailer.createTransport({
+      host,
+      port,
+      secure,
+      pool: true,
+      maxConnections: 5,
+      maxMessages: 100,
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 12000,
+      auth: {
+        user,
+        pass,
+      },
+    })
+  }
+
+  return cachedTransporter
+}
 
 interface CodeEmailOptions {
   toEmail: string
@@ -66,7 +84,10 @@ async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean
     </div>
   `
 
-  if (!process.env.SMTP_PASS) {
+  const rawPass = process.env.SMTP_PASS || ''
+  const cleanPass = rawPass.replace(/[\s"']/g, '')
+
+  if (!cleanPass) {
     if (process.env.NODE_ENV === 'production') {
       console.error('[EMAIL SERVICE] SMTP credentials are not configured on the production server.')
       return { success: false, delivered: false }
@@ -82,6 +103,7 @@ async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean
   }
 
   try {
+    const transporter = getTransporter()
     await transporter.sendMail({
       from: `"FitTrack Support" <${process.env.SMTP_USER || 'fittrack.app.help@gmail.com'}>`,
       to: toEmail,
@@ -89,6 +111,7 @@ async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean
       html: htmlContent,
       text: plainText,
     })
+    console.log(`[EMAIL SERVICE] Verification email successfully delivered to ${toEmail}`)
     return { success: true, delivered: true }
   } catch (error: any) {
     console.error(`[EMAIL ERROR] Failed sending to ${toEmail}:`, error.message || 'Unknown SMTP error')
@@ -190,14 +213,18 @@ export async function sendTicketResolutionEmail(opts: {
     </div>
   `
 
-  if (!process.env.SMTP_PASS) {
+  const rawPass = process.env.SMTP_PASS || ''
+  const cleanPass = rawPass.replace(/[\s"']/g, '')
+
+  if (!cleanPass) {
     console.log(`[DEV MODE] Simulated Support Ticket Resolution Email to ${toEmail} for Ticket #${ticketId}`)
     return true
   }
 
   try {
+    const transporter = getTransporter()
     await transporter.sendMail({
-      from: '"FitTrack Support" <fittrack.app.help@gmail.com>',
+      from: `"FitTrack Support" <${process.env.SMTP_USER || 'fittrack.app.help@gmail.com'}>`,
       to: toEmail,
       subject: `[FitTrack Support] Ticket #${ticketId.slice(0, 8)}: ${statusLabel}`,
       html: htmlContent,

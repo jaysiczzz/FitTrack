@@ -8,6 +8,8 @@ import {
   Modal,
   ScrollView,
   RefreshControl,
+  Platform,
+  KeyboardAvoidingView,
 } from 'react-native';
 import { useThemeColors } from '@/constants/colors';
 import { Ionicons } from '@expo/vector-icons';
@@ -343,14 +345,17 @@ export default function AdminFinanceTab({
             setShowPayoutModal(false);
           }}
         >
-          <View className="flex-1 bg-black/60 items-center justify-center p-4">
-            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md rounded-2xl p-5 border border-input-border dark:border-input-border-dark">
+          <KeyboardAvoidingView
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            className="flex-1 bg-black/60 items-center justify-center p-4"
+          >
+            <View className="bg-surface dark:bg-surface-dark w-full max-w-sm md:max-w-md max-h-[90%] rounded-2xl p-5 border border-input-border dark:border-input-border-dark flex-col">
               <View className="flex-row items-center justify-between mb-2">
-                <View>
-                  <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                     Manual Fund Transfer
                   </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                  <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark">
                     Record a manual payout / withdrawal:
                   </Text>
                 </View>
@@ -359,6 +364,8 @@ export default function AdminFinanceTab({
                   setShowPayoutModal(false);
                 }} />
               </View>
+
+              <ScrollView showsVerticalScrollIndicator={false} bounces={false} keyboardShouldPersistTaps="handled" contentContainerStyle={{ paddingBottom: 4 }}>
 
               {fieldErrors.general ? (
                 <View className="mb-3 px-3 py-2 rounded-xl bg-danger/10 border border-danger/30 flex-row items-center gap-2">
@@ -587,8 +594,9 @@ export default function AdminFinanceTab({
                   <Text className="text-xs font-bold text-accent-contrast">Confirm & Settle Payout</Text>
                 )}
               </TouchableOpacity>
+              </ScrollView>
             </View>
-          </View>
+          </KeyboardAvoidingView>
         </Modal>
       )}
     </View>

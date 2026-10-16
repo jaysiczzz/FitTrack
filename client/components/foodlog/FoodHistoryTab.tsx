@@ -51,17 +51,42 @@ export default function FoodHistoryTab({
   const { user } = useAuth();
   const userId = user?.id;
   const { showSuccess } = useToast();
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>([]);
   const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('7days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [dayToDelete, setDayToDelete] = useState<DailyFoodHistorySummary | null>(null);
 
+  const summariesCacheKey = authStorage.getScopedKey(userId, 'food_history_summaries_cache');
+
   const loadHistory = useCallback(async () => {
-    setLoading(true);
+    let hasCached = false;
     try {
-      
+      // 1. Instant local cache load for 0ms tab switches
+      const cached = await AsyncStorage.getItem(summariesCacheKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setHistoryList(parsed);
+            hasCached = true;
+            // Auto-expand first 2
+            const initExpanded: Record<string, boolean> = {};
+            parsed.slice(0, 2).forEach((s: any) => {
+              if (s?.date) initExpanded[s.date] = true;
+            });
+            setExpandedDates(initExpanded);
+          }
+        } catch {}
+      }
+    } catch {}
+
+    if (!hasCached && historyList.length === 0) {
+      setLoading(true);
+    }
+
+    try {
       const historyDatesKey = authStorage.getScopedKey(userId, 'food_log_history_dates');
       const foodTodayKey = authStorage.getScopedKey(userId, 'food_log_today');
       const waterTodayKey = authStorage.getScopedKey(userId, 'water_log_today');
@@ -188,6 +213,7 @@ export default function FoodHistoryTab({
       }
 
       setHistoryList(summaries);
+      AsyncStorage.setItem(summariesCacheKey, JSON.stringify(summaries)).catch(() => {});
 
       // Auto-expand the first 2 dates
       const initExpanded: Record<string, boolean> = {};
@@ -296,7 +322,7 @@ export default function FoodHistoryTab({
       const day = String(d.getDate()).padStart(2, '0');
       const dateStr = `${y}-${m}-${day}`;
 
-      const matchedLog = historyList.find((h) => h.date === dateStr);
+      const matchedLog = historyList.find((h) => (h.date || '').slice(0, 10) === dateStr);
       const isToday = i === 0;
       const dayLabel = isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'narrow' });
 
@@ -319,22 +345,21 @@ export default function FoodHistoryTab({
     let list = historyList;
 
     if (selectedDayFilter) {
-      const specific = list.filter((h) => h.date === selectedDayFilter);
-      if (specific.length > 0) return specific;
+      return list.filter((h) => (h.date || '').slice(0, 10) === selectedDayFilter);
     }
 
     if (selectedRange === '7days') {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 7);
       const cutoffStr = cutoff.toISOString().split('T')[0];
-      return list.filter((h) => h.date >= cutoffStr);
+      return list.filter((h) => (h.date || '').slice(0, 10) >= cutoffStr);
     }
 
     if (selectedRange === '15days') {
       const cutoff = new Date();
       cutoff.setDate(cutoff.getDate() - 15);
       const cutoffStr = cutoff.toISOString().split('T')[0];
-      return list.filter((h) => h.date >= cutoffStr);
+      return list.filter((h) => (h.date || '').slice(0, 10) >= cutoffStr);
     }
 
     return list;
@@ -347,7 +372,7 @@ export default function FoodHistoryTab({
   const loggedDaysInStrip = calendarSlots.filter((s) => s.hasLog).length;
   const consistencyPercent = rangeDaysCount > 0 ? Math.round((loggedDaysInStrip / rangeDaysCount) * 100) : 0;
 
-  if (loading) {
+  if (loading && historyList.length === 0) {
     return (
       <View className="py-2 gap-y-3">
         <CardSkeleton lines={3} />

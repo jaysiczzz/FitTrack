@@ -646,11 +646,11 @@ export default function AdminExercisesTab({
               className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
             >
               <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-                <View>
-                  <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                     Add Exercise to Catalog
                   </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                  <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark">
                     Basics, cues, and media preview
                   </Text>
                 </View>
@@ -985,11 +985,11 @@ export default function AdminExercisesTab({
               className="bg-surface dark:bg-surface-dark flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-2xl rounded-none md:rounded-3xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
             >
               <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-                <View>
-                  <Text className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
+                <View className="flex-1 pr-2 min-w-0">
+                  <Text numberOfLines={1} className="text-base font-extrabold text-text-primary dark:text-text-primary-dark">
                     Edit Exercise
                   </Text>
-                  <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                  <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark">
                     Update catalog entry and media demo
                   </Text>
                 </View>

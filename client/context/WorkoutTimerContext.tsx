@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useRef, useCallback } from 'react';
-import { DeviceEventEmitter } from 'react-native';
+import { DeviceEventEmitter, Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import { hapticFeedback } from '@/utils/haptics';
 import { useSocket } from './SocketContext';
 
@@ -42,6 +43,48 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
   const targetEndTimeRef = useRef<number | null>(null);
   const pausedRemainingMsRef = useRef<number | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const scheduledNotifIdRef = useRef<string | null>(null);
+
+  const cancelScheduledNotification = useCallback(async () => {
+    if (Platform.OS === 'web') return;
+    try {
+      if (scheduledNotifIdRef.current) {
+        await Notifications.cancelScheduledNotificationAsync(scheduledNotifIdRef.current);
+        scheduledNotifIdRef.current = null;
+      }
+    } catch {}
+  }, []);
+
+  const syncScheduledNotification = useCallback(async (seconds: number, name?: string) => {
+    if (Platform.OS === 'web') return;
+    try {
+      if (scheduledNotifIdRef.current) {
+        await Notifications.cancelScheduledNotificationAsync(scheduledNotifIdRef.current);
+        scheduledNotifIdRef.current = null;
+      }
+      if (seconds > 0) {
+        const id = await Notifications.scheduleNotificationAsync({
+          content: {
+            title: 'Rest Time Complete! 💪',
+            body: name ? `Time for your next set of ${name}!` : 'Ready for your next workout set!',
+            sound: 'default',
+            vibrate: [0, 250, 250, 250],
+            data: {
+              linkUrl: '/(screen)/workouts',
+              type: 'REST_TIMER',
+            },
+          },
+          trigger: {
+            type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+            seconds: Math.max(1, seconds),
+          },
+        });
+        scheduledNotifIdRef.current = id;
+      }
+    } catch (err) {
+      console.warn('[WorkoutTimerContext] Failed to schedule notification:', err);
+    }
+  }, []);
 
   // Cross-device incoming timer sync
   useEffect(() => {
@@ -120,6 +163,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         }
         setIsRunning(false);
         setIsCompleted(true);
+        cancelScheduledNotification();
         hapticFeedback.success();
       }
     }, 500);
@@ -130,7 +174,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         intervalRef.current = null;
       }
     };
-  }, [visible, isRunning, isCompleted, timerSessionId]);
+  }, [visible, isRunning, isCompleted, timerSessionId, cancelScheduledNotification]);
 
   const startRestTimer = useCallback((seconds: number = 90, name?: string) => {
     const duration = Math.max(1, seconds);
@@ -155,8 +199,9 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       targetEndTime: targetEnd,
     });
 
+    syncScheduledNotification(duration, name);
     hapticFeedback.light();
-  }, [emitWorkoutTimerTick]);
+  }, [emitWorkoutTimerTick, syncScheduledNotification]);
 
   const stopRestTimer = useCallback(() => {
     if (intervalRef.current) {
@@ -168,9 +213,10 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
     targetEndTimeRef.current = null;
     pausedRemainingMsRef.current = null;
 
+    cancelScheduledNotification();
     emitWorkoutTimerTick({ action: 'stop' });
     hapticFeedback.light();
-  }, [emitWorkoutTimerTick]);
+  }, [emitWorkoutTimerTick, cancelScheduledNotification]);
 
   const togglePlayPause = useCallback(() => {
     hapticFeedback.light();
@@ -183,6 +229,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       pausedRemainingMsRef.current = null;
       setTimerSessionId((prev) => prev + 1);
 
+      syncScheduledNotification(totalSeconds, exerciseName);
       emitWorkoutTimerTick({ action: 'start', totalSeconds, secondsLeft: totalSeconds, targetEndTime: targetEnd });
       return;
     }
@@ -198,6 +245,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         pausedRemainingMsRef.current = secondsLeft * 1000;
       }
       setIsRunning(false);
+      cancelScheduledNotification();
       emitWorkoutTimerTick({ action: 'pause', secondsLeft });
     } else {
       const remainingMs = pausedRemainingMsRef.current || (secondsLeft * 1000);
@@ -206,8 +254,9 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       pausedRemainingMsRef.current = null;
       setIsRunning(true);
       setTimerSessionId((prev) => prev + 1);
+      syncScheduledNotification(Math.max(1, Math.ceil(remainingMs / 1000)), exerciseName);
     }
-  }, [isCompleted, isRunning, totalSeconds, secondsLeft, emitWorkoutTimerTick]);
+  }, [isCompleted, isRunning, totalSeconds, secondsLeft, exerciseName, emitWorkoutTimerTick, syncScheduledNotification, cancelScheduledNotification]);
 
   const addSeconds = useCallback((secs: number = 30) => {
     hapticFeedback.light();
@@ -222,6 +271,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       targetEndTimeRef.current = Date.now() + addMs;
       pausedRemainingMsRef.current = null;
       setTimerSessionId((prev) => prev + 1);
+      syncScheduledNotification(nextSecs, exerciseName);
       return;
     }
 
@@ -232,6 +282,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
         const nextSecs = Math.max(0, Math.ceil((targetEndTimeRef.current - now) / 1000));
         setSecondsLeft(nextSecs);
         setTotalSeconds((prev) => Math.max(prev, nextSecs));
+        syncScheduledNotification(nextSecs, exerciseName);
       }
     } else {
       const currentMs = pausedRemainingMsRef.current ?? (secondsLeft * 1000);
@@ -241,7 +292,7 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       setSecondsLeft(nextSecs);
       setTotalSeconds((prev) => Math.max(prev, nextSecs));
     }
-  }, [isCompleted, isRunning, secondsLeft]);
+  }, [isCompleted, isRunning, secondsLeft, exerciseName, syncScheduledNotification]);
 
   const subtractSeconds = useCallback((secs: number = 15) => {
     hapticFeedback.light();
@@ -261,7 +312,10 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
           }
           setIsRunning(false);
           setIsCompleted(true);
+          cancelScheduledNotification();
           hapticFeedback.success();
+        } else {
+          syncScheduledNotification(nextSecs, exerciseName);
         }
       }
     } else {
@@ -273,9 +327,11 @@ export const WorkoutTimerProvider: React.FC<{ children: React.ReactNode }> = ({ 
       if (nextSecs <= 0) {
         setIsRunning(false);
         setIsCompleted(true);
+        cancelScheduledNotification();
+        hapticFeedback.success();
       }
     }
-  }, [isCompleted, isRunning, secondsLeft]);
+  }, [isCompleted, isRunning, secondsLeft, exerciseName, syncScheduledNotification, cancelScheduledNotification]);
 
   const toggleMinimize = useCallback(() => {
     hapticFeedback.light();

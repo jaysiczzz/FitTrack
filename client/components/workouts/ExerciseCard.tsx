@@ -349,19 +349,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
+                  <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-0.5 sm:px-1 overflow-hidden">
                     <TouchableOpacity
                       onPress={() => {
                         if (!onUpdateSet) return;
                         const nextW = Math.max(0, Math.round((currWeight - stepDelta) * 10) / 10);
                         onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
                       }}
-                      className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
+                      className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                       hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                       accessibilityRole="button"
                       accessibilityLabel="Decrease weight"
                     >
-                      <Ionicons name="remove" size={14} color={colors.textPrimary} />
+                      <Ionicons name="remove" size={13} color={colors.textPrimary} />
                     </TouchableOpacity>
 
                     <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
@@ -397,12 +397,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         const nextW = Math.round((currWeight + stepDelta) * 10) / 10;
                         onUpdateSet(s.id, 'weight', nextW, false);
                       }}
-                      className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
+                      className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                       hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                       accessibilityRole="button"
                       accessibilityLabel="Increase weight"
                     >
-                      <Ionicons name="add" size={14} color={colors.textPrimary} />
+                      <Ionicons name="add" size={13} color={colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
                 )
@@ -410,15 +410,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Reps Stepper Column */}
               {!isCardio && !isStretch && (
-                <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-1 overflow-hidden">
+                <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-0.5 sm:px-1 overflow-hidden">
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', Math.max(1, currReps - 1))}
-                    className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
+                    className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                     accessibilityRole="button"
                     accessibilityLabel="Decrease reps"
                   >
-                    <Ionicons name="remove" size={14} color={colors.textPrimary} />
+                    <Ionicons name="remove" size={13} color={colors.textPrimary} />
                   </TouchableOpacity>
 
                   <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
@@ -447,12 +447,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
-                    className="w-7 h-full items-center justify-center active:opacity-60 shrink-0"
+                    className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
                     hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                     accessibilityRole="button"
                     accessibilityLabel="Increase reps"
                   >
-                    <Ionicons name="add" size={14} color={colors.textPrimary} />
+                    <Ionicons name="add" size={13} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
               )}

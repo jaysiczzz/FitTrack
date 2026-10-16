@@ -97,6 +97,11 @@ export default function AiCoachScreen() {
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
   const [isConnectionError, setIsConnectionError] = useState(false);
+  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+
+  // Active cancellation refs for in-flight streaming/fetch
+  const activeXhrRef = useRef<XMLHttpRequest | null>(null);
+  const activeAbortControllerRef = useRef<AbortController | null>(null);
 
   // Quota & tier tracking
   const [isPro, setIsPro] = useState(false);
@@ -210,6 +215,29 @@ export default function AiCoachScreen() {
     [storageKey]
   );
 
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const showSub = Keyboard.addListener(showEvent, () => {
+      setIsKeyboardVisible(true);
+      setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 100);
+    });
+
+    const hideSub = Keyboard.addListener(hideEvent, () => {
+      setIsKeyboardVisible(false);
+    });
+
+    return () => {
+      showSub.remove();
+      hideSub.remove();
+      activeXhrRef.current?.abort();
+      activeAbortControllerRef.current?.abort();
+    };
+  }, []);
+
   const scrollToBottom = (animated = true) => {
     setTimeout(() => {
       scrollViewRef.current?.scrollToEnd({ animated });
@@ -221,6 +249,20 @@ export default function AiCoachScreen() {
   };
 
   const handleConfirmClear = async () => {
+    // 1. Immediately abort any active stream or HTTP request
+    if (activeXhrRef.current) {
+      activeXhrRef.current.abort();
+      activeXhrRef.current = null;
+    }
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+      activeAbortControllerRef.current = null;
+    }
+    setIsSending(false);
+    setFailedMessage(null);
+    setInputText('');
+    Keyboard.dismiss();
+
     const resetList = [INITIAL_GREETING];
     setMessages(resetList);
     await persistMessagesLocally(resetList);
@@ -250,6 +292,17 @@ export default function AiCoachScreen() {
       showError('Fair Use Limit Reached', `You have reached today's Fair Use limit of ${dailyLimit || 150} AI Coach messages. Your quota will refresh at midnight.`);
       return;
     }
+
+    // Cancel any previous lingering requests cleanly
+    if (activeXhrRef.current) {
+      activeXhrRef.current.abort();
+      activeXhrRef.current = null;
+    }
+    if (activeAbortControllerRef.current) {
+      activeAbortControllerRef.current.abort();
+      activeAbortControllerRef.current = null;
+    }
+    activeAbortControllerRef.current = new AbortController();
 
     setInputText('');
     setFailedMessage(null);
@@ -290,15 +343,21 @@ export default function AiCoachScreen() {
           },
         ]);
 
-        const streamRes = await streamChatWithCoachApi(apiPayload, (chunk: string) => {
-          streamedText += chunk;
-          setMessages((prev) =>
-            prev.map((m) =>
-              m.id === tempModelId ? { ...m, content: streamedText } : m
-            )
-          );
-          scrollToBottom(false);
-        });
+        const streamRes = await streamChatWithCoachApi(
+          apiPayload,
+          (chunk: string) => {
+            streamedText += chunk;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === tempModelId ? { ...m, content: streamedText } : m
+              )
+            );
+            scrollToBottom(false);
+          },
+          (xhr) => {
+            activeXhrRef.current = xhr;
+          }
+        );
 
         if (streamRes.success && (streamRes.message || streamedText)) {
           const finalText = streamRes.message || streamedText;
@@ -321,6 +380,15 @@ export default function AiCoachScreen() {
           }
         }
       } catch (streamErr: any) {
+        // If aborted by user action (clearing chat or leaving screen), exit cleanly
+        if (
+          streamErr?.message === 'Request aborted' ||
+          streamErr?.name === 'AbortError' ||
+          activeAbortControllerRef.current?.signal.aborted
+        ) {
+          return;
+        }
+
         const streamErrText = streamErr?.message || '';
         if (
           streamErrText.includes('LIMIT_REACHED') ||
@@ -329,12 +397,19 @@ export default function AiCoachScreen() {
         ) {
           throw streamErr;
         }
-        // Stream failed, will fall back to standard JSON call below
+        // Stream failed or timed out (25s), try standard JSON fallback with active abort signal
       }
 
       if (!streamSuccess) {
+        // Check if aborted in the meantime
+        if (activeAbortControllerRef.current?.signal.aborted) {
+          return;
+        }
+
         // Fallback to standard request
-        const res = await chatWithCoachApi(apiPayload);
+        const res = await chatWithCoachApi(apiPayload, {
+          signal: activeAbortControllerRef.current?.signal,
+        });
         if (res.success && res.message) {
           setIsConnectionError(false);
           if (res.isPro !== undefined) setIsPro(res.isPro);
@@ -360,6 +435,13 @@ export default function AiCoachScreen() {
         }
       }
     } catch (err: any) {
+      if (
+        err?.message === 'Request aborted' ||
+        err?.name === 'AbortError' ||
+        activeAbortControllerRef.current?.signal.aborted
+      ) {
+        return;
+      }
       console.error('Coach Chat Error:', err);
       const errText = err?.message || '';
       if (
@@ -380,9 +462,11 @@ export default function AiCoachScreen() {
         setIsConnectionError(true);
         setMessages(updatedMessages);
         setFailedMessage(textToSend);
-        showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
+        showError('Message Failed', 'Unable to reach AI Coach right now. Tap retry to send again.');
       }
     } finally {
+      activeXhrRef.current = null;
+      activeAbortControllerRef.current = null;
       setIsSending(false);
       scrollToBottom(true);
     }
@@ -507,98 +591,108 @@ export default function AiCoachScreen() {
 
   return (
     <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark" style={{ flex: 1 }}>
-      {/* Top Header */}
-      <View className="flex-row items-center justify-between px-4 py-3 bg-surface dark:bg-surface-dark border-b border-input-border dark:border-input-border-dark shadow-xs z-10">
-        <View className="flex-row items-center flex-1">
-          <TouchableOpacity
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(screen)/dashboard');
-              }
-            }}
-            activeOpacity={0.7}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
-            accessibilityLabel="Go back"
-          >
-            <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
-          </TouchableOpacity>
-
-          <View className="relative mr-3">
-            <View className="w-10 h-10 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/40 dark:border-accent-dark/40">
-              <Ionicons name="fitness" size={20} color={colors.accent} />
-            </View>
-            <View
-              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusInfo.dotColor} border-2 border-surface dark:border-surface-dark`}
-              accessibilityLabel={`Status: ${statusInfo.label}`}
-            />
-          </View>
-
-          <View className="flex-1">
-            <Text
-              className="text-text-primary dark:text-text-primary-dark font-extrabold text-base"
-              numberOfLines={1}
-            >
-              FitTrack Coach
-            </Text>
-            <Text className={`text-[11px] ${statusInfo.textColor} font-semibold`} numberOfLines={1}>
-              {statusInfo.label}
-            </Text>
-          </View>
-        </View>
-
-        <TouchableOpacity
-          onPress={handleClearHistory}
-          activeOpacity={0.7}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-          className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
-          accessibilityLabel="Clear chat history"
-        >
-          <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
-        </TouchableOpacity>
-      </View>
-
-      {/* Quick Topic Chips Carousel */}
-      <View className="bg-surface/50 dark:bg-surface-dark/50 border-b border-input-border dark:border-input-border-dark py-1.5 px-3">
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
-          {QUICK_TOPICS.map((topic) => (
-            <TouchableOpacity
-              key={topic.id}
-              activeOpacity={0.7}
-              onPress={() => handleSend(topic.prompt)}
-              hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-              className="mr-2 px-3 py-1.5 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
-            >
-              <Ionicons name={topic.icon} size={13} color={colors.accent} style={{ marginRight: 5 }} />
-              <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
-                {topic.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-
-      {/* Reusable Quota Usage Meter */}
-      <View className="px-4 py-2 border-b border-input-border/30 dark:border-input-border-dark/30">
-        <QuotaUsageMeter
-          isPro={isPro}
-          used={dailyLimit !== null && remainingMessages !== null ? Math.max(0, dailyLimit - remainingMessages) : 0}
-          limit={dailyLimit || (isPro ? 150 : 15)}
-          unit="messages"
-          period="day"
-          resetsAt={resetsAt || undefined}
-          onUpgradePress={() => setShowSubscriptionModal(true)}
-        />
-      </View>
-
-      {/* Main Chat Stream */}
       <KeyboardAvoidingView
         className="flex-1"
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
+        {/* Top Header */}
+        <View className="flex-row items-center justify-between px-4 py-3 bg-surface dark:bg-surface-dark border-b border-input-border dark:border-input-border-dark shadow-xs z-10">
+          <View className="flex-row items-center flex-1">
+            <TouchableOpacity
+              onPress={() => {
+                if (activeXhrRef.current) {
+                  activeXhrRef.current.abort();
+                  activeXhrRef.current = null;
+                }
+                if (activeAbortControllerRef.current) {
+                  activeAbortControllerRef.current.abort();
+                  activeAbortControllerRef.current = null;
+                }
+                Keyboard.dismiss();
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(screen)/dashboard');
+                }
+              }}
+              activeOpacity={0.7}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center mr-3 border border-input-border dark:border-input-border-dark"
+              accessibilityLabel="Go back"
+            >
+              <Ionicons name="chevron-back" size={20} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            <View className="relative mr-3">
+              <View className="w-10 h-10 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/40 dark:border-accent-dark/40">
+                <Ionicons name="fitness" size={20} color={colors.accent} />
+              </View>
+              <View
+                className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusInfo.dotColor} border-2 border-surface dark:border-surface-dark`}
+                accessibilityLabel={`Status: ${statusInfo.label}`}
+              />
+            </View>
+
+            <View className="flex-1">
+              <Text
+                className="text-text-primary dark:text-text-primary-dark font-extrabold text-base"
+                numberOfLines={1}
+              >
+                FitTrack Coach
+              </Text>
+              <Text className={`text-[11px] ${statusInfo.textColor} font-semibold`} numberOfLines={1}>
+                {statusInfo.label}
+              </Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            onPress={handleClearHistory}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="w-11 h-11 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark"
+            accessibilityLabel="Clear chat history"
+          >
+            <Ionicons name="trash-outline" size={18} color={colors.textMuted} />
+          </TouchableOpacity>
+        </View>
+
+        {/* Quick Topic Chips Carousel */}
+        <View className="bg-surface/50 dark:bg-surface-dark/50 border-b border-input-border dark:border-input-border-dark py-1.5 px-3">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row">
+            {QUICK_TOPICS.map((topic) => (
+              <TouchableOpacity
+                key={topic.id}
+                activeOpacity={0.7}
+                onPress={() => handleSend(topic.prompt)}
+                hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
+                className="mr-2 px-3 py-1.5 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center shadow-2xs active:opacity-70"
+              >
+                <Ionicons name={topic.icon} size={13} color={colors.accent} style={{ marginRight: 5 }} />
+                <Text className="text-[11px] font-semibold text-text-primary dark:text-text-primary-dark">
+                  {topic.label}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Reusable Quota Usage Meter */}
+        <View className="px-4 py-2 border-b border-input-border/30 dark:border-input-border-dark/30">
+          <QuotaUsageMeter
+            isPro={isPro}
+            used={dailyLimit !== null && remainingMessages !== null ? Math.max(0, dailyLimit - remainingMessages) : 0}
+            limit={dailyLimit || (isPro ? 150 : 15)}
+            unit="messages"
+            period="day"
+            resetsAt={resetsAt || undefined}
+            onUpgradePress={() => setShowSubscriptionModal(true)}
+          />
+        </View>
+
+        {/* Main Chat Stream */}
         <View className="flex-1 w-full max-w-3xl self-center">
           <ScrollView
             ref={scrollViewRef}
@@ -721,13 +815,22 @@ export default function AiCoachScreen() {
           {/* Bottom Chat Input Bar */}
           <View
             className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark"
-            style={{ paddingBottom: Math.max(12, insets.bottom) }}
+            style={{
+              paddingBottom: isKeyboardVisible
+                ? (Platform.OS === 'ios' ? 8 : 10)
+                : Math.max(20, insets.bottom + 8),
+            }}
           >
             <View className="flex-row items-center gap-2">
               <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2.5 border border-input-border dark:border-input-border-dark min-h-[44px] justify-center max-h-28">
                 <TextInput
                   value={inputText}
                   onChangeText={setInputText}
+                  onFocus={() => {
+                    setTimeout(() => {
+                      scrollViewRef.current?.scrollToEnd({ animated: true });
+                    }, 150);
+                  }}
                   placeholder={
                     quotaReached
                       ? `Daily limit reached (${dailyLimit || (isPro ? 150 : 15)}/${dailyLimit || (isPro ? 150 : 15)}). Resets at midnight UTC...`

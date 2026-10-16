@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TextInputProps, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import FieldLabel from './FieldLabel';
@@ -42,6 +42,20 @@ const Input = React.forwardRef<TextInput, InputProps>(
     const [isFocused, setIsFocused] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
 
+    const inputRef = useRef<TextInput | null>(null);
+
+    const setMergedRef = React.useCallback(
+      (node: TextInput | null) => {
+        inputRef.current = node;
+        if (typeof ref === 'function') {
+          ref(node);
+        } else if (ref) {
+          (ref as any).current = node;
+        }
+      },
+      [ref]
+    );
+
     const isPasswordField = isPassword ?? Boolean(secureTextEntry);
     const shouldBeSecure = isPasswordField ? !showPassword : secureTextEntry;
 
@@ -57,9 +71,14 @@ const Input = React.forwardRef<TextInput, InputProps>(
     return (
       <View className="w-full mb-3">
         {label ? (
-          <FieldLabel className={labelClassName}>
-            {label}
-          </FieldLabel>
+          <Pressable
+            onPress={() => inputRef.current?.focus()}
+            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+          >
+            <FieldLabel className={labelClassName}>
+              {label}
+            </FieldLabel>
+          </Pressable>
         ) : null}
 
         <View
@@ -74,9 +93,9 @@ const Input = React.forwardRef<TextInput, InputProps>(
           {leftIcon ? <View className="mr-2.5 shrink-0">{leftIcon}</View> : null}
 
           <TextInput
-            ref={ref}
+            ref={setMergedRef}
             keyboardAppearance={isDark ? 'dark' : 'light'}
-            className={`flex-1 min-w-0 text-text-primary dark:text-text-primary-dark text-sm py-2.5 ${className}`}
+            className={`flex-1 min-w-0 text-text-primary dark:text-text-primary-dark text-sm py-2.5 min-h-[44px] ${className}`}
             placeholderTextColor={placeholderColor}
             style={style}
             secureTextEntry={shouldBeSecure}

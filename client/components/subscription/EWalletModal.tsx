@@ -218,15 +218,13 @@ export default function EWalletModal({
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View className="flex-row items-center gap-2">
-              <View>
-                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark">
-                  FitTrack e-Wallet
-                </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-                  GCash, Maya & Card Top-Ups
-                </Text>
-              </View>
+            <View className="flex-1 pr-2 min-w-0">
+              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
+                FitTrack e-Wallet
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+                GCash, Maya & Card Top-Ups
+              </Text>
             </View>
             <ModalCloseButton onClose={onClose} />
           </View>
@@ -273,9 +271,14 @@ export default function EWalletModal({
               </Text>
 
               {/* Realistic FX Conversion Indicator */}
-              <View className="flex-row items-center gap-1.5 mb-2.5 px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark">
+              <View className="flex-row items-center gap-1.5 mb-2.5 px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark max-w-full">
                 <Ionicons name="swap-horizontal" size={11} color={colors.textMuted} />
-                <Text className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark">
+                <Text
+                  className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark text-center"
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
+                >
                   {currency === 'PHP'
                     ? `≈ $${(rawBalance / USD_PHP_EXCHANGE_RATE).toFixed(2)} USD (1 USD = ₱${USD_PHP_EXCHANGE_RATE.toFixed(2)})`
                     : `≈ ₱${rawBalance.toFixed(2)} PHP (1 USD = ₱${USD_PHP_EXCHANGE_RATE.toFixed(2)})`}

@@ -8,6 +8,7 @@ import express from 'express'
 import http from 'http'
 import cors from 'cors'
 import helmet from 'helmet'
+import compression from 'compression'
 import { prisma } from './config/db'
 import { initSocketServer } from './socket'
 import authRoutes from './routes/auth.routes'
@@ -29,14 +30,16 @@ import { errorHandler } from './middleware/error.middleware'
 import { authLimiter, generalApiLimiter } from './middleware/rateLimit.middleware'
 import { optionalAuthMiddleware } from './middleware/auth.middleware'
 import { getSubscriptionPlans } from './controllers/subscription.controller'
+import { closeRedisConnections } from './config/redis'
 
 const app = express()
 
 // Trust first proxy hop (e.g., Render, reverse proxies) for accurate client IP in rate limiting
 app.set('trust proxy', 1)
 
-// 1. Security Headers
+// 1. Security & Performance Optimization Headers
 app.use(helmet())
+app.use(compression())
 
 // 2. CORS Whitelisting & Dev Flexibility
 const rawClientOrigin = process.env.CLIENT_ORIGIN?.trim()
@@ -137,6 +140,9 @@ initSocketServer(httpServer, allowedOrigins)
 
 const server = httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
+  if (typeof process.send === 'function') {
+    process.send('ready')
+  }
 })
 
 server.on('error', (err: any) => {
@@ -156,10 +162,11 @@ const gracefulShutdown = (signal: string) => {
     console.log('[Server] HTTP server closed.')
     try {
       await prisma.$disconnect()
-      console.log('[Server] Database connections closed.')
+      await closeRedisConnections()
+      console.log('[Server] Database & Redis connections closed.')
       process.exit(0)
     } catch (dbErr) {
-      console.error('[Server] Error disconnecting database:', dbErr)
+      console.error('[Server] Error disconnecting database or Redis:', dbErr)
       process.exit(1)
     }
   })

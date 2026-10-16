@@ -99,16 +99,16 @@ export default function AdminScreen() {
   }, [authLoading, isAuthenticated, isCurrentUserAdmin, router, showError]);
 
   // Load Data for Active Tab
-  const loadTabContent = useCallback(async () => {
+  const loadTabContent = useCallback(async (isForceRefresh = false) => {
     if (!isCurrentUserAdmin) return;
 
     try {
       if (activeTab === 'overview') {
-        setLoadingStats(true);
+        if (isForceRefresh || !stats) setLoadingStats(true);
         const res = await getAdminSystemStatsApi();
         if (res.success) setStats(res.stats);
       } else if (activeTab === 'users') {
-        setLoadingUsers(true);
+        if (isForceRefresh || users.length === 0) setLoadingUsers(true);
         const res = await getAdminUsersApi({
           search: userSearch,
           role: userRoleFilter,
@@ -116,17 +116,17 @@ export default function AdminScreen() {
         });
         if (res.success) setUsers(res.users);
       } else if (activeTab === 'finance') {
-        setLoadingRevenue(true);
+        if (isForceRefresh || !revenueData) setLoadingRevenue(true);
         const res = await getAdminRevenueOverviewApi();
         if (res.success) setRevenueData(res);
       } else if (activeTab === 'exercises') {
-        setLoadingExercises(true);
+        if (isForceRefresh || exercises.length === 0) setLoadingExercises(true);
         const res = await getWorkoutLibrary(
           selectedMuscle !== 'All' ? { muscle: selectedMuscle } : undefined
         );
         if (res?.exercises) setExercises(res.exercises);
       } else if (activeTab === 'support') {
-        setLoadingTickets(true);
+        if (isForceRefresh || tickets.length === 0) setLoadingTickets(true);
         const filter = ticketFilter === 'ALL' ? undefined : ticketFilter;
         const res = await getAdminTicketsApi(filter);
         if (res.success) setTickets(res.tickets);
@@ -140,7 +140,7 @@ export default function AdminScreen() {
       setLoadingExercises(false);
       setLoadingTickets(false);
     }
-  }, [activeTab, isCurrentUserAdmin, userSearch, userRoleFilter, userTierFilter, selectedMuscle, ticketFilter]);
+  }, [activeTab, isCurrentUserAdmin, userSearch, userRoleFilter, userTierFilter, selectedMuscle, ticketFilter, stats, users.length, revenueData, exercises.length, tickets.length]);
 
   // Sync active tab if param changes after mount
   useEffect(() => {
@@ -171,7 +171,7 @@ export default function AdminScreen() {
 
   const onRefresh = async () => {
     setRefreshing(true);
-    await loadTabContent();
+    await loadTabContent(true);
     setRefreshing(false);
   };
 

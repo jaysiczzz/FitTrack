@@ -51,17 +51,21 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const fetchHistory = useCallback(async () => {
     try {
       // 1. Read local offline history cache first for instant UI response
+      let hasCachedData = false;
       const cached = await AsyncStorage.getItem(historyKey);
       if (cached) {
         try {
           const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed)) {
+          if (Array.isArray(parsed) && parsed.length > 0) {
             setHistory(parsed);
+            hasCachedData = true;
           }
         } catch {}
       }
 
-      if (history.length === 0) setLoading(true);
+      if (!hasCachedData && history.length === 0) {
+        setLoading(true);
+      }
 
       // 2. Fetch fresh history from API
       const res = await getWorkoutHistory();
@@ -241,7 +245,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       const day = String(d.getDate()).padStart(2, '0');
       const dateStr = `${y}-${m}-${day}`;
 
-      const matchedSessions = history.filter((h) => h.dateStr === dateStr);
+      const matchedSessions = history.filter((h) => (h.dateStr || h.completedAt?.slice(0, 10)) === dateStr);
       const isToday = i === 0;
       const dayLabel = isToday ? 'Today' : d.toLocaleDateString('en-US', { weekday: 'narrow' });
 
@@ -268,8 +272,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     let list = history;
 
     if (selectedDayFilter) {
-      const specific = list.filter((s) => s.dateStr === selectedDayFilter);
-      if (specific.length > 0) return specific;
+      return list.filter((s) => (s.dateStr || s.completedAt?.slice(0, 10)) === selectedDayFilter);
     }
 
     if (selectedRange === '7days') {
@@ -279,7 +282,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       const m = String(cutoff.getMonth() + 1).padStart(2, '0');
       const day = String(cutoff.getDate()).padStart(2, '0');
       const cutoffStr = `${y}-${m}-${day}`;
-      return list.filter((s) => (s.dateStr || '') >= cutoffStr);
+      return list.filter((s) => (s.dateStr || s.completedAt?.slice(0, 10) || '') >= cutoffStr);
     }
 
     if (selectedRange === '15days') {
@@ -289,7 +292,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
       const m = String(cutoff.getMonth() + 1).padStart(2, '0');
       const day = String(cutoff.getDate()).padStart(2, '0');
       const cutoffStr = `${y}-${m}-${day}`;
-      return list.filter((s) => (s.dateStr || '') >= cutoffStr);
+      return list.filter((s) => (s.dateStr || s.completedAt?.slice(0, 10) || '') >= cutoffStr);
     }
 
     return list;
@@ -307,7 +310,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const activeDaysInStrip = calendarSlots.filter((s) => s.hasWorkout).length;
   const consistencyPercent = rangeDaysCount > 0 ? Math.round((activeDaysInStrip / rangeDaysCount) * 100) : 0;
 
-  if (loading) {
+  if (loading && history.length === 0) {
     return (
       <View className="py-2 gap-y-3">
         <CardSkeleton lines={3} />
