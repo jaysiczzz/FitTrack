@@ -38,17 +38,18 @@ app.set('trust proxy', 1)
 // 1. Security Headers
 app.use(helmet())
 
-// 2. CORS Whitelisting
-const isProduction = process.env.NODE_ENV === 'production'
-const allowedOrigins = process.env.CLIENT_ORIGIN
-  ? process.env.CLIENT_ORIGIN.split(',').map((o) => o.trim())
-  : isProduction
-  ? []
+// 2. CORS Whitelisting & Dev Flexibility
+const rawClientOrigin = process.env.CLIENT_ORIGIN?.trim()
+const allowedOrigins = rawClientOrigin
+  ? rawClientOrigin.split(',').map((o) => o.trim()).filter(Boolean)
   : [
       'http://localhost:8081', // Expo mobile dev
       'http://localhost:3000', // Web client dev
       'http://localhost:19006', // Expo web dev
+      'http://localhost:5173', // Vite web dev
     ]
+
+const devOriginRegex = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/
 
 app.use(
   cors({
@@ -56,18 +57,27 @@ app.use(
       // Allow requests with no origin (e.g. mobile React Native apps, curl, server-to-server)
       if (!origin) return callback(null, true)
 
+      // Allow wildcard if configured in CLIENT_ORIGIN
+      if (rawClientOrigin === '*' || allowedOrigins.includes('*')) {
+        return callback(null, true)
+      }
+
+      // Check explicitly configured origins
       if (allowedOrigins.includes(origin)) {
         return callback(null, true)
       }
 
-      // In local development, permit localhost and loopback origins
-      if (!isProduction && /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin)) {
+      // Always permit local development and LAN IP origins (essential for Expo mobile & web testing against Render)
+      if (devOriginRegex.test(origin)) {
         return callback(null, true)
       }
 
-      return callback(new Error('Cross-Origin Request blocked by CORS policy'))
+      // Block unallowed origins cleanly without crashing Express with an unhandled 500 error
+      return callback(null, false)
     },
     credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin'],
   })
 )
 

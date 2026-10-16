@@ -86,7 +86,7 @@ export default function MacroSummaryCard({
               kcal
             </Text>
           </Text>
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5" numberOfLines={1}>
+          <Text className="text-[11px] sm:text-xs text-text-muted dark:text-text-muted-dark mt-0.5 leading-tight" numberOfLines={2}>
             {loggedCalories.toLocaleString()} logged of {targets.calories.toLocaleString()} kcal
           </Text>
         </View>

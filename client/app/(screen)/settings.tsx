@@ -7,12 +7,14 @@ import {
   ScrollView,
   Platform,
   ActivityIndicator,
+  DeviceEventEmitter,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useColorScheme } from 'nativewind';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
 import { THEME_STORAGE_KEY } from '@/constants/storageKeys';
@@ -1063,6 +1065,33 @@ export default function Settings() {
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
                 Answers to common nutrition, workout, and app questions
+              </Text>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+          </Pressable>
+
+          {/* Quick Start Guide */}
+          <Pressable
+            className="flex-row items-center border-t border-input-border dark:border-input-border-dark py-3"
+            onPress={async () => {
+              hapticFeedback.light();
+              if (user?.id) {
+                await AsyncStorage.removeItem(authStorage.getScopedKey(user.id, 'quick_start_guide_dismissed'));
+              }
+              DeviceEventEmitter.emit('RESET_QUICK_START_GUIDE');
+              showSuccess('Guide Activated', 'Quick Start Guide is now active on your Dashboard.');
+              router.replace('/(screen)/dashboard');
+            }}
+          >
+            <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
+              <Ionicons name="rocket-outline" size={15} color={colors.accent} />
+            </View>
+            <View className="flex-1">
+              <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
+                First-Day Quick Start Guide
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
+                Re-open the 3-step beginner guide on your Dashboard
               </Text>
             </View>
             <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />

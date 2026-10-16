@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Modal, View, Text, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
@@ -31,6 +32,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   onAddExercise,
   onUpdateExercisePreset,
 }) => {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const [activeTab, setActiveTab] = useState<DetailsTab>('guide');
 
@@ -366,7 +368,10 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
           </ScrollView>
 
           {/* Bottom Action Button */}
-          <View className="p-4 pb-8 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
+          <View
+            className="p-4 pb-8 border-t border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark"
+            style={{ paddingBottom: Math.max(32, insets.bottom + 12) }}
+          >
             <TouchableOpacity
               onPress={handleApplyPreset}
               activeOpacity={0.8}

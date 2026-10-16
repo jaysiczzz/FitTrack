@@ -2,6 +2,7 @@ import React from 'react';
 import { Modal, View, Text, TouchableOpacity, ScrollView, Platform } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
@@ -17,6 +18,7 @@ export default function ExerciseVideoModal({
   exercise,
   onClose,
 }: ExerciseVideoModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
 
   if (!exercise) return null;
@@ -75,7 +77,7 @@ export default function ExerciseVideoModal({
             <ModalCloseButton onClose={onClose} />
           </View>
 
-          <ScrollView className="p-5" contentContainerStyle={{ paddingBottom: 40 }}>
+          <ScrollView className="p-5" contentContainerStyle={{ paddingBottom: Math.max(40, insets.bottom + 20) }}>
             {/* Primary Action: Launch Video Tutorials */}
             <TouchableOpacity
               activeOpacity={0.85}

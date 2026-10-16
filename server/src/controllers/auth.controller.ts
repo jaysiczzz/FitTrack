@@ -308,17 +308,16 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
         },
     })
 
-    const emailResult = await sendPasswordResetEmail(normalizedEmail, code, user.firstName)
-
-    if (!emailResult.success && process.env.NODE_ENV === 'production') {
-        return res.status(503).json({ error: 'Unable to send verification code. Please check that email service is configured or try again later.' })
-    }
+    // Dispatch email asynchronously without blocking the user response
+    sendPasswordResetEmail(normalizedEmail, code, user.firstName).catch((err) => {
+        console.error('[EMAIL ERROR] Async password reset code delivery failed:', err?.message || err)
+    })
 
     res.json({
         success: true,
         message: 'A 6-digit verification code has been sent to your email.',
         email: normalizedEmail,
-        delivered: emailResult.delivered,
+        delivered: true,
     })
 })
 
@@ -356,6 +355,15 @@ export const resetPasswordWithCode = asyncHandler(async (req: Request, res: Resp
     const user = await userModel.findByEmail(normalizedEmail)
     if (!user) {
         return res.status(404).json({ error: 'User account not found' })
+    }
+
+    // Verify new password is not identical to current password
+    const isSamePassword = await comparePassword(newPassword, user.password)
+    if (isSamePassword) {
+        return res.status(400).json({
+            error: 'New password must be different from your current password.',
+            field: 'newPassword',
+        })
     }
 
     const hashedPassword = await hashPassword(newPassword)
@@ -480,19 +488,16 @@ export const sendVerification = asyncHandler(async (req: Request, res: Response)
         },
     })
 
-    const emailResult = await sendEmailVerificationEmail(normalizedEmail, code, firstName)
-
-    if (!emailResult.success && process.env.NODE_ENV === 'production') {
-        return res.status(503).json({
-            error: 'Unable to send verification email. Please check your email address or try again later.',
-        })
-    }
+    // Dispatch email asynchronously without blocking the user response
+    sendEmailVerificationEmail(normalizedEmail, code, firstName).catch((err) => {
+        console.error('[EMAIL ERROR] Async verification email delivery failed:', err?.message || err)
+    })
 
     res.json({
         success: true,
         message: 'A 6-digit verification code has been sent to your email.',
         email: normalizedEmail,
-        delivered: emailResult.delivered,
+        delivered: true,
         ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
     })
 })

@@ -12,6 +12,7 @@ import MacroProgressCard from '@/components/dashboard/MacroProgressCard';
 import WeeklyNutritionChartCard from '@/components/dashboard/WeeklyNutritionChartCard';
 import TodayWorkoutCard, { DashboardWorkoutExercise } from '@/components/dashboard/TodayWorkoutCard';
 import CommunityStoriesCard from '@/components/dashboard/CommunityStoriesCard';
+import QuickStartGuideCard from '@/components/dashboard/QuickStartGuideCard';
 import TestimonialModal from '@/components/settings/TestimonialModal';
 import { CardSkeleton, StatCardSkeleton } from '@/components/ui/Skeleton';
 import { Ionicons } from '@expo/vector-icons';
@@ -56,6 +57,8 @@ export default function Dashboard() {
   // Testimonials & Athlete Stories Modal State
   const [showTestimonialsModal, setShowTestimonialsModal] = useState(false);
   const [testimonialInitialTab, setTestimonialInitialTab] = useState<'feed' | 'write'>('feed');
+
+  const [isQuickStartActive, setIsQuickStartActive] = useState<boolean | null>(null);
 
   const params = useLocalSearchParams<{ modal?: string; tab?: string }>();
 
@@ -294,15 +297,12 @@ export default function Dashboard() {
               if (isCompleted) {
                 // If day is completed, use meals for dashboard metrics but keep active foodKey clean
                 items = mappedCloudMeals;
-              } else if (localItems.length === 0 || localItems.length < cloudRes.data.meals.length) {
+              } else if (savedLog === null && localItems.length === 0) {
+                // Only hydrate if there was NO local cache at all on this device
                 items = mappedCloudMeals;
-                await AsyncStorage.setItem(foodKey, JSON.stringify(items));
                 dashboardItemsRef.current = items;
-              } else if (localItems.length > cloudRes.data.meals.length) {
-                autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
+                await AsyncStorage.setItem(foodKey, JSON.stringify(items));
               }
-            } else if (!isCompleted && localItems.length > 0) {
-              autoSyncFoodAndWater(userId, todayKey, localItems, waterMlRef.current);
             }
 
             const cloudWater = typeof cloudRes.data.waterMl === 'number' ? cloudRes.data.waterMl : 0;
@@ -311,9 +311,6 @@ export default function Dashboard() {
               await AsyncStorage.setItem(waterKey, finalWater.toString());
             } else {
               finalWater = localWater;
-              if (localWater !== cloudWater) {
-                autoSyncFoodAndWater(userId, todayKey, items, localWater);
-              }
             }
 
             computeAndSetMacros(items, finalWater, isCompleted);
@@ -714,8 +711,8 @@ export default function Dashboard() {
           {/* Header Greeting */}
           <View className="flex-row items-center justify-between mb-4">
             <View className="flex-1 mr-2">
-              <Text className="text-text-primary dark:text-text-primary-dark text-2xl font-black tracking-tight">
-                {getGreeting()}, {userName} 
+              <Text className="text-text-primary dark:text-text-primary-dark text-xl sm:text-2xl font-black tracking-tight leading-tight">
+                {getGreeting()}, {userName}
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium mt-0.5">
                 {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' })}
@@ -729,7 +726,7 @@ export default function Dashboard() {
               }}
               activeOpacity={0.8}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-surface dark:bg-surface-dark border-0 shadow-sm shadow-slate-200/70 dark:shadow-none"
+              className="flex-shrink-0 flex-row items-center gap-1.5 px-3 py-2 rounded-xl bg-surface dark:bg-surface-dark border-0 shadow-sm shadow-slate-200/70 dark:shadow-none"
               accessibilityLabel="Activity Calendar"
             >
               <Ionicons name="calendar-outline" size={15} color={colors.textPrimary} style={{ marginRight: 2 }} />
@@ -757,6 +754,26 @@ export default function Dashboard() {
             </View>
           ) : (
             <>
+              {/* Beginner Quick Start Guide */}
+              <QuickStartGuideCard
+                isCheckedIn={isCheckedIn}
+                hasLoggedMeal={caloriesLogged > 0 || ((dashboardItemsRef.current?.length || 0) > 0)}
+                hasLoggedWorkout={workoutSessionDone || activeMinutesToday > 0 || workoutsThisWeek > 0}
+                onCheckInPress={() => {
+                  scrollRef.current?.scrollTo({ y: 0, animated: true });
+                }}
+                onLogMealPress={() => {
+                  router.push('/(screen)/foodlog' as any);
+                }}
+                onWorkoutPress={() => {
+                  router.push('/(screen)/workouts' as any);
+                }}
+                onAiCoachPress={() => {
+                  router.push('/(screen)/ai-coach' as any);
+                }}
+                onActiveStateChange={setIsQuickStartActive}
+              />
+
               {/* Motivation-Based Daily Check-In */}
               <DailyCheckInCard
                 onCheckInCompleted={() => {
@@ -846,23 +863,25 @@ export default function Dashboard() {
                 targetWorkoutMinutes={45}
               />
 
-              {/* Interactive Daily Goals Checklist */}
-              <DailyGoalsCard
-                isCheckedIn={isCheckedIn}
-                caloriesLogged={caloriesLogged}
-                targetCalories={targetCalories}
-                activeMinutes={activeMinutesToday}
-                completedExercisesCount={completedExercisesCount}
-                totalExercisesCount={todayExercises.length}
-                workoutSessionDone={workoutSessionDone}
-                isNutritionDone={isNutritionDone}
-                waterMl={waterMl}
-                targetWaterMl={targetWater}
-                onQuickAddWater={handleQuickAddWater}
-                onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
-                scheduledRoutine={todayScheduledRoutine}
-                isRestDay={isTodayRestDay}
-              />
+              {/* Interactive Daily Goals Checklist (auto-unveiled after Quick Start is completed or dismissed) */}
+              {isQuickStartActive === false && (
+                <DailyGoalsCard
+                  isCheckedIn={isCheckedIn}
+                  caloriesLogged={caloriesLogged}
+                  targetCalories={targetCalories}
+                  activeMinutes={activeMinutesToday}
+                  completedExercisesCount={completedExercisesCount}
+                  totalExercisesCount={todayExercises.length}
+                  workoutSessionDone={workoutSessionDone}
+                  isNutritionDone={isNutritionDone}
+                  waterMl={waterMl}
+                  targetWaterMl={targetWater}
+                  onQuickAddWater={handleQuickAddWater}
+                  onCheckInPress={() => scrollRef.current?.scrollTo({ y: 0, animated: true })}
+                  scheduledRoutine={todayScheduledRoutine}
+                  isRestDay={isTodayRestDay}
+                />
+              )}
 
               {/* Community Athlete Stories & Testimonials */}
               <CommunityStoriesCard

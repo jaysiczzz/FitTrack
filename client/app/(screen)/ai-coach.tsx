@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
   Keyboard,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -84,6 +84,7 @@ const INITIAL_GREETING: ChatMessage = {
 };
 
 export default function AiCoachScreen() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { colors } = useThemeColors();
   const { user } = useAuth();
@@ -95,6 +96,7 @@ export default function AiCoachScreen() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [showClearConfirm, setShowClearConfirm] = useState(false);
   const [failedMessage, setFailedMessage] = useState<string | null>(null);
+  const [isConnectionError, setIsConnectionError] = useState(false);
 
   // Quota & tier tracking
   const [isPro, setIsPro] = useState(false);
@@ -106,6 +108,43 @@ export default function AiCoachScreen() {
 
   const scrollViewRef = useRef<ScrollView>(null);
   const storageKey = authStorage.getScopedKey(user?.id, 'ai_coach_chat_history');
+
+  // Dynamic reactive presence status based on genuine network, model, and quota states
+  const statusInfo = useMemo(() => {
+    if (isSending) {
+      return {
+        label: 'Thinking...',
+        dotColor: 'bg-accent dark:bg-accent-dark',
+        textColor: 'text-accent dark:text-accent-dark',
+      };
+    }
+    if (failedMessage || isConnectionError) {
+      return {
+        label: 'Offline · Check connection',
+        dotColor: 'bg-rose-500',
+        textColor: 'text-rose-600 dark:text-rose-400',
+      };
+    }
+    if (quotaReached || (remainingMessages !== null && remainingMessages <= 0)) {
+      return {
+        label: 'Daily limit reached',
+        dotColor: 'bg-amber-500',
+        textColor: 'text-amber-600 dark:text-amber-400',
+      };
+    }
+    if (isLoadingHistory) {
+      return {
+        label: 'Connecting...',
+        dotColor: 'bg-slate-400 dark:bg-slate-500',
+        textColor: 'text-text-muted dark:text-text-muted-dark',
+      };
+    }
+    return {
+      label: 'Online · Ready to help',
+      dotColor: 'bg-emerald-500',
+      textColor: 'text-emerald-600 dark:text-emerald-400',
+    };
+  }, [isSending, failedMessage, isConnectionError, quotaReached, remainingMessages, isLoadingHistory]);
 
   // Load chat history: Local cache first, then cloud synchronization
   useEffect(() => {
@@ -131,6 +170,7 @@ export default function AiCoachScreen() {
       try {
         const cloudRes = await getChatHistoryApi();
         if (cloudRes?.success && isMounted) {
+          setIsConnectionError(false);
           if (cloudRes.isPro !== undefined) setIsPro(cloudRes.isPro);
           if (cloudRes.dailyLimit !== undefined) setDailyLimit(cloudRes.dailyLimit);
           if (cloudRes.resetsAt !== undefined) setResetsAt(cloudRes.resetsAt);
@@ -147,6 +187,7 @@ export default function AiCoachScreen() {
         }
       } catch (cloudErr) {
         // Graceful offline fallback: keep local cache
+        if (isMounted) setIsConnectionError(true);
         console.log('Cloud chat sync offline or unreachable, using local storage.');
       }
     }
@@ -187,6 +228,7 @@ export default function AiCoachScreen() {
 
     try {
       await clearChatHistoryApi();
+      setIsConnectionError(false);
     } catch (err) {
       console.warn('Could not clear cloud chat history:', err);
     }
@@ -205,12 +247,13 @@ export default function AiCoachScreen() {
     }
 
     if (isPro && remainingMessages !== null && remainingMessages <= 0) {
-      showError('Fair Use Limit Reached', "You have reached today's Fair Use limit of 100 AI Coach messages. Your quota will refresh at midnight.");
+      showError('Fair Use Limit Reached', `You have reached today's Fair Use limit of ${dailyLimit || 150} AI Coach messages. Your quota will refresh at midnight.`);
       return;
     }
 
     setInputText('');
     setFailedMessage(null);
+    setIsConnectionError(false);
     Keyboard.dismiss();
 
     const userMsg: ChatMessage = {
@@ -270,13 +313,22 @@ export default function AiCoachScreen() {
           setMessages(finalMessages);
           await persistMessagesLocally(finalMessages);
           streamSuccess = true;
-          if (!isPro && remainingMessages !== null) {
+          setIsConnectionError(false);
+          if (remainingMessages !== null) {
             const nextRemaining = Math.max(0, remainingMessages - 1);
             setRemainingMessages(nextRemaining);
             if (nextRemaining === 0) setQuotaReached(true);
           }
         }
-      } catch {
+      } catch (streamErr: any) {
+        const streamErrText = streamErr?.message || '';
+        if (
+          streamErrText.includes('LIMIT_REACHED') ||
+          streamErrText.includes('DAILY_AI_LIMIT_REACHED') ||
+          streamErr?.status === 429
+        ) {
+          throw streamErr;
+        }
         // Stream failed, will fall back to standard JSON call below
       }
 
@@ -284,6 +336,7 @@ export default function AiCoachScreen() {
         // Fallback to standard request
         const res = await chatWithCoachApi(apiPayload);
         if (res.success && res.message) {
+          setIsConnectionError(false);
           if (res.isPro !== undefined) setIsPro(res.isPro);
           if (res.dailyLimit !== undefined) setDailyLimit(res.dailyLimit);
           if (res.resetsAt !== undefined) setResetsAt(res.resetsAt);
@@ -300,6 +353,7 @@ export default function AiCoachScreen() {
           setMessages(finalMessages);
           await persistMessagesLocally(finalMessages);
         } else {
+          setIsConnectionError(true);
           setMessages(updatedMessages);
           setFailedMessage(textToSend);
           showError('Coach Offline', 'Could not get a response from your AI Coach. Tap retry below.');
@@ -313,6 +367,7 @@ export default function AiCoachScreen() {
         errText.includes('DAILY_AI_LIMIT_REACHED') ||
         err?.status === 429
       ) {
+        setIsConnectionError(false);
         setMessages(updatedMessages);
         setQuotaReached(true);
         setRemainingMessages(0);
@@ -322,6 +377,7 @@ export default function AiCoachScreen() {
           `Daily message limit of ${dailyLimit || (isPro ? 150 : 15)} reached. Resets at midnight UTC.`
         );
       } else {
+        setIsConnectionError(true);
         setMessages(updatedMessages);
         setFailedMessage(textToSend);
         showError('Message Failed', 'Unable to reach AI Coach right now. Check your connection.');
@@ -332,9 +388,9 @@ export default function AiCoachScreen() {
     }
   };
 
-
   const handleRetryFailed = () => {
     if (failedMessage) {
+      setIsConnectionError(false);
       const msg = failedMessage;
       setFailedMessage(null);
       handleSend(msg);
@@ -361,7 +417,6 @@ export default function AiCoachScreen() {
             return (
               <Text
                 key={lineIdx}
-                selectable
                 className={`text-sm font-black mt-1 mb-0.5 ${
                   isUser ? 'text-white' : 'text-text-primary dark:text-text-primary-dark'
                 }`}
@@ -394,8 +449,7 @@ export default function AiCoachScreen() {
             >
               {(isBullet || isNumbered) && (
                 <Text
-                  selectable
-                  className={`text-xs mr-1.5 font-bold ${
+                  className={`text-xs mr-1.5 font-bold shrink-0 ${
                     isUser
                       ? 'text-white'
                       : isNumbered
@@ -407,8 +461,9 @@ export default function AiCoachScreen() {
                 </Text>
               )}
               <Text
-                selectable
-                className={`text-sm leading-5 flex-1 ${
+                className={`text-sm leading-5 ${
+                  isBullet || isNumbered ? 'flex-1' : ''
+                } ${
                   isUser
                     ? 'text-white font-medium'
                     : 'text-text-primary dark:text-text-primary-dark font-normal'
@@ -419,7 +474,6 @@ export default function AiCoachScreen() {
                     return (
                       <Text
                         key={pIdx}
-                        selectable
                         className={`font-black ${
                           isUser
                             ? 'text-white'
@@ -430,7 +484,18 @@ export default function AiCoachScreen() {
                       </Text>
                     );
                   }
-                  return <Text key={pIdx} selectable>{part}</Text>;
+                  return (
+                    <Text
+                      key={pIdx}
+                      className={
+                        isUser
+                          ? 'text-white'
+                          : 'text-text-primary dark:text-text-primary-dark'
+                      }
+                    >
+                      {part}
+                    </Text>
+                  );
                 })}
               </Text>
             </View>
@@ -441,7 +506,7 @@ export default function AiCoachScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark" style={{ flex: 1 }}>
       {/* Top Header */}
       <View className="flex-row items-center justify-between px-4 py-3 bg-surface dark:bg-surface-dark border-b border-input-border dark:border-input-border-dark shadow-xs z-10">
         <View className="flex-row items-center flex-1">
@@ -465,7 +530,10 @@ export default function AiCoachScreen() {
             <View className="w-10 h-10 rounded-full bg-accent/15 dark:bg-accent-dark/20 items-center justify-center border border-accent/40 dark:border-accent-dark/40">
               <Ionicons name="fitness" size={20} color={colors.accent} />
             </View>
-            <View className="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-500 border-2 border-surface dark:border-surface-dark" />
+            <View
+              className={`absolute bottom-0 right-0 w-3 h-3 rounded-full ${statusInfo.dotColor} border-2 border-surface dark:border-surface-dark`}
+              accessibilityLabel={`Status: ${statusInfo.label}`}
+            />
           </View>
 
           <View className="flex-1">
@@ -475,15 +543,9 @@ export default function AiCoachScreen() {
             >
               FitTrack Coach
             </Text>
-            {!isPro && remainingMessages !== null ? (
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
-                {remainingMessages} of {dailyLimit || 15} free messages left today
-              </Text>
-            ) : isPro ? (
-              <Text className="text-[10px] text-accent dark:text-accent-dark font-semibold">
-                FitTrack Pro · {remainingMessages !== null ? `${remainingMessages} of ${dailyLimit || 150} messages left today` : `${dailyLimit || 150} messages / day`}
-              </Text>
-            ) : null}
+            <Text className={`text-[11px] ${statusInfo.textColor} font-semibold`} numberOfLines={1}>
+              {statusInfo.label}
+            </Text>
           </View>
         </View>
 
@@ -532,16 +594,20 @@ export default function AiCoachScreen() {
       </View>
 
       {/* Main Chat Stream */}
-      <KeyboardAvoidingView className="flex-1">
+      <KeyboardAvoidingView
+        className="flex-1"
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
         <View className="flex-1 w-full max-w-3xl self-center">
           <ScrollView
             ref={scrollViewRef}
             className="flex-1 px-4 pt-3"
-            contentContainerStyle={{ paddingBottom: 24 }}
+            contentContainerStyle={{ paddingBottom: 24, flexGrow: 1 }}
             keyboardShouldPersistTaps="handled"
             onContentSizeChange={() => scrollToBottom(false)}
           >
-            {isLoadingHistory ? (
+            {isLoadingHistory && messages.length === 0 ? (
               <View className="py-12 items-center justify-center">
                 <ActivityIndicator size="small" color={colors.accent} />
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-2 font-medium">
@@ -653,7 +719,10 @@ export default function AiCoachScreen() {
           )}
 
           {/* Bottom Chat Input Bar */}
-          <View className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark">
+          <View
+            className="px-4 py-3 bg-surface dark:bg-surface-dark border-t border-input-border dark:border-input-border-dark"
+            style={{ paddingBottom: Math.max(12, insets.bottom) }}
+          >
             <View className="flex-row items-center gap-2">
               <View className="flex-1 bg-input dark:bg-input-dark rounded-2xl px-3.5 py-2.5 border border-input-border dark:border-input-border-dark min-h-[44px] justify-center max-h-28">
                 <TextInput

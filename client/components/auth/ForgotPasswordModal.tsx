@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { useToast } from '@/context/ToastContext';
 import { forgotPasswordApi, resetPasswordWithCodeApi } from '@/api/auth';
@@ -33,6 +34,7 @@ export default function ForgotPasswordModal({
   onClose,
   onSuccess,
 }: ForgotPasswordModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
@@ -121,8 +123,8 @@ export default function ForgotPasswordModal({
     const trimmedEmail = email.trim().toLowerCase();
     const trimmedCode = code.trim();
 
-    if (!trimmedCode || trimmedCode.length !== 6) {
-      fail('code', 'Please enter the 6-digit verification code.');
+    if (!trimmedCode || trimmedCode.length !== 6 || !/^\d{6}$/.test(trimmedCode)) {
+      fail('code', 'Please enter the 6-digit numeric verification code.');
       return;
     }
 
@@ -169,7 +171,10 @@ export default function ForgotPasswordModal({
       >
         <Pressable className="flex-1 w-full" onPress={handleClose} />
 
-        <View className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl">
+        <View
+          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View>
@@ -239,7 +244,8 @@ export default function ForgotPasswordModal({
                     <TextInput
                       value={code}
                       onChangeText={(val) => {
-                        setCode(val);
+                        const digitsOnly = val.replace(/\D/g, '').slice(0, 6);
+                        setCode(digitsOnly);
                         if (errorMsg) setErrorMsg(null);
                       }}
                       placeholder="123456"

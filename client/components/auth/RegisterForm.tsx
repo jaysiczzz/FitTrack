@@ -1,13 +1,11 @@
 import React, { useState, useRef } from 'react';
-import { View, TextInput } from 'react-native';
+import { View, TextInput, Text } from 'react-native';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import PasswordRequirements from '@/components/ui/PasswordRequirements';
 import { validatePasswordStrength, EMAIL_REGEX } from '@/utils/passwordValidation';
-import { checkEmailApi } from '@/api/auth';
 import { capitalizeWords } from '@/utils/formatters';
 import { useRegistration } from '@/context/RegistrationContext';
-import { useResponsive } from '@/hooks/useResponsive';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 
 interface Props {
@@ -19,8 +17,6 @@ interface Props {
 
 const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearError }) => {
   const { data: savedData } = useRegistration();
-  const { width } = useResponsive();
-  const isNarrow = width < 380;
   const [firstName, setFirstName] = useState(savedData?.firstName || '');
   const [lastName, setLastName] = useState(savedData?.lastName || '');
   const [email, setEmail] = useState(savedData?.email || '');
@@ -30,7 +26,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
   const [lastNameError, setLastNameError] = useState('');
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-  const [checkingEmail, setCheckingEmail] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   const lastNameRef = useRef<TextInput>(null);
   const emailRef = useRef<TextInput>(null);
@@ -96,9 +92,8 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
     if (!valid) return;
 
     if (onClearError) onClearError();
-    setCheckingEmail(true);
+    setSubmitting(true);
     try {
-      await checkEmailApi(trimmedEmail);
       await onSubmit({
         firstName: capitalizeWords(firstName),
         lastName: capitalizeWords(lastName),
@@ -106,16 +101,18 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
         password,
       });
     } catch (err: any) {
-      setEmailError(getFriendlyErrorMessage(err, 'An account with this email already exists. Please log in.'));
+      const friendlyMsg = getFriendlyErrorMessage(err, 'An account with this email already exists. Please log in.');
+      setEmailError(friendlyMsg);
+      if (onError) onError(friendlyMsg);
     } finally {
-      setCheckingEmail(false);
+      setSubmitting(false);
     }
   };
 
   return (
     <View className="w-full">
-      <View className={`w-full ${isNarrow ? 'flex-col' : 'flex-row gap-2.5'}`}>
-        <View className={isNarrow ? 'w-full' : 'flex-1'}>
+      <View className="w-full flex-row items-start gap-2.5">
+        <View className="flex-1">
           <Input
             className="w-full"
             label="First Name"
@@ -135,7 +132,7 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
             blurOnSubmit={false}
           />
         </View>
-        <View className={isNarrow ? 'w-full' : 'flex-1'}>
+        <View className="flex-1">
           <Input
             className="w-full"
             ref={lastNameRef}
@@ -198,7 +195,16 @@ const RegisterForm: React.FC<Props> = ({ onSubmit, loading, onError, onClearErro
       />
       <PasswordRequirements password={password} />
 
-      <Button title="Proceed" onPress={handleSubmit} loading={loading || checkingEmail} />
+      <Button
+        title={loading || submitting ? 'Sending verification code...' : 'Proceed'}
+        onPress={handleSubmit}
+        loading={loading || submitting}
+      />
+      {(loading || submitting) && (
+        <Text className="text-text-muted dark:text-text-muted-dark text-xs text-center mt-2.5">
+          Sending 6-digit verification code to your email...
+        </Text>
+      )}
     </View>
   );
 };

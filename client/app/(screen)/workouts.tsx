@@ -188,7 +188,7 @@ export default function Workouts() {
   const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
   const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
   const [isRestDay, setIsRestDay] = useState(false);
-  const [completedSessionsCount, setCompletedSessionsCount] = useState(0);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState<number | null>(null);
   const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
   const [loading, setLoading] = useState(!screenCache.workoutsLoaded);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
@@ -229,12 +229,12 @@ export default function Workouts() {
       carbsLogged: 0,
       fatLogged: 0,
       targetCalories: 2000,
-      targetProtein: 150,
-      targetCarbs: 200,
-      targetFat: 60,
+      targetProtein: 0,
+      targetCarbs: 0,
+      targetFat: 0,
       waterMl: 0,
       targetWater: 2000,
-      userGoal: (user?.goal as any) || 'MUSCLE_GAIN',
+      userGoal: user?.goal === 'WEIGHT_LOSS' ? 'WEIGHT_LOSS' : 'MUSCLE_GAIN',
       todayExercises: mappedWorkoutExercises,
       workoutSessionDone: Boolean(completedStats),
       todayCompletedWorkoutStats: completedStats,
@@ -448,7 +448,7 @@ export default function Workouts() {
         }
       }
     } catch (err) {
-      setCompletedSessionsCount(0);
+      setCompletedSessionsCount(null);
       setCompletedStats(null);
     }
   };
@@ -1244,7 +1244,7 @@ export default function Workouts() {
             setActiveTab(tab);
             if (tab === 'today') fetchScheduledRoutine();
           }}
-          historyCount={completedSessionsCount}
+          historyCount={completedSessionsCount ?? undefined}
         />
       </View>
 
@@ -1275,7 +1275,7 @@ export default function Workouts() {
                   onUpdateExercisePreset={handleUpdateExercisePreset}
                   onNavigateToLibrary={() => setActiveTab('library')}
                   onOpenAiGenerator={() => setShowAiModal(true)}
-                  onStartBeginnerRoutine={() => handleStartRoutine(DEFAULT_BEGINNER_ROUTINE)}
+                  onStartBeginnerRoutine={(routine) => handleStartRoutine(routine || DEFAULT_BEGINNER_ROUTINE)}
                   onCompleteSession={() => setShowCompleteModal(true)}
                   onStartRestTimer={(seconds, exerciseName) =>
                     startRestTimer(seconds, exerciseName)

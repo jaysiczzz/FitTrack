@@ -15,6 +15,8 @@ import { useThemeColors } from '@/constants/colors';
 import { useWorkoutTimer } from '@/context/WorkoutTimerContext';
 import { useWeightUnit, convertFromKg } from '@/constants/units';
 import ConfirmModal from '../ui/ConfirmModal';
+import { useAuth } from '@/context/AuthContext';
+import { getFirstSessionState } from './firstSessionHelper';
 
 export interface TodayExerciseItem {
   key: string;
@@ -68,7 +70,7 @@ interface TodayWorkoutTabProps {
   exercises: TodayExerciseItem[];
   loading?: boolean;
   isRestDay?: boolean;
-  completedSessionsCount?: number;
+  completedSessionsCount?: number | null;
   completedStats?: { duration: number; caloriesBurned: number } | null;
   scheduledRoutine?: WorkoutRoutineTemplate | null;
   onLoadScheduledRoutine?: () => void;
@@ -81,7 +83,7 @@ interface TodayWorkoutTabProps {
   onUpdateExercisePreset?: (exerciseKey: string, customized: LibraryExercise) => void;
   onNavigateToLibrary: () => void;
   onOpenAiGenerator?: () => void;
-  onStartBeginnerRoutine?: () => void;
+  onStartBeginnerRoutine?: (routine?: WorkoutRoutineTemplate) => void;
   onCompleteSession: () => void;
   onStartRestTimer?: (seconds: number, exerciseName?: string) => void;
 }
@@ -90,7 +92,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   exercises,
   loading = false,
   isRestDay = false,
-  completedSessionsCount = 0,
+  completedSessionsCount = null,
   completedStats,
   scheduledRoutine,
   onLoadScheduledRoutine,
@@ -108,6 +110,8 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   onStartRestTimer,
 }) => {
   const { colors } = useThemeColors();
+  const { user } = useAuth();
+  const firstSession = getFirstSessionState(completedSessionsCount, user?.goal);
   const { showWarning } = useToast();
   const { startRestTimer } = useWorkoutTimer();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
@@ -121,7 +125,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
   const [pendingRestAction, setPendingRestAction] = useState<'library' | 'ai' | null>(null);
   const [weightUnit] = useWeightUnit();
   const unitLabel = weightUnit.toLowerCase();
-  const [hideBeginnerSpotlight, setHideBeginnerSpotlight] = useState(false);
 
   const handleToggleSetWithRest = (exercise: TodayExerciseItem, setId: string) => {
     const targetSet = exercise.sets.find((s) => s.id === setId);
@@ -396,6 +399,69 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 onViewDetails={() => handleOpenDetailsByName(item)}
               />
             ))
+          ) : firstSession.isFirstSession && firstSession.starterPlan ? (
+            /* Day 1 Starter Routine for brand-new users */
+            <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
+              <View className="flex-row items-center justify-between mb-1.5">
+                <View className="flex-row items-center gap-1.5">
+                  <Ionicons name="sparkles" size={14} color={colors.accent} />
+                  <Text className="text-[11px] font-black text-accent dark:text-accent-dark uppercase tracking-wider">
+                    {firstSession.starterPlan.category} • Day 1 Starter
+                  </Text>
+                </View>
+                <Text className="text-[10px] text-text-muted font-bold">
+                  ~{firstSession.starterPlan.estimatedDurationMinutes} min
+                </Text>
+              </View>
+
+              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark mb-1">
+                {firstSession.starterPlan.title}
+              </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4 mb-3">
+                {firstSession.starterPlan.description}
+              </Text>
+
+              {onStartBeginnerRoutine && (
+                <TouchableOpacity
+                  activeOpacity={0.8}
+                  onPress={() => onStartBeginnerRoutine(firstSession.starterPlan || undefined)}
+                  accessibilityRole="button"
+                  accessibilityLabel="Start Day 1 Workout"
+                  className="bg-accent dark:bg-accent-dark min-h-[48px] py-3 rounded-xl items-center flex-row justify-center gap-2 shadow-sm active:opacity-90"
+                >
+                  <Ionicons name="play" size={15} color={colors.accentContrast} />
+                  <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-baloo-bold uppercase tracking-wider">
+                    Start Day 1 Workout ({firstSession.starterPlan.exercises.length} Exercises)
+                  </Text>
+                </TouchableOpacity>
+              )}
+
+              <View className="flex-row items-center justify-center gap-4 mt-3 pt-2.5 border-t border-accent/20">
+                <TouchableOpacity
+                  onPress={onNavigateToLibrary}
+                  accessibilityRole="button"
+                  hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  className="flex-row items-center gap-1 min-h-[44px]"
+                >
+                  <Ionicons name="barbell-outline" size={14} color={colors.accent} />
+                  <Text className="text-xs font-baloo-semibold text-accent dark:text-accent-dark">Browse Library</Text>
+                </TouchableOpacity>
+                {onNavigateToPlanner && (
+                  <>
+                    <Text className="text-text-muted text-xs">•</Text>
+                    <TouchableOpacity
+                      onPress={onNavigateToPlanner}
+                      accessibilityRole="button"
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      className="flex-row items-center gap-1 min-h-[44px]"
+                    >
+                      <Ionicons name="calendar-outline" size={14} color={colors.textMuted} />
+                      <Text className="text-xs font-baloo-semibold text-text-muted dark:text-text-muted-dark">View Split Planner</Text>
+                    </TouchableOpacity>
+                  </>
+                )}
+              </View>
+            </SurfaceCard>
           ) : scheduledRoutine ? (
             /* Scheduled Routine from Planner Spotlight */
             <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
@@ -508,50 +574,6 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
           ) : (
             /* Default Empty State */
             <View className="my-2">
-              {/* Beginner Quick-Start Spotlight: Displayed only for new users with 0 logged workouts */}
-              {onStartBeginnerRoutine && completedSessionsCount === 0 && !hideBeginnerSpotlight && (
-                <View className="mb-3.5 p-4 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/40 shadow-xs">
-                  <View className="flex-row items-center justify-between mb-1.5">
-                    <View className="flex-row items-center gap-1.5">
-                      <Ionicons name="sparkles" size={14} color={colors.accent} />
-                      <Text className="text-[10px] font-black uppercase text-accent dark:text-accent-dark tracking-wider">
-                        New to lifting?
-                      </Text>
-                    </View>
-                    <View className="flex-row items-center gap-2">
-                      <View className="px-2 py-0.5 rounded-full bg-accent/20 border border-accent/30">
-                        <Text className="text-[9px] font-extrabold text-accent dark:text-accent-dark">
-                          Beginner Recommended
-                        </Text>
-                      </View>
-                      <TouchableOpacity
-                        onPress={() => setHideBeginnerSpotlight(true)}
-                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                        accessibilityLabel="Dismiss beginner routine suggestion"
-                      >
-                        <Ionicons name="close" size={16} color={colors.textMuted} />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                  <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark mb-1">
-                    Day 1: Full-Body Foundations
-                  </Text>
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-4 mb-3">
-                    Safe, guided movements (Dumbbells & Bodyweight) with light starter weights, clear form cues, and built-in rest periods.
-                  </Text>
-                  <TouchableOpacity
-                    onPress={onStartBeginnerRoutine}
-                    activeOpacity={0.8}
-                    className="bg-accent dark:bg-accent-dark min-h-[44px] py-2.5 px-4 rounded-xl flex-row items-center justify-center gap-2 shadow-xs active:opacity-90"
-                  >
-                    <Ionicons name="play" size={14} color={colors.accentContrast} />
-                    <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-black">
-                      Start Beginner Routine (4 Exercises)
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-
               <View className="rounded-2xl border border-dashed border-input-border dark:border-input-border-dark p-6 items-center justify-center bg-surface dark:bg-surface-dark">
                 <View className="w-14 h-14 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mb-3">
                   <Ionicons name="barbell" size={26} color={colors.textMuted} />

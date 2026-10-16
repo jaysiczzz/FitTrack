@@ -36,16 +36,27 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
   if (ctx.workoutSessionDone) {
     const duration = ctx.todayCompletedWorkoutStats?.duration || 35;
     const caloriesBurned = ctx.todayCompletedWorkoutStats?.caloriesBurned || 240;
-    const protDiff = ctx.targetProtein - ctx.proteinLogged;
     const recProtein = ctx.gender === 'FEMALE' ? '20-25g' : '25-35g';
+    const hasLoggedProtein = typeof ctx.proteinLogged === 'number' && ctx.proteinLogged > 0;
+    const targetProt = ctx.targetProtein || 140;
+    const protDiff = targetProt - (ctx.proteinLogged || 0);
+
+    let recoveryProteinLine: string;
+    if (hasLoggedProtein) {
+      if (protDiff > 0) {
+        recoveryProteinLine = `Consume ${recProtein} of protein in your post-workout window to initiate muscle protein synthesis (${protDiff}g remaining today).`;
+      } else {
+        recoveryProteinLine = `Daily protein target achieved! Focus on cellular rehydration and restful recovery.`;
+      }
+    } else {
+      recoveryProteinLine = `Consume ${recProtein} of high-quality protein in your post-workout window to initiate muscle protein synthesis and recovery.`;
+    }
 
     workoutInsight = {
       title: 'Workout Completed · Anabolic Recovery',
       lines: [
         `Finished ${duration} min session (${caloriesBurned} kcal burned). Your ${streakText} is officially locked in!`,
-        protDiff > 0
-          ? `Consume ${recProtein} of protein in your post-workout window to initiate muscle protein synthesis (${protDiff}g remaining today).`
-          : `Daily protein target achieved! Focus on cellular rehydration and restful recovery.`,
+        recoveryProteinLine,
       ],
     };
   } else if (totalExCount > 0) {
@@ -71,17 +82,17 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
       title: 'Training Consistency & Readiness',
       lines: [
         `No workout recorded yet today. Even a 25-minute workout keeps your ${streakText} and momentum going.`,
-        `Explore pre-designed routines in the Workout tab or select custom exercises.`,
+        `Explore pre-designed routines or select custom exercises to get started.`,
       ],
     };
   }
 
   // 2. Macronutrient & Energy Balance
   let nutritionInsight: AIInsight;
-  const calLogged = ctx.caloriesLogged;
-  const calTarget = ctx.targetCalories;
-  const protLogged = ctx.proteinLogged;
-  const protTarget = ctx.targetProtein;
+  const calLogged = ctx.caloriesLogged || 0;
+  const calTarget = Math.max(1, ctx.targetCalories || 2000);
+  const protLogged = ctx.proteinLogged || 0;
+  const protTarget = Math.max(1, ctx.targetProtein || 140);
   const calRemaining = Math.max(0, calTarget - calLogged);
   const protRemaining = Math.max(0, protTarget - protLogged);
   const calPct = Math.round((calLogged / calTarget) * 100);
@@ -118,7 +129,15 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
     }
   } else {
     // MUSCLE_GAIN
-    if (calRemaining > 600) {
+    if (calLogged > calTarget + 300) {
+      nutritionInsight = {
+        title: 'Caloric Surplus Advisory',
+        lines: [
+          `Logged ${calLogged} / ${calTarget} kcal (+${calLogged - calTarget} kcal above target).`,
+          `You've exceeded your planned surplus. Cap further intake today to minimize excess fat accumulation.`,
+        ],
+      };
+    } else if (calRemaining > 600) {
       nutritionInsight = {
         title: 'Hypertrophy Caloric Surplus',
         lines: [
@@ -143,21 +162,23 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
 
   // 3. Hydration & Daily Habit Synergy
   let hydrationInsight: AIInsight;
-  const waterPct = Math.round((ctx.waterMl / ctx.targetWater) * 100);
+  const targetWater = Math.max(1, ctx.targetWater || 2000);
+  const waterLogged = ctx.waterMl || 0;
+  const waterPct = Math.round((waterLogged / targetWater) * 100);
 
-  if (ctx.waterMl < ctx.targetWater * 0.5) {
+  if (waterLogged < targetWater * 0.5) {
     hydrationInsight = {
       title: 'Hydration Optimization',
       lines: [
-        `Logged ${ctx.waterMl.toLocaleString()}ml of water (${waterPct}% of ${ctx.targetWater.toLocaleString()}ml target). Even 2% dehydration impairs muscular power.`,
-        `Tap the quick +250ml water button on the dashboard to consistently rehydrate throughout your day.`,
+        `Logged ${waterLogged.toLocaleString()}ml of water (${waterPct}% of ${targetWater.toLocaleString()}ml target). Even 2% dehydration impairs muscular power.`,
+        `Use the quick +250ml water buttons above to consistently rehydrate throughout your day.`,
       ],
     };
-  } else if (ctx.waterMl >= ctx.targetWater) {
+  } else if (waterLogged >= targetWater) {
     hydrationInsight = {
       title: 'Optimal Hydration Achieved',
       lines: [
-        `Daily hydration goal completed (${ctx.waterMl.toLocaleString()}ml)! Full cellular hydration enhances nutrient transport and joint resilience.`,
+        `Daily hydration goal completed (${waterLogged.toLocaleString()}ml)! Full cellular hydration enhances nutrient transport and joint resilience.`,
         `Maintain steady sipping if completing additional cardio or high-temperature training.`,
       ],
     };
@@ -165,7 +186,7 @@ export function generateDynamicCoachingInsights(ctx: DynamicCoachingContext): AI
     hydrationInsight = {
       title: 'Hydration Steady Progress',
       lines: [
-        `Currently at ${ctx.waterMl.toLocaleString()} / ${ctx.targetWater.toLocaleString()}ml (${waterPct}%). On pace for optimal cellular recovery.`,
+        `Currently at ${waterLogged.toLocaleString()} / ${targetWater.toLocaleString()}ml (${waterPct}%). On pace for optimal cellular recovery.`,
         `Drinking water consistently between meals also aids digestive efficiency and nutrient absorption.`,
       ],
     };

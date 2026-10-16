@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Modal, ScrollView, TouchableOpacity, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 
@@ -27,6 +28,7 @@ interface NutritionFactsModalProps {
 }
 
 export default function NutritionFactsModal({ visible, onClose, data }: NutritionFactsModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors, isDark } = useThemeColors();
 
   if (!data) return null;
@@ -66,7 +68,10 @@ export default function NutritionFactsModal({ visible, onClose, data }: Nutritio
       <View className="flex-1 justify-end bg-black/60">
         <Pressable className="flex-1" onPress={onClose} />
 
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-2xl">
+        <View
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-2xl"
+          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+        >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
             <View className="flex-1 pr-2">

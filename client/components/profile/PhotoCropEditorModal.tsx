@@ -11,6 +11,7 @@ import {
   Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { manipulateAsync, SaveFormat } from 'expo-image-manipulator';
 import { useThemeColors } from '@/constants/colors';
 import { hapticFeedback } from '@/utils/haptics';
@@ -31,6 +32,7 @@ export default function PhotoCropEditorModal({
   onClose,
   onSaveCroppedImage,
 }: PhotoCropEditorModalProps) {
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
 
   // Original image dimensions
@@ -326,7 +328,10 @@ export default function PhotoCropEditorModal({
         </View>
 
         {/* Bottom Adjustment Controls */}
-        <View className="bg-zinc-950 border-t border-zinc-800/80 px-6 pt-4 pb-8">
+        <View
+          className="bg-zinc-950 border-t border-zinc-800/80 px-6 pt-4 pb-8"
+          style={{ paddingBottom: Math.max(32, insets.bottom + 12) }}
+        >
           {/* Zoom Slider / Stepper Bar (Facebook style) */}
           <View className="flex-row items-center justify-between mb-4">
             <TouchableOpacity
