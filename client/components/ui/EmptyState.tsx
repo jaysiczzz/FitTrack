@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/constants/colors';
 import Button from './Button';
 
 export interface EmptyStateProps {

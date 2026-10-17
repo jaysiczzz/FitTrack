@@ -6246,7 +6246,6 @@ export const createExerciseInLibrary = async (data: any) => {
       defaultSets: data.defaultSets || [{ weight: 50, reps: 10 }, { weight: 55, reps: 8 }],
       imageUrl: data.imageUrl || null,
       thumbnailUrl: data.thumbnailUrl || null,
-      gifUrl: data.gifUrl || null,
       videoUrl: data.videoUrl || null,
       safetyInstructions: data.safetyInstructions || null,
       injuryPreventionTips: data.injuryPreventionTips || null,
@@ -6293,7 +6292,6 @@ export const updateExerciseInLibrary = async (id: string, data: any) => {
   if (data.defaultSets !== undefined) updateData.defaultSets = data.defaultSets
   if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl
   if (data.thumbnailUrl !== undefined) updateData.thumbnailUrl = data.thumbnailUrl
-  if (data.gifUrl !== undefined) updateData.gifUrl = data.gifUrl
   if (data.videoUrl !== undefined) updateData.videoUrl = data.videoUrl
   if (data.safetyInstructions !== undefined) updateData.safetyInstructions = data.safetyInstructions
   if (data.injuryPreventionTips !== undefined) updateData.injuryPreventionTips = data.injuryPreventionTips

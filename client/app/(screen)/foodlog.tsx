@@ -287,6 +287,16 @@ export default function FoodLog() {
     }
   };
 
+  useEffect(() => {
+    if (userId) {
+      screenCache.setFoodLogSnapshot(userId, {
+        items,
+        waterMl,
+        isDayCompleted,
+      });
+    }
+  }, [userId, items, waterMl, isDayCompleted]);
+
   useFocusEffect(
     useCallback(() => {
       loadInitialData();
@@ -1081,22 +1091,20 @@ export default function FoodLog() {
       )}
 
       {/* AI Scan & Photo Modal */}
-      {showScanModal && (
-        <AiScanModal
-          visible={showScanModal}
-          onClose={() => {
-            setShowScanModal(false);
-            setScanTargetMeal(undefined);
-          }}
-          onAddMealItem={handleAddMealItem}
-          initialMealType={scanTargetMeal}
-          initialMode={scanInitialMode}
-          onUpgradePress={() => {
-            setShowScanModal(false);
-            setShowSubscriptionModal(true);
-          }}
-        />
-      )}
+      <AiScanModal
+        visible={showScanModal}
+        onClose={() => {
+          setShowScanModal(false);
+          setScanTargetMeal(undefined);
+        }}
+        onAddMealItem={handleAddMealItem}
+        initialMealType={scanTargetMeal}
+        initialMode={scanInitialMode}
+        onUpgradePress={() => {
+          setShowScanModal(false);
+          setShowSubscriptionModal(true);
+        }}
+      />
 
       {/* Subscription Modal for In-App Upgrades */}
       {showSubscriptionModal && (

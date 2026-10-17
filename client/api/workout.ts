@@ -84,7 +84,6 @@ export interface ApiLibraryExercise {
   defaultSets?: { weight?: number; reps?: number; bodyweight?: boolean }[];
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
-  gifUrl?: string | null;
   videoUrl?: string | null;
   safetyInstructions?: string | null;
   injuryPreventionTips?: string | null;

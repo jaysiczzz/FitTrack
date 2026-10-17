@@ -93,7 +93,6 @@ model Exercise {
   defaultSets              Json?
   imageUrl                 String?
   thumbnailUrl             String?
-  gifUrl                   String?
   videoUrl                 String?
   safetyInstructions       String?
   injuryPreventionTips     String?
@@ -124,7 +123,6 @@ model WorkoutSession {
   duration       Int               @default(0) // minutes
   caloriesBurned Int               @default(0)
   completed      Boolean           @default(false)
-  startedAt      DateTime          @default(now())
   completedAt    DateTime?
   exercises      WorkoutExercise[]
   createdAt      DateTime          @default(now())
@@ -407,8 +405,6 @@ model Subscription {
   user                  User               @relation(fields: [userId], references: [id], onDelete: Cascade)
   tier                  SubscriptionTier   @default(FREE)
   status                SubscriptionStatus @default(ACTIVE)
-  stripeCustomerId      String?
-  stripeSubscriptionId  String?
   stripePaymentIntentId String?
   amount                Float              @default(0.0)
   currency              String             @default("USD")

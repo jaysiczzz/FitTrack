@@ -196,14 +196,12 @@ export default function NotificationToast({
 
   return (
     <ToastPortal visible={toastVisible || visible}>
-      <View style={styles.overlay} pointerEvents="box-none">
+      <View style={styles.overlay}>
         <View
           style={[styles.container, { top: resolvedTop }]}
-          pointerEvents="box-none"
         >
           <Animated.View
             {...panResponder.panHandlers}
-            pointerEvents="auto"
             style={[
               styles.toastWrapper,
               Platform.select({
@@ -245,6 +243,7 @@ export default function NotificationToast({
               <View className="flex-1 pr-2">
                 <Text
                   className="text-text-primary dark:text-text-primary-dark font-extrabold text-xs leading-4"
+                  style={{ color: colors.textPrimary }}
                   numberOfLines={2}
                 >
                   {message}
@@ -252,6 +251,7 @@ export default function NotificationToast({
                 {description ? (
                   <Text
                     className="text-text-muted dark:text-text-muted-dark text-[11px] font-medium mt-0.5 leading-3.5"
+                    style={{ color: colors.textMuted }}
                     numberOfLines={2}
                   >
                     {description}
@@ -329,5 +329,6 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     borderRadius: 16,
     zIndex: 2147483647,
+    pointerEvents: 'auto',
   },
 });

@@ -19,14 +19,17 @@ const SocketContext = createContext<SocketContextType>({
 });
 
 export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { token, user } = useAuth();
+  const { token, isLoading } = useAuth();
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
 
   useEffect(() => {
-    // Initialize socket connection
+    // Avoid connecting while auth state is still hydrating from storage
+    if (isLoading) return;
+
+    // Initialize socket connection prioritizing direct WebSocket transport
     const socketInstance = io(API_URL, {
-      transports: ['polling', 'websocket'],
+      transports: ['websocket', 'polling'],
       auth: {
         token: token || undefined,
       },
@@ -44,6 +47,13 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     socketInstance.on('disconnect', () => {
       setIsConnected(false);
+    });
+
+    socketInstance.on('connect_error', (error) => {
+      // In development, server reloads (nodemon) cause expected transient retries
+      if (__DEV__) {
+        console.debug('[Socket] Retrying connection:', error.message);
+      }
     });
 
     // -------------------------------------------------------------
@@ -119,7 +129,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       socketInstance.disconnect();
       socketRef.current = null;
     };
-  }, [token]);
+  }, [token, isLoading]);
 
   const emitWorkoutSync = useCallback((state: any) => {
     socketRef.current?.emit('workout:sync_state', state);

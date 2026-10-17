@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   ScrollView,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -36,6 +37,7 @@ export default function ForgotPasswordModal({
   onSuccess,
 }: ForgotPasswordModalProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
 
@@ -183,8 +185,11 @@ export default function ForgotPasswordModal({
         />
 
         <View
-          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[85%] md:h-auto md:max-h-[90%] shadow-2xl flex-col"
-          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark md:h-auto shadow-2xl flex-col"
+          style={{
+            maxHeight: Math.min(680, Math.round(windowHeight * 0.88)),
+            paddingBottom: Math.max(16, insets.bottom + 8),
+          }}
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
@@ -202,14 +207,15 @@ export default function ForgotPasswordModal({
           </View>
 
           <ScrollView
-            className="mt-3 flex-1"
+            className="mt-3"
+            style={{ flexShrink: 1 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="none"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
             bounces={false}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+            contentContainerStyle={{ flexGrow: 0, paddingBottom: 8 }}
           >
             {step === 'email' ? (
               /* STEP 1: Email Input */

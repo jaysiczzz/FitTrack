@@ -10,6 +10,7 @@ import {
   ScrollView,
   Keyboard,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -30,6 +31,7 @@ interface ResetPasswordModalProps {
 
 export default function ResetPasswordModal({ visible, onClose }: ResetPasswordModalProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { colors } = useThemeColors();
   const { showSuccess, showError } = useToast();
   const { logout } = useAuth();
@@ -136,8 +138,11 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
         />
 
         <View
-          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[85%] md:h-auto md:max-h-[90%] w-full md:max-w-md shadow-xl flex-col"
-          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-md md:h-auto shadow-xl flex-col"
+          style={{
+            maxHeight: Math.min(680, Math.round(windowHeight * 0.88)),
+            paddingBottom: Math.max(16, insets.bottom + 8),
+          }}
         >
           {/* Header */}
           <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
@@ -153,14 +158,15 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
           </View>
 
           <ScrollView
-            className="mt-3 flex-1"
+            className="mt-3"
+            style={{ flexShrink: 1 }}
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
             keyboardDismissMode="none"
             automaticallyAdjustContentInsets={false}
             contentInsetAdjustmentBehavior="never"
             bounces={false}
-            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+            contentContainerStyle={{ flexGrow: 0, paddingBottom: 8 }}
           >
             {/* Security Notice: Logout from all devices */}
             <View className="mb-3.5 p-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 flex-row items-start gap-2">

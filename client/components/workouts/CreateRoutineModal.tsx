@@ -11,6 +11,7 @@ import {
   Platform,
   Pressable,
   Keyboard,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -62,6 +63,8 @@ export default function CreateRoutineModal({
 }: CreateRoutineModalProps) {
   const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const isCompact = width < 500;
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -903,20 +906,24 @@ export default function CreateRoutineModal({
 
                                       {/* Weight / Bodyweight Stepper Column */}
                                       {isSetBodyweight && currWeight === 0 ? (
-                                        <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5 overflow-hidden">
-                                          <View className="flex-row items-center justify-center flex-1 min-w-0 gap-1.5 pr-1">
-                                            <Ionicons name="body" size={13} color={colors.accent} />
+                                        <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2 overflow-hidden">
+                                          <View className="flex-row items-center justify-center flex-1 min-w-0 gap-1">
+                                            <Ionicons name="body" size={12} color={colors.accent} />
                                             <Text
                                               numberOfLines={1}
-                                              className="text-[11px] font-bold text-accent dark:text-accent-dark"
+                                              ellipsizeMode="tail"
+                                              adjustsFontSizeToFit
+                                              minimumFontScale={0.75}
+                                              className="text-[11px] font-bold text-accent dark:text-accent-dark shrink min-w-0 text-center"
+                                              accessibilityLabel="Bodyweight"
                                             >
-                                              Bodyweight
+                                              {isCompact ? 'BW' : 'Bodyweight'}
                                             </Text>
                                           </View>
                                           <TouchableOpacity
-                                            onPress={() => handleStepWeight(idx, sIdx, 5)}
+                                            onPress={() => handleStepWeight(idx, sIdx, 2.5)}
                                             hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
-                                            className="w-6 h-6 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70 shrink-0"
+                                            className="w-6 h-6 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70 shrink-0 ml-1"
                                             accessibilityLabel="Add weight"
                                           >
                                             <Ionicons name="add" size={13} color={colors.accent} />

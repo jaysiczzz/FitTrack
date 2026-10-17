@@ -64,12 +64,14 @@ import {
 interface WorkoutPlannerTabProps {
   onStartRoutine: (routine: WorkoutRoutineTemplate) => void;
   onSwitchToToday: () => void;
+  onOpenAiGenerator?: () => void;
   initialMode?: PlannerViewMode;
 }
 
 export default function WorkoutPlannerTab({
   onStartRoutine,
   onSwitchToToday,
+  onOpenAiGenerator,
   initialMode = 'weekly',
 }: WorkoutPlannerTabProps) {
   const { colors } = useThemeColors();
@@ -274,12 +276,22 @@ export default function WorkoutPlannerTab({
       }
     };
 
+    const handleTemplatesSync = (data: any) => {
+      if (data?.templates && Array.isArray(data.templates)) {
+        setRoutines(data.templates);
+      } else {
+        loadPlannerData();
+      }
+    };
+
     const sub = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', handleHistorySync);
     const subDel = DeviceEventEmitter.addListener('WORKOUT_SESSION_DELETED', handleHistorySync);
+    const subTemplates = DeviceEventEmitter.addListener('WORKOUT_TEMPLATES_UPDATED', handleTemplatesSync);
 
     return () => {
       sub.remove();
       subDel.remove();
+      subTemplates.remove();
     };
   }, [loadPlannerData, historyKey]);
 
@@ -526,7 +538,7 @@ export default function WorkoutPlannerTab({
                   Weekly Training Split
                 </Text>
                 <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-                  Tap any day to assign a routine or rest day
+                  Tap any day to assign a routine
                 </Text>
               </View>
               <TouchableOpacity
@@ -621,8 +633,8 @@ export default function WorkoutPlannerTab({
           </SurfaceCard>
 
           {/* Routine Templates Collection */}
-          <View className="flex-row justify-between items-center mb-3 mt-2">
-            <View>
+          <View className="flex-row items-center mb-3 mt-2 gap-3">
+            <View className="flex-1">
               <Text className="text-base font-black text-text-primary dark:text-text-primary-dark">
                 Routine Templates ({routines.length})
               </Text>
@@ -630,14 +642,26 @@ export default function WorkoutPlannerTab({
                 Reusable workout templates you can start anytime
               </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => setShowCreateModal(true)}
-              activeOpacity={0.85}
-              className="bg-accent dark:bg-accent-dark min-h-[44px] px-3.5 py-2 rounded-xl flex-row items-center gap-1.5 active:opacity-85 shadow-xs"
-            >
-              <Ionicons name="add" size={16} color={colors.accentContrast} />
-              <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">New Routine</Text>
-            </TouchableOpacity>
+            <View className="flex-row items-center gap-2">
+              {onOpenAiGenerator && (
+                <TouchableOpacity
+                  onPress={onOpenAiGenerator}
+                  activeOpacity={0.85}
+                  className="bg-accent/15 dark:bg-accent-dark/25 px-2.5 py-2.5 rounded-xl flex-row items-center gap-1.5 border border-accent/30 shadow-xs"
+                >
+                  <Ionicons name="sparkles" size={14} color={colors.accent} />
+                  <Text className="text-accent dark:text-accent-dark text-xs font-bold">Generate</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setShowCreateModal(true)}
+                activeOpacity={0.85}
+                className="bg-accent dark:bg-accent-dark px-3 py-2.5 rounded-xl flex-row items-center gap-1.5 active:opacity-85 shadow-xs"
+              >
+                <Ionicons name="add" size={16} color={colors.accentContrast} />
+                <Text className="text-accent-contrast dark:text-accent-contrast-dark text-xs font-bold">Create</Text>
+              </TouchableOpacity>
+            </View>
           </View>
 
           {routines.map((routine) => (
@@ -648,13 +672,20 @@ export default function WorkoutPlannerTab({
                     <Text className="text-base font-black text-text-primary dark:text-text-primary-dark">
                       {routine.title}
                     </Text>
-                    {routine.isCustom && (
+                    {routine.id.startsWith('ai-routine-') ? (
+                      <View className="bg-accent/20 px-1.5 py-0.5 rounded-md flex-row items-center gap-1">
+                        <Ionicons name="sparkles" size={9} color={colors.accent} />
+                        <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
+                          AI
+                        </Text>
+                      </View>
+                    ) : routine.isCustom ? (
                       <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
                         <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
                           Custom
                         </Text>
                       </View>
-                    )}
+                    ) : null}
                   </View>
                   {routine.description && (
                     <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-2 leading-relaxed">
