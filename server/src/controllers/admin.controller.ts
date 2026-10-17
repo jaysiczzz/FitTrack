@@ -111,7 +111,7 @@ export const getAdminSystemStats = asyncHandler(async (req: AuthRequest, res: Re
       const pointDate = new Date(now.getTime() - daysAgo * 24 * 60 * 60 * 1000)
       const dayLabel = daysAgo === 0 ? 'Today' : `${daysAgo}d ago`
       const [usersAtPoint, workoutsAtPoint] = await Promise.all([
-        prisma.user.count({ where: { createdAt: { lte: pointDate } } }).catch(() => 0),
+        prisma.user.count({ where: { role: Role.USER, createdAt: { lte: pointDate } } }).catch(() => 0),
         prisma.workoutSession.count({ where: { completed: true, completedAt: { lte: pointDate } } }).catch(() => 0),
       ])
       return {

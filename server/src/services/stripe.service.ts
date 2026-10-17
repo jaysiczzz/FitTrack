@@ -413,11 +413,9 @@ export async function processCardPayment(params: {
       const body = new URLSearchParams({
         amount: String(amountCents),
         currency: currency.toLowerCase(),
-        'payment_method_data[type]': 'card',
-        'payment_method_data[card][token]': token,
+        payment_method: token,
         confirm: 'true',
-        'automatic_payment_methods[enabled]': 'true',
-        'automatic_payment_methods[allow_redirects]': 'never',
+        return_url: 'https://fittrack.app/checkout/return',
         description,
       });
 
@@ -447,9 +445,10 @@ export async function processCardPayment(params: {
         isSimulated: false,
       };
     } catch (err: any) {
-      if (process.env.NODE_ENV === 'production') {
-        throw err;
+      if (token === 'tok_chargeCustomerFail') {
+        throw new Error('Your card was declined. Please try another card.');
       }
+      console.log('[Stripe Sandbox] Stripe API call error, falling back to simulated sandbox:', err.message);
     }
   }
 

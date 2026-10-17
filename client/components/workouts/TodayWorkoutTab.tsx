@@ -469,6 +469,23 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
                 </TouchableOpacity>
               )}
 
+              {/* Option to load today's weekly split instead if preferred */}
+              {scheduledRoutine && onLoadScheduledRoutine && (
+                <View className="mt-2.5 items-center">
+                  <TouchableOpacity
+                    onPress={onLoadScheduledRoutine}
+                    activeOpacity={0.7}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="flex-row items-center gap-1.5 py-1"
+                  >
+                    <Ionicons name="calendar-outline" size={13} color={colors.accent} />
+                    <Text className="text-xs font-baloo-semibold text-accent dark:text-accent-dark">
+                      Or load today's weekly split ({scheduledRoutine.title.split('(')[0].trim()})
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+
               <View className="flex-row items-center justify-center gap-4 mt-3 pt-2.5 border-t border-accent/20">
                 <TouchableOpacity
                   onPress={onNavigateToLibrary}
@@ -496,7 +513,7 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
               </View>
             </SurfaceCard>
           ) : scheduledRoutine ? (
-            /* Scheduled Routine from Planner Spotlight */
+            /* Scheduled Routine from Planner Spotlight (After Day 1) */
             <SurfaceCard className="mb-3.5 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
               <View className="flex-row items-center justify-between mb-1.5">
                 <View className="flex-row items-center gap-1.5">

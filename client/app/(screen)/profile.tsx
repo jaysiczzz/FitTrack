@@ -7,9 +7,10 @@ import {
   Image,
   DeviceEventEmitter,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { LAYOUT } from '@/constants/layout';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getUserProfile } from '@/api/user';
 import { getWorkoutHistory } from '@/api/workout';
@@ -59,6 +60,7 @@ interface UserData {
 }
 
 export default function Profile() {
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user: authUser, updateUser } = useAuth();
   const { colors, isDark } = useThemeColors();
@@ -365,11 +367,11 @@ export default function Profile() {
   }, [savedUser?.subscription]);
 
   return (
-    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: LAYOUT.getTabBarPadding(insets.bottom) }}
       >
         <View className="w-full max-w-2xl self-center">
           {/* Header Bar */}

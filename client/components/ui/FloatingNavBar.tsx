@@ -17,6 +17,7 @@ import { useToast } from '@/context/ToastContext';
 import { useAuth } from '@/context/AuthContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
+import { hapticFeedback } from '@/utils/haptics';
 
 export interface NavItem {
   key: string;
@@ -115,22 +116,26 @@ export default function FloatingNavBar() {
       const itemsToAdd = Array.isArray(incoming) ? incoming : [incoming];
       if (itemsToAdd.length === 0) return;
 
-      const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
+      const activeUserId = userId || (await authStorage.getUser())?.id;
+      const todayStr = getTodayDateString();
+      const foodKey = authStorage.getScopedKey(activeUserId, 'food_log_today');
+      const dayCompletedKey = authStorage.getScopedKey(activeUserId, `food_log_completed_${todayStr}`);
       const saved = await AsyncStorage.getItem(foodKey);
       let arr: FoodLogItem[] = saved ? JSON.parse(saved) : [];
       arr.push(...itemsToAdd);
       await AsyncStorage.setItem(foodKey, JSON.stringify(arr));
-      await AsyncStorage.removeItem('food_log_today').catch(() => {});
-      const waterKey = authStorage.getScopedKey(userId, 'water_log_today');
+      await AsyncStorage.setItem(dayCompletedKey, 'false');
+
+      const waterKey = authStorage.getScopedKey(activeUserId, 'water_log_today');
       const savedWater = await AsyncStorage.getItem(waterKey);
       const currentWater = savedWater ? parseInt(savedWater, 10) || 0 : 0;
-      autoSyncFoodAndWater(userId, getTodayDateString(), arr, currentWater);
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED');
+      autoSyncFoodAndWater(activeUserId, todayStr, arr, currentWater, false, false);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'floating_navbar', items: arr });
 
       // Also record to recent history
       itemsToAdd.forEach((item) => {
         saveFoodToRecentHistory({
-          id: item.id || `food-${Date.now()}`,
+          id: item.id || `food-${Date.now()}-${Math.random().toString(36).substring(2, 7)}`,
           name: item.title,
           category: 'Staples',
           servingSize: item.subtitle || '1 serving',
@@ -203,6 +208,7 @@ export default function FloatingNavBar() {
                   accessibilityState={{ selected: isActive }}
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
+                    hapticFeedback.selection();
                     if (!isActive) {
                       router.navigate(item.route as any);
                     }
@@ -237,7 +243,10 @@ export default function FloatingNavBar() {
                 activeOpacity={0.85}
                 accessibilityRole="button"
                 accessibilityLabel="Scan Meal with AI"
-                onPress={() => setShowScanModal(true)}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setShowScanModal(true);
+                }}
                 className="items-center justify-center -mt-5"
                 hitSlop={{ top: 12, bottom: 8, left: 10, right: 10 }}
               >
@@ -269,6 +278,7 @@ export default function FloatingNavBar() {
                   accessibilityState={{ selected: isActive }}
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
+                    hapticFeedback.selection();
                     if (!isActive) {
                       router.navigate(item.route as any);
                     }

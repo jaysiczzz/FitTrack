@@ -54,6 +54,8 @@ export const registerSchema = z.object({
       .min(1, 'Age must be at least 1')
       .max(120, 'Age must be under 120'),
     goal: z.enum(['MUSCLE_GAIN', 'WEIGHT_LOSS'] as const),
+    gender: z.enum(['MALE', 'FEMALE'] as const),
+    activityLevel: z.enum(['SEDENTARY', 'LIGHTLY_ACTIVE', 'MODERATELY_ACTIVE', 'VERY_ACTIVE'] as const),
     verificationToken: z.string().optional(),
   }),
 })
