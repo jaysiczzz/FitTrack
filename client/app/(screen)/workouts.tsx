@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ScrollView, View, Text, DeviceEventEmitter } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { LAYOUT } from '@/constants/layout';
 
 import WorkoutTabs, { WorkoutTabType } from '@/components/workouts/WorkoutTabs';
 import TodayWorkoutTab, { TodayExerciseItem } from '@/components/workouts/TodayWorkoutTab';
@@ -172,6 +173,7 @@ function getExerciseMetadata(nameOrId?: string, fallbackName?: string): Partial<
 }
 
 export default function Workouts() {
+  const insets = useSafeAreaInsets();
   const params = useLocalSearchParams<{ tab?: WorkoutTabType }>();
   const { user } = useAuth();
   const { showToast } = useToast();
@@ -1332,7 +1334,7 @@ export default function Workouts() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       {/* Top Fixed Screen Header & Tabs */}
       <View className="w-full max-w-5xl self-center mx-auto px-4 pt-3 pb-1">
         {/* Header */}
@@ -1359,7 +1361,7 @@ export default function Workouts() {
           <WorkoutLibraryTab onAddExercise={handleAddExerciseFromLibrary} />
         </View>
       ) : (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 125 }}>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: LAYOUT.getTabBarPadding(insets.bottom) }}>
           <View className="w-full max-w-5xl self-center mx-auto">
             {activeTab === 'today' && (
               <>

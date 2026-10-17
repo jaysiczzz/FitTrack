@@ -49,12 +49,23 @@ export const hapticFeedback = {
       } catch {}
     }
   },
+
+  /**
+   * Ultra-light selection feedback (e.g. tab switch, mood selector)
+   */
+  selection: () => {
+    if (Platform.OS !== 'web') {
+      try {
+        Vibration.vibrate(15);
+      } catch {}
+    }
+  },
 };
 
 /**
  * Convenience function to trigger haptic feedback with optional intensity
  */
-export const triggerHapticFeedback = (type: 'light' | 'medium' | 'success' | 'warning' = 'light') => {
+export const triggerHapticFeedback = (type: 'light' | 'medium' | 'success' | 'warning' | 'selection' = 'light') => {
   if (hapticFeedback[type]) {
     hapticFeedback[type]();
   } else {

@@ -535,7 +535,7 @@ export default function AiScanModal({
     });
 
     const newItem: FoodLogItem = {
-      id: Date.now().toString(),
+      id: `meal-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
       mealType: selectedMeal,
       title: photoAnalysisResult.foodName || 'Scanned Meal',
       subtitle: photoAnalysisResult.servingSize || '1 serving',
@@ -708,7 +708,7 @@ export default function AiScanModal({
     });
 
     const newItem: FoodLogItem = {
-      id: Date.now().toString(),
+      id: `meal-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`,
       mealType: selectedMeal,
       title: describeAnalysisResult.foodName || 'Described Meal',
       subtitle: describeAnalysisResult.servingSize || '1 serving',

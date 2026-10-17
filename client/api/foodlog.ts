@@ -95,7 +95,7 @@ export const deleteDailyFoodLogApi = (date: string) => {
 };
 
 let syncTimer: any = null;
-let pendingSyncPayload: { userId: string; date: string; items: FoodLogItem[]; waterMl: number } | null = null;
+let pendingSyncPayload: { userId: string; date: string; items: FoodLogItem[]; waterMl: number; isCompleted?: boolean } | null = null;
 
 /**
  * Debounced background auto-sync to PostgreSQL database.
@@ -106,11 +106,12 @@ export const autoSyncFoodAndWater = (
   date: string,
   items: FoodLogItem[],
   waterMl: number,
-  immediate: boolean = false
+  immediate: boolean = false,
+  isCompleted?: boolean
 ) => {
   if (!userId) return;
 
-  pendingSyncPayload = { userId, date, items, waterMl };
+  pendingSyncPayload = { userId, date, items, waterMl, isCompleted };
 
   if (syncTimer) {
     clearTimeout(syncTimer);
@@ -124,6 +125,7 @@ export const autoSyncFoodAndWater = (
       date: payload.date,
       items: payload.items,
       waterMl: payload.waterMl,
+      isCompleted: payload.isCompleted,
     }).catch((err) => {
       console.log('[FoodLog API] Immediate sync failed:', err);
     });
@@ -138,6 +140,7 @@ export const autoSyncFoodAndWater = (
         date: payload.date,
         items: payload.items,
         waterMl: payload.waterMl,
+        isCompleted: payload.isCompleted,
       });
     } catch (err) {
       console.log('[FoodLog API] Background auto-sync deferred/failed:', err);

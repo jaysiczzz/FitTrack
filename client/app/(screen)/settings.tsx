@@ -9,10 +9,11 @@ import {
   ActivityIndicator,
   DeviceEventEmitter,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { LAYOUT } from '@/constants/layout';
 import { authStorage } from '@/utils/authStorage';
 import ConfirmModal from '@/components/ui/ConfirmModal';
 import SurfaceCard from '@/components/ui/SurfaceCard';
@@ -51,6 +52,7 @@ import { useWeightUnit, useHeightUnit } from '@/constants/units';
 
 export default function Settings() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors, isDark, setColorScheme } = useThemeColors();
   const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
@@ -297,7 +299,7 @@ export default function Settings() {
       <ScrollView
         className="flex-1"
         keyboardShouldPersistTaps="handled"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: LAYOUT.getScreenBottomPadding(insets.bottom) }}
       >
         <View className="w-full max-w-2xl self-center">
           {/* Back Button & Header */}

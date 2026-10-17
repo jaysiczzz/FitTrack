@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useLocalSearchParams } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
+import { LAYOUT } from '@/constants/layout';
 
 import MacroSummaryCard from '@/components/foodlog/MacroSummaryCard';
 import MealCategoryCard from '@/components/foodlog/MealCategoryCard';
@@ -92,7 +93,7 @@ export default function FoodLog() {
   // Targets computed dynamically based on user body stats & goal
   const targets: MacroTargets = useMemo(() => {
     return calculatePersonalizedTargets(user, goal);
-  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, goal]);
+  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, user?.activityLevel, goal]);
 
   // Load user profile & cached food log
   const loadInitialData = async () => {
@@ -304,9 +305,14 @@ export default function FoodLog() {
   );
 
   useEffect(() => {
-    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', (evt?: { sender?: string; waterMl?: number }) => {
+    const sub = DeviceEventEmitter.addListener('FOOD_LOG_UPDATED', (evt?: { sender?: string; items?: FoodLogItem[]; waterMl?: number }) => {
       if (evt?.sender === 'foodlog_screen') return;
-      if (Date.now() - lastSaveTimeRef.current < 2500) return;
+      if (evt?.items && Array.isArray(evt.items)) {
+        setItems(evt.items);
+        itemsRef.current = evt.items;
+        setIsDayCompleted(false);
+      }
+      if (Date.now() - lastSaveTimeRef.current < 2500 && !evt?.items) return;
       loadInitialData();
     });
     return () => {
@@ -314,14 +320,14 @@ export default function FoodLog() {
     };
   }, [foodKey, waterKey, userId]);
 
-  const saveFoodLog = async (newItems: FoodLogItem[], immediate = false) => {
+  const saveFoodLog = async (newItems: FoodLogItem[], immediate = false, markCompleted?: boolean) => {
     lastSaveTimeRef.current = Date.now();
     setItems(newItems);
     itemsRef.current = newItems;
     try {
       await AsyncStorage.setItem(foodKey, JSON.stringify(newItems));
-      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen' });
-      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMlRef.current, immediate);
+      DeviceEventEmitter.emit('FOOD_LOG_UPDATED', { sender: 'foodlog_screen', items: newItems });
+      autoSyncFoodAndWater(userId, getTodayDateString(), newItems, waterMlRef.current, immediate, markCompleted);
     } catch (err) {
       console.log('Error saving food log:', err);
     }
@@ -368,9 +374,16 @@ export default function FoodLog() {
     const toAdd = Array.isArray(incoming) ? incoming : [incoming];
     if (toAdd.length === 0) return;
 
+    if (isDayCompleted) {
+      setIsDayCompleted(false);
+      const todayStr = getTodayDateString();
+      const dayCompletedKey = authStorage.getScopedKey(userId, `food_log_completed_${todayStr}`);
+      AsyncStorage.setItem(dayCompletedKey, 'false').catch(() => {});
+    }
+
     lastSaveTimeRef.current = Date.now();
     const updated = [...itemsRef.current, ...toAdd];
-    saveFoodLog(updated, false);
+    saveFoodLog(updated, false, false);
 
     // Automatically record to Recents history so all meals appear in Recents tab
     toAdd.forEach((item) => {
@@ -868,7 +881,7 @@ export default function FoodLog() {
   };
 
   return (
-    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       {/* Top Fixed Screen Header & Tabs */}
       <View className="w-full max-w-5xl self-center mx-auto px-4 pt-3 pb-1">
         <View className="mb-3.5">
@@ -902,7 +915,7 @@ export default function FoodLog() {
           />
         </View>
       ) : (
-        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: 125 }}>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 4, paddingBottom: LAYOUT.getTabBarPadding(insets.bottom) }}>
           <View className="w-full max-w-5xl self-center mx-auto">
             {activeTab === 'history' ? (
               /* History & Trends Tab View */

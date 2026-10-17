@@ -48,16 +48,14 @@ export const DEFAULT_NOTIFICATION_SETTINGS: NotificationSettings = {
 };
 
 // Configure foreground presentation behavior
-// When actively using the app, suppress intrusive native system banners and sounds.
-// Native system banners and lock-screen alerts will automatically present when app is in background or device is locked!
 if (Platform.OS !== 'web') {
   Notifications.setNotificationHandler({
-    handleNotification: async () => {
+    handleNotification: async (notification) => {
       return {
-        shouldShowAlert: false, // Suppress native popup alert when app is foregrounded!
-        shouldShowBanner: false, // Suppress native drop-down banner when app is foregrounded!
-        shouldShowList: false, // Don't clutter native shade when actively inside the app!
-        shouldPlaySound: false, // No disruptive system chime while browsing!
+        shouldShowAlert: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+        shouldPlaySound: true,
         shouldSetBadge: true,
       };
     },

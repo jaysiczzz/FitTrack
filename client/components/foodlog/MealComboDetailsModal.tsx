@@ -84,7 +84,7 @@ export default function MealComboDetailsModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <View className="flex-1 bg-black/75 justify-end">
-        <View className="bg-background dark:bg-background-dark rounded-t-3xl max-h-[92%] h-auto border-t border-input-border dark:border-input-border-dark overflow-hidden flex-col">
+        <View className="bg-background dark:bg-background-dark rounded-t-3xl h-[88%] md:h-[90%] max-h-[92%] border-t border-input-border dark:border-input-border-dark overflow-hidden flex-col">
           {/* Compact Modal Header */}
           <View className="px-4 py-3 border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark flex-row items-center justify-between">
             <View className="flex-row items-center gap-2.5 flex-1 pr-2">
