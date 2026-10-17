@@ -58,6 +58,7 @@ export interface AdminUserItem {
   email: string;
   firstName: string;
   lastName: string;
+  avatarUrl?: string | null;
   role: 'USER' | 'ADMIN';
   isSuspended?: boolean;
   suspendedReason?: string | null;

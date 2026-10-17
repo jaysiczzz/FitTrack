@@ -10,13 +10,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
-import { WorkoutRoutineTemplate, RoutineExercise } from './workoutTypes';
+import { WorkoutRoutineTemplate, RoutineExercise, RoutineExerciseSet } from './workoutTypes';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import ModalCloseButton from '../ui/ModalCloseButton';
+import { getDifficultyStyle } from '@/constants/difficulty';
 
 interface CreateRoutineModalProps {
   visible: boolean;
@@ -26,22 +28,49 @@ interface CreateRoutineModalProps {
 
 const CATEGORIES = ['Strength', 'Hypertrophy', 'Conditioning', 'Endurance', 'Custom'];
 const DURATIONS = [30, 45, 60, 75, 90];
+const DIFFICULTIES: ('Beginner' | 'Intermediate' | 'Advanced')[] = ['Beginner', 'Intermediate', 'Advanced'];
 const MUSCLE_FILTERS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core'];
+
+export const isBodyweightExercise = (ex: { type?: string; category?: string; name?: string; defaultSets?: any[] }) => {
+  const nameLower = (ex.name || '').toLowerCase();
+  const typeLower = (ex.type || '').toLowerCase();
+  const catLower = (ex.category || '').toLowerCase();
+  return (
+    typeLower === 'bodyweight' ||
+    typeLower === 'calisthenics' ||
+    catLower === 'calisthenics' ||
+    nameLower.includes('push-up') ||
+    nameLower.includes('pushup') ||
+    nameLower.includes('pull-up') ||
+    nameLower.includes('pullup') ||
+    nameLower.includes('chin-up') ||
+    nameLower.includes('chinup') ||
+    nameLower.includes('dip') ||
+    nameLower.includes('crunch') ||
+    nameLower.includes('plank') ||
+    nameLower.includes('sit-up') ||
+    nameLower.includes('burpee') ||
+    nameLower.includes('jumping jack') ||
+    (Array.isArray(ex.defaultSets) && ex.defaultSets.some((s: any) => s.bodyweight))
+  );
+};
 
 export default function CreateRoutineModal({
   visible,
   onSave,
   onClose,
 }: CreateRoutineModalProps) {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('Hypertrophy');
   const [customCategory, setCustomCategory] = useState('');
+  const [difficulty, setDifficulty] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [duration, setDuration] = useState(45);
   const [exercises, setExercises] = useState<RoutineExercise[]>([]);
+  const [expandedExercises, setExpandedExercises] = useState<Record<number, boolean>>({});
 
   // Inline field-level validation errors
   const [errors, setErrors] = useState<{
@@ -97,16 +126,44 @@ export default function CreateRoutineModal({
     return list;
   }, [searchQuery, selectedMuscleFilter]);
 
-  const handleAddExercise = (libEx: any) => {
-    const defaultSets = (libEx.defaultSets || [
-      { weight: 20, reps: 10 },
-      { weight: 20, reps: 10 },
-      { weight: 20, reps: 10 },
-    ]).map((s: any) => ({
-      weight: s.weight !== undefined ? s.weight : 20,
-      reps: s.reps !== undefined ? s.reps : 10,
-      bodyweight: Boolean(s.bodyweight),
+  const toggleExpand = (index: number) => {
+    setExpandedExercises((prev) => ({
+      ...prev,
+      [index]: prev[index] === false ? true : false,
     }));
+  };
+
+  const handleAddExercise = (libEx: any) => {
+    const isBw = isBodyweightExercise(libEx);
+
+    let baseSetsCount = 3;
+    let baseWeight = isBw ? 0 : 25;
+    let baseReps = 10;
+
+    if (difficulty === 'Beginner') {
+      baseSetsCount = 3;
+      baseWeight = isBw ? 0 : 15;
+      baseReps = isBw ? 8 : 10;
+    } else if (difficulty === 'Advanced') {
+      baseSetsCount = 4;
+      baseWeight = isBw ? 0 : 40;
+      baseReps = isBw ? 12 : 8;
+    }
+
+    let defaultSets: RoutineExerciseSet[] = [];
+    if (Array.isArray(libEx.defaultSets) && libEx.defaultSets.length > 0) {
+      defaultSets = libEx.defaultSets.map((s: any) => ({
+        weight: s.weight !== undefined && s.weight !== null ? s.weight : baseWeight,
+        reps: s.reps !== undefined && s.reps !== null ? s.reps : baseReps,
+        bodyweight: s.bodyweight !== undefined ? Boolean(s.bodyweight) : isBw,
+      }));
+    } else {
+      defaultSets = Array.from({ length: baseSetsCount }, () => ({
+        weight: baseWeight,
+        reps: baseReps,
+        bodyweight: isBw,
+      }));
+    }
 
     const newEx: RoutineExercise = {
       exerciseId: libEx.id,
@@ -126,6 +183,106 @@ export default function CreateRoutineModal({
 
   const handleRemoveExercise = (index: number) => {
     setExercises((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleAddSet = (exerciseIndex: number) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      const lastSet = targetEx.defaultSets[targetEx.defaultSets.length - 1];
+      const newSet: RoutineExerciseSet = lastSet
+        ? { ...lastSet }
+        : { weight: 20, reps: 10, bodyweight: false };
+      targetEx.defaultSets = [...targetEx.defaultSets, newSet];
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
+  };
+
+  const handleRemoveSet = (exerciseIndex: number, setIndex: number) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      if (targetEx.defaultSets.length <= 1) return prev;
+      targetEx.defaultSets = targetEx.defaultSets.filter((_, i) => i !== setIndex);
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
+  };
+
+  const handleUpdateSetValue = (
+    exerciseIndex: number,
+    setIndex: number,
+    field: 'weight' | 'reps',
+    val: string
+  ) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      const sets = [...targetEx.defaultSets];
+      const numVal = parseInt(val.replace(/[^0-9]/g, ''), 10);
+      sets[setIndex] = {
+        ...sets[setIndex],
+        [field]: isNaN(numVal) ? '' : numVal,
+      };
+      targetEx.defaultSets = sets;
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
+  };
+
+  const handleToggleBodyweight = (exerciseIndex: number, setIndex: number, forceState?: boolean) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      const sets = [...targetEx.defaultSets];
+      const currentBw = Boolean(sets[setIndex]?.bodyweight);
+      const nextBw = forceState !== undefined ? forceState : !currentBw;
+      sets[setIndex] = {
+        ...sets[setIndex],
+        bodyweight: nextBw,
+        weight: nextBw ? 0 : (sets[setIndex]?.weight && Number(sets[setIndex]?.weight) > 0 ? sets[setIndex]?.weight : 20),
+      };
+      targetEx.defaultSets = sets;
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
+  };
+
+  const handleStepWeight = (exerciseIndex: number, setIndex: number, delta: number) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      const sets = [...targetEx.defaultSets];
+      const curr = Number(sets[setIndex]?.weight) || 0;
+      const nextW = Math.max(0, Math.round((curr + delta) * 10) / 10);
+      const isBw = isBodyweightExercise(targetEx);
+      sets[setIndex] = {
+        ...sets[setIndex],
+        weight: nextW,
+        bodyweight: nextW === 0 && isBw,
+      };
+      targetEx.defaultSets = sets;
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
+  };
+
+  const handleStepReps = (exerciseIndex: number, setIndex: number, delta: number) => {
+    setExercises((prev) => {
+      const next = [...prev];
+      const targetEx = { ...next[exerciseIndex] };
+      const sets = [...targetEx.defaultSets];
+      const curr = Number(sets[setIndex]?.reps) || 10;
+      const nextR = Math.max(1, curr + delta);
+      sets[setIndex] = {
+        ...sets[setIndex],
+        reps: nextR,
+      };
+      targetEx.defaultSets = sets;
+      next[exerciseIndex] = targetEx;
+      return next;
+    });
   };
 
   const handleSave = () => {
@@ -150,13 +307,24 @@ export default function CreateRoutineModal({
 
     const finalCategory = category === 'Custom' ? customCategory.trim() : category;
 
+    // Clean up empty set values before saving
+    const sanitizedExercises = exercises.map((ex) => ({
+      ...ex,
+      defaultSets: ex.defaultSets.map((s) => ({
+        weight: s.weight === '' || s.weight === undefined ? 0 : Number(s.weight),
+        reps: s.reps === '' || s.reps === undefined ? 10 : Number(s.reps),
+        bodyweight: Boolean(s.bodyweight),
+      })),
+    }));
+
     const newRoutine: WorkoutRoutineTemplate = {
       id: `custom-routine-${Date.now()}`,
       title: title.trim(),
       description: description.trim() || undefined,
       category: finalCategory,
+      difficulty,
       estimatedDurationMinutes: duration,
-      exercises,
+      exercises: sanitizedExercises,
       isCustom: true,
       createdAt: new Date().toISOString(),
     };
@@ -167,8 +335,10 @@ export default function CreateRoutineModal({
     setDescription('');
     setCategory('Hypertrophy');
     setCustomCategory('');
+    setDifficulty('Intermediate');
     setDuration(45);
     setExercises([]);
+    setExpandedExercises({});
     setErrors({});
     setShowPicker(false);
     setSearchQuery('');
@@ -182,15 +352,25 @@ export default function CreateRoutineModal({
     onClose();
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   if (!visible) return null;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose} statusBarTranslucent>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
       >
-        <Pressable className="hidden md:flex flex-1 w-full" onPress={handleClose} />
+        <Pressable
+          className="absolute inset-0"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={handleBackdropPress}
+          accessible={false}
+        />
 
         <View
           style={{
@@ -353,6 +533,57 @@ export default function CreateRoutineModal({
                     )}
                   </View>
 
+                  {/* Difficulty Level */}
+                  <View className="mb-3.5">
+                    <View className="flex-row items-center justify-between mb-1.5">
+                      <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark uppercase tracking-wider">
+                        Difficulty Level
+                      </Text>
+                      <Text className="text-[10px] text-text-muted">
+                        {difficulty === 'Beginner'
+                          ? 'Light resistance · High safety'
+                          : difficulty === 'Intermediate'
+                          ? 'Hypertrophy · Balanced sets'
+                          : 'Heavy volume · Progressive overload'}
+                      </Text>
+                    </View>
+                    <View className="flex-row gap-2">
+                      {DIFFICULTIES.map((diff) => {
+                        const isSelected = difficulty === diff;
+                        const diffStyle = getDifficultyStyle(diff);
+                        return (
+                          <TouchableOpacity
+                            key={diff}
+                            onPress={() => setDifficulty(diff)}
+                            activeOpacity={0.8}
+                            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+                            className={`flex-1 min-h-[36px] py-1.5 px-2 rounded-xl flex-row items-center justify-center gap-1.5 border ${
+                              isSelected
+                                ? `${diffStyle.badgeContainer} border-opacity-100`
+                                : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                            }`}
+                          >
+                            <Ionicons
+                              name={diffStyle.icon}
+                              size={13}
+                              color={isSelected ? (isDark ? diffStyle.darkHexColor : diffStyle.hexColor) : colors.textMuted}
+                            />
+                            <Text
+                              className={`text-xs font-bold ${
+                                isSelected
+                                  ? diffStyle.badgeText
+                                  : 'text-text-muted dark:text-text-muted-dark'
+                              }`}
+                              style={isSelected ? { color: isDark ? diffStyle.darkHexColor : diffStyle.hexColor } : undefined}
+                            >
+                              {diff}
+                            </Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  </View>
+
                   {/* Estimated Duration */}
                   <View className="mb-4">
                     <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark uppercase tracking-wider mb-1.5">
@@ -404,7 +635,7 @@ export default function CreateRoutineModal({
                         color={colors.accent}
                       />
                       <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-                        {showPicker ? 'Close Library' : '+ Add Exercise'}
+                        {showPicker ? 'Close Library' : 'Add Exercise'}
                       </Text>
                     </TouchableOpacity>
                   </View>
@@ -557,37 +788,243 @@ export default function CreateRoutineModal({
                       </Text>
                     </View>
                   ) : (
-                    exercises.map((ex, idx) => (
-                      <View
-                        key={idx}
-                        className="p-3 rounded-2xl mb-2 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row justify-between items-center"
-                      >
-                        <View className="flex-row items-center gap-2.5 flex-1 mr-2">
-                          <View className="w-6 h-6 rounded-full bg-accent/20 items-center justify-center">
-                            <Text className="text-[10px] font-black text-accent">{idx + 1}</Text>
-                          </View>
-                          <View className="flex-1">
-                            <Text
-                              numberOfLines={1}
-                              className="text-xs font-black text-text-primary dark:text-text-primary-dark"
-                            >
-                              {ex.name}
-                            </Text>
-                            <Text className="text-[10px] text-text-muted mt-0.5">
-                              {ex.defaultSets.length} sets · {ex.muscleGroup || ex.category}
-                            </Text>
-                          </View>
-                        </View>
-                        <TouchableOpacity
-                          onPress={() => handleRemoveExercise(idx)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          className="min-h-[36px] min-w-[36px] items-center justify-center"
-                          accessibilityLabel="Remove exercise"
+                    exercises.map((ex, idx) => {
+                      const isExpanded = expandedExercises[idx] !== false;
+                      const isBwExercise = isBodyweightExercise(ex);
+
+                      return (
+                        <View
+                          key={idx}
+                          className="p-4 rounded-2xl mb-3.5 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark shadow-xs"
                         >
-                          <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                        </TouchableOpacity>
-                      </View>
-                    ))
+                          {/* 1. Exercise Card Header matching TodayWorkoutTab */}
+                          <View className="flex-row items-start justify-between gap-3">
+                            <TouchableOpacity
+                              onPress={() => toggleExpand(idx)}
+                              activeOpacity={0.7}
+                              className="flex-1 min-w-0"
+                            >
+                              <View className="flex-row items-center gap-3">
+                                <View className="w-10 h-10 rounded-xl bg-accent/15 border border-accent/30 items-center justify-center shrink-0">
+                                  <Text className="text-xs font-black text-accent">{idx + 1}</Text>
+                                </View>
+
+                                <View className="flex-1 min-w-0">
+                                  <Text
+                                    numberOfLines={1}
+                                    className="text-base font-black text-text-primary dark:text-text-primary-dark tracking-tight leading-snug"
+                                  >
+                                    {ex.name}
+                                  </Text>
+                                  <View className="flex-row items-center gap-2 mt-1.5 flex-wrap">
+                                    <View className="px-2.5 py-0.5 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0">
+                                      <Text className="text-[10px] font-extrabold uppercase tracking-wider text-accent dark:text-accent-dark">
+                                        {ex.primaryMuscle || ex.muscleGroup}
+                                      </Text>
+                                    </View>
+
+                                    {isBwExercise && (
+                                      <View className="px-2.5 py-0.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 shrink-0">
+                                        <Text className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">
+                                          Bodyweight
+                                        </Text>
+                                      </View>
+                                    )}
+
+                                    <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
+                                      {ex.defaultSets.length} {ex.defaultSets.length === 1 ? 'set' : 'sets'}
+                                    </Text>
+                                  </View>
+                                </View>
+
+                                <Ionicons
+                                  name={isExpanded ? 'chevron-up' : 'chevron-down'}
+                                  size={16}
+                                  color={colors.textMuted}
+                                />
+                              </View>
+                            </TouchableOpacity>
+
+                            {/* Remove Exercise Action matching TodayWorkoutTab */}
+                            <TouchableOpacity
+                              onPress={() => handleRemoveExercise(idx)}
+                              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                              className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark active:opacity-60 shrink-0 mt-0.5"
+                              activeOpacity={0.7}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Remove ${ex.name}`}
+                            >
+                              <Ionicons name="close" size={15} color={colors.danger} />
+                            </TouchableOpacity>
+                          </View>
+
+                          {/* 2. Sets Configuration Table matching TodayWorkoutTab */}
+                          {isExpanded && (
+                            <View className="mt-3.5 pt-3 border-t border-input-border/50 dark:border-input-border-dark/50">
+                              {/* Column Headers */}
+                              <View className="mb-2.5 flex-row items-center gap-2 px-1 w-full">
+                                <Text className="w-8 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
+                                  Set
+                                </Text>
+                                <Text
+                                  numberOfLines={1}
+                                  className="flex-1 min-w-0 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
+                                >
+                                  {isBwExercise ? 'Weight' : 'Weight (kg)'}
+                                </Text>
+                                <Text
+                                  numberOfLines={1}
+                                  className="flex-1 min-w-0 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
+                                >
+                                  Reps
+                                </Text>
+                                {ex.defaultSets.length > 1 ? (
+                                  <View className="w-7 shrink-0" />
+                                ) : null}
+                              </View>
+
+                              {/* Sets List */}
+                              <View className="gap-2.5">
+                                {ex.defaultSets.map((set, sIdx) => {
+                                  const currWeight = Number(set.weight) || 0;
+                                  const isSetBodyweight = Boolean(set.bodyweight || (isBwExercise && currWeight === 0));
+
+                                  return (
+                                    <View
+                                      key={sIdx}
+                                      className="flex-row items-center gap-2 w-full"
+                                    >
+                                      {/* Set Number Badge */}
+                                      <View className="w-8 h-10 items-center justify-center rounded-xl bg-input dark:bg-input-dark shrink-0">
+                                        <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                                          {sIdx + 1}
+                                        </Text>
+                                      </View>
+
+                                      {/* Weight / Bodyweight Stepper Column */}
+                                      {isSetBodyweight && currWeight === 0 ? (
+                                        <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5 overflow-hidden">
+                                          <View className="flex-row items-center justify-center flex-1 min-w-0 gap-1.5 pr-1">
+                                            <Ionicons name="body" size={13} color={colors.accent} />
+                                            <Text
+                                              numberOfLines={1}
+                                              className="text-[11px] font-bold text-accent dark:text-accent-dark"
+                                            >
+                                              Bodyweight
+                                            </Text>
+                                          </View>
+                                          <TouchableOpacity
+                                            onPress={() => handleStepWeight(idx, sIdx, 5)}
+                                            hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
+                                            className="w-6 h-6 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70 shrink-0"
+                                            accessibilityLabel="Add weight"
+                                          >
+                                            <Ionicons name="add" size={13} color={colors.accent} />
+                                          </TouchableOpacity>
+                                        </View>
+                                      ) : (
+                                        <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark overflow-hidden">
+                                          <TouchableOpacity
+                                            onPress={() => handleStepWeight(idx, sIdx, -2.5)}
+                                            className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                                            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Decrease weight"
+                                          >
+                                            <Ionicons name="remove" size={14} color={colors.textPrimary} />
+                                          </TouchableOpacity>
+
+                                          <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
+                                            <TextInput
+                                              value={set.weight !== undefined && set.weight !== null ? String(set.weight) : ''}
+                                              onChangeText={(val) => handleUpdateSetValue(idx, sIdx, 'weight', val)}
+                                              keyboardType="numeric"
+                                              placeholder="0"
+                                              placeholderTextColor={colors.textMuted}
+                                              className="text-xs font-bold text-center text-text-primary dark:text-text-primary-dark w-full p-0"
+                                            />
+                                          </View>
+
+                                          <TouchableOpacity
+                                            onPress={() => handleStepWeight(idx, sIdx, 2.5)}
+                                            className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                                            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                            accessibilityRole="button"
+                                            accessibilityLabel="Increase weight"
+                                          >
+                                            <Ionicons name="add" size={14} color={colors.textPrimary} />
+                                          </TouchableOpacity>
+                                        </View>
+                                      )}
+
+                                      {/* Reps Stepper Column */}
+                                      <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark overflow-hidden">
+                                        <TouchableOpacity
+                                          onPress={() => handleStepReps(idx, sIdx, -1)}
+                                          className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                                          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                          accessibilityRole="button"
+                                          accessibilityLabel="Decrease reps"
+                                        >
+                                          <Ionicons name="remove" size={14} color={colors.textPrimary} />
+                                        </TouchableOpacity>
+
+                                        <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
+                                          <TextInput
+                                            value={set.reps !== undefined && set.reps !== null ? String(set.reps) : ''}
+                                            onChangeText={(val) => handleUpdateSetValue(idx, sIdx, 'reps', val)}
+                                            keyboardType="numeric"
+                                            placeholder="10"
+                                            placeholderTextColor={colors.textMuted}
+                                            className="text-xs font-bold text-center text-text-primary dark:text-text-primary-dark w-full p-0"
+                                          />
+                                        </View>
+
+                                        <TouchableOpacity
+                                          onPress={() => handleStepReps(idx, sIdx, 1)}
+                                          className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                                          hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+                                          accessibilityRole="button"
+                                          accessibilityLabel="Increase reps"
+                                        >
+                                          <Ionicons name="add" size={14} color={colors.textPrimary} />
+                                        </TouchableOpacity>
+                                      </View>
+
+                                      {/* Delete Set Button matching TodayWorkoutTab */}
+                                      {ex.defaultSets.length > 1 ? (
+                                        <View className="w-7 h-10 items-center justify-center shrink-0">
+                                          <TouchableOpacity
+                                            onPress={() => handleRemoveSet(idx, sIdx)}
+                                            className="w-7 h-10 items-center justify-center active:opacity-60"
+                                            hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                                            accessibilityLabel="Delete set"
+                                          >
+                                            <Ionicons name="close" size={15} color={colors.textMuted} />
+                                          </TouchableOpacity>
+                                        </View>
+                                      ) : null}
+                                    </View>
+                                  );
+                                })}
+                              </View>
+
+                              {/* Add Set CTA Button matching ExerciseCard */}
+                              <TouchableOpacity
+                                onPress={() => handleAddSet(idx)}
+                                activeOpacity={0.8}
+                                className="mt-2 py-3 rounded-xl bg-input/70 dark:bg-input-dark/70 border border-dashed border-input-border dark:border-input-border-dark items-center justify-center flex-row gap-1.5"
+                              >
+                                <Ionicons name="add" size={15} color={colors.accent} />
+                                <Text className="text-xs font-bold text-accent dark:text-accent-dark">
+                                  Add Set
+                                </Text>
+                              </TouchableOpacity>
+                            </View>
+                          )}
+                        </View>
+                      );
+                    })
                   )}
                 </ScrollView>
 

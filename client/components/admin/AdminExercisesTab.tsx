@@ -12,6 +12,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Pressable,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -29,11 +30,28 @@ import {
   ApiLibraryExercise,
 } from '@/api/workout';
 import { autocompleteExerciseApi } from '@/api/ai';
+import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
+import { getDifficultyStyle } from '@/constants/difficulty';
+import { ExerciseDetailsModal } from '@/components/workouts/ExerciseDetailsModal';
+import { LibraryExercise } from '@/components/workouts/workoutTypes';
 
-const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Full Body'];
-const CATEGORIES = ['Strength', 'Hypertrophy', 'Cardio', 'Mobility'];
+const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body', 'Cardio', 'Mobility'];
+const CATEGORIES = ['Strength', 'Hypertrophy', 'Cardio', 'Mobility', 'Core'];
 const DIFFICULTIES = ['Beginner', 'Intermediate', 'Advanced'];
-const EQUIPMENT_OPTIONS = ['Barbell', 'Dumbbells', 'Cable', 'Machine', 'Bodyweight', 'Kettlebell', 'Bands'];
+const MOVEMENT_TYPES = ['Compound', 'Isolation', 'Bodyweight', 'Cardio', 'Machine', 'Stretch', 'Calisthenics'];
+const EQUIPMENT_OPTIONS = [
+  'Barbell',
+  'Dumbbells',
+  'Cable',
+  'Machine',
+  'Bodyweight',
+  'Smith Machine',
+  'EZ-Bar',
+  'Pull-up Bar',
+  'Bench',
+  'Kettlebell',
+  'Bands',
+];
 
 interface AdminExercisesTabProps {
   exercises: ApiLibraryExercise[];
@@ -52,7 +70,7 @@ export default function AdminExercisesTab({
   onSelectMuscle,
   onReloadExercises,
 }: AdminExercisesTabProps) {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const insets = useSafeAreaInsets();
   const { showSuccess, showError, showWarning } = useToast();
 
@@ -107,6 +125,10 @@ export default function AdminExercisesTab({
   // ── Delete State ──
   const [exerciseToDelete, setExerciseToDelete] = useState<ApiLibraryExercise | null>(null);
   const [deletingExercise, setDeletingExercise] = useState(false);
+
+  // ── Details Preview Modal State ──
+  const [selectedDetailsExercise, setSelectedDetailsExercise] = useState<LibraryExercise | null>(null);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
 
   // ── Handlers ──
   const handleOpenAddModal = () => {
@@ -193,7 +215,6 @@ export default function AdminExercisesTab({
     try {
       setSavingExercise(true);
       triggerHapticFeedback();
-      const isGif = addMediaUrl.toLowerCase().includes('.gif');
       const instructionsArr = addInstructions.split('\n').map((s) => s.trim()).filter(Boolean);
       const formTipsArr = addFormTips ? addFormTips.split('\n').map((s) => s.trim()).filter(Boolean) : [];
       const commonMistakesArr = addCommonMistakes ? addCommonMistakes.split('\n').map((s) => s.trim()).filter(Boolean) : [];
@@ -218,8 +239,7 @@ export default function AdminExercisesTab({
         recommendedRest: restNum,
         recommendedTempo: addRecommendedTempo.trim() || undefined,
         videoUrl: addVideoUrl.trim() || undefined,
-        imageUrl: isGif ? undefined : (addMediaUrl.trim() || undefined),
-        gifUrl: isGif ? addMediaUrl.trim() : undefined,
+        imageUrl: addMediaUrl.trim() || undefined,
         instructions: instructionsArr,
         formTips: formTipsArr,
         commonMistakes: commonMistakesArr,
@@ -315,7 +335,7 @@ export default function AdminExercisesTab({
     setEditRecommendedTempo(ex.recommendedTempo || '');
     setEditVideoUrl(ex.videoUrl || '');
 
-    setEditMediaUrl(ex.gifUrl || ex.imageUrl || '');
+    setEditMediaUrl(ex.imageUrl || '');
 
     const inst = Array.isArray(ex.instructions)
       ? ex.instructions.join('\n')
@@ -361,7 +381,6 @@ export default function AdminExercisesTab({
     try {
       setUpdatingExercise(true);
       triggerHapticFeedback();
-      const isGif = editMediaUrl.toLowerCase().includes('.gif');
       const instructionsArr = editInstructions.split('\n').map((s) => s.trim()).filter(Boolean);
       const formTipsArr = editFormTips ? editFormTips.split('\n').map((s) => s.trim()).filter(Boolean) : [];
       const commonMistakesArr = editCommonMistakes ? editCommonMistakes.split('\n').map((s) => s.trim()).filter(Boolean) : [];
@@ -390,8 +409,7 @@ export default function AdminExercisesTab({
         formTips: formTipsArr,
         commonMistakes: commonMistakesArr,
         breathingTechnique: editBreathingTechnique.trim() || undefined,
-        imageUrl: isGif ? null : (editMediaUrl.trim() || null),
-        gifUrl: isGif ? editMediaUrl.trim() : null,
+        imageUrl: editMediaUrl.trim() || null,
       });
 
       if (res.success) {
@@ -430,18 +448,111 @@ export default function AdminExercisesTab({
     }
   };
 
-  const filteredExercises = useMemo(() => {
-    if (!exerciseSearch.trim()) return exercises;
-    const q = exerciseSearch.toLowerCase().trim();
-    return exercises.filter((ex) => {
-      const name = (ex.name || '').toLowerCase();
-      const muscle = (ex.primaryMuscle || ex.muscleGroup || '').toLowerCase();
-      const secMuscles = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(' ').toLowerCase() : '';
-      const eq = Array.isArray(ex.equipment) ? ex.equipment.join(' ').toLowerCase() : (ex.equipment || '').toLowerCase();
-      const cat = (ex.category || '').toLowerCase();
-      return name.includes(q) || muscle.includes(q) || secMuscles.includes(q) || eq.includes(q) || cat.includes(q);
+  const mergedExercises = useMemo(() => {
+    const dbList = Array.isArray(exercises) ? exercises : [];
+    const dbNames = new Set(dbList.map((e) => (e.name || '').toLowerCase()));
+    const localMap = new Map(COMMON_EXERCISES_CATALOG.map((c) => [c.name.toLowerCase(), c]));
+
+    const enrichedDb: ApiLibraryExercise[] = dbList.map((item) => {
+      const local = localMap.get((item.name || '').toLowerCase());
+      return {
+        ...item,
+        recommendedTempo: item.recommendedTempo || local?.recommendedTempo || '2-0-1-0',
+        difficulty: item.difficulty || local?.difficulty || 'Intermediate',
+        primaryMuscle: item.primaryMuscle || local?.primaryMuscle || item.muscleGroup || 'Chest',
+        muscleGroup: item.muscleGroup || local?.muscleGroup || item.primaryMuscle || 'Chest',
+        category: item.category || local?.category || 'Strength',
+        type: (item as any).type || local?.type || 'Compound',
+        equipment: item.equipment || (Array.isArray(local?.equipment) ? local.equipment : [local?.equipment || 'Barbell']),
+        secondaryMuscles: item.secondaryMuscles || local?.secondaryMuscles || [],
+        instructions: item.instructions || local?.instructions || [],
+        formTips: item.formTips || local?.formTips || [],
+        commonMistakes: (item as any).commonMistakes || (local as any)?.commonMistakes || [],
+        breathingTechnique: (item as any).breathingTechnique || (local as any)?.breathingTechnique || null,
+        imageUrl: item.imageUrl || local?.imageUrl || null,
+        videoUrl: item.videoUrl || local?.videoUrl || null,
+      };
     });
-  }, [exercises, exerciseSearch]);
+
+    const uniqueLocal: ApiLibraryExercise[] = COMMON_EXERCISES_CATALOG
+      .filter((c) => !dbNames.has((c.name || '').toLowerCase()))
+      .map((c) => ({
+        id: c.id,
+        name: c.name,
+        description: c.description || null,
+        category: c.category || 'Strength',
+        type: c.type || 'Compound',
+        difficulty: c.difficulty || 'Intermediate',
+        primaryMuscle: c.primaryMuscle || c.muscleGroup || 'Chest',
+        muscleGroup: c.muscleGroup || c.primaryMuscle || 'Chest',
+        bodyPart: c.bodyPart || 'Upper Body',
+        equipment: Array.isArray(c.equipment) ? c.equipment : [c.equipment || 'Barbell'],
+        equipmentAlternatives: Array.isArray(c.equipmentAlternatives) ? c.equipmentAlternatives : [],
+        startingPosition: c.startingPosition || null,
+        instructions: Array.isArray(c.instructions) ? c.instructions : [],
+        formTips: Array.isArray(c.formTips) ? c.formTips : [],
+        commonMistakes: Array.isArray(c.commonMistakes) ? c.commonMistakes : [],
+        breathingTechnique: c.breathingTechnique || null,
+        recommendedSets: c.recommendedSets || 3,
+        recommendedReps: c.recommendedReps || 10,
+        recommendedDuration: c.recommendedDuration || null,
+        recommendedRest: c.recommendedRest || 90,
+        recommendedTempo: c.recommendedTempo || '2-0-1-0',
+        defaultSets: Array.isArray(c.defaultSets)
+          ? c.defaultSets.map((s) => ({
+              weight: typeof s.weight === 'number' ? s.weight : Number(s.weight) || 20,
+              reps: typeof s.reps === 'number' ? s.reps : Number(s.reps) || 10,
+              bodyweight: Boolean(s.bodyweight),
+            }))
+          : [{ weight: 20, reps: 10 }],
+        imageUrl: c.imageUrl || null,
+        thumbnailUrl: c.thumbnailUrl || null,
+        videoUrl: c.videoUrl || null,
+        safetyInstructions: c.safetyInstructions || null,
+        injuryPreventionTips: c.injuryPreventionTips || null,
+        beginnerModification: c.beginnerModification || null,
+        advancedVariation: c.advancedVariation || null,
+        easierAlternative: c.easierAlternative || null,
+        harderAlternative: c.harderAlternative || null,
+        equipmentFreeAlternative: c.equipmentFreeAlternative || null,
+        similarExercises: Array.isArray(c.similarExercises) ? c.similarExercises : [],
+        tags: Array.isArray(c.tags) ? c.tags : [],
+        difficultyPresets: c.difficultyPresets || null,
+        isSystem: true,
+        userId: null,
+      }));
+
+    return [...enrichedDb, ...uniqueLocal].sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+  }, [exercises]);
+
+  const filteredExercises = useMemo(() => {
+    return mergedExercises.filter((ex) => {
+      const q = exerciseSearch.toLowerCase().trim();
+      if (q) {
+        const name = (ex.name || '').toLowerCase();
+        const muscle = (ex.primaryMuscle || ex.muscleGroup || '').toLowerCase();
+        const secMuscles = Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(' ').toLowerCase() : '';
+        const eq = Array.isArray(ex.equipment) ? ex.equipment.join(' ').toLowerCase() : (ex.equipment || '').toLowerCase();
+        const cat = (ex.category || '').toLowerCase();
+        const tags = Array.isArray((ex as any).tags) ? (ex as any).tags.join(' ').toLowerCase() : '';
+        if (!name.includes(q) && !muscle.includes(q) && !secMuscles.includes(q) && !eq.includes(q) && !cat.includes(q) && !tags.includes(q)) {
+          return false;
+        }
+      }
+
+      if (selectedMuscle && selectedMuscle !== 'All') {
+        const targetM = selectedMuscle.toLowerCase();
+        const primaryM = (ex.primaryMuscle || ex.muscleGroup || '').toLowerCase();
+        const groupM = (ex.muscleGroup || '').toLowerCase();
+        const catM = (ex.category || '').toLowerCase();
+        if (!primaryM.includes(targetM) && !groupM.includes(targetM) && !catM.includes(targetM)) {
+          return false;
+        }
+      }
+
+      return true;
+    });
+  }, [mergedExercises, exerciseSearch, selectedMuscle]);
 
   return (
     <View className="flex-1 min-h-0">
@@ -451,10 +562,10 @@ export default function AdminExercisesTab({
         <View className="flex-row items-center justify-between">
           <View>
             <Text className="text-sm font-bold text-text-primary dark:text-text-primary-dark">
-              Exercise Catalog ({filteredExercises.length}{exerciseSearch ? ` of ${exercises.length}` : ''})
+              Exercise Catalog ({filteredExercises.length}{exerciseSearch || selectedMuscle !== 'All' ? ` of ${mergedExercises.length}` : ''})
             </Text>
             <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
-              Synchronized with live workout library & gifs
+              Synchronized with live workout library & form guides
             </Text>
           </View>
           <TouchableOpacity
@@ -508,7 +619,7 @@ export default function AdminExercisesTab({
       {/* Scrollable Exercise List */}
       <ScrollView
         className="flex-1 min-h-0"
-        contentContainerStyle={{ paddingBottom: 90, gap: 12 }}
+        contentContainerStyle={{ paddingBottom: 90, gap: 10 }}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={true}
         refreshControl={
@@ -519,108 +630,122 @@ export default function AdminExercisesTab({
           />
         }
       >
-        {loading && !refreshing ? (
+        {loading && !refreshing && mergedExercises.length === 0 ? (
           <View className="py-20 items-center justify-center">
-          <ActivityIndicator size="small" color={colors.accent} />
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
-            Fetching catalog from database...
-          </Text>
-        </View>
-      ) : exercises.length === 0 ? (
-        <SurfaceCard className="py-12 items-center justify-center">
-          <Ionicons name="barbell-outline" size={36} color={colors.textMuted} />
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
-            No exercises match this muscle group.
-          </Text>
-        </SurfaceCard>
-      ) : filteredExercises.length === 0 ? (
-        <SurfaceCard className="py-12 items-center justify-center">
-          <Ionicons name="search-outline" size={32} color={colors.textMuted} />
-          <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mt-2">
-            No matching exercises found
-          </Text>
-          <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 text-center">
-            No exercises match "{exerciseSearch}".
-          </Text>
-          <TouchableOpacity
-            onPress={() => setExerciseSearch('')}
-            className="mt-3 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30"
-          >
-            <Text className="text-xs font-bold text-accent dark:text-accent-mint">Clear Search</Text>
-          </TouchableOpacity>
-        </SurfaceCard>
-      ) : (
-        filteredExercises.map((ex) => {
-          const mediaUri = ex.gifUrl || ex.imageUrl;
-          const displayEquipment = Array.isArray(ex.equipment)
-            ? ex.equipment.join(', ')
-            : ex.equipment || 'Standard';
+            <ActivityIndicator size="small" color={colors.accent} />
+            <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2">
+              Fetching catalog from database...
+            </Text>
+          </View>
+        ) : filteredExercises.length === 0 ? (
+          <SurfaceCard className="py-12 items-center justify-center">
+            <Ionicons name="search-outline" size={32} color={colors.textMuted} />
+            <Text className="text-xs font-semibold text-text-primary dark:text-text-primary-dark mt-2">
+              No matching exercises found
+            </Text>
+            <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5 text-center px-4">
+              {exerciseSearch
+                ? `No exercises match "${exerciseSearch}".`
+                : `No exercises found for "${selectedMuscle}".`}
+            </Text>
+            <TouchableOpacity
+              onPress={() => {
+                setExerciseSearch('');
+                onSelectMuscle('All');
+              }}
+              className="mt-3 px-3 py-1.5 rounded-lg bg-accent/15 border border-accent/30"
+            >
+              <Text className="text-xs font-bold text-accent dark:text-accent-mint">Clear Filters</Text>
+            </TouchableOpacity>
+          </SurfaceCard>
+        ) : (
+          filteredExercises.map((ex) => {
+            const displayEquipment = Array.isArray(ex.equipment)
+              ? ex.equipment.join(', ')
+              : ex.equipment || 'Standard';
+            const diffStyle = getDifficultyStyle(ex.difficulty);
 
-          return (
-            <SurfaceCard key={ex.id} className="p-3">
-              <View className="flex-row items-center gap-3">
-                {mediaUri ? (
-                  <Image
-                    source={{ uri: mediaUri }}
-                    className="w-14 h-14 rounded-xl bg-surface-card dark:bg-surface-card-dark border border-input-border dark:border-input-border-dark"
-                    resizeMode="cover"
-                  />
-                ) : (
-                  <View className="w-14 h-14 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/20 items-center justify-center">
-                    <Ionicons name="fitness" size={24} color={colors.accent} />
-                  </View>
-                )}
-
-                <View className="flex-1">
-                  <View className="flex-row items-center gap-1.5 flex-wrap">
-                    <Text className="font-bold text-sm text-text-primary dark:text-text-primary-dark">
-                      {ex.name}
-                    </Text>
-                    <View className="bg-surface-card dark:bg-surface-card-dark px-1.5 py-0.5 rounded border border-input-border dark:border-input-border-dark">
-                      <Text className="text-[10px] font-semibold text-text-muted dark:text-text-muted-dark">
-                        {ex.difficulty}
+            return (
+              <SurfaceCard
+                key={ex.id}
+                className="p-3.5 mb-2.5"
+                onPress={() => {
+                  triggerHapticFeedback();
+                  setSelectedDetailsExercise(ex as unknown as LibraryExercise);
+                  setShowDetailsModal(true);
+                }}
+                accessibilityLabel={`View ${ex.name} details`}
+              >
+                <View className="flex-row items-center justify-between gap-3">
+                  <View className="flex-1 min-w-0 pr-1">
+                    <View className="flex-row items-center gap-1.5 flex-wrap mb-1">
+                      <Text numberOfLines={1} className="font-extrabold text-sm text-text-primary dark:text-text-primary-dark">
+                        {ex.name}
                       </Text>
+                      {ex.difficulty ? (
+                        <View className={`px-2 py-0.5 rounded-full border ${diffStyle.badgeContainer}`}>
+                          <Text
+                            className={`text-[9px] font-bold uppercase tracking-wider ${diffStyle.badgeText}`}
+                            style={{ color: isDark ? diffStyle.darkHexColor : diffStyle.hexColor }}
+                          >
+                            {ex.difficulty}
+                          </Text>
+                        </View>
+                      ) : null}
                     </View>
+
+                    <View className="flex-row items-center gap-1.5 mb-1 flex-wrap">
+                      <View className="px-1.5 py-0.5 rounded bg-accent/15 border border-accent/30">
+                        <Text className="text-[9px] font-black text-accent dark:text-accent-dark uppercase">
+                          HITS: {ex.primaryMuscle || ex.muscleGroup}
+                        </Text>
+                      </View>
+                      {ex.secondaryMuscles && (Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.length > 0 : !!ex.secondaryMuscles) ? (
+                        <View className="px-1.5 py-0.5 rounded bg-sky-500/10 border border-sky-500/25">
+                          <Text className="text-[9px] font-medium text-sky-500 dark:text-sky-400" numberOfLines={1}>
+                            + {Array.isArray(ex.secondaryMuscles) ? ex.secondaryMuscles.join(', ') : ex.secondaryMuscles}
+                          </Text>
+                        </View>
+                      ) : null}
+                    </View>
+
+                    <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                      {ex.category} • {(ex as any).type || 'Compound'} • {displayEquipment}
+                    </Text>
                   </View>
 
-                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                    {ex.primaryMuscle || ex.muscleGroup} · {displayEquipment} · {ex.category}
-                  </Text>
-
-                  {ex.instructions && ex.instructions[0] && (
-                    <Text
-                      className="text-[11px] text-text-muted dark:text-text-muted-dark mt-1"
-                      numberOfLines={1}
+                  {/* Actions: Edit, Delete */}
+                  <View className="flex-row items-center gap-1.5 shrink-0">
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e?.stopPropagation?.();
+                        handleOpenEditModal(ex);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      className="w-9 h-9 rounded-xl bg-accent/10 border border-accent/20 items-center justify-center"
+                      accessibilityLabel={`Edit ${ex.name}`}
                     >
-                      {ex.instructions[0]}
-                    </Text>
-                  )}
-                </View>
+                      <Ionicons name="pencil-outline" size={15} color={colors.accent} />
+                    </TouchableOpacity>
 
-                {/* Edit & Delete Actions */}
-                <View className="flex-row items-center gap-1.5">
-                  <TouchableOpacity
-                    onPress={() => handleOpenEditModal(ex)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="w-10 h-10 rounded-xl bg-accent/10 border border-accent/20 items-center justify-center"
-                    accessibilityLabel={`Edit ${ex.name}`}
-                  >
-                    <Ionicons name="pencil-outline" size={16} color={colors.accent} />
-                  </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={(e) => {
+                        e?.stopPropagation?.();
+                        handleDeleteExercise(ex);
+                      }}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                      className="w-9 h-9 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center"
+                      accessibilityLabel={`Delete ${ex.name}`}
+                    >
+                      <Ionicons name="trash-outline" size={15} color={colors.danger} />
+                    </TouchableOpacity>
 
-                  <TouchableOpacity
-                    onPress={() => handleDeleteExercise(ex)}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                    className="w-10 h-10 rounded-xl bg-danger/10 border border-danger/20 items-center justify-center"
-                    accessibilityLabel={`Delete ${ex.name}`}
-                  >
-                    <Ionicons name="trash-outline" size={16} color={colors.danger} />
-                  </TouchableOpacity>
+                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} style={{ marginLeft: 2 }} />
+                  </View>
                 </View>
-              </View>
-            </SurfaceCard>
-          );
-        })
+              </SurfaceCard>
+            );
+          })
       )}
       </ScrollView>
 
@@ -631,12 +756,18 @@ export default function AdminExercisesTab({
           transparent
           animationType="slide"
           onRequestClose={() => setShowAddModal(false)}
+          statusBarTranslucent
         >
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
           >
-            <Pressable className="hidden md:flex flex-1 w-full" onPress={() => setShowAddModal(false)} />
+            <Pressable
+              className="absolute inset-0"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              onPress={() => Keyboard.dismiss()}
+              accessible={false}
+            />
 
             <View
               style={{
@@ -702,6 +833,54 @@ export default function AdminExercisesTab({
                   {addErrors.name ? (
                     <Text className="text-xs text-danger mt-1">{addErrors.name}</Text>
                   ) : null}
+                </View>
+
+                {/* Category */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Category
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 6 }}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <FilterChip
+                        key={cat}
+                        label={cat}
+                        selected={addCategory === cat}
+                        onPress={() => {
+                          triggerHapticFeedback();
+                          setAddCategory(cat);
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Movement Type */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Movement Type
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 6 }}
+                  >
+                    {MOVEMENT_TYPES.map((t) => (
+                      <FilterChip
+                        key={t}
+                        label={t}
+                        selected={addType === t}
+                        onPress={() => {
+                          triggerHapticFeedback();
+                          setAddType(t);
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
                 </View>
 
                 {/* Target Muscle Group */}
@@ -829,14 +1008,14 @@ export default function AdminExercisesTab({
                   </View>
                 </View>
 
-                {/* 2. Media Image / GIF with Live Preview */}
+                {/* 2. Media Image with Live Preview */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Image / GIF URL (Live Demo)
+                    Image URL (Optional)
                   </Text>
                   <TextInput
                     className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
-                    placeholder="https://.../exercise.gif or .jpg"
+                    placeholder="https://.../exercise.jpg or .png"
                     placeholderTextColor={colors.textMuted}
                     value={addMediaUrl}
                     onChangeText={setAddMediaUrl}
@@ -851,7 +1030,7 @@ export default function AdminExercisesTab({
                       />
                       <View className="flex-row items-center gap-1 mt-1.5">
                         <Ionicons name="checkmark-circle" size={12} color={colors.accent} />
-                        <Text className="text-[11px] font-semibold text-accent">Live Media Preview</Text>
+                        <Text className="text-[11px] font-semibold text-accent">Live Image Preview</Text>
                       </View>
                     </View>
                   ) : null}
@@ -970,12 +1149,18 @@ export default function AdminExercisesTab({
           transparent
           animationType="slide"
           onRequestClose={() => setShowEditModal(false)}
+          statusBarTranslucent
         >
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
             className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
           >
-            <Pressable className="hidden md:flex flex-1 w-full" onPress={() => setShowEditModal(false)} />
+            <Pressable
+              className="absolute inset-0"
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              onPress={() => Keyboard.dismiss()}
+              accessible={false}
+            />
 
             <View
               style={{
@@ -1043,6 +1228,54 @@ export default function AdminExercisesTab({
                   ) : null}
                 </View>
 
+                {/* Category */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Category
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 6 }}
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <FilterChip
+                        key={cat}
+                        label={cat}
+                        selected={editCategory === cat}
+                        onPress={() => {
+                          triggerHapticFeedback();
+                          setEditCategory(cat);
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+
+                {/* Movement Type */}
+                <View>
+                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
+                    Movement Type
+                  </Text>
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: 6 }}
+                  >
+                    {MOVEMENT_TYPES.map((t) => (
+                      <FilterChip
+                        key={t}
+                        label={t}
+                        selected={editType === t}
+                        onPress={() => {
+                          triggerHapticFeedback();
+                          setEditType(t);
+                        }}
+                      />
+                    ))}
+                  </ScrollView>
+                </View>
+
                 {/* Target Muscle Group */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
@@ -1079,26 +1312,6 @@ export default function AdminExercisesTab({
                     value={editSecondaryMuscles}
                     onChangeText={setEditSecondaryMuscles}
                   />
-                </View>
-
-                {/* Movement Type (Compound vs Isolation) */}
-                <View>
-                  <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Movement Type
-                  </Text>
-                  <View className="flex-row gap-2">
-                    {(['Compound', 'Isolation'] as const).map((t) => (
-                      <FilterChip
-                        key={t}
-                        label={t}
-                        selected={editType === t}
-                        onPress={() => {
-                          triggerHapticFeedback();
-                          setEditType(t);
-                        }}
-                      />
-                    ))}
-                  </View>
                 </View>
 
                 {/* Equipment & Equipment Alternatives */}
@@ -1188,14 +1401,14 @@ export default function AdminExercisesTab({
                   </View>
                 </View>
 
-                {/* 2. Media Image / GIF with Live Preview */}
+                {/* 2. Media Image with Live Preview */}
                 <View>
                   <Text className="text-[11px] font-bold text-text-muted dark:text-text-muted-dark mb-1">
-                    Image / GIF URL (Live Demo)
+                    Image URL (Optional)
                   </Text>
                   <TextInput
                     className="bg-surface-card dark:bg-surface-card-dark px-3 py-2.5 rounded-xl border border-input-border dark:border-input-border-dark text-sm text-text-primary dark:text-text-primary-dark"
-                    placeholder="https://.../exercise.gif or .jpg"
+                    placeholder="https://.../exercise.jpg or .png"
                     placeholderTextColor={colors.textMuted}
                     value={editMediaUrl}
                     onChangeText={setEditMediaUrl}
@@ -1210,7 +1423,7 @@ export default function AdminExercisesTab({
                       />
                       <View className="flex-row items-center gap-1 mt-1.5">
                         <Ionicons name="checkmark-circle" size={12} color={colors.accent} />
-                        <Text className="text-[11px] font-semibold text-accent">Live Media Preview</Text>
+                        <Text className="text-[11px] font-semibold text-accent">Live Image Preview</Text>
                       </View>
                     </View>
                   ) : null}
@@ -1335,6 +1548,22 @@ export default function AdminExercisesTab({
         onConfirm={executeDeleteExercise}
         onCancel={() => setExerciseToDelete(null)}
       />
+
+      {/* Details View Modal (Anatomy & Form Guide) */}
+      {showDetailsModal && selectedDetailsExercise && (
+        <ExerciseDetailsModal
+          visible={showDetailsModal}
+          exercise={selectedDetailsExercise}
+          onClose={() => {
+            setShowDetailsModal(false);
+            setSelectedDetailsExercise(null);
+          }}
+          onAddExercise={() => {
+            setShowDetailsModal(false);
+            setSelectedDetailsExercise(null);
+          }}
+        />
+      )}
     </View>
   );
 }

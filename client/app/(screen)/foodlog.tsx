@@ -917,19 +917,36 @@ export default function FoodLog() {
                     Today's Logged Meals
                   </Text>
 
-                  <TouchableOpacity
-                    onPress={() => {
-                      setAiSuggestTargetMeal('all');
-                      setShowAiSuggestModal(true);
-                    }}
-                    activeOpacity={0.8}
-                    className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-3 py-1.5 flex-row items-center gap-1.5"
-                  >
-                    <Ionicons name="sparkles" size={13} color={colors.accent} />
-                    <Text className="text-accent dark:text-accent-dark font-bold text-xs">
-                      AI Suggest
-                    </Text>
-                  </TouchableOpacity>
+                  <View className="flex-row items-center gap-1.5">
+                    <TouchableOpacity
+                      onPress={() => {
+                        setScanTargetMeal(undefined);
+                        setScanInitialMode('text');
+                        setShowScanModal(true);
+                      }}
+                      activeOpacity={0.8}
+                      className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1.5"
+                    >
+                      <Ionicons name="create-outline" size={13} color={colors.accent} />
+                      <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                        Describe
+                      </Text>
+                    </TouchableOpacity>
+
+                    <TouchableOpacity
+                      onPress={() => {
+                        setAiSuggestTargetMeal('all');
+                        setShowAiSuggestModal(true);
+                      }}
+                      activeOpacity={0.8}
+                      className="rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2.5 py-1.5 flex-row items-center gap-1.5"
+                    >
+                      <Ionicons name="sparkles" size={13} color={colors.accent} />
+                      <Text className="text-accent dark:text-accent-dark font-bold text-xs">
+                        AI Suggest
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 </View>
 
                 {loading && items.length === 0 ? (

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, ViewStyle, StyleProp } from 'react-native';
+import { View, Animated, ViewStyle, StyleProp, Platform } from 'react-native';
 
 export interface SkeletonProps {
   width?: number | string;
@@ -19,17 +19,18 @@ export default function Skeleton({
   const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
+    const isNative = Platform.OS !== 'web';
     const animation = Animated.loop(
       Animated.sequence([
         Animated.timing(opacity, {
           toValue: 0.85,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: isNative,
         }),
         Animated.timing(opacity, {
           toValue: 0.4,
           duration: 800,
-          useNativeDriver: true,
+          useNativeDriver: isNative,
         }),
       ])
     );

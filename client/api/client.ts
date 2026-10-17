@@ -224,15 +224,30 @@ export async function apiRequest(endpoint: string, options: ApiRequestOptions = 
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
+  if (options.signal) {
+    if (options.signal.aborted) {
+      controller.abort();
+    } else {
+      options.signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
+
   let response: Response;
   try {
     response = await fetch(url, {
       ...options,
-      signal: options.signal || controller.signal,
+      signal: controller.signal,
       headers,
       body: body as BodyInit,
     });
   } catch (err: any) {
+    // If user explicitly cancelled via their AbortSignal, throw clean AbortError immediately
+    if (options.signal?.aborted) {
+      const cancelErr = new Error('Request cancelled by user');
+      cancelErr.name = 'AbortError';
+      throw cancelErr;
+    }
+
     const isNetworkError =
       err?.name === 'AbortError' ||
       controller.signal.aborted ||

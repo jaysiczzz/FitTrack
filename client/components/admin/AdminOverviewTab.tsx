@@ -53,10 +53,10 @@ export default function AdminOverviewTab({
   const usdBalance = isPhp ? rawBalance / 58 : rawBalance;
 
   // Subscription Breakdown
-  const totalPro = stats.financials.activeProSubscribers || 1;
-  const monthlyPct = Math.round(((stats.financials.activeMonthly || 0) / totalPro) * 100);
-  const annualPct = Math.round(((stats.financials.activeAnnual || 0) / totalPro) * 100);
-  const lifetimePct = Math.max(0, 100 - monthlyPct - annualPct);
+  const totalPro = stats.financials.activeProSubscribers || 0;
+  const monthlyPct = totalPro > 0 ? Math.round(((stats.financials.activeMonthly || 0) / totalPro) * 100) : 0;
+  const annualPct = totalPro > 0 ? Math.round(((stats.financials.activeAnnual || 0) / totalPro) * 100) : 0;
+  const lifetimePct = totalPro > 0 ? Math.round(((stats.financials.activeLifetime || 0) / totalPro) * 100) : 0;
 
   // Engagement KPIs
   const totalAthletes = Math.max(stats.users.athletes, 1);
@@ -155,17 +155,27 @@ export default function AdminOverviewTab({
             <Text className="text-[10px] font-bold text-text-muted uppercase tracking-wider">
               Subscription Mix ({stats.financials.activeProSubscribers} Pro Members)
             </Text>
+            {totalPro === 0 && (
+              <Text className="text-[10px] font-medium text-text-muted dark:text-text-muted-dark">
+                No active paid subscribers
+              </Text>
+            )}
           </View>
 
-          <View className="h-2 bg-input dark:bg-input-dark rounded-full overflow-hidden flex-row border border-input-border/40">
-            <View
-              style={{ width: `${Math.max(4, monthlyPct)}%` }}
-              className="h-full bg-accent dark:bg-accent-dark"
-            />
-            <View
-              style={{ width: `${Math.max(4, annualPct)}%` }}
-              className="h-full bg-accent/50 dark:bg-accent-dark/50"
-            />
+          {/* Visual Stacked Bar */}
+          <View className="h-2.5 bg-input dark:bg-input-dark rounded-full overflow-hidden flex-row border border-input-border/40">
+            {monthlyPct > 0 && (
+              <View
+                style={{ width: `${monthlyPct}%` }}
+                className="h-full bg-emerald-500 dark:bg-emerald-400"
+              />
+            )}
+            {annualPct > 0 && (
+              <View
+                style={{ width: `${annualPct}%` }}
+                className="h-full bg-purple-500 dark:bg-purple-400"
+              />
+            )}
             {lifetimePct > 0 && (
               <View
                 style={{ width: `${lifetimePct}%` }}
@@ -174,24 +184,27 @@ export default function AdminOverviewTab({
             )}
           </View>
 
-          <View className="flex-row items-center justify-between mt-2">
-            <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-accent dark:bg-accent-dark" />
+          {/* Legend */}
+          <View className="flex-row items-center justify-between mt-2 flex-wrap gap-2">
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <Text className="text-[10px] text-text-muted">
-                Monthly: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeMonthly}</Text> ({monthlyPct}%)
+                Pro Monthly: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeMonthly}</Text> ({monthlyPct}%)
               </Text>
             </View>
-            <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-accent/50 dark:bg-accent-dark/50" />
+
+            <View className="flex-row items-center gap-1.5">
+              <View className="w-2.5 h-2.5 rounded-full bg-purple-500" />
               <Text className="text-[10px] text-text-muted">
-                Annual: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeAnnual}</Text> ({annualPct}%)
+                Pro Annual: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeAnnual}</Text> ({annualPct}%)
               </Text>
             </View>
+
             {stats.financials.activeLifetime > 0 && (
-              <View className="flex-row items-center gap-1">
-                <View className="w-2 h-2 rounded-full bg-amber-500" />
+              <View className="flex-row items-center gap-1.5">
+                <View className="w-2.5 h-2.5 rounded-full bg-amber-500" />
                 <Text className="text-[10px] text-text-muted">
-                  Founder: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeLifetime}</Text>
+                  Founder: <Text className="font-bold text-text-primary dark:text-text-primary-dark">{stats.financials.activeLifetime}</Text> ({lifetimePct}%)
                 </Text>
               </View>
             )}

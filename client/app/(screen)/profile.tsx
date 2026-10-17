@@ -174,16 +174,38 @@ export default function Profile() {
       }
 
       // 2. Check-in history
+      const checkinHistoryKey = authStorage.getScopedKey(userId, 'fittrack_checkin_history_cache');
       let checkIns: any[] = [];
+      const cachedCheckins = await AsyncStorage.getItem(checkinHistoryKey);
+      if (cachedCheckins) {
+        try {
+          const parsed = JSON.parse(cachedCheckins);
+          if (Array.isArray(parsed)) {
+            checkIns = parsed;
+          }
+        } catch {}
+      }
+
       try {
         const checkinRes = await getCheckInHistoryApi(60).catch(() => null);
         if (checkinRes?.success && Array.isArray(checkinRes.history)) {
           checkIns = checkinRes.history;
+          AsyncStorage.setItem(checkinHistoryKey, JSON.stringify(checkinRes.history)).catch(() => {});
         }
       } catch {}
 
       // 3. Nutrition history & Macro status for streak
+      const foodHistoryKey = authStorage.getScopedKey(userId, 'fittrack_food_history_cache');
       let foodLogs: any[] = [];
+      const cachedFoodHistory = await AsyncStorage.getItem(foodHistoryKey);
+      if (cachedFoodHistory) {
+        try {
+          const parsed = JSON.parse(cachedFoodHistory);
+          if (Array.isArray(parsed)) {
+            foodLogs = parsed;
+          }
+        } catch {}
+      }
 
       const foodKey = authStorage.getScopedKey(userId, 'food_log_today');
       const cachedFood = await AsyncStorage.getItem(foodKey);
@@ -196,6 +218,7 @@ export default function Profile() {
       const foodRes = await getFoodLogHistoryApi().catch(() => null);
       if (foodRes?.success && Array.isArray(foodRes.history)) {
         foodLogs = foodRes.history;
+        AsyncStorage.setItem(foodHistoryKey, JSON.stringify(foodRes.history)).catch(() => {});
       }
 
       // Dynamic water target matching dashboard personalized metrics
@@ -232,6 +255,8 @@ export default function Profile() {
 
       const activeStreak = calculateActiveStreak(activeDates, isAnyGoalDoneToday);
       setStreakCount(activeStreak);
+      const streakKey = authStorage.getScopedKey(userId, 'fittrack_current_streak_cache');
+      AsyncStorage.setItem(streakKey, activeStreak.toString()).catch(() => {});
     } catch { }
   }, [authUser?.id]);
 
@@ -247,6 +272,17 @@ export default function Profile() {
     if (authUser) {
       applyUserData(authUser);
       loadAvatar();
+    }
+    if (authUser?.id) {
+      const streakKey = authStorage.getScopedKey(authUser.id, 'fittrack_current_streak_cache');
+      AsyncStorage.getItem(streakKey)
+        .then((cached) => {
+          if (cached !== null && isMounted) {
+            const val = parseInt(cached, 10);
+            if (!isNaN(val)) setStreakCount(val);
+          }
+        })
+        .catch(() => {});
     }
     loadAthleticHistory();
     loadNotifications();

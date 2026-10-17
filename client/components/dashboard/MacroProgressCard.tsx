@@ -29,10 +29,11 @@ export default function MacroProgressCard({
 }: MacroProgressCardProps) {
   const router = useRouter();
   
+  const isOverLimit = Boolean(targetCalories && caloriesLogged > targetCalories);
   const calPct = caloriePercent ?? (targetCalories ? Math.round((caloriesLogged / targetCalories) * 100) : 0);
-  const proteinPercent = Math.min(100, Math.round((proteinLogged / (targetProtein || 140)) * 100));
-  const carbsPercent = Math.min(100, Math.round((carbsLogged / (targetCarbs || 230)) * 100));
-  const fatPercent = Math.min(100, Math.round((fatLogged / (targetFat || 65)) * 100));
+  const proteinPercent = Math.min(100, Math.round((proteinLogged / Math.max(1, targetProtein || 140)) * 100));
+  const carbsPercent = Math.min(100, Math.round((carbsLogged / Math.max(1, targetCarbs || 230)) * 100));
+  const fatPercent = Math.min(100, Math.round((fatLogged / Math.max(1, targetFat || 65)) * 100));
 
   return (
     <SurfaceCard className="mb-3">
@@ -55,12 +56,32 @@ export default function MacroProgressCard({
 
       <View className="flex-row items-center">
         {/* Dial / Circular Ring */}
-        <View className="w-[100px] h-[100px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-4 border-accent dark:border-accent-dark">
-          <Text className="text-text-primary dark:text-text-primary-dark text-center font-black text-2xl leading-7">
+        <View
+          className={`w-[100px] h-[100px] rounded-full bg-input dark:bg-input-dark items-center justify-center mr-4 border-4 ${
+            isOverLimit
+              ? 'border-danger dark:border-danger-dark'
+              : 'border-accent dark:border-accent-dark'
+          }`}
+        >
+          <Text
+            className={`text-center font-black text-2xl leading-7 ${
+              isOverLimit
+                ? 'text-danger dark:text-danger-dark'
+                : 'text-text-primary dark:text-text-primary-dark'
+            }`}
+          >
             {calPct}%
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider mt-0.5">
-            {caloriesLogged} kcal
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            className={`text-center font-bold text-[9px] uppercase tracking-normal mt-0.5 max-w-full px-1 ${
+              isOverLimit
+                ? 'text-danger dark:text-danger-dark font-extrabold'
+                : 'text-text-muted dark:text-text-muted-dark'
+            }`}
+          >
+            {isOverLimit ? 'Over Budget' : `${caloriesLogged.toLocaleString()} kcal`}
           </Text>
         </View>
 

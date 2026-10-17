@@ -121,9 +121,7 @@ export default function AdminScreen() {
         if (res.success) setRevenueData(res);
       } else if (activeTab === 'exercises') {
         if (isForceRefresh || exercises.length === 0) setLoadingExercises(true);
-        const res = await getWorkoutLibrary(
-          selectedMuscle !== 'All' ? { muscle: selectedMuscle } : undefined
-        );
+        const res = await getWorkoutLibrary({});
         if (res?.exercises) setExercises(res.exercises);
       } else if (activeTab === 'support') {
         if (isForceRefresh || tickets.length === 0) setLoadingTickets(true);

@@ -4,6 +4,7 @@ import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import { calculateBmi } from '@/utils/formatters';
 import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import { ACTIVITY_LEVEL_OPTIONS, ActivityLevel } from '@/constants/activityLevels';
 import {
   useHeightUnit,
   useWeightUnit,
@@ -32,6 +33,9 @@ interface OnboardingMetricsStepProps {
   gender: 'MALE' | 'FEMALE';
   onGenderChange: (val: 'MALE' | 'FEMALE') => void;
 
+  activityLevel: ActivityLevel;
+  onActivityLevelChange: (val: ActivityLevel) => void;
+
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' | '';
   onNext: () => void;
 }
@@ -48,6 +52,8 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
   ageError,
   gender,
   onGenderChange,
+  activityLevel,
+  onActivityLevelChange,
   goal,
   onNext,
 }) => {
@@ -177,7 +183,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
     }
 
     const targets = calculatePersonalizedTargets(
-      { weight: w, height: h, age: a, gender, goal },
+      { weight: w, height: h, age: a, gender, goal, activityLevel },
       (goal as any) || 'MUSCLE_GAIN'
     );
 
@@ -190,7 +196,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       carbGrams: targets.carbs,
       fatGrams: targets.fat,
     };
-  }, [height, weight, age, gender, goal]);
+  }, [height, weight, age, gender, goal, activityLevel]);
 
   return (
     <View className="w-full">
@@ -246,9 +252,9 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
       </View>
 
       {/* Height & Weight Section */}
-      <View className={`${heightUnit === 'FT_IN' ? 'flex-col sm:flex-row' : 'flex-row'} gap-2.5 w-full`}>
+      <View className="flex-row gap-2.5 w-full">
         {/* Height Section */}
-        <View className="flex-1">
+        <View className="flex-1 min-w-0">
           {heightUnit === 'CM' ? (
             <Input
               className="w-full"
@@ -266,10 +272,10 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
           ) : (
             <View className="w-full">
               <View className="flex-row gap-1.5">
-                <View className="flex-1">
+                <View className="flex-1 min-w-0">
                   <Input
                     className="w-full"
-                    label="Height (ft)"
+                    label="Ft"
                     placeholder="5"
                     unit="ft"
                     value={feetInput}
@@ -281,11 +287,11 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
                     blurOnSubmit={false}
                   />
                 </View>
-                <View className="flex-1">
+                <View className="flex-1 min-w-0">
                   <Input
                     ref={inchesRef}
                     className="w-full"
-                    label="(in)"
+                    label="In"
                     placeholder="10"
                     unit="in"
                     value={inchesInput}
@@ -303,7 +309,7 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
         </View>
 
         {/* Weight Section */}
-        <View className="flex-1">
+        <View className="flex-1 min-w-0">
           {weightUnit === 'KG' ? (
             <Input
               className="w-full"
@@ -369,6 +375,56 @@ const OnboardingMetricsStep: React.FC<OnboardingMetricsStepProps> = ({
                   }`}
                 >
                   {label}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Daily Activity Level Selector */}
+      <View className="mb-2.5">
+        <View className="flex-row items-center justify-between mb-1 px-0.5">
+          <Text className="text-[11px] font-semibold text-text-muted dark:text-text-muted-dark">
+            Daily Activity Level
+          </Text>
+          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+            Calibrates TDEE Multiplier
+          </Text>
+        </View>
+        <View className="flex-row flex-wrap gap-1.5">
+          {ACTIVITY_LEVEL_OPTIONS.map((opt) => {
+            const isSelected = activityLevel === opt.key;
+            return (
+              <Pressable
+                key={opt.key}
+                onPress={() => {
+                  hapticFeedback.light();
+                  onActivityLevelChange(opt.key);
+                }}
+                className={`flex-1 min-w-[47%] p-2 rounded-xl border ${
+                  isSelected
+                    ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
+                <View className="flex-row items-center gap-1.5 mb-0.5">
+                  <Text className="text-sm">{opt.icon}</Text>
+                  <Text
+                    className={`text-xs font-bold ${
+                      isSelected
+                        ? 'text-accent dark:text-accent-dark'
+                        : 'text-text-primary dark:text-text-primary-dark'
+                    }`}
+                  >
+                    {opt.label}
+                  </Text>
+                </View>
+                <Text
+                  numberOfLines={1}
+                  className="text-[9.5px] text-text-muted dark:text-text-muted-dark"
+                >
+                  {opt.description}
                 </Text>
               </Pressable>
             );

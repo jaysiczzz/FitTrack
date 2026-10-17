@@ -1,34 +1,219 @@
 import nodemailer, { Transporter } from 'nodemailer'
 
-let cachedTransporter: Transporter | null = null
-
-function getTransporter() {
+/**
+ * Creates a fresh Nodemailer transport instance.
+ * For Gmail, uses the built-in 'gmail' service without connection pooling (pool: false).
+ * Persistent connection pooling is not supported by Gmail SMTP and causes idle connections
+ * to be dropped, resulting in ECONNRESET and socket greeting timeouts on subsequent emails.
+ */
+function createTransporter(): Transporter {
   const host = (process.env.SMTP_HOST || 'smtp.gmail.com').trim()
   const port = parseInt(process.env.SMTP_PORT || '465', 10)
-  const secure = port === 465
   const user = (process.env.SMTP_USER || 'fittrack.app.help@gmail.com').trim().replace(/['"]/g, '')
   const rawPass = process.env.SMTP_PASS || ''
   const pass = rawPass.replace(/[\s"']/g, '')
 
-  if (!cachedTransporter) {
-    cachedTransporter = nodemailer.createTransport({
-      host,
-      port,
-      secure,
-      pool: true,
-      maxConnections: 5,
-      maxMessages: 100,
-      connectionTimeout: 8000,
-      greetingTimeout: 8000,
-      socketTimeout: 12000,
-      auth: {
-        user,
-        pass,
-      },
+  if (host === 'smtp.gmail.com' || host === 'gmail') {
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user, pass },
+      connectionTimeout: 10000,
+      greetingTimeout: 10000,
+      socketTimeout: 15000,
     })
   }
 
-  return cachedTransporter
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+    connectionTimeout: 10000,
+    greetingTimeout: 10000,
+    socketTimeout: 15000,
+    tls: {
+      rejectUnauthorized: process.env.NODE_ENV === 'production',
+    },
+  })
+}
+
+interface GenericEmailOptions {
+  toEmail: string
+  subject: string
+  html: string
+  plainText?: string
+}
+
+/**
+ * Sends email via Brevo REST API (HTTPS port 443).
+ * Render Free tier blocks outbound SMTP ports (25, 465, 587).
+ * Brevo sends directly over HTTPS port 443 with NO domain required — you can verify any Gmail address.
+ */
+async function sendViaBrevo(opts: GenericEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
+  const apiKey = process.env.BREVO_API_KEY?.trim()
+  if (!apiKey) return { success: false, delivered: false }
+
+  const senderEmail = (process.env.BREVO_SENDER_EMAIL || process.env.SMTP_USER || 'fittrack.app.help@gmail.com')
+    .trim()
+    .replace(/['"]/g, '')
+  const senderName = process.env.BREVO_SENDER_NAME?.trim() || 'FitTrack Support'
+
+  try {
+    const res = await fetch('https://api.brevo.com/v3/smtp/email', {
+      method: 'POST',
+      headers: {
+        accept: 'application/json',
+        'api-key': apiKey,
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        sender: {
+          name: senderName,
+          email: senderEmail,
+        },
+        to: [
+          {
+            email: opts.toEmail,
+          },
+        ],
+        subject: opts.subject,
+        htmlContent: opts.html,
+        textContent: opts.plainText,
+      }),
+    })
+
+    const data: any = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.error('[EMAIL ERROR] Brevo HTTP API rejected request:', {
+        status: res.status,
+        code: data?.code,
+        message: data?.message || res.statusText,
+      })
+      return { success: false, delivered: false }
+    }
+
+    console.log(`[EMAIL SERVICE] Email successfully delivered to ${opts.toEmail} via Brevo (MessageId: ${data?.messageId})`)
+    return { success: true, delivered: true }
+  } catch (err: any) {
+    console.error('[EMAIL ERROR] Brevo network error:', err?.message || err)
+    return { success: false, delivered: false }
+  }
+}
+
+/**
+ * Sends email via Resend REST API (HTTPS port 443).
+ * Note: Cloud hosting platforms such as Render Free tier block outbound SMTP ports (25, 465, 587).
+ * When RESEND_API_KEY is configured, this provides reliable HTTPS-based delivery without port blocks.
+ */
+async function sendViaResend(opts: GenericEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
+  const apiKey = process.env.RESEND_API_KEY?.trim()
+  if (!apiKey) return { success: false, delivered: false }
+
+  const from = process.env.RESEND_FROM?.trim() || 'FitTrack <onboarding@resend.dev>'
+
+  try {
+    const res = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from,
+        to: [opts.toEmail],
+        subject: opts.subject,
+        html: opts.html,
+        text: opts.plainText,
+      }),
+    })
+
+    const data: any = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      console.error('[EMAIL ERROR] Resend HTTP API rejected request:', data?.message || res.statusText)
+      return { success: false, delivered: false }
+    }
+
+    console.log(`[EMAIL SERVICE] Email successfully delivered to ${opts.toEmail} via Resend (ID: ${data?.id})`)
+    return { success: true, delivered: true }
+  } catch (err: any) {
+    console.error('[EMAIL ERROR] Resend network error:', err?.message || err)
+    return { success: false, delivered: false }
+  }
+}
+
+/**
+ * Sends email via Nodemailer SMTP.
+ */
+async function sendViaSmtp(opts: GenericEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
+  const user = (process.env.SMTP_USER || 'fittrack.app.help@gmail.com').trim().replace(/['"]/g, '')
+  const rawPass = process.env.SMTP_PASS || ''
+  const pass = rawPass.replace(/[\s"']/g, '')
+
+  if (!pass) {
+    if (process.env.NODE_ENV === 'production') {
+      console.error('[EMAIL SERVICE] SMTP_PASS credentials are not configured on the production server.')
+      return { success: false, delivered: false }
+    }
+    console.log('\n======================================================')
+    console.log('[EMAIL SERVICE - DEV SIMULATED DELIVERY]')
+    console.log(`To:       ${opts.toEmail}`)
+    console.log(`Subject:  ${opts.subject}`)
+    console.log('NOTE: To deliver real emails, set SMTP_PASS in server/.env.')
+    console.log('======================================================\n')
+    return { success: true, delivered: false }
+  }
+
+  try {
+    const transporter = createTransporter()
+    const info = await transporter.sendMail({
+      from: `"FitTrack Support" <${user}>`,
+      to: opts.toEmail,
+      subject: opts.subject,
+      html: opts.html,
+      text: opts.plainText,
+    })
+    console.log(`[EMAIL SERVICE] Email successfully delivered to ${opts.toEmail} (MessageId: ${info.messageId})`)
+    return { success: true, delivered: true }
+  } catch (error: any) {
+    console.error(`[EMAIL ERROR] Failed sending to ${opts.toEmail}:`, {
+      message: error?.message,
+      code: error?.code,
+      command: error?.command,
+      response: error?.response,
+    })
+
+    if (error?.code === 'ETIMEDOUT' || error?.code === 'ESOCKETTIMEDOUT') {
+      console.warn(
+        '\n[EMAIL SERVICE NOTICE] SMTP connection timed out.\n' +
+        'If your server is hosted on Render Free tier, Render silently blocks all outbound traffic on\n' +
+        'SMTP ports 25, 465, and 587. To send emails from Render, provide a BREVO_API_KEY or RESEND_API_KEY\n' +
+        'in your Render environment variables to deliver emails via HTTPS (port 443).\n'
+      )
+    }
+    return { success: false, delivered: false }
+  }
+}
+
+/**
+ * Unified email sender: uses Brevo or Resend HTTPS API if configured, otherwise falls back to Nodemailer SMTP.
+ */
+async function sendEmail(opts: GenericEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
+  // 1. Try Brevo HTTPS API (Recommended for Render free tier — no domain required, works with Gmail sender)
+  if (process.env.BREVO_API_KEY?.trim()) {
+    const brevoResult = await sendViaBrevo(opts)
+    if (brevoResult.delivered) return brevoResult
+    console.warn('[EMAIL SERVICE] Brevo delivery was unsuccessful, attempting fallback...')
+  }
+
+  // 2. Try Resend HTTPS API
+  if (process.env.RESEND_API_KEY?.trim()) {
+    const resendResult = await sendViaResend(opts)
+    if (resendResult.delivered) return resendResult
+    console.warn('[EMAIL SERVICE] Resend delivery was unsuccessful, attempting SMTP fallback...')
+  }
+
+  // 3. Fallback to Nodemailer SMTP
+  return sendViaSmtp(opts)
 }
 
 interface CodeEmailOptions {
@@ -42,8 +227,7 @@ interface CodeEmailOptions {
 }
 
 /**
- * Shared sender for 6-digit code emails.
- * If SMTP_PASS is not configured in .env, falls back to console logging so local dev is unblocked.
+ * Shared sender for 6-digit verification code emails.
  */
 async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean; delivered: boolean }> {
   const { toEmail, code, firstName, subject, intro, footerNote, plainText } = opts
@@ -84,39 +268,12 @@ async function sendCodeEmail(opts: CodeEmailOptions): Promise<{ success: boolean
     </div>
   `
 
-  const rawPass = process.env.SMTP_PASS || ''
-  const cleanPass = rawPass.replace(/[\s"']/g, '')
-
-  if (!cleanPass) {
-    if (process.env.NODE_ENV === 'production') {
-      console.error('[EMAIL SERVICE] SMTP credentials are not configured on the production server.')
-      return { success: false, delivered: false }
-    }
-    console.log('\n======================================================')
-    console.log('[EMAIL SERVICE - DEV SIMULATED DELIVERY]')
-    console.log(`To:       ${toEmail}`)
-    console.log(`Subject:  ${subject}`)
-    console.log(`Code:     ${code}`)
-    console.log('NOTE: In production, SMTP_PASS must be configured.')
-    console.log('======================================================\n')
-    return { success: true, delivered: false }
-  }
-
-  try {
-    const transporter = getTransporter()
-    await transporter.sendMail({
-      from: `"FitTrack Support" <${process.env.SMTP_USER || 'fittrack.app.help@gmail.com'}>`,
-      to: toEmail,
-      subject,
-      html: htmlContent,
-      text: plainText,
-    })
-    console.log(`[EMAIL SERVICE] Verification email successfully delivered to ${toEmail}`)
-    return { success: true, delivered: true }
-  } catch (error: any) {
-    console.error(`[EMAIL ERROR] Failed sending to ${toEmail}:`, error.message || 'Unknown SMTP error')
-    return { success: false, delivered: false }
-  }
+  return sendEmail({
+    toEmail,
+    subject,
+    html: htmlContent,
+    plainText,
+  })
 }
 
 /**
@@ -213,25 +370,12 @@ export async function sendTicketResolutionEmail(opts: {
     </div>
   `
 
-  const rawPass = process.env.SMTP_PASS || ''
-  const cleanPass = rawPass.replace(/[\s"']/g, '')
+  const result = await sendEmail({
+    toEmail,
+    subject: `[FitTrack Support] Ticket #${ticketId.slice(0, 8)}: ${statusLabel}`,
+    html: htmlContent,
+    plainText: `Your support ticket #${ticketId.slice(0, 8)} status has been updated to: ${statusLabel}.`,
+  })
 
-  if (!cleanPass) {
-    console.log(`[DEV MODE] Simulated Support Ticket Resolution Email to ${toEmail} for Ticket #${ticketId}`)
-    return true
-  }
-
-  try {
-    const transporter = getTransporter()
-    await transporter.sendMail({
-      from: `"FitTrack Support" <${process.env.SMTP_USER || 'fittrack.app.help@gmail.com'}>`,
-      to: toEmail,
-      subject: `[FitTrack Support] Ticket #${ticketId.slice(0, 8)}: ${statusLabel}`,
-      html: htmlContent,
-    })
-    return true
-  } catch (err) {
-    console.error('Failed to send ticket status email:', err)
-    return false
-  }
+  return result.delivered || result.success
 }

@@ -41,12 +41,11 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     return {
       key: 'chest',
       label: 'CHEST',
-      icon: 'barbell-outline' as const,
+      icon: 'shield-outline' as const,
       color: '#10B981', // Emerald
       bgClass: 'bg-emerald-500/15 dark:bg-emerald-500/20',
       borderClass: 'border-emerald-500/30 dark:border-emerald-500/40',
       textClass: 'text-emerald-500 dark:text-emerald-400',
-      accentBg: 'bg-emerald-500/25',
     };
   }
 
@@ -63,12 +62,11 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     return {
       key: 'back',
       label: 'BACK',
-      icon: 'layers-outline' as const,
+      icon: 'body-outline' as const,
       color: '#06B6D4', // Cyan
       bgClass: 'bg-cyan-500/15 dark:bg-cyan-500/20',
       borderClass: 'border-cyan-500/30 dark:border-cyan-500/40',
       textClass: 'text-cyan-500 dark:text-cyan-400',
-      accentBg: 'bg-cyan-500/25',
     };
   }
 
@@ -91,7 +89,6 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
       bgClass: 'bg-violet-500/15 dark:bg-violet-500/20',
       borderClass: 'border-violet-500/30 dark:border-violet-500/40',
       textClass: 'text-violet-500 dark:text-violet-400',
-      accentBg: 'bg-violet-500/25',
     };
   }
 
@@ -107,12 +104,11 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     return {
       key: 'shoulders',
       label: 'DELTS',
-      icon: 'triangle-outline' as const,
+      icon: 'shield-half-outline' as const,
       color: '#F59E0B', // Amber
       bgClass: 'bg-amber-500/15 dark:bg-amber-500/20',
       borderClass: 'border-amber-500/30 dark:border-amber-500/40',
       textClass: 'text-amber-500 dark:text-amber-400',
-      accentBg: 'bg-amber-500/25',
     };
   }
 
@@ -129,12 +125,11 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     return {
       key: 'arms',
       label: m.includes('tricep') ? 'TRICEPS' : m.includes('bicep') ? 'BICEPS' : 'ARMS',
-      icon: 'flash-outline' as const,
+      icon: 'barbell-outline' as const,
       color: '#F43F5E', // Rose
       bgClass: 'bg-rose-500/15 dark:bg-rose-500/20',
       borderClass: 'border-rose-500/30 dark:border-rose-500/40',
       textClass: 'text-rose-500 dark:text-rose-400',
-      accentBg: 'bg-rose-500/25',
     };
   }
 
@@ -154,7 +149,6 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
       bgClass: 'bg-orange-500/15 dark:bg-orange-500/20',
       borderClass: 'border-orange-500/30 dark:border-orange-500/40',
       textClass: 'text-orange-500 dark:text-orange-400',
-      accentBg: 'bg-orange-500/25',
     };
   }
 
@@ -170,12 +164,35 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     return {
       key: 'cardio',
       label: 'CARDIO',
-      icon: 'speedometer-outline' as const,
+      icon: 'pulse-outline' as const,
       color: '#0EA5E9', // Sky
       bgClass: 'bg-sky-500/15 dark:bg-sky-500/20',
       borderClass: 'border-sky-500/30 dark:border-sky-500/40',
       textClass: 'text-sky-500 dark:text-sky-400',
-      accentBg: 'bg-sky-500/25',
+    };
+  }
+
+  // Mobility / Flexibility / Stretch
+  if (
+    c.includes('mobility') ||
+    c.includes('stretch') ||
+    c.includes('yoga') ||
+    c.includes('recovery') ||
+    m.includes('mobility') ||
+    m.includes('stretch') ||
+    n.includes('stretch') ||
+    n.includes('mobility') ||
+    n.includes('opener') ||
+    n.includes('foam roll')
+  ) {
+    return {
+      key: 'mobility',
+      label: 'MOBILITY',
+      icon: 'leaf-outline' as const,
+      color: '#10B981', // Emerald
+      bgClass: 'bg-emerald-500/15 dark:bg-emerald-500/20',
+      borderClass: 'border-emerald-500/30 dark:border-emerald-500/40',
+      textClass: 'text-emerald-500 dark:text-emerald-400',
     };
   }
 
@@ -188,7 +205,6 @@ export function getMuscleTheme(muscle?: string, category?: string, name?: string
     bgClass: 'bg-emerald-500/15 dark:bg-emerald-500/20',
     borderClass: 'border-emerald-500/30 dark:border-emerald-500/40',
     textClass: 'text-emerald-500 dark:text-emerald-400',
-    accentBg: 'bg-emerald-500/25',
   };
 }
 
@@ -214,7 +230,7 @@ export function RepTempoBar({
       >
         <View className="flex-row items-center justify-between mb-1.5">
           <View className="flex-row items-center gap-1.5">
-            <Ionicons name="speedometer-outline" size={13} color="#0EA5E9" />
+            <Ionicons name="pulse-outline" size={13} color="#0EA5E9" />
             <Text
               className={`text-[10px] font-black uppercase tracking-wider ${
                 dark ? 'text-white' : 'text-text-primary dark:text-text-primary-dark'
@@ -366,101 +382,52 @@ export default function ExerciseVisual({
   const activeUrl = thumbnailUrl || imageUrl;
   const isStock = isGenericStockPhoto(activeUrl);
 
-  // Banner view (Full-width anatomy & technique hero showcase for Exercise Details Modal)
+  // Banner view (Clean video demonstration and tempo showcase for Exercise Details Modal)
   if (size === 'banner') {
-    const secMuscles = Array.isArray(secondaryMuscles)
-      ? secondaryMuscles.join(', ')
-      : secondaryMuscles;
-
-    const eqStr = Array.isArray(equipment) ? equipment.join(', ') : equipment || 'Bodyweight';
+    const hasImage = Boolean(activeUrl && (!isStock || allowStockImage));
 
     return (
-      <View className="w-full mb-4">
-        {/* Pro Anatomy & Technique Hero Showcase (Hevy & Strong Style) */}
-        <View className={`w-full rounded-2xl p-4 border ${theme.bgClass} ${theme.borderClass}`}>
-          {/* Top Row: Muscle Emblem & Main Exercise Info */}
-          <View className="flex-row items-start gap-3">
-            {/* Muscle Group Emblem (Fixed width, never shrinks or gets covered) */}
-            <View
-              className={`w-12 h-12 rounded-2xl shrink-0 items-center justify-center border ${theme.borderClass} bg-surface dark:bg-surface-dark shadow-sm`}
-            >
-              <Ionicons name={theme.icon} size={24} color={theme.color} />
-            </View>
-
-            {/* Title & Badges Column */}
-            <View className="flex-1 min-w-0">
-              {/* Category, Type & Difficulty Badges (Flex-wrapped so they NEVER overflow or collide) */}
-              <View className="flex-row flex-wrap items-center gap-1.5 mb-1.5">
-                <View className="px-2.5 py-0.5 rounded-full bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark shrink-0">
-                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${theme.textClass}`}>
-                    {theme.label}
-                  </Text>
-                </View>
-                {type ? (
-                  <View className="px-2.5 py-0.5 rounded-full bg-surface/80 dark:bg-surface-dark/80 border border-input-border/70 dark:border-input-border-dark/70 shrink-0">
-                    <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
-                      {type}
-                    </Text>
-                  </View>
-                ) : null}
-                {difficulty ? (
-                  <View className="px-2 py-0.5 rounded-full bg-surface/60 dark:bg-surface-dark/60 border border-input-border/50 dark:border-input-border-dark/50 shrink-0">
-                    <Text className="text-[9px] font-semibold text-text-muted dark:text-text-muted-dark">
-                      {difficulty}
-                    </Text>
-                  </View>
-                ) : null}
+      <View className="w-full mb-4 gap-2.5">
+        {/* Visual / Video Media Showcase */}
+        {(hasImage || onOpenVideo) && (
+          <View className="w-full rounded-2xl p-3 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark flex-row items-center justify-between gap-3 shadow-xs">
+            {hasImage ? (
+              <Image
+                source={{ uri: activeUrl! }}
+                className="w-14 h-14 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-10 h-10 rounded-xl bg-red-600/10 dark:bg-red-600/15 border border-red-500/25 items-center justify-center shrink-0">
+                <Ionicons name="play" size={18} color="#EF4444" />
               </View>
+            )}
 
-              <Text
-                className="text-sm font-black text-text-primary dark:text-text-primary-dark leading-snug"
-                numberOfLines={2}
-              >
-                Target: {muscle || theme.label}
+            <View className="flex-1 min-w-0">
+              <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                Form Video Demonstration
               </Text>
-
-              {secMuscles ? (
-                <Text
-                  className="text-xs text-text-muted dark:text-text-muted-dark mt-1 leading-snug"
-                  numberOfLines={2}
-                >
-                  <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Assists: </Text>
-                  {secMuscles}
-                </Text>
-              ) : null}
-            </View>
-          </View>
-
-          {/* Action & Equipment Bar (Cleanly separated row so it NEVER collides with badges or title) */}
-          <View className="mt-3 pt-3 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row items-center justify-between gap-2">
-            {/* Equipment Chip */}
-            <View className="flex-row items-center gap-1.5 bg-surface/80 dark:bg-surface-dark/80 px-2.5 py-1.5 rounded-xl border border-input-border/60 dark:border-input-border-dark/60 shrink-0 max-w-[50%]">
-              <Ionicons name="hardware-chip-outline" size={13} color={theme.color} />
-              <Text
-                className="text-xs font-semibold text-text-primary dark:text-text-primary-dark"
-                numberOfLines={1}
-              >
-                {eqStr}
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
+                Watch certified trainer technique on YouTube
               </Text>
             </View>
 
-            {/* Option 3: Form Video Action Button */}
             {onOpenVideo && (
               <TouchableOpacity
                 activeOpacity={0.85}
                 onPress={onOpenVideo}
                 hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
-                className="px-3.5 py-1.5 rounded-xl bg-red-600 flex-row items-center gap-1.5 shadow-sm active:opacity-85 shrink-0"
+                className="px-3.5 py-2 rounded-xl bg-red-600 flex-row items-center gap-1.5 shadow-sm active:opacity-85 shrink-0"
                 accessibilityLabel="Watch Form Video on YouTube"
               >
-                <Ionicons name="logo-youtube" size={14} color="#FFFFFF" />
+                <Ionicons name="logo-youtube" size={15} color="#FFFFFF" />
                 <Text className="text-[11px] font-black text-white uppercase tracking-wider">
-                  Watch Form Video
+                  Watch Video
                 </Text>
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        )}
 
         {/* Rep Tempo Cadence Metronome Bar */}
         <RepTempoBar tempo={tempo} />
@@ -497,7 +464,7 @@ export default function ExerciseVisual({
 
   return (
     <View
-      className={`${containerClass} items-center justify-center border ${theme.bgClass} ${theme.borderClass} relative`}
+      className={`${containerClass} items-center justify-center border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark relative shadow-xs`}
     >
       <Ionicons name={theme.icon} size={iconSize} color={theme.color} />
       <Text

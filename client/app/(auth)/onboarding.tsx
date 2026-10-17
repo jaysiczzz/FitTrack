@@ -15,6 +15,7 @@ import { useAuth } from '@/context/AuthContext';
 import { useResponsive } from '@/hooks/useResponsive';
 import { capitalizeWords } from '@/utils/formatters';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import { ActivityLevel } from '@/constants/activityLevels';
 
 export default function OnboardingScreen() {
   const { colors } = useThemeColors();
@@ -24,6 +25,7 @@ export default function OnboardingScreen() {
   // Form State
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS' | ''>('');
   const [gender, setGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>('LIGHTLY_ACTIVE');
   const [height, setHeight] = useState('');
   const [weight, setWeight] = useState('');
   const [age, setAge] = useState('');
@@ -127,6 +129,7 @@ export default function OnboardingScreen() {
         weight: Number(wNum.toFixed(1)),
         age: Math.round(aNum),
         goal: selectedGoal,
+        activityLevel,
       });
 
       setRegisteredPayload({ token: res.token, user: res.user, refreshToken: res.refreshToken });
@@ -201,16 +204,22 @@ export default function OnboardingScreen() {
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: 'flex-start',
+            alignItems: 'center',
             paddingTop: isLandscape ? 12 : 28,
             paddingBottom: 24,
             paddingHorizontal: 20,
           }}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="none"
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View className="w-full max-w-[420px] mx-auto">
+          <View
+            style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}
+            className="w-full max-w-[420px] self-center"
+          >
             <OnboardingHeader
               step={step}
               totalSteps={3}
@@ -253,6 +262,8 @@ export default function OnboardingScreen() {
                 ageError={ageError}
                 gender={gender}
                 onGenderChange={setGender}
+                activityLevel={activityLevel}
+                onActivityLevelChange={setActivityLevel}
                 goal={goal}
                 onNext={handleMetricsNext}
               />
@@ -269,6 +280,7 @@ export default function OnboardingScreen() {
                 height={Number(height)}
                 weight={Number(weight)}
                 age={Number(age)}
+                activityLevel={activityLevel}
                 onRetry={() =>
                   triggerRegistration(
                     Number(height),

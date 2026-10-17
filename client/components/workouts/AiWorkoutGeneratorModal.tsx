@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,6 +11,9 @@ import SubscriptionModal from '../subscription/SubscriptionModal';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
 import { getCurrentSubscriptionApi, getSubscriptionPlansApi } from '@/api/subscription';
 import QuotaUsageMeter from '../ui/QuotaUsageMeter';
+import { useAuth } from '@/context/AuthContext';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authStorage } from '@/utils/authStorage';
 
 interface AiWorkoutGeneratorModalProps {
   visible: boolean;
@@ -37,12 +40,14 @@ export default function AiWorkoutGeneratorModal({
   const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
   const { showToast, showError } = useToast();
+  const { user } = useAuth();
   const [selectedArea, setSelectedArea] = useState('Full Body');
   const [loading, setLoading] = useState(false);
   const [workoutPlan, setWorkoutPlan] = useState<AIWorkoutPlan | null>(null);
   const [addingToWorkout, setAddingToWorkout] = useState(false);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Quota & tier tracking
   const [isPro, setIsPro] = useState(false);
@@ -50,8 +55,42 @@ export default function AiWorkoutGeneratorModal({
   const [routineLimit, setRoutineLimit] = useState(5);
   const [routineResetsAt, setRoutineResetsAt] = useState<string | null>(null);
 
+  // Unmount safety: immediately abort any in-flight AI requests when modal unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    onClose();
+  };
+
+  const quotaCacheKey = authStorage.getScopedKey(user?.id, 'fittrack_ai_workout_quota_cache');
+
   useEffect(() => {
     if (visible) {
+      // 1. Instant local cache load (0ms - eliminates quota pop-in)
+      AsyncStorage.getItem(quotaCacheKey)
+        .then((cached) => {
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            if (parsed && typeof parsed.used === 'number') {
+              setRoutineUsed(parsed.used);
+              if (parsed.limit) setRoutineLimit(parsed.limit);
+              if (parsed.resetsAt) setRoutineResetsAt(parsed.resetsAt);
+              if (typeof parsed.isPro === 'boolean') setIsPro(parsed.isPro);
+            }
+          }
+        })
+        .catch(() => {});
+
+      // 2. Background fresh fetch from API server (Stale-While-Revalidate)
       getCurrentSubscriptionApi()
         .then((res) => {
           if (res?.success && res.isPro) setIsPro(true);
@@ -60,18 +99,25 @@ export default function AiWorkoutGeneratorModal({
 
       getSubscriptionPlansApi()
         .then((res) => {
+          let updatedQuota: any = null;
           if (res?.userUsage?.usage?.WORKOUT_GENERATOR) {
             const u = res.userUsage.usage.WORKOUT_GENERATOR;
             setRoutineUsed(u.used);
             setRoutineLimit(u.limit);
             if (u.resetsAt) setRoutineResetsAt(u.resetsAt);
+            updatedQuota = { used: u.used, limit: u.limit, resetsAt: u.resetsAt, isPro };
           } else if (res?.limits) {
-            setRoutineLimit(isPro ? res.limits.PRO.WORKOUT_GENERATOR.max : res.limits.FREE.WORKOUT_GENERATOR.max);
+            const maxL = isPro ? res.limits.PRO.WORKOUT_GENERATOR.max : res.limits.FREE.WORKOUT_GENERATOR.max;
+            setRoutineLimit(maxL);
+            updatedQuota = { used: routineUsed, limit: maxL, isPro };
+          }
+          if (updatedQuota) {
+            AsyncStorage.setItem(quotaCacheKey, JSON.stringify(updatedQuota)).catch(() => {});
           }
         })
         .catch(() => {});
     }
-  }, [visible, isPro]);
+  }, [visible, isPro, quotaCacheKey]);
 
   const handleGenerate = async (areaToUse?: string) => {
     if (routineUsed >= routineLimit) {
@@ -79,11 +125,22 @@ export default function AiWorkoutGeneratorModal({
       return;
     }
     const area = areaToUse || selectedArea;
+
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setWorkoutPlan(null);
     setGeneratorError(null);
     try {
-      const res = await generateAIWorkout({ targetArea: area });
+      const res = await generateAIWorkout({
+        targetArea: area,
+        activityLevel: user?.activityLevel,
+        signal: controller.signal,
+      });
       if (res.success && res.workoutPlan && res.workoutPlan.exercises?.length > 0) {
         setWorkoutPlan(res.workoutPlan);
         setRoutineUsed((prev) => prev + 1);
@@ -91,6 +148,10 @@ export default function AiWorkoutGeneratorModal({
         setGeneratorError('No workout plan generated. Please try a different focus or try again.');
       }
     } catch (err: any) {
+      if (err?.name === 'AbortError' || controller.signal.aborted) {
+        // User aborted workout generation or closed modal; return cleanly
+        return;
+      }
       console.log('AI Workout Generation Error:', err?.message);
       const errText = err?.message || '';
       if (
@@ -109,6 +170,9 @@ export default function AiWorkoutGeneratorModal({
         );
       }
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setLoading(false);
     }
   };
@@ -136,7 +200,7 @@ export default function AiWorkoutGeneratorModal({
       visible={visible}
       animationType="slide"
       transparent
-      onRequestClose={onClose}
+      onRequestClose={handleClose}
     >
       <View className="flex-1 bg-black/60 justify-end">
         <View
@@ -169,7 +233,7 @@ export default function AiWorkoutGeneratorModal({
                 </Text>
               </View>
             </View>
-            <ModalCloseButton onClose={onClose} />
+            <ModalCloseButton onClose={handleClose} />
           </View>
 
           {/* Reusable Quota Usage Meter */}
@@ -249,9 +313,22 @@ export default function AiWorkoutGeneratorModal({
               <Text className="mt-4 font-bold text-sm text-text-primary dark:text-text-primary-dark">
                 Designing your routine...
               </Text>
-              <Text className="mt-1 text-xs text-text-muted dark:text-text-muted-dark text-center max-w-[260px]">
+              <Text className="mt-1 text-xs text-text-muted dark:text-text-muted-dark text-center max-w-[260px] mb-4">
                 Calibrating optimal exercises and rep ranges.
               </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  abortControllerRef.current?.abort();
+                  abortControllerRef.current = null;
+                  setLoading(false);
+                }}
+                activeOpacity={0.7}
+                className="bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 px-5 py-2.5 rounded-xl items-center justify-center"
+              >
+                <Text className="text-rose-500 dark:text-rose-400 font-bold text-xs">
+                  Cancel Generation
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : workoutPlan ? (
             <ScrollView showsVerticalScrollIndicator={false} className="flex-1">

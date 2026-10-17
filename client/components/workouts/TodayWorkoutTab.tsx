@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, DeviceEventEmitter } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { authStorage } from '@/utils/authStorage';
 import ExerciseCard, { SetRow } from './ExerciseCard';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
 
@@ -111,12 +113,14 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
 }) => {
   const { colors } = useThemeColors();
   const { user } = useAuth();
+  const userId = user?.id;
   const firstSession = getFirstSessionState(completedSessionsCount, user?.goal);
   const { showWarning } = useToast();
   const { startRestTimer } = useWorkoutTimer();
   const [personalRecords, setPersonalRecords] = useState<PersonalRecordItem[]>([]);
   const [, setLoadingPrs] = useState(false);
   const [showAllPrs, setShowAllPrs] = useState(false);
+  const prCacheKey = authStorage.getScopedKey(userId, 'fittrack_personal_records_cache');
 
   // Exercise Detail Modal state
   const [selectedExerciseDetail, setSelectedExerciseDetail] = useState<LibraryExercise | null>(null);
@@ -144,21 +148,53 @@ const TodayWorkoutTab: React.FC<TodayWorkoutTabProps> = ({
 
 
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. Instant local cache load (0ms - eliminates 0.5-1s pop-in delay)
+    const loadCachedPRs = async () => {
+      try {
+        const cached = await AsyncStorage.getItem(prCacheKey);
+        if (cached && isMounted) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            setPersonalRecords(parsed);
+          }
+        }
+      } catch {
+        // Fallback silently if cache read fails
+      }
+    };
+    loadCachedPRs();
+
+    // 2. Background fresh fetch from API server (Stale-While-Revalidate)
     const fetchPRs = async () => {
       try {
         setLoadingPrs(true);
         const res = await getPersonalRecordsApi();
-        if (res.personalRecords) {
+        if (res.personalRecords && isMounted) {
           setPersonalRecords(res.personalRecords);
+          AsyncStorage.setItem(prCacheKey, JSON.stringify(res.personalRecords)).catch(() => {});
         }
       } catch (err) {
         console.log('Failed to fetch personal records');
       } finally {
-        setLoadingPrs(false);
+        if (isMounted) {
+          setLoadingPrs(false);
+        }
       }
     };
     fetchPRs();
-  }, [completedSessionsCount]);
+
+    // 3. Auto-refresh PRs whenever a workout session is completed
+    const sub = DeviceEventEmitter.addListener('WORKOUT_SESSION_COMPLETED', () => {
+      fetchPRs();
+    });
+
+    return () => {
+      isMounted = false;
+      sub.remove();
+    };
+  }, [completedSessionsCount, prCacheKey]);
 
   const getPRForExercise = (exerciseName: string): string | null => {
     if (!personalRecords || personalRecords.length === 0) return null;

@@ -16,7 +16,7 @@ import SurfaceCard from '../ui/SurfaceCard';
 
 export type CalendarFilterType = 'all' | 'workouts' | 'nutrition';
 
-const WEEKDAYS = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+const WEEKDAY_HEADERS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 const MONTH_NAMES = [
   'January', 'February', 'March', 'April', 'May', 'June',
@@ -423,7 +423,10 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   const calendarDays: UnifiedDayData[] = useMemo(() => {
     const days: UnifiedDayData[] = [];
 
-    const firstDayOfWeek = new Date(currentYear, currentMonth, 1).getDay(); // 0 = Sunday
+    // 1st day of month
+    const firstDay = new Date(currentYear, currentMonth, 1);
+    // Convert to Monday = 0, ..., Sunday = 6
+    const firstDayIndex = (firstDay.getDay() + 6) % 7;
     const daysInCurrentMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
     const daysInPrevMonth = new Date(currentYear, currentMonth, 0).getDate();
 
@@ -485,8 +488,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
       };
     };
 
-    // 1. Leading days
-    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+    // 1. Leading padding days from previous month
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
       const dayNum = daysInPrevMonth - i;
       const prevM = currentMonth === 0 ? 11 : currentMonth - 1;
       const prevY = currentMonth === 0 ? currentYear - 1 : currentYear;
@@ -498,14 +501,12 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
       days.push(buildDayData(currentYear, currentMonth, d, true));
     }
 
-    // 3. Trailing days
-    const remaining = 7 - (days.length % 7);
-    if (remaining < 7) {
-      for (let nextD = 1; nextD <= remaining; nextD++) {
-        const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
-        const nextY = currentMonth === 11 ? currentYear + 1 : currentYear;
-        days.push(buildDayData(nextY, nextM, nextD, false));
-      }
+    // 3. Trailing padding days to fill 7 columns
+    const totalRemaining = (7 - (days.length % 7)) % 7;
+    for (let nextD = 1; nextD <= totalRemaining; nextD++) {
+      const nextM = currentMonth === 11 ? 0 : currentMonth + 1;
+      const nextY = currentMonth === 11 ? currentYear + 1 : currentYear;
+      days.push(buildDayData(nextY, nextM, nextD, false));
     }
 
     return days;
@@ -536,7 +537,8 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
 
   return (
     <View className="mb-4">
-      <SurfaceCard className="mb-3 p-4">
+      {/* 1. Month Navigation Header & Stats Card */}
+      <SurfaceCard className="mb-4 p-4">
         {/* Header */}
         {!hideHeader && (
           <View className="flex-row items-center justify-between mb-3 pb-2.5 border-b border-input-border/40 dark:border-input-border-dark/40">
@@ -556,7 +558,52 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
           </View>
         )}
 
-        {/* 1. Category Filter Segmented Tabs */}
+        {/* Month Navigation */}
+        <View className="flex-row items-center justify-between gap-3 mb-3">
+          <View className="flex-row items-center gap-2.5 flex-1 min-w-0">
+            <TouchableOpacity
+              onPress={handlePrevMonth}
+              activeOpacity={0.7}
+              className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shrink-0"
+              accessibilityLabel="Previous month"
+            >
+              <Ionicons name="chevron-back" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+
+            <View className="flex-1 min-w-0">
+              <Text className="text-base font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
+                {MONTH_NAMES[currentMonth]} {currentYear}
+              </Text>
+              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold" numberOfLines={1}>
+                Unified Fitness & Activity History
+              </Text>
+            </View>
+          </View>
+
+          <View className="flex-row items-center gap-1.5 shrink-0">
+            {!isCurrentViewingMonth && (
+              <TouchableOpacity
+                onPress={handleJumpToToday}
+                className="px-2.5 py-1.5 min-h-[36px] justify-center items-center rounded-xl bg-accent/15 dark:bg-accent-dark/20 border border-accent/40"
+              >
+                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                  This Month
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              onPress={handleNextMonth}
+              activeOpacity={0.7}
+              className="w-10 h-10 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center shrink-0"
+              accessibilityLabel="Next month"
+            >
+              <Ionicons name="chevron-forward" size={18} color={colors.textPrimary} />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Category Filter Segmented Tabs */}
         <View className="flex-row bg-input dark:bg-input-dark p-1 rounded-2xl mb-3 border border-input-border dark:border-input-border-dark">
           <TouchableOpacity
             onPress={() => setFilter('all')}
@@ -613,280 +660,230 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
           </TouchableOpacity>
         </View>
 
-        {/* 2. Month Navigation Header */}
-        <View className="flex-row items-center justify-between mb-3">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-base font-black text-text-primary dark:text-text-primary-dark tracking-tight">
-              {MONTH_NAMES[currentMonth]} {currentYear}
+        {/* Monthly Target & Progress Bar */}
+        <View className="pt-3 border-t border-input-border/60 dark:border-input-border-dark/60">
+          <View className="flex-row items-center justify-between gap-2 mb-2">
+            <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark uppercase tracking-wider flex-1 min-w-0" numberOfLines={1}>
+              {filter === 'workouts' ? 'Workout Frequency' : filter === 'nutrition' ? 'Nutrition Consistency' : 'Monthly Activity Adherence'}
             </Text>
-            {!isCurrentViewingMonth && (
-              <TouchableOpacity
-                onPress={handleJumpToToday}
-                activeOpacity={0.7}
-                className="bg-accent/15 dark:bg-accent-dark/25 px-2 py-0.5 rounded-full border border-accent/30"
-              >
-                <Text className="text-accent dark:text-accent-dark font-black text-[10px] uppercase">
-                  Today
-                </Text>
-              </TouchableOpacity>
-            )}
+
+            <Text className="text-xs font-bold text-accent dark:text-accent-dark px-1">
+              {filter === 'workouts'
+                ? `${workoutDaysInMonth} / ${monthDaysCount} Days (${Math.round((workoutDaysInMonth / monthDaysCount) * 100)}%)`
+                : filter === 'nutrition'
+                ? `${nutritionDaysInMonth} / ${monthDaysCount} Days (${Math.round((nutritionDaysInMonth / monthDaysCount) * 100)}%)`
+                : `${anyActiveDays} / ${monthDaysCount} Days (${overallAdherencePercent}%)`}
+            </Text>
           </View>
 
-          <View className="flex-row items-center gap-1.5">
-            <TouchableOpacity
-              onPress={handlePrevMonth}
-              activeOpacity={0.7}
-              accessibilityLabel="Previous Month"
-              className="w-8 h-8 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-            >
-              <Ionicons name="chevron-back" size={16} color={colors.textPrimary} />
-            </TouchableOpacity>
-            <TouchableOpacity
-              onPress={handleNextMonth}
-              activeOpacity={0.7}
-              accessibilityLabel="Next Month"
-              className="w-8 h-8 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center"
-            >
-              <Ionicons name="chevron-forward" size={16} color={colors.textPrimary} />
-            </TouchableOpacity>
+          {/* Progress Bar */}
+          <View className="h-2.5 bg-input dark:bg-input-dark rounded-full overflow-hidden mb-3 border border-input-border/40">
+            <View
+              className={`h-full rounded-full ${filter === 'nutrition' ? 'bg-amber-500' : 'bg-accent dark:bg-accent-dark'}`}
+              style={{
+                width: `${Math.min(
+                  100,
+                  filter === 'workouts'
+                    ? Math.round((workoutDaysInMonth / monthDaysCount) * 100)
+                    : filter === 'nutrition'
+                    ? Math.round((nutritionDaysInMonth / monthDaysCount) * 100)
+                    : overallAdherencePercent
+                )}%`,
+              }}
+            />
+          </View>
+
+          {/* Stat Pills */}
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1 bg-input/60 dark:bg-input-dark/60 p-2 rounded-xl mr-1.5 items-center">
+              <Text className="text-[10px] text-text-muted font-bold uppercase">Workouts</Text>
+              <Text className="text-sm font-black text-emerald-500 mt-0.5">
+                {totalMonthWorkouts}
+              </Text>
+            </View>
+
+            <View className="flex-1 bg-input/60 dark:bg-input-dark/60 p-2 rounded-xl mx-1 items-center">
+              <Text className="text-[10px] text-text-muted font-bold uppercase">Meals Logged</Text>
+              <Text className="text-sm font-black text-amber-500 dark:text-amber-400 mt-0.5">
+                {nutritionDaysInMonth}
+              </Text>
+            </View>
+
+            <View className="flex-1 bg-input/60 dark:bg-input-dark/60 p-2 rounded-xl ml-1.5 items-center">
+              <Text className="text-[10px] text-text-muted font-bold uppercase">Check-Ins</Text>
+              <Text className="text-sm font-black text-sky-500 dark:text-sky-400 mt-0.5">
+                {checkInDaysInMonth}
+              </Text>
+            </View>
           </View>
         </View>
+      </SurfaceCard>
 
-        {/* 3. Dynamic Monthly Overview Strip */}
-        <View className="bg-input/60 dark:bg-input-dark/60 p-2.5 rounded-2xl mb-3.5 border border-input-border/40 dark:border-input-border-dark/40">
-          {filter === 'all' && (
-            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark flex-shrink-0" />
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                  {anyActiveDays}/{monthDaysCount} Days Active ({overallAdherencePercent}%)
-                </Text>
-              </View>
-              <View className="flex-row flex-wrap items-center gap-1.5">
-                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                    {totalMonthWorkouts} Workouts
-                  </Text>
-                </View>
-                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">
-                    {nutritionDaysInMonth} Meals
-                  </Text>
-                </View>
-                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] font-bold text-sky-500 dark:text-sky-400">
-                    {checkInDaysInMonth} Check-Ins
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {filter === 'workouts' && (
-            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-accent dark:bg-accent-dark flex-shrink-0" />
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                  {workoutDaysInMonth}/{monthDaysCount} Workout Days ({Math.round((workoutDaysInMonth / monthDaysCount) * 100)}%)
-                </Text>
-              </View>
-              <View className="flex-row flex-wrap items-center gap-1.5">
-                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                    {totalMonthWorkouts} Sessions
-                  </Text>
-                </View>
-                <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                  <Text className="text-[10px] font-bold text-orange-500 dark:text-orange-400">
-                    {totalMonthBurned.toLocaleString()} kcal Burned
-                  </Text>
-                </View>
-              </View>
-            </View>
-          )}
-
-          {filter === 'nutrition' && (
-            <View className="flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <View className="flex-row items-center gap-2">
-                <View className="w-2.5 h-2.5 rounded-full bg-amber-500 flex-shrink-0" />
-                <Text className="text-xs font-black text-text-primary dark:text-text-primary-dark">
-                  {nutritionDaysInMonth}/{monthDaysCount} Days Logged ({Math.round((nutritionDaysInMonth / monthDaysCount) * 100)}%)
-                </Text>
-              </View>
-              <View className="px-2 py-0.5 rounded-md bg-surface/90 dark:bg-surface-dark/90 border border-input-border/50 dark:border-input-border-dark/50">
-                <Text className="text-[10px] font-bold text-warning dark:text-warning-dark">
-                  Avg: {avgDailyCalories.toLocaleString()} kcal/day
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-
-        {/* 4. Weekday Header */}
-        <View className="flex-row mb-1 pb-1 border-b border-input-border/40 dark:border-input-border-dark/40">
-          {WEEKDAYS.map((wd) => (
-            <View key={wd} className="flex-1 items-center py-1">
-              <Text className="text-[10px] font-black text-text-muted dark:text-text-muted-dark tracking-wider">
-                {wd}
+      {/* 2. Month Calendar Grid Card */}
+      <SurfaceCard className="mb-4 p-3">
+        {/* Weekday Labels */}
+        <View className="flex-row justify-between mb-2">
+          {WEEKDAY_HEADERS.map((dayName, idx) => (
+            <View key={idx} className="flex-1 items-center py-1">
+              <Text className="text-[11px] font-black text-text-muted dark:text-text-muted-dark uppercase">
+                {dayName}
               </Text>
             </View>
           ))}
         </View>
 
-        {/* 5. 7-Column Calendar Grid */}
+        {/* 7-Column Grid */}
         <View className="flex-row flex-wrap">
-          {calendarDays.map((day) => {
+          {calendarDays.map((day, idx) => {
             const isSelected = activeSelectedDate === day.dateStr;
 
             // Indicator logic based on filter
-            const showWorkoutDot = (filter === 'all' || filter === 'workouts') && day.hasWorkout;
-            const showNutritionDot = (filter === 'all' || filter === 'nutrition') && day.hasNutrition;
-            const showNutritionPendingDot = (filter === 'all' || filter === 'nutrition') && !day.hasNutrition && day.isNutritionInProgress;
-            const isFullyActive = day.hasWorkout && day.hasNutrition;
+            const showWorkout = (filter === 'all' || filter === 'workouts') && day.hasWorkout;
+            const showNutrition = (filter === 'all' || filter === 'nutrition') && day.hasNutrition;
+            const showNutritionPending =
+              (filter === 'all' || filter === 'nutrition') &&
+              !day.hasNutrition &&
+              day.isNutritionInProgress;
+            const showCheckIn = filter === 'all' && Boolean(day.checkIn);
 
             return (
-              <View key={day.dateStr} className="w-[14.28%] p-0.5">
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={() => {
-                    if (isSelected) {
-                      handleSelectDate(null);
-                    } else {
-                      handleSelectDate(day.dateStr);
-                    }
-                  }}
-                  className={`aspect-square p-1 items-center justify-between rounded-xl mb-1 border ${
-                    isSelected
-                      ? 'bg-accent/20 dark:bg-accent-dark/25 border-2 border-accent dark:border-accent-dark shadow-sm'
-                      : day.isToday
-                      ? 'border-2 border-accent dark:border-accent-dark bg-accent/10 dark:bg-accent-dark/15'
-                      : isFullyActive && filter === 'all'
-                      ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/50 dark:border-accent-dark/50'
-                      : showWorkoutDot
-                      ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-emerald-500/30'
-                      : showNutritionDot
-                      ? 'bg-amber-500/10 dark:bg-amber-500/15 border-amber-500/30'
-                      : showNutritionPendingDot
-                      ? 'bg-amber-500/5 border-dashed border-amber-500/30'
-                      : 'bg-input/40 dark:bg-input-dark/40 border-input-border/40 dark:border-input-border-dark/40'
-                  } ${!day.isCurrentMonth ? 'opacity-30' : 'opacity-100'}`}
+              <TouchableOpacity
+                key={`${day.dateStr}-${idx}`}
+                activeOpacity={0.7}
+                onPress={() => {
+                  if (isSelected) {
+                    handleSelectDate(null);
+                  } else {
+                    handleSelectDate(day.dateStr);
+                  }
+                }}
+                style={{ width: '14.28%' }}
+                className={`aspect-square p-1 items-center justify-between rounded-xl mb-1 border ${
+                  isSelected
+                    ? 'border-accent bg-accent/15 dark:bg-accent-dark/25'
+                    : day.isToday
+                    ? 'border-accent/60 bg-accent/5'
+                    : 'border-transparent'
+                } ${!day.isCurrentMonth ? 'opacity-30' : ''}`}
+              >
+                {/* Day number & today marker */}
+                <View
+                  className={`w-6 h-6 rounded-full items-center justify-center ${
+                    day.isToday
+                      ? 'bg-accent dark:bg-accent-dark'
+                      : isSelected
+                      ? 'bg-accent/20'
+                      : ''
+                  }`}
                 >
-                  {/* Day Number Badge */}
-                  <View
-                    className={`w-6 h-6 rounded-full items-center justify-center ${
+                  <Text
+                    className={`text-xs font-black ${
                       day.isToday
-                        ? 'bg-accent dark:bg-accent-dark'
+                        ? 'text-white'
                         : isSelected
-                        ? 'bg-accent/20'
-                        : ''
+                        ? 'text-accent dark:text-accent-dark'
+                        : 'text-text-primary dark:text-text-primary-dark'
                     }`}
                   >
-                    <Text
-                      className={`text-xs ${
-                        day.isToday
-                          ? 'font-black text-white'
-                          : isSelected
-                          ? 'font-black text-accent dark:text-accent-dark'
-                          : showWorkoutDot || showNutritionDot
-                          ? 'font-black text-text-primary dark:text-text-primary-dark'
-                          : showNutritionPendingDot
-                          ? 'font-bold text-amber-600 dark:text-amber-400'
-                          : 'font-semibold text-text-muted dark:text-text-muted-dark'
-                      }`}
-                    >
-                      {day.dayNumber}
-                    </Text>
-                  </View>
+                    {day.dayNumber}
+                  </Text>
+                </View>
 
-                  {/* Dual or Single Activity Dots */}
-                  <View className="flex-row items-center justify-center gap-1 h-3 w-full">
-                    {showWorkoutDot && (
-                      <View className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                    )}
-                    {showNutritionDot && (
-                      <View className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                    )}
-                    {showNutritionPendingDot && (
-                      <View className="w-1.5 h-1.5 rounded-full border border-amber-500" />
-                    )}
-                    {day.checkIn && (
-                      <View className="w-1.5 h-1.5 rounded-full bg-sky-400" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              </View>
+                {/* Status Indicator */}
+                <View className="flex-row items-center justify-center gap-1 h-4 w-full">
+                  {showWorkout && (
+                    <View className="w-3.5 h-3.5 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
+                      <Ionicons name="checkmark" size={9} color="#FFFFFF" />
+                    </View>
+                  )}
+                  {showNutrition && (
+                    <View className="w-3.5 h-3.5 rounded-full bg-amber-500 items-center justify-center shadow-xs">
+                      <Ionicons name="restaurant" size={8} color="#FFFFFF" />
+                    </View>
+                  )}
+                  {showNutritionPending && (
+                    <View className="w-3.5 h-3.5 rounded-full border border-amber-500/60 bg-amber-500/10 items-center justify-center">
+                      <Ionicons name="restaurant-outline" size={7} color="#f59e0b" />
+                    </View>
+                  )}
+                  {showCheckIn && (
+                    <View className="w-3.5 h-3.5 rounded-full bg-sky-400 items-center justify-center shadow-xs">
+                      <Ionicons name="flash" size={8} color="#FFFFFF" />
+                    </View>
+                  )}
+                </View>
+              </TouchableOpacity>
             );
           })}
         </View>
 
-        {/* 6. Legend */}
-        <View className="flex-row items-center justify-between pt-3 mt-2 border-t border-input-border/40 dark:border-input-border-dark/40">
-          <View className="flex-row items-center gap-3">
-            <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-emerald-500" />
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
-                Workout
-              </Text>
+        {/* Calendar Legend */}
+        <View className="flex-row items-center justify-center gap-4 pt-3 mt-1 border-t border-input-border/40">
+          <View className="flex-row items-center gap-1.5">
+            <View className="w-4 h-4 rounded-full bg-emerald-500 items-center justify-center shadow-xs">
+              <Ionicons name="checkmark" size={10} color="#FFFFFF" />
             </View>
-            <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-amber-500" />
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
-                Meals
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <View className="w-2 h-2 rounded-full bg-sky-400" />
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
-                Readiness
-              </Text>
-            </View>
-            <View className="flex-row items-center gap-1">
-              <View className="w-2.5 h-2.5 rounded-sm border-2 border-accent dark:border-accent-dark" />
-              <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-semibold">
-                Today
-              </Text>
-            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Workout
+            </Text>
           </View>
-          <Text className="text-[10px] text-text-muted dark:text-text-muted-dark font-medium">
-            Tap date for details
-          </Text>
+          <View className="flex-row items-center gap-1.5">
+            <View className="w-4 h-4 rounded-full bg-amber-500 items-center justify-center shadow-xs">
+              <Ionicons name="restaurant" size={9} color="#FFFFFF" />
+            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Nutrition
+            </Text>
+          </View>
+          <View className="flex-row items-center gap-1.5">
+            <View className="w-4 h-4 rounded-full bg-sky-400 items-center justify-center shadow-xs">
+              <Ionicons name="flash" size={9} color="#FFFFFF" />
+            </View>
+            <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
+              Readiness
+            </Text>
+          </View>
         </View>
       </SurfaceCard>
 
-      {/* 7. Unified Day Inspector */}
+      {/* 3. Selected Day Inspector Card */}
       {selectedDayData && (
-        <SurfaceCard className="mb-3 p-4 border border-accent/40 bg-accent/5 dark:bg-accent-dark/10">
+        <SurfaceCard className="mb-4 p-4 border border-input-border dark:border-input-border-dark">
           {/* Day Header */}
           <View className="flex-row items-center justify-between mb-3 pb-2 border-b border-input-border/50 dark:border-input-border-dark/50">
-            <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-xl bg-accent/15 dark:bg-accent-dark/25 items-center justify-center">
-                <Ionicons name="calendar" size={16} color={colors.accent} />
-              </View>
-              <View>
+            <View className="flex-1 pr-2 min-w-0">
+              <View className="flex-row items-center gap-1.5 flex-wrap">
                 <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
                   {formatDateHeading(selectedDayData.dateStr)}
                 </Text>
-                <Text className="text-[11px] text-text-muted dark:text-text-muted-dark font-medium">
-                  {selectedDayData.hasWorkout && selectedDayData.hasNutrition
-                    ? 'Training + Nutrition Complete'
-                    : selectedDayData.hasWorkout
-                    ? `${selectedDayData.workoutSessions.length} Workout(s) Logged`
-                    : selectedDayData.hasNutrition
-                    ? 'Nutrition Day Completed'
-                    : selectedDayData.isNutritionInProgress
-                    ? 'Meals & Hydration (In Progress)'
-                    : 'Rest & Fasting Day'}
-                </Text>
+                {selectedDayData.isToday && (
+                  <View className="bg-accent/20 px-2 py-0.5 rounded-md">
+                    <Text className="text-[9px] font-black text-accent dark:text-accent-dark uppercase">
+                      Today
+                    </Text>
+                  </View>
+                )}
               </View>
+              <Text className="text-[11px] text-text-muted dark:text-text-muted-dark mt-0.5">
+                {selectedDayData.hasWorkout && selectedDayData.hasNutrition
+                  ? 'Training + Nutrition Complete'
+                  : selectedDayData.hasWorkout
+                  ? `${selectedDayData.workoutSessions.length} Workout(s) Logged`
+                  : selectedDayData.hasNutrition
+                  ? 'Nutrition Day Completed'
+                  : selectedDayData.isNutritionInProgress
+                  ? 'Meals & Hydration (In Progress)'
+                  : 'Rest & Fasting Day'}
+              </Text>
             </View>
 
             <TouchableOpacity
               onPress={() => handleSelectDate(null)}
               activeOpacity={0.7}
-              className="px-2.5 py-1 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1"
+              className="px-2.5 py-1.5 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark flex-row items-center gap-1 shrink-0"
             >
-              <Ionicons name="close" size={12} color={colors.textMuted} />
-              <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+              <Ionicons name="close" size={13} color={colors.textMuted} />
+              <Text className="text-xs font-bold text-text-muted dark:text-text-muted-dark">
                 Close
               </Text>
             </TouchableOpacity>

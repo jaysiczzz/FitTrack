@@ -1,4 +1,5 @@
 import { BMR_OFFSET, MIN_CALORIE_FLOOR, DIETARY_FAT_RATIO } from '@/constants/fitnessDefaults';
+import { ACTIVITY_MULTIPLIERS, ActivityLevel } from '@/constants/activityLevels';
 
 export type MealType = 'breakfast' | 'lunch' | 'dinner' | 'snack';
 
@@ -204,7 +205,7 @@ export const getBadgeStyles = (color?: BadgeColor) => {
 };
 
 export const calculatePersonalizedTargets = (
-  user?: { weight?: number | null; height?: number | null; age?: number | null; goal?: string | null; gender?: string | null } | null,
+  user?: { weight?: number | null; height?: number | null; age?: number | null; goal?: string | null; gender?: string | null; activityLevel?: string | null } | null,
   fallbackGoal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS' = 'MUSCLE_GAIN'
 ): MacroTargets => {
   const goal = (user?.goal as any) || fallbackGoal;
@@ -214,6 +215,7 @@ export const calculatePersonalizedTargets = (
   const h = Number(user?.height) || 175;
   const a = Number(user?.age) || 25;
   const gender = user?.gender;
+  const activity = (user?.activityLevel as ActivityLevel) || 'LIGHTLY_ACTIVE';
 
   const isFemale = gender === 'FEMALE';
   const bmrOffset = isFemale ? BMR_OFFSET.FEMALE : BMR_OFFSET.MALE;
@@ -221,7 +223,8 @@ export const calculatePersonalizedTargets = (
   const fatRatio = isFemale ? DIETARY_FAT_RATIO.FEMALE : DIETARY_FAT_RATIO.MALE;
 
   const bmr = 10 * w + 6.25 * h - 5 * a + bmrOffset;
-  const tdee = Math.round(bmr * 1.35);
+  const multiplier = ACTIVITY_MULTIPLIERS[activity] || 1.35;
+  const tdee = Math.round(bmr * multiplier);
 
   let calories = isMuscleGain ? tdee + 300 : Math.max(minFloor, tdee - 450);
   calories = Math.max(minFloor, Math.min(4500, calories));

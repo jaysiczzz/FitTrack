@@ -7,6 +7,7 @@ export interface AnalyzeMealPayload {
   description?: string;
   imageBase64?: string;
   mimeType?: string;
+  signal?: AbortSignal;
 }
 
 export interface DetectedFoodItem {
@@ -62,13 +63,18 @@ export interface AIWorkoutPlan {
 export const analyzeMeal = async (
   payload: AnalyzeMealPayload
 ): Promise<{ success: boolean; data?: MealAnalysisResult; isFood?: boolean; error?: string; message?: string }> => {
+  const { signal, ...body } = payload;
   try {
     return await apiRequest('/api/ai/analyze-meal', {
       method: 'POST',
-      body: payload,
+      body,
+      signal,
       timeout: 60000,
     });
   } catch (err: any) {
+    if (err?.name === 'AbortError' || signal?.aborted) {
+      throw err;
+    }
     const msg = err?.message || '';
     const isNotFood =
       msg.toLowerCase().includes('not food') ||
@@ -115,28 +121,34 @@ export interface NutritionInsightsPayload {
     waterMl?: number;
   };
   userGoal?: string;
+  signal?: AbortSignal;
 }
 
 export const getAIInsights = async (
   payload?: NutritionInsightsPayload
 ): Promise<{ success: boolean; insights: AIInsight[] }> => {
+  const { signal, ...body } = payload || {};
   if (payload) {
     return apiRequest('/api/ai/insights', {
       method: 'POST',
-      body: payload,
+      body,
+      signal,
       timeout: 30000,
     });
   }
   return apiRequest('/api/ai/insights', {
     method: 'GET',
+    signal,
     timeout: 30000,
   });
 };
 
-export const generateAIWorkout = async (payload?: { targetArea?: string }): Promise<{ success: boolean; workoutPlan: AIWorkoutPlan }> => {
+export const generateAIWorkout = async (payload?: { targetArea?: string; activityLevel?: string; signal?: AbortSignal }): Promise<{ success: boolean; workoutPlan: AIWorkoutPlan }> => {
+  const { signal, ...body } = payload || {};
   return apiRequest('/api/ai/generate-workout', {
     method: 'POST',
-    body: payload || {},
+    body,
+    signal,
     timeout: 45000,
   });
 };
@@ -159,6 +171,7 @@ export const getAIMealSuggestions = async (payload: {
   remainingCalories: number;
   remainingProtein: number;
   mealType?: 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'all';
+  signal?: AbortSignal;
 }): Promise<{
   success: boolean;
   suggestions: MealSuggestion[];
@@ -170,9 +183,11 @@ export const getAIMealSuggestions = async (payload: {
     tier?: string;
   };
 }> => {
+  const { signal, ...body } = payload;
   return apiRequest('/api/ai/suggest-meals', {
     method: 'POST',
-    body: payload,
+    body,
+    signal,
     timeout: 45000,
   });
 };
