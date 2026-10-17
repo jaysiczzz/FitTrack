@@ -77,7 +77,7 @@ export const COLORS = {
 import { useState, useEffect } from 'react';
 import { Appearance, Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
+import { useColorScheme as useNativeWindColorScheme, colorScheme as nativeWindColorScheme } from 'nativewind';
 
 export const THEME_STORAGE_KEY = 'fittrack_theme_preference';
 
@@ -87,11 +87,42 @@ export type AppColorScheme = 'light' | 'dark';
 let activeTheme: AppColorScheme = (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light');
 let themeHasBeenSet = false;
 
+// Synchronous initialization on Web to prevent theme flash and ensure instant dark mode on browser reload
+if (Platform.OS === 'web' && typeof window !== 'undefined') {
+  try {
+    const saved = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') {
+      activeTheme = saved;
+      themeHasBeenSet = true;
+      if (typeof document !== 'undefined' && document.documentElement) {
+        if (saved === 'dark') {
+          document.documentElement.classList.add('dark');
+        } else {
+          document.documentElement.classList.remove('dark');
+        }
+      }
+    }
+  } catch {}
+}
+
 const themeListeners = new Set<(theme: AppColorScheme) => void>();
 
 /**
+ * Applies dark class to document root on Web for Tailwind CSS
+ */
+function applyWebTheme(theme: AppColorScheme) {
+  if (Platform.OS === 'web' && typeof document !== 'undefined' && document.documentElement) {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }
+}
+
+/**
  * Synchronously notifies react-native-css-interop observable so all
- * Tailwind `dark:` variant classes update in 0ms without waiting for
+ * Tailwind `dark:` variant classes update in 0ms on Mobile without waiting for
  * the slow asynchronous Android native bridge event.
  */
 function notifyNativeWindObservable(theme: AppColorScheme) {
@@ -108,32 +139,45 @@ function notifyNativeWindObservable(theme: AppColorScheme) {
 }
 
 /**
- * Sets the app theme instantaneously (0ms delay).
- * Synchronously notifies all React components, updates NativeWind observables,
- * syncs native Appearance, and persists the choice to AsyncStorage.
+ * Sets the app theme instantaneously (0ms delay) across Web and Mobile.
+ * Synchronously notifies all React components, updates Web HTML root class,
+ * updates NativeWind observables, syncs native Appearance, and persists the choice.
  */
 export function setAppTheme(newTheme: AppColorScheme) {
   if (activeTheme === newTheme && themeHasBeenSet) return;
   activeTheme = newTheme;
   themeHasBeenSet = true;
 
-  // 1. Instant synchronous notification to NativeWind / css-interop observable
+  // 1. Instant update on Web (Tailwind class on <html>)
+  applyWebTheme(newTheme);
+
+  // 2. Sync NativeWind's built-in colorScheme controller
+  try {
+    nativeWindColorScheme.set(newTheme);
+  } catch {}
+
+  // 3. Instant synchronous notification to NativeWind / css-interop observable (for Mobile)
   notifyNativeWindObservable(newTheme);
 
-  // 2. Instant synchronous notification to all React hooks/components
+  // 4. Instant synchronous notification to all React hooks/components
   themeListeners.forEach((listener) => {
     try {
       listener(newTheme);
     } catch {}
   });
 
-  // 3. Sync native OS status bar and Android configuration
+  // 5. Sync native OS status bar and Android configuration
   try {
     Appearance.setColorScheme(newTheme);
   } catch {}
 
-  // 4. Save to persistent storage in background
+  // 6. Save to persistent storage in background
   AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.localStorage) {
+    try {
+      window.localStorage.setItem(THEME_STORAGE_KEY, newTheme);
+    } catch {}
+  }
 }
 
 /**
@@ -145,6 +189,10 @@ export async function initAppTheme(): Promise<AppColorScheme> {
     if (saved === 'dark' || saved === 'light') {
       activeTheme = saved;
       themeHasBeenSet = true;
+      applyWebTheme(saved);
+      try {
+        nativeWindColorScheme.set(saved);
+      } catch {}
       notifyNativeWindObservable(saved);
       try {
         Appearance.setColorScheme(saved);
