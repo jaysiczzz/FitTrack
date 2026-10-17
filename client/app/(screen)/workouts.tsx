@@ -44,6 +44,7 @@ import {
   deleteWorkoutExerciseApi,
   completeWorkoutSessionApi,
   getWorkoutHistory,
+  updateWorkoutPlanApi,
 } from '@/api/workout';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import { hapticFeedback } from '@/utils/haptics';
@@ -349,7 +350,6 @@ export default function Workouts() {
           const local = localMap.get((item.name || '').toLowerCase());
           return {
             ...item,
-            gifUrl: item.gifUrl || local?.gifUrl || null,
           };
         });
       };
@@ -413,7 +413,6 @@ export default function Workouts() {
             difficultyPresets: e.difficultyPresets || meta.difficultyPresets || null,
             imageUrl: e.imageUrl || meta.imageUrl || null,
             thumbnailUrl: e.thumbnailUrl || meta.thumbnailUrl || null,
-            gifUrl: e.gifUrl || meta.gifUrl || null,
             sets: (e.sets || []).map((s: any, idx: number) => {
               const isSetBodyweight = Boolean(
                 s.bodyweight ||
@@ -884,7 +883,6 @@ export default function Workouts() {
       difficultyPresets: libEx.difficultyPresets || null,
       imageUrl: libEx.imageUrl || null,
       thumbnailUrl: libEx.thumbnailUrl || null,
-      gifUrl: libEx.gifUrl || null,
       sets: optimisticSets,
     };
 
@@ -978,6 +976,34 @@ export default function Workouts() {
     }
   };
 
+  const handleSaveAiRoutineTemplate = async (template: WorkoutRoutineTemplate) => {
+    try {
+      const templatesKey = authStorage.getScopedKey(user?.id, 'workout_planner_templates');
+      let currentTemplates: WorkoutRoutineTemplate[] = DEFAULT_ROUTINE_TEMPLATES;
+      const cached = await AsyncStorage.getItem(templatesKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            currentTemplates = mergeWithDefaultTemplates(parsed);
+          }
+        } catch {}
+      }
+      const updated = [template, ...currentTemplates.filter((t) => t.id !== template.id)];
+      await AsyncStorage.setItem(templatesKey, JSON.stringify(updated));
+      DeviceEventEmitter.emit('WORKOUT_TEMPLATES_UPDATED', { templates: updated });
+      updateWorkoutPlanApi({ routineTemplates: updated }).catch(() => {});
+      showToast({
+        message: 'Routine Saved! 📋',
+        description: `"${template.title}" added to your Routine Library`,
+        type: 'success',
+        iconName: 'bookmark',
+      });
+    } catch (err) {
+      console.log('Error saving AI routine template:', err);
+    }
+  };
+
   const handleAddAiExercises = async (exercises: AIWorkoutPlan['exercises']) => {
     executeWithRestCheck(() => proceedWithAddAiExercises(exercises));
   };
@@ -1023,7 +1049,6 @@ export default function Workouts() {
         tags: meta.tags || ['AI Generated'],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1117,7 +1142,6 @@ export default function Workouts() {
         tags: meta.tags || [],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1243,7 +1267,6 @@ export default function Workouts() {
         tags: meta.tags || [],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1377,6 +1400,7 @@ export default function Workouts() {
               <WorkoutPlannerTab
                 onStartRoutine={handleStartRoutine}
                 onSwitchToToday={() => setActiveTab('today')}
+                onOpenAiGenerator={() => setShowAiModal(true)}
               />
             )}
 
@@ -1396,6 +1420,7 @@ export default function Workouts() {
           visible={showAiModal}
           onClose={() => setShowAiModal(false)}
           onAddExercises={handleAddAiExercises}
+          onSaveRoutine={handleSaveAiRoutineTemplate}
           userGoal={user?.goal}
         />
       )}

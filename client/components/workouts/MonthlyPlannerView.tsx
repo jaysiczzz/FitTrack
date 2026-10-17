@@ -124,9 +124,6 @@ export default function MonthlyPlannerView({
       if (!d && (session as any).createdAt) {
         d = getDateStringFromTimestamp((session as any).createdAt);
       }
-      if (!d && (session as any).startedAt) {
-        d = getDateStringFromTimestamp((session as any).startedAt);
-      }
 
       if (d) {
         if (!map[d]) map[d] = [];

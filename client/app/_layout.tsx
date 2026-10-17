@@ -14,11 +14,9 @@ import { ToastProvider } from "../context/ToastContext";
 import { AuthProvider } from "../context/AuthContext";
 import { SocketProvider } from "../context/SocketContext";
 import { WorkoutTimerProvider } from "../context/WorkoutTimerContext";
-import { useThemeColors, initAppTheme } from "@/constants/colors";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { ThemeProvider, useThemeColors } from "@/constants/colors";
 import { StatusBar } from "expo-status-bar";
 import { initWebAriaFix } from "@/utils/webAriaFix";
-import { THEME_STORAGE_KEY } from "@/constants/storageKeys";
 import { setupNotificationListeners, registerForPushNotificationsAsync } from "@/utils/notificationService";
 import "../global.css";
 
@@ -59,18 +57,14 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
   );
 }
 
-export default function RootLayout() {
-  const { colorScheme } = useThemeColors();
+function RootLayoutContent() {
+  const { isDark, colors } = useThemeColors();
   const [fontsLoaded] = useFonts({
     Baloo2_400Regular,
     Baloo2_500Medium,
     Baloo2_600SemiBold,
     Baloo2_700Bold,
   });
-
-  useEffect(() => {
-    initAppTheme().catch(() => {});
-  }, []);
 
   const router = useRouter();
 
@@ -95,12 +89,15 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <StatusBar style={colorScheme === 'dark' ? 'light' : 'dark'} />
+      <StatusBar style={isDark ? 'light' : 'dark'} />
       <ToastProvider>
         <AuthProvider>
           <SocketProvider>
             <WorkoutTimerProvider>
-              <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
+              <View
+                className="flex-1 min-h-0 bg-background dark:bg-background-dark"
+                style={{ backgroundColor: colors.background }}
+              >
                 <View className="flex-1 min-h-0 w-full">
                   <Slot />
                 </View>
@@ -110,5 +107,13 @@ export default function RootLayout() {
         </AuthProvider>
       </ToastProvider>
     </SafeAreaProvider>
+  );
+}
+
+export default function RootLayout() {
+  return (
+    <ThemeProvider>
+      <RootLayoutContent />
+    </ThemeProvider>
   );
 }

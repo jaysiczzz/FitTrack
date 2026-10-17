@@ -196,14 +196,12 @@ export default function NotificationToast({
 
   return (
     <ToastPortal visible={toastVisible || visible}>
-      <View style={styles.overlay} pointerEvents="box-none">
+      <View style={styles.overlay}>
         <View
           style={[styles.container, { top: resolvedTop }]}
-          pointerEvents="box-none"
         >
           <Animated.View
             {...panResponder.panHandlers}
-            pointerEvents="auto"
             style={[
               styles.toastWrapper,
               Platform.select({
@@ -331,5 +329,6 @@ const styles = StyleSheet.create({
     maxWidth: 440,
     borderRadius: 16,
     zIndex: 2147483647,
+    pointerEvents: 'auto',
   },
 });

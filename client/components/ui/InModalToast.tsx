@@ -109,8 +109,7 @@ export default function InModalToast({
 
   return (
     <View
-      pointerEvents="box-none"
-      style={[styles.container, { bottom: bottomOffset }]}
+      style={[styles.container, { bottom: bottomOffset, pointerEvents: 'box-none' }]}
     >
       <Animated.View
         style={[

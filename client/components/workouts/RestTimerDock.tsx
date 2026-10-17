@@ -68,7 +68,6 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
   if (isMinimized) {
     return (
       <View
-        pointerEvents="box-none"
         style={[styles.minimizedContainer, { bottom: bottomPosition }]}
       >
         <TouchableOpacity
@@ -114,7 +113,6 @@ export default function RestTimerDock(props?: RestTimerDockProps) {
   // Expanded Dock view — sits cleanly above the floating navbar
   return (
     <View
-      pointerEvents="box-none"
       style={[styles.expandedContainer, { bottom: bottomPosition }]}
     >
       <View
@@ -277,11 +275,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: 16,
     zIndex: 990,
+    pointerEvents: 'box-none',
   },
   expandedContainer: {
     position: 'absolute',
     left: 16,
     right: 16,
     zIndex: 1000,
+    pointerEvents: 'box-none',
   },
 });

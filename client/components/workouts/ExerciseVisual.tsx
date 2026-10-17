@@ -12,7 +12,6 @@ export interface ExerciseVisualProps {
   secondaryMuscles?: string[] | string;
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
-  gifUrl?: string | null;
   tempo?: string | null;
   size?: 'sm' | 'md' | 'lg' | 'banner';
   allowStockImage?: boolean;

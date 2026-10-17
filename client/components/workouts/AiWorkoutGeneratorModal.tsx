@@ -14,11 +14,14 @@ import QuotaUsageMeter from '../ui/QuotaUsageMeter';
 import { useAuth } from '@/context/AuthContext';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { authStorage } from '@/utils/authStorage';
+import { hapticFeedback } from '@/utils/haptics';
+import { WorkoutRoutineTemplate } from './workoutTypes';
 
 interface AiWorkoutGeneratorModalProps {
   visible: boolean;
   onClose: () => void;
   onAddExercises: (exercises: AIWorkoutPlan['exercises']) => Promise<void>;
+  onSaveRoutine?: (routine: WorkoutRoutineTemplate) => Promise<void> | void;
   userGoal?: string;
 }
 
@@ -31,10 +34,49 @@ const TARGET_AREAS = [
   'Core & Cardio',
 ];
 
+export const createRoutineTemplateFromPlan = (
+  plan: AIWorkoutPlan,
+  area: string
+): WorkoutRoutineTemplate => {
+  return {
+    id: `ai-routine-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    title: plan.title || `AI ${area} Routine`,
+    description: `AI-customized workout plan targeting ${plan.targetMuscleGroup || area}.`,
+    category: plan.targetMuscleGroup?.toLowerCase().includes('cardio') ? 'Conditioning' : 'Hypertrophy',
+    difficulty: 'Intermediate',
+    targetMuscleGroup: plan.targetMuscleGroup || area,
+    estimatedDurationMinutes: plan.estimatedDurationMinutes || 45,
+    exercises: plan.exercises.map((ex) => {
+      const isBw =
+        ex.category?.toLowerCase().includes('bodyweight') ||
+        ex.name.toLowerCase().includes('push-up') ||
+        ex.name.toLowerCase().includes('pull-up') ||
+        ex.name.toLowerCase().includes('plank') ||
+        (!ex.suggestedWeightKg || ex.suggestedWeightKg === 0);
+      const defaultSets = Array.from({ length: ex.sets || 3 }).map(() => ({
+        weight: ex.suggestedWeightKg && ex.suggestedWeightKg > 0 ? ex.suggestedWeightKg : (isBw ? 0 : 20),
+        reps: ex.reps || 10,
+        bodyweight: isBw,
+      }));
+      return {
+        name: ex.name,
+        category: ex.category || 'Strength',
+        type: 'Compound',
+        primaryMuscle: plan.targetMuscleGroup || area,
+        muscleGroup: plan.targetMuscleGroup || area,
+        defaultSets,
+      };
+    }),
+    isCustom: true,
+    createdAt: new Date().toISOString(),
+  };
+};
+
 export default function AiWorkoutGeneratorModal({
   visible,
   onClose,
   onAddExercises,
+  onSaveRoutine,
   userGoal = 'MUSCLE_GAIN',
 }: AiWorkoutGeneratorModalProps) {
   const insets = useSafeAreaInsets();
@@ -47,6 +89,9 @@ export default function AiWorkoutGeneratorModal({
   const [addingToWorkout, setAddingToWorkout] = useState(false);
   const [generatorError, setGeneratorError] = useState<string | null>(null);
   const [showSubscriptionModal, setShowSubscriptionModal] = useState(false);
+  const [saveToRoutines, setSaveToRoutines] = useState(true);
+  const [savedAsRoutine, setSavedAsRoutine] = useState(false);
+  const [savingRoutine, setSavingRoutine] = useState(false);
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Quota & tier tracking
@@ -134,6 +179,7 @@ export default function AiWorkoutGeneratorModal({
 
     setLoading(true);
     setWorkoutPlan(null);
+    setSavedAsRoutine(false);
     setGeneratorError(null);
     try {
       const res = await generateAIWorkout({
@@ -178,14 +224,35 @@ export default function AiWorkoutGeneratorModal({
   };
 
   const handleSelectArea = (area: string) => {
+    if (area === selectedArea) return;
+    hapticFeedback.light();
     setSelectedArea(area);
-    handleGenerate(area);
+  };
+
+  const handleSaveOnly = async () => {
+    if (!workoutPlan || !workoutPlan.exercises?.length || !onSaveRoutine || savedAsRoutine) return;
+    setSavingRoutine(true);
+    try {
+      const template = createRoutineTemplateFromPlan(workoutPlan, selectedArea);
+      await onSaveRoutine(template);
+      setSavedAsRoutine(true);
+      hapticFeedback.success();
+    } catch (err) {
+      console.log('Error saving routine template only:', err);
+    } finally {
+      setSavingRoutine(false);
+    }
   };
 
   const handleCommitToWorkout = async () => {
     if (!workoutPlan || !workoutPlan.exercises?.length) return;
     setAddingToWorkout(true);
     try {
+      if (saveToRoutines && !savedAsRoutine && onSaveRoutine) {
+        const template = createRoutineTemplateFromPlan(workoutPlan, selectedArea);
+        await onSaveRoutine(template);
+        setSavedAsRoutine(true);
+      }
       await onAddExercises(workoutPlan.exercises);
       onClose();
     } catch (err) {
@@ -385,6 +452,51 @@ export default function AiWorkoutGeneratorModal({
                   </View>
                 ))}
               </View>
+
+              {/* Save to Routine Library Checkbox / Banner */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  hapticFeedback.light();
+                  setSaveToRoutines(!saveToRoutines);
+                }}
+                className={`p-3 rounded-2xl border flex-row items-center justify-between mb-2 ${
+                  saveToRoutines
+                    ? 'bg-accent/10 dark:bg-accent-dark/15 border-accent/40 dark:border-accent-dark/40'
+                    : 'bg-surface dark:bg-surface-dark border-input-border dark:border-input-border-dark'
+                }`}
+              >
+                <View className="flex-row items-center gap-2.5 flex-1 mr-2">
+                  <View
+                    className={`w-8 h-8 rounded-xl items-center justify-center ${
+                      saveToRoutines ? 'bg-accent/20 dark:bg-accent-dark/30' : 'bg-input dark:bg-input-dark'
+                    }`}
+                  >
+                    <Ionicons
+                      name={saveToRoutines ? 'bookmark' : 'bookmark-outline'}
+                      size={16}
+                      color={saveToRoutines ? colors.accent : colors.textMuted}
+                    />
+                  </View>
+                  <View className="flex-1">
+                    <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
+                      Save to Routine Library
+                    </Text>
+                    <Text className="text-[10px] text-text-muted dark:text-text-muted-dark">
+                      Keep in Routines tab to repeat anytime without using AI quota
+                    </Text>
+                  </View>
+                </View>
+                <View
+                  className={`w-5 h-5 rounded-md border items-center justify-center ${
+                    saveToRoutines
+                      ? 'bg-accent border-accent dark:bg-accent-dark dark:border-accent-dark'
+                      : 'border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark'
+                  }`}
+                >
+                  {saveToRoutines && <Ionicons name="checkmark" size={13} color={colors.accentContrast} />}
+                </View>
+              </TouchableOpacity>
             </ScrollView>
           ) : (
             <View className="py-12 items-center justify-center">
@@ -394,11 +506,15 @@ export default function AiWorkoutGeneratorModal({
               <Text className="font-bold text-text-primary dark:text-text-primary-dark text-sm">
                 Ready to generate your workout
               </Text>
+              <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-1 mb-4 text-center">
+                Focus: <Text className="font-bold text-accent dark:text-accent-dark">{selectedArea}</Text>
+              </Text>
               <TouchableOpacity
-                onPress={() => handleGenerate()}
+                onPress={() => handleGenerate(selectedArea)}
                 activeOpacity={0.8}
-                className="mt-3 px-5 py-3 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
+                className="px-6 py-3 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center flex-row gap-2"
               >
+                <Ionicons name="sparkles" size={16} color={colors.accentContrast} />
                 <Text className="text-accent-contrast dark:text-accent-contrast-dark font-bold text-xs">
                   Generate Routine
                 </Text>
@@ -408,30 +524,68 @@ export default function AiWorkoutGeneratorModal({
 
           {/* Action Footer Buttons */}
           {workoutPlan && !loading ? (
-            <View className="pt-3 border-t border-input-border dark:border-input-border-dark flex-row gap-2">
-              <TouchableOpacity
-                onPress={() => handleGenerate()}
-                disabled={addingToWorkout}
-                activeOpacity={0.7}
-                className="h-11 min-h-[44px] px-4 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center"
-              >
-                <Text className="font-semibold text-xs text-text-primary dark:text-text-primary-dark">
-                  Regenerate
-                </Text>
-              </TouchableOpacity>
+            <View className="pt-3 border-t border-input-border dark:border-input-border-dark gap-2">
+              <View className="flex-row gap-2">
+                <TouchableOpacity
+                  onPress={() => handleGenerate(selectedArea)}
+                  disabled={addingToWorkout || savingRoutine}
+                  activeOpacity={0.7}
+                  className="h-11 min-h-[44px] px-3.5 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center flex-row gap-1.5"
+                >
+                  <Ionicons name="refresh-outline" size={14} color={colors.textPrimary} />
+                  <Text className="font-semibold text-xs text-text-primary dark:text-text-primary-dark">
+                    {workoutPlan.targetMuscleGroup && workoutPlan.targetMuscleGroup !== selectedArea
+                      ? `Generate ${selectedArea}`
+                      : 'Regenerate'}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  onPress={handleSaveOnly}
+                  disabled={addingToWorkout || savingRoutine || savedAsRoutine}
+                  activeOpacity={0.8}
+                  className="flex-1 h-11 min-h-[44px] px-3 bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark rounded-2xl items-center justify-center flex-row gap-1.5"
+                >
+                  {savingRoutine ? (
+                    <ActivityIndicator size="small" color={colors.accent} />
+                  ) : (
+                    <>
+                      <Ionicons
+                        name={savedAsRoutine ? 'checkmark-circle' : 'bookmark-outline'}
+                        size={15}
+                        color={savedAsRoutine ? colors.accent : colors.textPrimary}
+                      />
+                      <Text
+                        className={`font-bold text-xs ${
+                          savedAsRoutine
+                            ? 'text-accent dark:text-accent-dark'
+                            : 'text-text-primary dark:text-text-primary-dark'
+                        }`}
+                      >
+                        {savedAsRoutine ? 'Saved to Routines' : 'Save Routine Only'}
+                      </Text>
+                    </>
+                  )}
+                </TouchableOpacity>
+              </View>
 
               <TouchableOpacity
                 onPress={handleCommitToWorkout}
-                disabled={addingToWorkout}
+                disabled={addingToWorkout || savingRoutine}
                 activeOpacity={0.85}
-                className="flex-1 h-11 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center"
+                className="w-full h-11 min-h-[44px] bg-accent dark:bg-accent-dark rounded-2xl items-center justify-center flex-row gap-1.5"
               >
                 {addingToWorkout ? (
                   <ActivityIndicator size="small" color={colors.accentContrast} />
                 ) : (
-                  <Text className="font-bold text-xs text-accent-contrast dark:text-accent-contrast-dark">
-                    Add to Today's Workout
-                  </Text>
+                  <>
+                    <Ionicons name="barbell-outline" size={15} color={colors.accentContrast} />
+                    <Text className="font-bold text-xs text-accent-contrast dark:text-accent-contrast-dark">
+                      {saveToRoutines && !savedAsRoutine
+                        ? 'Add to Today & Save Routine'
+                        : "Add to Today's Workout"}
+                    </Text>
+                  </>
                 )}
               </TouchableOpacity>
             </View>

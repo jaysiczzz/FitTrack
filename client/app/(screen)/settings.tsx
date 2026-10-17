@@ -65,6 +65,7 @@ export default function Settings() {
   }, [refreshProfile]);
 
   const handleToggleTheme = (nextDark: boolean) => {
+    if (nextDark === isDark) return;
     hapticFeedback.light();
     setColorScheme(nextDark ? 'dark' : 'light');
   };
@@ -881,9 +882,15 @@ export default function Settings() {
             Preferences
           </Text>
 
-          <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">
+          <Pressable
+            onPress={() => handleToggleTheme(!isDark)}
+            className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3"
+            accessibilityRole="switch"
+            accessibilityState={{ checked: isDark }}
+            accessibilityLabel={`Dark Mode, currently ${isDark ? 'enabled' : 'disabled'}`}
+          >
             <View className="w-8 h-8 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark items-center justify-center mr-3">
-              <Ionicons name="moon-outline" size={14} color={colors.textPrimary} />
+              <Ionicons name={isDark ? 'moon' : 'moon-outline'} size={14} color={isDark ? colors.accent : colors.textPrimary} />
             </View>
             <View className="flex-1">
               <Text className="text-sm font-semibold text-text-primary dark:text-text-primary-dark">
@@ -894,16 +901,18 @@ export default function Settings() {
               </Text>
             </View>
 
-            <Switch
-              value={isDark}
-              onValueChange={handleToggleTheme}
-              thumbColor={colors.surface}
-              trackColor={{
-                false: colors.inputBorder,
-                true: colors.accent,
-              }}
-            />
-          </View>
+            <View style={{ pointerEvents: Platform.OS === 'web' ? 'none' : 'auto' }}>
+              <Switch
+                value={isDark}
+                onValueChange={handleToggleTheme}
+                thumbColor={colors.surface}
+                trackColor={{
+                  false: colors.inputBorder,
+                  true: colors.accent,
+                }}
+              />
+            </View>
+          </Pressable>
 
           {/* Weight Units Preference */}
           <View className="flex-row items-center justify-between border-t border-input-border dark:border-input-border-dark py-3">

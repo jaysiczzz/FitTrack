@@ -633,7 +633,7 @@ export default function TestimonialModal({
                         key={chip.key}
                         onPress={() => setSelectedGoalFilter(chip.key as any)}
                         hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                        className={`min-h-[32px] px-3.5 py-1.5 rounded-full border ${
+                        className={`min-h-[32px] flex justify-center items-center px-3.5 py-1.5 rounded-full border ${
                           isActive
                             ? 'bg-accent/15 border-accent'
                             : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -667,7 +667,7 @@ export default function TestimonialModal({
                         key={sort.key}
                         onPress={() => setSortBy(sort.key as any)}
                         hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                        className={`min-h-[30px] px-3 py-1 rounded-xl border ${
+                        className={`min-h-[30px] flex justify-center items-center px-3 py-1 rounded-xl border ${
                           isCurrent
                             ? 'bg-accent/20 border-accent/40'
                             : 'bg-transparent border-input-border/70 dark:border-input-border-dark/70'
