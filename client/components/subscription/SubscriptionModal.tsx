@@ -9,6 +9,8 @@ import {
   ActivityIndicator,
   TextInput,
   Platform,
+  KeyboardAvoidingView,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as Linking from 'expo-linking';
@@ -346,11 +348,24 @@ export default function SubscriptionModal({
   const selectedPlan = plans.find((p) => p.tier === selectedTier) || plans[1] || DEFAULT_PLANS[1];
   const symbol = currency === 'PHP' ? '₱' : '$';
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-        <View className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4">
-          <Pressable className="hidden md:flex flex-1 w-full" onPress={onClose} />
+      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
+        >
+          <Pressable
+            className="absolute inset-0"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={handleBackdropPress}
+            accessible={false}
+          />
 
           <View
             style={{
@@ -954,7 +969,7 @@ export default function SubscriptionModal({
             </Text>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
 
     <ConfirmModal

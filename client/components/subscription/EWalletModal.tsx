@@ -8,6 +8,9 @@ import {
   ScrollView,
   ActivityIndicator,
   TextInput,
+  KeyboardAvoidingView,
+  Keyboard,
+  Platform,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
@@ -206,30 +209,52 @@ export default function EWalletModal({
     }
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   return (
     <>
-      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <View className="flex-1 justify-end bg-black/60">
-        <Pressable className="flex-1" onPress={onClose} />
-
-        <View
-          className="bg-surface dark:bg-surface-dark rounded-t-3xl p-5 border-t border-input-border dark:border-input-border-dark max-h-[90%] shadow-2xl"
-          style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+      <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
+        <KeyboardAvoidingView
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
         >
-          {/* Header */}
-          <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
-            <View className="flex-1 pr-2 min-w-0">
-              <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
-                FitTrack e-Wallet
-              </Text>
-              <Text className="text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
-                GCash, Maya & Card Top-Ups
-              </Text>
-            </View>
-            <ModalCloseButton onClose={onClose} />
-          </View>
+          <Pressable
+            className="absolute inset-0"
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            onPress={handleBackdropPress}
+            accessible={false}
+          />
 
-          <ScrollView className="mt-3" showsVerticalScrollIndicator={false}>
+          <View
+            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] w-full md:max-w-lg shadow-2xl flex-col"
+            style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+          >
+            {/* Header */}
+            <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
+              <View className="flex-1 pr-2 min-w-0">
+                <Text className="text-lg font-black text-text-primary dark:text-text-primary-dark" numberOfLines={1}>
+                  FitTrack e-Wallet
+                </Text>
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark" numberOfLines={1}>
+                  GCash, Maya & Card Top-Ups
+                </Text>
+              </View>
+              <ModalCloseButton onClose={onClose} />
+            </View>
+
+            <ScrollView
+              className="mt-3 flex-1"
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              automaticallyAdjustContentInsets={false}
+              contentInsetAdjustmentBehavior="never"
+              bounces={false}
+              contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+            >
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">
               <View className="flex-row items-center justify-between w-full mb-1">
@@ -622,7 +647,7 @@ export default function EWalletModal({
             </View>
           </ScrollView>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
 
       <ConfirmModal

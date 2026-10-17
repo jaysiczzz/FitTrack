@@ -20,7 +20,8 @@ export function useResponsive(): ResponsiveInfo {
   const isPhone = width < 600;
   const isTablet = width >= 600;
   const isLargeTablet = width >= 900;
-  const isLandscape = width > height;
+  // Phones (width < 600) in portrait should never be marked landscape when soft keyboard shrinks height
+  const isLandscape = width >= 600 && width > height;
   const isPortrait = !isLandscape;
 
   let cardColumns = 1;

@@ -43,22 +43,6 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   const [confirmPasswordError, setConfirmPasswordError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
-
-  React.useEffect(() => {
-    const showSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
-      () => setIsKeyboardVisible(true)
-    );
-    const hideSub = Keyboard.addListener(
-      Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide',
-      () => setIsKeyboardVisible(false)
-    );
-    return () => {
-      showSub.remove();
-      hideSub.remove();
-    };
-  }, []);
 
   const resetForm = () => {
     setCurrentPassword('');
@@ -75,12 +59,9 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
     onClose();
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
   const handleBackdropPress = () => {
-    if (isKeyboardVisible) {
-      Keyboard.dismiss();
-      return;
-    }
-    handleClose();
+    Keyboard.dismiss();
   };
 
   const handleSubmit = async () => {
@@ -142,15 +123,20 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose} statusBarTranslucent>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end md:justify-center md:items-center bg-black/50 p-0 md:p-4"
       >
-        <Pressable className="flex-1" onPress={handleBackdropPress} />
+        <Pressable
+          className="absolute inset-0"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={handleBackdropPress}
+          accessible={false}
+        />
 
         <View
-          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[90%] w-full md:max-w-md shadow-xl"
+          className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] w-full md:max-w-md shadow-xl flex-col"
           style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
         >
           {/* Header */}
@@ -166,7 +152,16 @@ export default function ResetPasswordModal({ visible, onClose }: ResetPasswordMo
             <ModalCloseButton onClose={handleClose} />
           </View>
 
-          <ScrollView className="mt-4" showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            className="mt-3 flex-1"
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            bounces={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+          >
             {/* Security Notice: Logout from all devices */}
             <View className="mb-3.5 p-3 rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 flex-row items-start gap-2">
               <Ionicons name="shield-checkmark" size={16} color={colors.accent} style={{ marginTop: 1 }} />

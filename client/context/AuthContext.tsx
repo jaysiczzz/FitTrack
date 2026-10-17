@@ -16,6 +16,8 @@ export function normalizeAuthUser(u: AuthUser | null): AuthUser | null {
   };
 }
 
+export type ActivityLevel = 'SEDENTARY' | 'LIGHTLY_ACTIVE' | 'MODERATELY_ACTIVE' | 'VERY_ACTIVE';
+
 export interface AuthUser {
   id?: string;
   email?: string;
@@ -28,6 +30,7 @@ export interface AuthUser {
   targetWeight?: number | null;
   age?: number;
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
+  activityLevel?: ActivityLevel;
   [key: string]: any;
 }
 

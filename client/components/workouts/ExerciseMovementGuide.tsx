@@ -52,7 +52,7 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
 
   const kinematicCycle = isCardio
     ? [
-        { num: '1', title: 'Cadence', sub: 'Steady Pace', icon: 'speedometer-outline' as const, color: '#38BDF8', bg: 'bg-sky-500/15' },
+        { num: '1', title: 'Cadence', sub: 'Steady Pace', icon: 'pulse-outline' as const, color: '#38BDF8', bg: 'bg-sky-500/15' },
         { num: '2', title: 'Inhale', sub: 'Oxygen Flow', icon: 'heart-outline' as const, color: '#10B981', bg: 'bg-emerald-500/15' },
         { num: '3', title: 'Drive', sub: 'Aerobic Power', icon: 'flash-outline' as const, color: '#F59E0B', bg: 'bg-amber-500/15' },
         { num: '4', title: 'Recovery', sub: 'Active Flow', icon: 'flame-outline' as const, color: '#EC4899', bg: 'bg-pink-500/15' },
@@ -78,22 +78,12 @@ export default function ExerciseMovementGuide({ exercise }: ExerciseMovementGuid
         { num: '4', title: 'Lockout', sub: 'Peak Squeeze', icon: 'flame-outline' as const, color: '#F59E0B', bg: 'bg-amber-500/15' },
       ];
 
-  const movementTypeLabel = isCardio
-    ? 'Cardio & Stamina'
-    : isIsometric
-    ? 'Core Stability & Hold'
-    : isPush
-    ? 'Push Movement (Chest & Shoulders)'
-    : isPull
-    ? 'Pull Movement (Back & Biceps)'
-    : `${exercise.type || 'Compound'} Movement`;
-
   return (
     <View className="gap-3.5">
       {/* 1. HOW IT LOOKS: MOVEMENT BLUEPRINT & SETUP */}
       <View className="rounded-2xl p-4 bg-surface dark:bg-surface-dark border border-input-border dark:border-input-border-dark overflow-hidden">
         <View className="flex-row items-center gap-2 mb-3">
-          <View className={`w-8 h-8 rounded-xl items-center justify-center border ${theme.borderClass} ${theme.bgClass} shrink-0`}>
+          <View className="w-8 h-8 rounded-xl items-center justify-center border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark shrink-0">
             <Ionicons name="eye-outline" size={18} color={theme.color} />
           </View>
           <View className="flex-1 min-w-0">

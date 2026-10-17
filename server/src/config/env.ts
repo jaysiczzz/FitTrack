@@ -30,8 +30,8 @@ export function validateEnv(): void {
       }
     }
 
-    if (!process.env.SMTP_PASS?.trim()) {
-      missingWarnings.push('  ⚠️  SMTP_PASS: Email delivery will be unavailable (password reset emails will fail)');
+    if (!process.env.SMTP_PASS?.trim() && !process.env.BREVO_API_KEY?.trim() && !process.env.RESEND_API_KEY?.trim()) {
+      missingWarnings.push('  ⚠️  BREVO_API_KEY / SMTP_PASS: Email delivery will be unavailable (password reset & verification emails will fail)');
     }
     if (!process.env.GEMINI_API_KEY?.trim()) {
       missingWarnings.push('  ⚠️  GEMINI_API_KEY: AI Coach chat & food scanner features will be unavailable');

@@ -26,7 +26,7 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   useEffect(() => {
     // Initialize socket connection
     const socketInstance = io(API_URL, {
-      transports: ['websocket', 'polling'],
+      transports: ['polling', 'websocket'],
       auth: {
         token: token || undefined,
       },

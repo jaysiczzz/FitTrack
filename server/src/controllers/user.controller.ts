@@ -1,7 +1,7 @@
 import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import * as userModel from '../models/user.model'
-import { Goal, Gender } from '@prisma/client'
+import { Goal, Gender, ActivityLevel } from '@prisma/client'
 import { prisma } from '../config/db'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import { capitalizeWords } from '../utils/formatters.utils'
@@ -44,6 +44,7 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
         targetWeight?: number | null;
         age?: number;
         goal?: Goal;
+        activityLevel?: ActivityLevel;
     } = {}
 
     if (firstName && typeof firstName === 'string') {
@@ -116,6 +117,14 @@ export const updateProfile = asyncHandler(async (req: AuthRequest, res: Response
             updateData.gender = Gender.MALE
         } else {
             return res.status(400).json({ error: 'Invalid gender value. Must be MALE or FEMALE.' })
+        }
+    }
+
+    if (req.body.activityLevel !== undefined) {
+        if (Object.values(ActivityLevel).includes(req.body.activityLevel)) {
+            updateData.activityLevel = req.body.activityLevel as ActivityLevel
+        } else {
+            return res.status(400).json({ error: 'Invalid activity level value' })
         }
     }
 

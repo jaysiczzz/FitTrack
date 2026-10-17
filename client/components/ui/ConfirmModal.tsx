@@ -1,5 +1,16 @@
-import React from 'react';
-import { View, Text, Modal, TouchableOpacity, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import React, { useRef, useEffect } from 'react';
+import {
+  View,
+  Text,
+  Modal,
+  TouchableOpacity,
+  Pressable,
+  ActivityIndicator,
+  ScrollView,
+  Animated,
+  PanResponder,
+  Platform,
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
@@ -44,24 +55,112 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
   const insets = useSafeAreaInsets();
   const destructive = Boolean(isDanger || danger);
 
+  const translateY = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      translateY.setValue(0);
+    }
+  }, [visible]);
+
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: (_, gestureState) => {
+        return gestureState.dy > 5;
+      },
+      onPanResponderMove: (_, gestureState) => {
+        if (gestureState.dy > 0) {
+          translateY.setValue(gestureState.dy);
+        }
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        // Fast swipe down OR dragged down more than 50px
+        if (gestureState.dy > 50 || gestureState.vy > 0.5) {
+          Animated.timing(translateY, {
+            toValue: 500,
+            duration: 160,
+            useNativeDriver: Platform.OS !== 'web',
+          }).start(() => {
+            if (!loading) {
+              onCancel();
+            }
+          });
+        } else if (Math.abs(gestureState.dy) < 5 && Math.abs(gestureState.dx) < 5) {
+          // Direct tap on the grab pill also dismisses cleanly
+          if (!loading) {
+            onCancel();
+          }
+        } else {
+          // Spring back up if threshold not reached
+          Animated.spring(translateY, {
+            toValue: 0,
+            bounciness: 4,
+            useNativeDriver: Platform.OS !== 'web',
+          }).start();
+        }
+      },
+    })
+  ).current;
+
   return (
     <Modal
       visible={visible}
       transparent
       animationType="slide"
+      statusBarTranslucent
       onRequestClose={!loading ? onCancel : undefined}
     >
-      <Pressable
-        className="flex-1 bg-black/70 justify-end md:justify-center p-0 md:p-6"
-        onPress={!loading ? onCancel : undefined}
+      <View
+        style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        }}
+        className="flex-1 justify-end md:justify-center p-0 md:p-6"
       >
         <Pressable
-          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-3 md:pt-6 pb-8 items-center shadow-2xl max-h-[90%]"
-          style={{ paddingBottom: Math.max(32, insets.bottom + 16) }}
-          onPress={(e) => e.stopPropagation()}
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={!loading ? onCancel : undefined}
+          accessible={false}
+        />
+
+        <Animated.View
+          style={[
+            { transform: [{ translateY }] },
+            {
+              width: '100%',
+              maxWidth: 500,
+              alignSelf: 'center',
+              backgroundColor: colors.surface,
+              borderTopLeftRadius: 32,
+              borderTopRightRadius: 32,
+              borderWidth: 1,
+              borderColor: colors.inputBorder,
+              paddingHorizontal: 24,
+              paddingTop: 8,
+              paddingBottom: Math.max(32, insets.bottom + 16),
+              alignItems: 'center',
+              maxHeight: '90%',
+            },
+          ]}
+          className="w-full max-w-[500px] self-center bg-surface dark:bg-surface-dark border-t md:border border-input-border/70 dark:border-input-border-dark/70 rounded-t-[32px] md:rounded-[32px] px-6 pt-2 md:pt-6 items-center shadow-2xl max-h-[90%]"
         >
-          {/* Action Sheet Drag Indicator / Pull Bar (Phone only) */}
-          <View className="w-10 h-1.5 rounded-full bg-input-border dark:bg-input-border-dark mb-4 md:hidden" />
+          {/* Action Sheet Drag Indicator / Pull Bar (Phone only) - Interactive Swipe & Tap Area */}
+          <View
+            {...panResponder.panHandlers}
+            className="w-full items-center py-2.5 -mt-1 mb-2 md:hidden cursor-pointer"
+            accessibilityRole="button"
+            accessibilityLabel="Swipe down to dismiss"
+          >
+            <View
+              style={{
+                width: 40,
+                height: 5,
+                borderRadius: 9999,
+                backgroundColor: colors.inputBorder,
+              }}
+            />
+          </View>
 
           <ScrollView className="w-full" showsVerticalScrollIndicator={false} contentContainerStyle={{ alignItems: 'center' }}>
             {/* Squircle Icon Badge (if provided) */}
@@ -150,8 +249,8 @@ const ConfirmModal: React.FC<ConfirmModalProps> = ({
               </Text>
             </TouchableOpacity>
           </View>
-        </Pressable>
-      </Pressable>
+        </Animated.View>
+      </View>
     </Modal>
   );
 };

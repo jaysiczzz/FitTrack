@@ -3,6 +3,7 @@ import { View, Text } from 'react-native';
 import { MacroTargets } from './foodLogTypes';
 import ProgressBar from '@/components/ui/ProgressBar';
 import SurfaceCard from '../ui/SurfaceCard';
+import { useThemeColors } from '@/constants/colors';
 
 interface MacroSummaryCardProps {
   targets: MacroTargets;
@@ -22,6 +23,7 @@ export default function MacroSummaryCard({
   goal,
 }: MacroSummaryCardProps) {
   
+  const { colors } = useThemeColors();
   const caloriesRemaining = Math.max(0, targets.calories - loggedCalories);
   const calPercent = Math.min(100, Math.round((loggedCalories / Math.max(1, targets.calories)) * 100));
   const isOverLimit = loggedCalories > targets.calories;
@@ -49,14 +51,17 @@ export default function MacroSummaryCard({
       <View className="flex-row items-center gap-3 bg-input dark:bg-input-dark rounded-2xl p-4 mb-3 border border-input-border dark:border-input-border-dark">
         {/* Circular Percentage Ring */}
         <View
-          className={`w-20 h-20 sm:w-24 sm:h-24 shrink-0 rounded-full bg-surface dark:bg-surface-dark items-center justify-center mr-1 border-4 ${
-            isOverLimit
-              ? 'border-danger'
-              : 'border-accent dark:border-accent-dark'
-          }`}
+          style={{
+            width: 88,
+            height: 88,
+            borderRadius: 44,
+            borderWidth: 4,
+            borderColor: isOverLimit ? colors.danger : colors.accent,
+          }}
+          className="shrink-0 bg-surface dark:bg-surface-dark items-center justify-center px-1"
         >
           <Text
-            className={`text-center font-black text-xl sm:text-2xl leading-6 sm:leading-7 ${
+            className={`text-center font-black text-xl leading-6 ${
               isOverLimit
                 ? 'text-danger dark:text-danger-dark'
                 : 'text-text-primary dark:text-text-primary-dark'
@@ -64,7 +69,15 @@ export default function MacroSummaryCard({
           >
             {calPercent}%
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-center font-bold text-[9px] uppercase tracking-wider mt-0.5">
+          <Text
+            numberOfLines={1}
+            adjustsFontSizeToFit
+            className={`text-center font-bold text-[8.5px] uppercase tracking-normal mt-0.5 max-w-full px-0.5 ${
+              isOverLimit
+                ? 'text-danger dark:text-danger-dark font-black'
+                : 'text-text-muted dark:text-text-muted-dark'
+            }`}
+          >
             {isOverLimit ? 'Over Budget' : calPercent >= 100 ? 'Goal Met' : 'Of Target'}
           </Text>
         </View>

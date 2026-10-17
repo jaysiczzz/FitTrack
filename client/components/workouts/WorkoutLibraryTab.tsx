@@ -1,24 +1,25 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { LibraryExercise } from './workoutTypes';
 import { COMMON_EXERCISES_CATALOG } from '../../data/commonExercises';
 import { getWorkoutLibrary } from '../../api/workout';
 import { ExerciseDetailsModal } from './ExerciseDetailsModal';
-import ExerciseVisual from './ExerciseVisual';
+import { isGenericStockPhoto } from './ExerciseVisual';
 import { useThemeColors } from '@/constants/colors';
 import FilterChip from '../ui/FilterChip';
 import DifficultySelectorPill from './DifficultySelectorPill';
 import { CardSkeleton } from '../ui/Skeleton';
 import EmptyState from '../ui/EmptyState';
 import { hapticFeedback } from '@/utils/haptics';
+import { getDifficultyStyle } from '@/constants/difficulty';
 
 interface WorkoutLibraryTabProps {
   onAddExercise: (exercise: LibraryExercise) => void;
 }
 
-const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body', 'Cardio'];
+const MUSCLE_GROUPS = ['All', 'Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Glutes', 'Full Body', 'Cardio', 'Mobility'];
 const DIFFICULTY_LEVELS = ['All', 'Beginner', 'Intermediate', 'Advanced'];
 const EXERCISE_CACHE_KEY = 'fittrack_exercise_library_cache_v3';
 
@@ -27,7 +28,7 @@ const sortExercises = (list: LibraryExercise[]): LibraryExercise[] => {
 };
 
 const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) => {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const [exercises, setExercises] = useState<LibraryExercise[]>(() => sortExercises(COMMON_EXERCISES_CATALOG));
   const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,7 +47,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
           const local = localMap.get((item.name || '').toLowerCase());
           return {
             ...item,
-            gifUrl: item.gifUrl || local?.gifUrl || null,
+            gifUrl: item.gifUrl || null,
             recommendedTempo: item.recommendedTempo || local?.recommendedTempo || '2-0-1-0',
           };
         });
@@ -208,6 +209,9 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
       ) : (
         filteredExercises.map((ex) => {
           const eqStr = Array.isArray(ex.equipment) ? ex.equipment.join(', ') : ex.equipment || 'No Equipment';
+          const diffStyle = getDifficultyStyle(ex.difficulty);
+          const imgUrl = ex.imageUrl || ex.thumbnailUrl;
+          const hasRealImage = Boolean(imgUrl && !isGenericStockPhoto(imgUrl));
 
           return (
             <View
@@ -223,22 +227,11 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                     </Text>
                     {ex.difficulty ? (
                       <View
-                        className={`px-2.5 py-0.5 rounded-full border ${
-                          (ex.difficulty || '').toLowerCase() === 'beginner'
-                            ? 'bg-emerald-500/15 border-emerald-500/30'
-                            : (ex.difficulty || '').toLowerCase() === 'advanced'
-                            ? 'bg-purple-500/15 border-purple-500/30'
-                            : 'bg-sky-500/15 border-sky-500/30'
-                        }`}
+                        className={`px-2.5 py-0.5 rounded-full border ${diffStyle.badgeContainer}`}
                       >
                         <Text
-                          className={`text-[10px] font-bold uppercase tracking-wider ${
-                            (ex.difficulty || '').toLowerCase() === 'beginner'
-                              ? 'text-accent dark:text-accent-dark'
-                              : (ex.difficulty || '').toLowerCase() === 'advanced'
-                              ? 'text-purple-400'
-                              : 'text-sky-400'
-                          }`}
+                          className={`text-[10px] font-bold uppercase tracking-wider ${diffStyle.badgeText}`}
+                          style={{ color: isDark ? diffStyle.darkHexColor : diffStyle.hexColor }}
                         >
                           {ex.difficulty}
                         </Text>
@@ -247,8 +240,7 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   </View>
 
                   <View className="flex-row items-center gap-1.5 mb-1.5 flex-wrap">
-                    <View className="px-2 py-0.5 rounded-md bg-accent/15 border border-accent/30 flex-row items-center gap-1">
-                      <Ionicons name="body-outline" size={11} color={colors.accent} />
+                    <View className="px-2 py-0.5 rounded-md bg-accent/15 border border-accent/30">
                       <Text className="text-[10px] font-black text-accent dark:text-accent-dark uppercase">
                         HITS: {ex.primaryMuscle || ex.muscleGroup}
                       </Text>
@@ -265,25 +257,16 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
                   <Text className="text-xs text-text-muted dark:text-text-muted-dark mb-1">
                     {ex.category} • {ex.bodyPart || 'Upper Body'} • {eqStr}
                   </Text>
-
-                  {ex.startingPosition ? (
-                    <Text numberOfLines={1} className="text-[11px] text-text-muted dark:text-text-muted-dark mb-1 italic">
-                      <Text className="font-semibold text-text-primary dark:text-text-primary-dark">Setup: </Text>
-                      {ex.startingPosition}
-                    </Text>
-                  ) : null}
                 </View>
 
-                {/* Muscle Group & Movement Avatar */}
-                <ExerciseVisual
-                  name={ex.name}
-                  muscle={ex.primaryMuscle || ex.muscleGroup}
-                  category={ex.category}
-                  equipment={ex.equipment}
-                  imageUrl={ex.imageUrl}
-                  thumbnailUrl={ex.thumbnailUrl}
-                  size="lg"
-                />
+                {/* Real Exercise Thumbnail (Category placeholder icon removed) */}
+                {hasRealImage ? (
+                  <Image
+                    source={{ uri: imgUrl! }}
+                    className="w-14 h-14 rounded-2xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0"
+                    resizeMode="cover"
+                  />
+                ) : null}
               </View>
 
               {/* Action Buttons Row */}

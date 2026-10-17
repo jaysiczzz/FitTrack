@@ -86,17 +86,22 @@ export default function AuthIndex() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'flex-start',
-            paddingTop: isLandscape ? 12 : 36,
-            paddingBottom: 24,
+            justifyContent: isLandscape ? 'flex-start' : 'center',
+            alignItems: 'center',
+            paddingVertical: isLandscape ? 16 : 28,
             paddingHorizontal: 20,
           }}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode="none"
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View className="w-full max-w-[420px] mx-auto">
+          <View
+            style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}
+            className="w-full max-w-[420px] self-center"
+          >
             <AuthHeader compact={isLandscape} />
             <AuthTabs active={active} onChange={handleTabChange} />
 

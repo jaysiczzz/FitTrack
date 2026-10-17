@@ -5,11 +5,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeColors } from '@/constants/colors';
 import { LibraryExercise } from './workoutTypes';
 import ModalCloseButton from '../ui/ModalCloseButton';
-import ExerciseVisual from './ExerciseVisual';
+import ExerciseVisual, { getMuscleTheme } from './ExerciseVisual';
 import BodyAnatomyMap from './BodyAnatomyMap';
 import ExerciseMovementGuide from './ExerciseMovementGuide';
 import ExerciseVideoModal from './ExerciseVideoModal';
 import { DifficultyPreset, getDifficultyPreset } from './workoutPresets';
+import { getDifficultyStyle } from '@/constants/difficulty';
 
 export { DifficultyPreset, getDifficultyPreset };
 
@@ -33,7 +34,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   onUpdateExercisePreset,
 }) => {
   const insets = useSafeAreaInsets();
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const [activeTab, setActiveTab] = useState<DetailsTab>('guide');
 
   const initialTier = useMemo(() => {
@@ -90,6 +91,8 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
   const easierOption = exercise.easierAlternative || exercise.beginnerModification;
   const harderOption = exercise.harderAlternative || exercise.advancedVariation;
   const equipmentFreeOption = exercise.equipmentFreeAlternative;
+  const theme = getMuscleTheme(exercise?.primaryMuscle || exercise?.muscleGroup, exercise?.category, exercise?.name);
+  const diffStyle = getDifficultyStyle(exercise?.difficulty);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -97,14 +100,42 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
         <View className="bg-background dark:bg-background-dark rounded-t-3xl h-[92%] border-t border-input-border dark:border-input-border-dark overflow-hidden">
           {/* Header */}
           <View className="px-5 py-4 border-b border-input-border dark:border-input-border-dark bg-surface dark:bg-surface-dark">
-            <View className="flex-row items-center justify-between mb-2">
+            <View className="flex-row items-start justify-between mb-2">
               <View className="flex-1 pr-3">
                 <Text className="text-xl font-black text-text-primary dark:text-text-primary-dark">
                   {exercise.name}
                 </Text>
-                <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                  {exercise.category} • {exercise.bodyPart || 'Upper Body'} • {exercise.difficulty || 'Intermediate'}
-                </Text>
+
+                <View className="flex-row items-center gap-2 flex-wrap mt-1.5">
+                  {/* Level / Difficulty Badge */}
+                  {exercise.difficulty ? (
+                    <View
+                      className={`rounded-full px-2.5 py-0.5 border shrink-0 ${diffStyle.badgeContainer}`}
+                    >
+                      <Text
+                        className={`text-[10px] font-extrabold uppercase tracking-wider ${diffStyle.badgeText}`}
+                        style={{ color: isDark ? diffStyle.darkHexColor : diffStyle.hexColor }}
+                      >
+                        {exercise.difficulty}
+                      </Text>
+                    </View>
+                  ) : null}
+
+                  {/* Category Badge */}
+                  <View className="px-2.5 py-0.5 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0">
+                    <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${theme.textClass}`}>
+                      {theme.label}
+                    </Text>
+                  </View>
+
+                  {/* Subordinate Details: Body Part & Equipment */}
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
+                    {exercise.bodyPart || 'Upper Body'}
+                    {exercise.equipment
+                      ? ` • ${Array.isArray(exercise.equipment) ? exercise.equipment.join(', ') : exercise.equipment}`
+                      : ''}
+                  </Text>
+                </View>
               </View>
               <ModalCloseButton onClose={onClose} />
             </View>
@@ -166,7 +197,6 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
               secondaryMuscles={exercise.secondaryMuscles}
               imageUrl={exercise.imageUrl}
               thumbnailUrl={exercise.thumbnailUrl}
-              gifUrl={exercise.gifUrl}
               tempo={exercise.recommendedTempo}
               size="banner"
               onOpenVideo={() => setIsVideoModalVisible(true)}
@@ -240,36 +270,31 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                   </Text>
 
                   {/* Segmented Level Selector */}
-                  <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60 dark:border-input-border-dark/60">
+                  <View className="flex-row rounded-xl bg-input dark:bg-input-dark p-1 mb-3.5 border border-input-border/60 dark:border-input-border-dark/60 gap-1">
                     {(['beginner', 'intermediate', 'advanced'] as const).map((tier) => {
                       const active = activeTier === tier;
-                      const label = tier.charAt(0).toUpperCase() + tier.slice(1);
-                      const activeColor =
-                        tier === 'beginner'
-                          ? 'bg-accent dark:bg-accent-dark'
-                          : tier === 'advanced'
-                          ? 'bg-danger dark:bg-danger-dark'
-                          : 'bg-warning dark:bg-warning-dark';
-                      const activeTextColor =
-                        tier === 'beginner'
-                          ? 'text-accent-contrast dark:text-accent-contrast-dark'
-                          : 'text-white';
+                      const tierStyle = getDifficultyStyle(tier);
 
                       return (
                         <TouchableOpacity
                           key={tier}
                           activeOpacity={0.8}
                           onPress={() => setActiveTier(tier)}
-                          className={`flex-1 py-1.5 min-h-[36px] rounded-lg items-center justify-center ${
-                            active ? activeColor : ''
+                          className={`flex-1 py-1.5 min-h-[36px] rounded-lg items-center justify-center flex-row gap-1.5 ${
+                            active ? tierStyle.activeButton : ''
                           }`}
                         >
+                          <Ionicons
+                            name={tierStyle.icon}
+                            size={12}
+                            color={active ? '#FFFFFF' : colors.textMuted}
+                          />
                           <Text
                             className={`text-xs font-extrabold ${
-                              active ? activeTextColor : 'text-text-muted dark:text-text-muted-dark'
+                              active ? tierStyle.activeText : 'text-text-muted dark:text-text-muted-dark'
                             }`}
                           >
-                            {label}
+                            {tierStyle.label}
                           </Text>
                         </TouchableOpacity>
                       );
@@ -319,7 +344,10 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
                     <View className="gap-2">
                       {easierOption ? (
                         <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
-                          <Text className="text-[11px] font-bold text-accent dark:text-accent-dark mb-0.5">
+                          <Text
+                            className="text-[11px] font-bold text-accent dark:text-accent-dark mb-0.5"
+                            style={{ color: isDark ? '#10B981' : '#047857' }}
+                          >
                             Easier / Beginner Modification:
                           </Text>
                           <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
@@ -330,7 +358,10 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                       {harderOption ? (
                         <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
-                          <Text className="text-[11px] font-bold text-purple-500 dark:text-purple-400 mb-0.5">
+                          <Text
+                            className="text-[11px] font-bold text-danger dark:text-danger-dark mb-0.5"
+                            style={{ color: isDark ? '#F87171' : '#DC2626' }}
+                          >
                             Harder / Advanced Progression:
                           </Text>
                           <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
@@ -341,7 +372,10 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                       {equipmentFreeOption ? (
                         <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
-                          <Text className="text-[11px] font-bold text-sky-500 dark:text-sky-400 mb-0.5">
+                          <Text
+                            className="text-[11px] font-bold text-info dark:text-info-dark mb-0.5"
+                            style={{ color: isDark ? '#38BDF8' : '#0369A1' }}
+                          >
                             Equipment-Free Alternative:
                           </Text>
                           <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">
@@ -352,7 +386,10 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                       {similarList.length > 0 ? (
                         <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
-                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
+                          <Text
+                            className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark mb-0.5"
+                            style={{ color: isDark ? '#F8FAFC' : '#0F172A' }}
+                          >
                             Similar Movements:
                           </Text>
                           <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">

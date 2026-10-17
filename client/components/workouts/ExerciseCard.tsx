@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
 import { useWeightUnit } from '@/constants/units';
 import SurfaceCard from '../ui/SurfaceCard';
 import ConfirmModal from '../ui/ConfirmModal';
-import ExerciseVisual from './ExerciseVisual';
+import { getMuscleTheme, isGenericStockPhoto } from './ExerciseVisual';
+import { getDifficultyStyle } from '@/constants/difficulty';
 
 export type SetRow = {
   id: string;
@@ -62,7 +63,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
   onRemoveExercise,
   onViewDetails,
 }) => {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const [weightUnit] = useWeightUnit();
   const stepDelta = weightUnit === 'LBS' ? 5 : 2.5;
   const [setToDelete, setSetToDelete] = useState<{ id: string; setNumber: number } | null>(null);
@@ -77,106 +78,99 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
     name.toLowerCase().includes('dip') ||
     sets.some((s) => s.bodyweight);
   const isStretch = type.toLowerCase() === 'stretch' || type.toLowerCase() === 'mobility';
+  const theme = getMuscleTheme(primaryMuscle, category, name);
+  const hasRealImage = Boolean(imageUrl && !isGenericStockPhoto(imageUrl));
+  const diffStyle = getDifficultyStyle(difficulty);
 
   return (
-    <SurfaceCard className="mb-3.5">
-      {/* Top Header: Exercise Name, Badges & Thumbnail */}
-      <View className="mb-2.5 flex-row items-start justify-between">
+    <SurfaceCard className="mb-4">
+      {/* 1. Primary Header: Exercise Name, Category Meta & Close Action */}
+      <View className="mb-3 flex-row items-start justify-between gap-3">
         <TouchableOpacity
           activeOpacity={onViewDetails ? 0.7 : 1}
           onPress={onViewDetails}
-          className="flex-1 pr-2 flex-row items-center gap-3"
+          className="flex-1 min-w-0"
         >
-          <ExerciseVisual
-            name={name}
-            muscle={primaryMuscle}
-            category={category}
-            equipment={equipment}
-            imageUrl={imageUrl}
-            size="md"
-          />
+          <View className="flex-row items-center gap-3">
+            {hasRealImage ? (
+              <Image
+                source={{ uri: imageUrl! }}
+                className="w-12 h-12 rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0"
+                resizeMode="cover"
+              />
+            ) : null}
 
-          <View className="flex-1">
-            <Text className="text-base font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
-              {name}
-            </Text>
+            <View className="flex-1 min-w-0">
+              <Text
+                className="text-lg font-black text-text-primary dark:text-text-primary-dark tracking-tight leading-snug"
+                numberOfLines={2}
+              >
+                {name}
+              </Text>
 
-          {/* Muscle Group & Equipment Info */}
-          <Text className="text-xs text-text-muted dark:text-text-muted-dark">
-            <Text className="font-semibold text-text-primary dark:text-text-primary-dark">{primaryMuscle}</Text>
-            {secondaryMuscles && secondaryMuscles.length > 0
-              ? ` (${secondaryMuscles.join(', ')})`
-              : ''}
-            {equipment ? ` · ${equipment}` : ''}
-          </Text>
+              {/* 2. Secondary Metadata: Level Badge (High Priority), Category Badge, Equipment, and PR */}
+              <View className="flex-row items-center gap-2 mt-1.5 flex-wrap">
+                {/* Level / Difficulty Badge */}
+                {difficulty ? (
+                  <View
+                    className={`rounded-full px-2.5 py-0.5 border shrink-0 ${diffStyle.badgeContainer}`}
+                  >
+                    <Text
+                      className={`text-[10px] font-extrabold uppercase tracking-wider ${diffStyle.badgeText}`}
+                      style={{ color: isDark ? diffStyle.darkHexColor : diffStyle.hexColor }}
+                    >
+                      {difficulty}
+                    </Text>
+                  </View>
+                ) : null}
 
-          {onViewDetails && (
-            <View className="flex-row items-center gap-1.5 mt-1">
-              <View className="px-2 py-0.5 rounded-full bg-accent/10 border border-accent/25 items-center">
-                <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
-                  Anatomy & Form
+                {/* Category Badge */}
+                <View className="px-2.5 py-0.5 rounded-full bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark shrink-0">
+                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${theme.textClass}`}>
+                    {theme.label}
+                  </Text>
+                </View>
+
+                {/* Equipment & Secondary Muscles (Subordinate Details) */}
+                <Text className="text-xs text-text-muted dark:text-text-muted-dark font-medium">
+                  {equipment || 'Bodyweight'}
+                  {secondaryMuscles && secondaryMuscles.length > 0 ? ` (${secondaryMuscles.join(', ')})` : ''}
                 </Text>
+
+                {/* Personal Record Trophy Badge */}
+                {personalRecord ? (
+                  <View className="flex-row items-center px-2 py-0.5 rounded-full bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 shrink-0">
+                    <Ionicons name="trophy" size={10} color={colors.accent} style={{ marginRight: 3.5 }} />
+                    <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
+                      {personalRecord}
+                    </Text>
+                  </View>
+                ) : null}
               </View>
             </View>
-          )}
-
-          {personalRecord ? (
-            <View className="flex-row items-center mt-1.5">
-              <View className="flex-row items-center px-2 py-0.5 rounded-full bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30">
-                <Ionicons name="trophy" size={10} color={colors.accent} style={{ marginRight: 3.5 }} />
-                <Text className="text-[10px] font-bold text-accent dark:text-accent-dark">
-                  {personalRecord}
-                </Text>
-              </View>
-            </View>
-          ) : null}
           </View>
         </TouchableOpacity>
 
-        {/* Action Controls & Remove Button */}
-        <View className="flex-row items-center gap-1.5">
-          <View
-            className={`rounded-full px-2.5 py-0.5 border ${
-              difficulty.toLowerCase() === 'beginner'
-                ? 'bg-accent/15 border-accent/30'
-                : difficulty.toLowerCase() === 'advanced'
-                ? 'bg-warning/15 border-warning/30'
-                : 'bg-info/15 border-info/30'
-            }`}
+        {/* Remove Exercise Action */}
+        {onRemoveExercise ? (
+          <TouchableOpacity
+            onPress={onRemoveExercise}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            className="w-8 h-8 rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark active:opacity-60 shrink-0 mt-0.5"
+            activeOpacity={0.7}
+            accessibilityRole="button"
+            accessibilityLabel={`Remove ${name}`}
           >
-            <Text
-              className={`text-[10px] font-bold uppercase tracking-wider ${
-                difficulty.toLowerCase() === 'beginner'
-                  ? 'text-accent dark:text-accent-dark'
-                  : difficulty.toLowerCase() === 'advanced'
-                  ? 'text-warning dark:text-warning-dark'
-                  : 'text-info dark:text-info-dark'
-              }`}
-            >
-              {difficulty}
-            </Text>
-          </View>
-
-          {onRemoveExercise ? (
-            <TouchableOpacity
-              onPress={onRemoveExercise}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="w-11 h-11 min-h-[44px] min-w-[44px] rounded-full bg-input dark:bg-input-dark items-center justify-center border border-input-border dark:border-input-border-dark ml-0.5 active:opacity-60"
-              activeOpacity={0.7}
-              accessibilityRole="button"
-              accessibilityLabel={`Remove ${name}`}
-            >
-              <Ionicons name="close" size={17} color={colors.danger} />
-            </TouchableOpacity>
-          ) : null}
-        </View>
+            <Ionicons name="close" size={15} color={colors.danger} />
+          </TouchableOpacity>
+        ) : null}
       </View>
 
       {/* Target Prescriptions Bar */}
-      <View className="mb-3 rounded-xl bg-input dark:bg-input-dark py-2 px-2.5 border border-input-border dark:border-input-border-dark flex-row items-center justify-between">
-        <View className="flex-row items-center gap-2">
+      <View className="mb-3.5 rounded-xl bg-input/70 dark:bg-input-dark/70 py-2 px-3 border border-input-border/70 dark:border-input-border-dark/70 flex-row items-center justify-between gap-2">
+        <View className="flex-row items-center gap-2 flex-wrap">
           <View className="flex-row items-center gap-1">
-            <Text className="text-[9px] font-black uppercase text-text-muted dark:text-text-muted-dark">
+            <Text className="text-[10px] font-black uppercase text-text-muted dark:text-text-muted-dark tracking-wider">
               TARGET:
             </Text>
             <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -186,7 +180,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {recommendedRest ? (
             <View className="flex-row items-center gap-1">
               <Text className="text-text-muted text-xs">·</Text>
-              <Text className="text-[9px] font-black uppercase text-text-muted dark:text-text-muted-dark">
+              <Text className="text-[10px] font-black uppercase text-text-muted dark:text-text-muted-dark tracking-wider">
                 REST:
               </Text>
               <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
@@ -196,48 +190,33 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           ) : null}
         </View>
 
-        <View className="flex-row items-center gap-1.5">
-          <TouchableOpacity
-            onPress={() => setShowTerminologyTip((v) => !v)}
-            activeOpacity={0.7}
-            className={`px-2.5 py-1 rounded-lg border flex-row items-center gap-1 ${
+        <TouchableOpacity
+          onPress={() => setShowTerminologyTip((v) => !v)}
+          activeOpacity={0.7}
+          className={`px-2.5 py-1 rounded-lg border flex-row items-center gap-1 shrink-0 ${
+            showTerminologyTip
+              ? 'bg-accent border-accent'
+              : 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40'
+          }`}
+        >
+          <Ionicons
+            name={showTerminologyTip ? 'bulb' : 'bulb-outline'}
+            size={12}
+            color={showTerminologyTip ? colors.accentContrast : colors.accent}
+          />
+          <Text
+            className={`text-[10px] font-extrabold ${
               showTerminologyTip
-                ? 'bg-accent border-accent'
-                : 'bg-accent/15 dark:bg-accent-dark/20 border-accent/40'
+                ? 'text-accent-contrast dark:text-accent-contrast-dark'
+                : 'text-accent dark:text-accent-dark'
             }`}
           >
-            <Ionicons
-              name={showTerminologyTip ? 'bulb' : 'bulb-outline'}
-              size={12}
-              color={showTerminologyTip ? colors.accentContrast : colors.accent}
-            />
-            <Text
-              className={`text-[10px] font-extrabold ${
-                showTerminologyTip
-                  ? 'text-accent-contrast dark:text-accent-contrast-dark'
-                  : 'text-accent dark:text-accent-dark'
-              }`}
-            >
-              Sets & Reps?
-            </Text>
-          </TouchableOpacity>
-
-          {onViewDetails ? (
-            <TouchableOpacity
-              onPress={onViewDetails}
-              activeOpacity={0.7}
-              className="bg-input dark:bg-input-dark px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark flex-row items-center gap-1"
-            >
-              <Ionicons name="book-outline" size={12} color={colors.textMuted} />
-              <Text className="text-[10px] font-bold text-text-primary dark:text-text-primary-dark">
-                Guide
-              </Text>
-            </TouchableOpacity>
-          ) : null}
-        </View>
+            Sets & Reps?
+          </Text>
+        </TouchableOpacity>
       </View>
 
-      {/* Sets Table Header */}
+      {/* Sets Table */}
       <View>
         {/* Beginner Terminology Helper Tooltip Banner */}
         {showTerminologyTip && (
@@ -257,22 +236,23 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
             <TouchableOpacity
               onPress={() => setShowTerminologyTip(false)}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-              className="px-2 py-1 rounded-lg bg-accent/20 border border-accent/30 self-start"
+              className="p-1 -mr-1 -mt-1 active:opacity-60"
             >
-              <Text className="text-[10px] font-black text-accent dark:text-accent-dark">Got it</Text>
+              <Ionicons name="close" size={14} color={colors.textMuted} />
             </TouchableOpacity>
           </View>
         )}
 
-        <View className="mb-2 flex-row items-center gap-1.5 px-0.5 w-full">
-          <Text className="w-8 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
+        {/* Column Headers */}
+        <View className="mb-2.5 flex-row items-center gap-2 px-1 w-full">
+          <Text className="w-8 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
             Set
           </Text>
 
           {!isCardio && !isStretch && (
             <Text
               numberOfLines={1}
-              className="flex-1 min-w-0 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
+              className="flex-1 min-w-0 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
             >
               {isBodyweight ? 'Weight' : `Weight (${weightUnit.toLowerCase()})`}
             </Text>
@@ -281,7 +261,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {!isCardio && !isStretch && (
             <Text
               numberOfLines={1}
-              className="flex-1 min-w-0 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
+              className="flex-1 min-w-0 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
             >
               Reps
             </Text>
@@ -290,17 +270,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           {(isCardio || isStretch) && (
             <Text
               numberOfLines={1}
-              className="flex-1 min-w-0 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
+              className="flex-1 min-w-0 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider"
             >
               Duration
             </Text>
           )}
 
-          <Text className="w-10 text-center text-[10px] font-bold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
+          <Text className="w-9 text-center text-[10px] font-extrabold text-text-muted dark:text-text-muted-dark uppercase tracking-wider shrink-0">
             Done
           </Text>
 
-          <View className="w-6 shrink-0" />
+          {onDeleteSet && sets.length > 1 ? (
+            <View className="w-7 shrink-0" />
+          ) : null}
         </View>
 
         {/* Dynamic Set Rows */}
@@ -313,7 +295,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           const repsStr = s.reps !== undefined && s.reps !== null ? String(s.reps) : '10';
 
           return (
-            <View key={s.id || idx} className="mb-2 flex-row items-center gap-1.5 w-full">
+            <View key={s.id || idx} className="mb-2.5 flex-row items-center gap-2 w-full">
               {/* SET Number Badge */}
               <View
                 accessibilityLabel={`Set ${displaySetNumber}`}
@@ -327,12 +309,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               {/* Weight / Load Column */}
               {!isCardio && !isStretch && (
                 isSetBodyweight && currWeight === 0 ? (
-                  <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2 overflow-hidden">
-                    <View className="flex-row items-center justify-center flex-1 min-w-0 gap-1 pr-1">
-                      <Ionicons name="body" size={12} color={colors.accent} />
+                  <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl bg-accent/10 dark:bg-accent-dark/15 border border-accent/30 dark:border-accent-dark/30 px-2.5 overflow-hidden">
+                    <View className="flex-row items-center justify-center flex-1 min-w-0 gap-1.5 pr-1">
+                      <Ionicons name="body" size={13} color={colors.accent} />
                       <Text
                         numberOfLines={1}
-                        className="text-[10px] font-bold text-accent dark:text-accent-dark"
+                        className="text-[11px] font-bold text-accent dark:text-accent-dark"
                       >
                         Bodyweight
                       </Text>
@@ -341,7 +323,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                       onPress={() => {
                         if (onUpdateSet) onUpdateSet(s.id, 'weight', stepDelta, false);
                       }}
-                      hitSlop={{ top: 10, bottom: 10, left: 6, right: 6 }}
+                      hitSlop={{ top: 10, bottom: 10, left: 8, right: 8 }}
                       className="w-6 h-6 rounded-lg bg-accent/20 dark:bg-accent-dark/30 items-center justify-center active:opacity-70 shrink-0"
                       accessibilityLabel="Add weight"
                     >
@@ -349,19 +331,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                     </TouchableOpacity>
                   </View>
                 ) : (
-                  <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-0.5 sm:px-1 overflow-hidden">
+                  <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark overflow-hidden">
                     <TouchableOpacity
                       onPress={() => {
                         if (!onUpdateSet) return;
                         const nextW = Math.max(0, Math.round((currWeight - stepDelta) * 10) / 10);
                         onUpdateSet(s.id, 'weight', nextW, nextW === 0 && isBodyweight);
                       }}
-                      className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
-                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                      className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                       accessibilityRole="button"
                       accessibilityLabel="Decrease weight"
                     >
-                      <Ionicons name="remove" size={13} color={colors.textPrimary} />
+                      <Ionicons name="remove" size={14} color={colors.textPrimary} />
                     </TouchableOpacity>
 
                     <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
@@ -397,12 +379,12 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                         const nextW = Math.round((currWeight + stepDelta) * 10) / 10;
                         onUpdateSet(s.id, 'weight', nextW, false);
                       }}
-                      className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
-                      hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                      className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                      hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                       accessibilityRole="button"
                       accessibilityLabel="Increase weight"
                     >
-                      <Ionicons name="add" size={13} color={colors.textPrimary} />
+                      <Ionicons name="add" size={14} color={colors.textPrimary} />
                     </TouchableOpacity>
                   </View>
                 )
@@ -410,15 +392,15 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
               {/* Reps Stepper Column */}
               {!isCardio && !isStretch && (
-                <View className="flex-1 min-w-0 min-h-[44px] h-11 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-0.5 sm:px-1 overflow-hidden">
+                <View className="flex-1 min-w-0 h-10 flex-row items-center justify-between rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark overflow-hidden">
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', Math.max(1, currReps - 1))}
-                    className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
-                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     accessibilityRole="button"
                     accessibilityLabel="Decrease reps"
                   >
-                    <Ionicons name="remove" size={13} color={colors.textPrimary} />
+                    <Ionicons name="remove" size={14} color={colors.textPrimary} />
                   </TouchableOpacity>
 
                   <View className="flex-1 min-w-0 h-full items-center justify-center px-0.5">
@@ -447,19 +429,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
 
                   <TouchableOpacity
                     onPress={() => onUpdateSet && onUpdateSet(s.id, 'reps', currReps + 1)}
-                    className="w-6 sm:w-7 h-full items-center justify-center active:opacity-60 shrink-0"
-                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
+                    className="w-7 h-full items-center justify-center active:bg-input-border/20 shrink-0"
+                    hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                     accessibilityRole="button"
                     accessibilityLabel="Increase reps"
                   >
-                    <Ionicons name="add" size={13} color={colors.textPrimary} />
+                    <Ionicons name="add" size={14} color={colors.textPrimary} />
                   </TouchableOpacity>
                 </View>
               )}
 
               {/* Duration Column (Cardio / Stretch) */}
               {(isCardio || isStretch) && (
-                <View className="flex-1 min-w-0 min-h-[44px] h-11 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2 overflow-hidden">
+                <View className="flex-1 min-w-0 h-10 items-center justify-center rounded-xl border border-input-border dark:border-input-border-dark bg-input dark:bg-input-dark px-2 overflow-hidden">
                   <Text className="text-xs font-bold text-text-primary dark:text-text-primary-dark">
                     {s.duration ? `${s.duration}s` : '60s'}
                   </Text>
@@ -474,7 +456,7 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
                 accessibilityRole="checkbox"
                 accessibilityState={{ checked: Boolean(s.done) }}
                 accessibilityLabel={`Set ${s.setNumber || ''} ${s.done ? 'completed' : 'not done'}`}
-                className={`w-11 h-11 min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border shrink-0 ${
+                className={`w-9 h-10 items-center justify-center rounded-xl border shrink-0 transition-colors ${
                   s.done
                     ? 'bg-accent dark:bg-accent-dark border-accent dark:border-accent-dark'
                     : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -482,24 +464,24 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
               >
                 <Ionicons
                   name="checkmark"
-                  size={18}
+                  size={16}
                   color={s.done ? colors.accentContrast : colors.textMuted}
                 />
               </TouchableOpacity>
 
-              {/* Delete Set Button or Empty Column Spacer */}
-              <View className="w-6 h-10 items-center justify-center shrink-0">
-                {onDeleteSet && sets.length > 1 ? (
+              {/* Delete Set Button */}
+              {onDeleteSet && sets.length > 1 ? (
+                <View className="w-7 h-10 items-center justify-center shrink-0">
                   <TouchableOpacity
                     onPress={() => setSetToDelete({ id: s.id, setNumber: displaySetNumber })}
-                    className="w-6 h-10 items-center justify-center active:opacity-60"
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    className="w-7 h-10 items-center justify-center active:opacity-60"
+                    hitSlop={{ top: 8, bottom: 8, left: 6, right: 6 }}
                     accessibilityLabel="Delete set"
                   >
                     <Ionicons name="close" size={15} color={colors.textMuted} />
                   </TouchableOpacity>
-                ) : null}
-              </View>
+                </View>
+              ) : null}
             </View>
           );
         })}
@@ -509,18 +491,19 @@ const ExerciseCard: React.FC<ExerciseCardProps> = ({
           <TouchableOpacity
             onPress={onAddSet}
             activeOpacity={0.8}
-            className="mt-1 py-2.5 rounded-xl bg-input dark:bg-input-dark border border-dashed border-accent/40 dark:border-accent-dark/40 items-center justify-center flex-row"
+            className="mt-2 py-3 rounded-xl bg-input/70 dark:bg-input-dark/70 border border-dashed border-input-border dark:border-input-border-dark items-center justify-center flex-row gap-1.5"
           >
+            <Ionicons name="add" size={15} color={colors.accent} />
             <Text className="text-xs font-bold text-accent dark:text-accent-dark">
-              + Add Set
+              Add Set
             </Text>
           </TouchableOpacity>
         ) : null}
 
         {/* Beginner Barbell Weight Helper Note */}
         {(equipment?.toLowerCase().includes('barbell') || name.toLowerCase().includes('barbell')) && (
-          <View className="mt-2.5 px-2.5 py-1.5 rounded-lg bg-input/50 dark:bg-input-dark/50 border border-input-border/40 flex-row items-center gap-1.5">
-            <Ionicons name="information-circle-outline" size={12} color={colors.textMuted} />
+          <View className="mt-3 px-3 py-2 rounded-xl bg-input/40 dark:bg-input-dark/40 border border-input-border/40 flex-row items-center gap-2">
+            <Ionicons name="information-circle-outline" size={13} color={colors.textMuted} />
             <Text className="text-[10px] text-text-muted dark:text-text-muted-dark leading-3.5 flex-1">
               Barbell tip: A standard gym Olympic bar weighs 20kg (45 lbs) on its own. Total weight includes the bar + plates!
             </Text>

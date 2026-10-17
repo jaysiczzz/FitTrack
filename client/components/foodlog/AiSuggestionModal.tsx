@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, Modal, TouchableOpacity, ScrollView, ActivityIndicator, Platform, Pressable } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FoodLogItem, MealType } from './foodLogTypes';
@@ -50,6 +50,7 @@ export default function AiSuggestionModal({
   const [loggedMealTitles, setLoggedMealTitles] = useState<string[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<SuggestionMealSlot>(initialMealType || 'all');
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   // Quota & Pro state
   const [isPro, setIsPro] = useState(false);
@@ -63,6 +64,22 @@ export default function AiSuggestionModal({
   const currentRecommendations = cachedSlots[selectedSlot] || [];
   const hasGeneratedForCurrentSlot = currentRecommendations.length > 0;
 
+  // Unmount safety: immediately abort any in-flight AI requests when modal unmounts
+  useEffect(() => {
+    return () => {
+      abortControllerRef.current?.abort();
+    };
+  }, []);
+
+  const handleClose = () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+    }
+    setLoading(false);
+    onClose();
+  };
+
   const generateRecommendations = async (slotOverride?: SuggestionMealSlot) => {
     const activeSlot = slotOverride || selectedSlot;
     const currentLimit = isPro ? proSuggestLimit : freeSuggestLimit;
@@ -73,6 +90,12 @@ export default function AiSuggestionModal({
       return;
     }
 
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const controller = new AbortController();
+    abortControllerRef.current = controller;
+
     setLoading(true);
     setSuggestionError(null);
     try {
@@ -81,6 +104,7 @@ export default function AiSuggestionModal({
         remainingCalories: typeof remainingCalories === 'number' ? remainingCalories : 2000,
         remainingProtein: typeof remainingProtein === 'number' ? remainingProtein : 120,
         mealType: activeSlot,
+        signal: controller.signal,
       });
 
       if (res.success && res.suggestions && res.suggestions.length > 0) {
@@ -100,6 +124,10 @@ export default function AiSuggestionModal({
         setSuggestionError('No meal recommendations returned. Please try again.');
       }
     } catch (err: any) {
+      if (err?.name === 'AbortError' || controller.signal.aborted) {
+        // User aborted suggestion generation or closed modal; return cleanly
+        return;
+      }
       console.log('AI Suggest Error:', err?.message);
       const errText = err?.message || '';
       if (errText.includes('LIMIT_REACHED') || err?.status === 429) {
@@ -110,11 +138,14 @@ export default function AiSuggestionModal({
       }
       setSuggestionError(getFriendlyErrorMessage(err, 'Unable to load meal recommendations right now. Please check your connection and try again.'));
     } finally {
+      if (abortControllerRef.current === controller) {
+        abortControllerRef.current = null;
+      }
       setLoading(false);
     }
   };
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       const slot = initialMealType || 'all';
       setSelectedSlot(slot);
@@ -149,6 +180,11 @@ export default function AiSuggestionModal({
 
   const handleSelectSlot = (slot: SuggestionMealSlot) => {
     if (loading || slot === selectedSlot) return;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+      abortControllerRef.current = null;
+      setLoading(false);
+    }
     setSelectedSlot(slot);
     setSuggestionError(null);
     // User can freely switch target meal time without consuming tokens.
@@ -201,9 +237,9 @@ export default function AiSuggestionModal({
   };
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={handleClose}>
       <View className="flex-1 bg-black/60 justify-end md:justify-center md:items-center p-0 md:p-4">
-        <Pressable className="hidden md:flex flex-1 w-full" onPress={onClose} />
+        <Pressable className="hidden md:flex flex-1 w-full" onPress={handleClose} />
         <View
           style={{ paddingTop: Platform.OS !== 'web' && insets.top > 0 ? insets.top + 8 : 16 }}
           className="bg-surface dark:bg-surface-dark rounded-none md:rounded-3xl flex-1 md:flex-none h-full md:h-[90%] w-full md:max-w-xl p-4 md:p-6 border-0 md:border border-input-border dark:border-input-border-dark shadow-2xl flex-col"
@@ -218,7 +254,7 @@ export default function AiSuggestionModal({
                 AI meal suggestions based on your {isMuscleGain ? 'Muscle Gain' : 'Weight Loss'} goals
               </Text>
             </View>
-            <ModalCloseButton onClose={onClose} />
+            <ModalCloseButton onClose={handleClose} />
           </View>
 
           {/* Subscription Quota Usage Meter */}
@@ -361,9 +397,22 @@ export default function AiSuggestionModal({
           {loading ? (
             <View className="py-12 items-center justify-center">
               <ActivityIndicator size="large" color={colors.accent} />
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3">
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-3 mb-4 text-center">
                 Crafting personalized {selectedSlot !== 'all' ? `${selectedSlot} ` : ''}meal suggestions for you...
               </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  abortControllerRef.current?.abort();
+                  abortControllerRef.current = null;
+                  setLoading(false);
+                }}
+                activeOpacity={0.7}
+                className="bg-rose-500/15 dark:bg-rose-500/25 border border-rose-500/40 px-5 py-2.5 rounded-xl items-center justify-center"
+              >
+                <Text className="text-rose-500 dark:text-rose-400 font-bold text-xs">
+                  Cancel Generation
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : !hasGeneratedForCurrentSlot ? (
             /* Pre-generation Ask / Confirmation Card - Saves tokens! */

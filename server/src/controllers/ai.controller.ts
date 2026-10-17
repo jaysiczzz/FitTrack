@@ -2,6 +2,7 @@ import { Response } from 'express'
 import { AuthRequest } from '../middleware/auth.middleware'
 import { asyncHandler } from '../utils/asyncHandler.utils'
 import * as userModel from '../models/user.model'
+import * as workoutModel from '../models/workout.model'
 import { prisma } from '../config/db'
 import {
   analyzeMealWithAI,
@@ -18,10 +19,22 @@ import { getUsage, releaseUsage } from '../utils/usage.utils'
 
 export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) => {
   const { description, imageBase64, mimeType } = req.body
+  const userId = req.user?.id
 
   if (!description && !imageBase64) {
     return res.status(400).json({ error: 'Please provide a text description or an image of the meal.' })
   }
+
+  let isAborted = false
+  req.on('close', async () => {
+    if (!res.writableEnded) {
+      isAborted = true
+      if (userId) {
+        await releaseUsage(userId, 'FOOD_SCAN')
+        console.log(`[AI Controller] Client cancelled analyzeMeal for user ${userId}; refunded FOOD_SCAN quota.`)
+      }
+    }
+  })
 
   const analysis = await analyzeMealWithAI({
     description,
@@ -29,9 +42,13 @@ export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) 
     mimeType: mimeType || 'image/jpeg',
   })
 
+  if (isAborted || res.writableEnded) {
+    return
+  }
+
   if (analysis.isFood === false) {
-    if (req.user?.id) {
-      await releaseUsage(req.user.id, 'FOOD_SCAN')
+    if (userId) {
+      await releaseUsage(userId, 'FOOD_SCAN')
     }
     const errorMsg =
       analysis.rejectionReason?.trim() ||
@@ -56,7 +73,7 @@ export const analyzeMeal = asyncHandler(async (req: AuthRequest, res: Response) 
     })
   }
 
-  const usage = req.user?.id ? await getUsage(req.user.id, 'FOOD_SCAN') : null
+  const usage = userId ? await getUsage(userId, 'FOOD_SCAN') : null
 
   res.json({ success: true, isFood: true, data: analysis, usage })
 })
@@ -91,12 +108,51 @@ export const getInsights = asyncHandler(async (req: AuthRequest, res: Response) 
 export const generateWorkout = asyncHandler(async (req: AuthRequest, res: Response) => {
   const userId = req.user?.id
   let user = null
+  let personalRecords: any[] = []
+  let weeklyWorkoutsCount = 0
+  let lastWorkout: any = null
 
   if (userId) {
     user = await userModel.findById(userId)
+
+    // 1. Fetch user's verified personal records for weight calibration
+    personalRecords = await workoutModel.getPersonalRecords(userId).catch(() => [])
+
+    // 2. Fetch workout session count in the last 7 days
+    const sevenDaysAgo = new Date()
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
+    weeklyWorkoutsCount = await prisma.workoutSession.count({
+      where: {
+        userId,
+        completed: true,
+        createdAt: { gte: sevenDaysAgo },
+      },
+    }).catch(() => 0)
+
+    // 3. Fetch most recent workout to avoid overlapping muscle group fatigue
+    lastWorkout = await prisma.workoutSession.findFirst({
+      where: { userId, completed: true },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        exercises: {
+          select: { name: true },
+        },
+      },
+    }).catch(() => null)
   }
 
-  const { targetArea } = req.body
+  const { targetArea, activityLevel } = req.body
+
+  let isAborted = false
+  req.on('close', async () => {
+    if (!res.writableEnded) {
+      isAborted = true
+      if (userId) {
+        await releaseUsage(userId, 'WORKOUT_GENERATOR')
+        console.log(`[AI Controller] Client cancelled generateWorkout for user ${userId}; refunded WORKOUT_GENERATOR quota.`)
+      }
+    }
+  })
 
   const workoutPlan = await generateAIWorkout({
     weight: user?.weight || 70,
@@ -104,7 +160,16 @@ export const generateWorkout = asyncHandler(async (req: AuthRequest, res: Respon
     goal: user?.goal || 'FITNESS',
     gender: user?.gender || 'MALE',
     targetArea,
+    activityLevel: activityLevel || user?.activityLevel || 'LIGHTLY_ACTIVE',
+    personalRecords,
+    workoutsCompletedThisWeek: weeklyWorkoutsCount,
+    lastWorkoutTitle: lastWorkout?.title,
+    lastWorkoutExercises: lastWorkout?.exercises?.map((e: any) => e.name) || [],
   })
+
+  if (isAborted || res.writableEnded) {
+    return
+  }
 
   if (!workoutPlan || !workoutPlan.exercises || workoutPlan.exercises.length === 0) {
     if (userId) {
@@ -141,12 +206,27 @@ export const suggestMeals = asyncHandler(async (req: AuthRequest, res: Response)
   const userId = req.user?.id
   const { goal, remainingCalories, remainingProtein, mealType } = req.body
 
+  let isAborted = false
+  req.on('close', async () => {
+    if (!res.writableEnded) {
+      isAborted = true
+      if (userId) {
+        await releaseUsage(userId, 'MEAL_SUGGESTION')
+        console.log(`[AI Controller] Client cancelled suggestMeals for user ${userId}; refunded MEAL_SUGGESTION quota.`)
+      }
+    }
+  })
+
   const suggestions = await generateAIMealSuggestions({
     goal: goal || 'FITNESS',
     remainingCalories: remainingCalories !== undefined && remainingCalories !== null ? Number(remainingCalories) : 2000,
     remainingProtein: remainingProtein !== undefined && remainingProtein !== null ? Number(remainingProtein) : 120,
     mealType: mealType || 'all',
   })
+
+  if (isAborted || res.writableEnded) {
+    return
+  }
 
   if (!suggestions || suggestions.length === 0) {
     if (userId) {
@@ -182,7 +262,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
   if (userId) {
     user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { firstName: true, height: true, weight: true, age: true, goal: true, gender: true },
+      select: { firstName: true, height: true, weight: true, age: true, goal: true, gender: true, activityLevel: true },
     })
 
     const todayStr = new Date().toISOString().split('T')[0]
@@ -259,6 +339,7 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     height: user?.height,
     age: user?.age,
     goal: user?.goal,
+    activityLevel: user?.activityLevel || 'LIGHTLY_ACTIVE',
     caloriesLoggedToday: todayLog?.totalCalories,
     targetCalories,
     proteinLoggedToday: todayLog?.totalProtein,
@@ -274,6 +355,17 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     checkInStreak: checkInCount,
   }
 
+  let isAborted = false
+  req.on('close', async () => {
+    if (!res.writableEnded) {
+      isAborted = true
+      if (userId) {
+        await releaseUsage(userId, 'COACH')
+        console.log(`[AI Controller] Client cancelled chatCoach for user ${userId}; refunded COACH quota.`)
+      }
+    }
+  })
+
   const isStreaming =
     req.query.stream === 'true' ||
     req.body.stream === true ||
@@ -288,8 +380,14 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
     }
 
     const responseText = await streamAICoach(messages as ChatMessage[], chatContext, (chunk) => {
-      res.write(`data: ${JSON.stringify({ chunk })}\n\n`)
+      if (!isAborted && !res.writableEnded) {
+        res.write(`data: ${JSON.stringify({ chunk })}\n\n`)
+      }
     })
+
+    if (isAborted || res.writableEnded) {
+      return
+    }
 
     if (userId && responseText) {
       try {
@@ -310,6 +408,10 @@ export const chatCoach = asyncHandler(async (req: AuthRequest, res: Response) =>
   }
 
   const responseText = await chatWithAICoach(messages as ChatMessage[], chatContext)
+
+  if (isAborted || res.writableEnded) {
+    return
+  }
 
   // Persist AI coach reply to cloud database
   if (userId && responseText) {

@@ -6,6 +6,7 @@ import Button from '@/components/ui/Button';
 import ProgressBar from '@/components/ui/ProgressBar';
 import { useThemeColors } from '@/constants/colors';
 import { calculatePersonalizedTargets } from '@/components/foodlog/foodLogTypes';
+import { ActivityLevel } from '@/constants/activityLevels';
 
 interface OnboardingPlanStepProps {
   loading: boolean;
@@ -19,6 +20,7 @@ interface OnboardingPlanStepProps {
   height: number;
   weight: number;
   age: number;
+  activityLevel?: ActivityLevel;
   isRegistered: boolean;
 }
 
@@ -41,6 +43,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
   height,
   weight,
   age,
+  activityLevel,
   isRegistered,
 }) => {
   const { colors } = useThemeColors();
@@ -67,7 +70,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
     const a = age || 25;
 
     const targets = calculatePersonalizedTargets(
-      { weight: w, height: h, age: a, gender, goal },
+      { weight: w, height: h, age: a, gender, goal, activityLevel },
       (goal as any) || 'MUSCLE_GAIN'
     );
 
@@ -82,7 +85,7 @@ const OnboardingPlanStep: React.FC<OnboardingPlanStepProps> = ({
           ? 'Optimized for progressive overload, muscle synthesis, and high-protein recovery.'
           : 'Optimized for a sustainable caloric deficit while preserving lean muscle mass.',
     };
-  }, [height, weight, age, gender, goal]);
+  }, [height, weight, age, gender, goal, activityLevel]);
 
   // If there's an error from the backend registration
   if (error) {

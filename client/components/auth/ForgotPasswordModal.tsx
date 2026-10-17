@@ -10,6 +10,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -92,6 +93,11 @@ export default function ForgotPasswordModal({
     onClose();
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   const handleRequestCode = async () => {
     setErrorMsg(null);
     const trimmed = email.trim().toLowerCase();
@@ -164,15 +170,20 @@ export default function ForgotPasswordModal({
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose}>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose} statusBarTranslucent>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4"
       >
-        <Pressable className="flex-1 w-full" onPress={handleClose} />
+        <Pressable
+          className="absolute inset-0"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={handleBackdropPress}
+          accessible={false}
+        />
 
         <View
-          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[92%] shadow-2xl"
+          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] shadow-2xl flex-col"
           style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
         >
           {/* Header */}
@@ -190,7 +201,16 @@ export default function ForgotPasswordModal({
             <ModalCloseButton onClose={handleClose} />
           </View>
 
-          <ScrollView className="mt-4" showsVerticalScrollIndicator={false}>
+          <ScrollView
+            className="mt-3 flex-1"
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            bounces={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+          >
             {step === 'email' ? (
               /* STEP 1: Email Input */
               <View>

@@ -9,6 +9,8 @@ import {
   Image,
   KeyboardAvoidingView,
   Platform,
+  Pressable,
+  Keyboard,
 } from 'react-native';
 import {
   FoodLogItem,
@@ -155,13 +157,25 @@ export default function EditMealModal({
     onClose();
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 bg-black/65 justify-end"
       >
-        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[92%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl">
+        <Pressable
+          className="absolute inset-0"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={handleBackdropPress}
+          accessible={false}
+        />
+
+        <View className="bg-surface dark:bg-surface-dark rounded-t-3xl max-h-[88%] md:max-h-[90%] p-5 border-t border-input-border dark:border-input-border-dark shadow-2xl flex-col">
           {/* Header */}
           <View className="flex-row justify-between items-center mb-3">
             <View className="flex-row items-center flex-1 pr-2">
@@ -196,7 +210,16 @@ export default function EditMealModal({
             <ModalCloseButton onClose={onClose} />
           </View>
 
-          <ScrollView showsVerticalScrollIndicator={false} className="mb-2">
+          <ScrollView
+            showsVerticalScrollIndicator={false}
+            className="flex-1 mb-2"
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            bounces={false}
+            contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+          >
             {/* 1. Quick Macro Visual Breakdown */}
             <View className="mb-3">
               <ResponsiveMacroRow
