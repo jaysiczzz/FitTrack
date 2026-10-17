@@ -203,9 +203,9 @@ export default function OnboardingScreen() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: isLandscape ? 12 : 28,
+            paddingTop: isLandscape ? 12 : 24,
             paddingBottom: 24,
             paddingHorizontal: 20,
           }}
@@ -218,7 +218,7 @@ export default function OnboardingScreen() {
         >
           <View
             style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}
-            className="w-full max-w-[420px] self-center"
+            className="w-full max-w-[420px] self-center my-auto"
           >
             <OnboardingHeader
               step={step}

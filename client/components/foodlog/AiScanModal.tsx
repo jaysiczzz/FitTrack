@@ -218,8 +218,44 @@ export default function AiScanModal({
     setScanMode(initialMode === 'text' || initialMode === 'describe' ? 'describe' : 'photo');
   };
 
+  const handleClearPhotoAnalysis = () => {
+    setPhotoNotes('');
+    setPhotoSelectedImage(null);
+    setPhotoImageBase64(null);
+    setPhotoImageMimeType('image/jpeg');
+    setPhotoAnalysisResult(null);
+    setPhotoBaseMacros(null);
+    setPhotoPortionMultiplier(1.0);
+    setPhotoScanError(null);
+    setPhotoLoading(false);
+    setPhotoAnalysisPhase('uploading');
+    if (photoPhaseTimerRef.current.t1) clearTimeout(photoPhaseTimerRef.current.t1);
+    if (photoPhaseTimerRef.current.t2) clearTimeout(photoPhaseTimerRef.current.t2);
+  };
+
+  const handleClearDescribeAnalysis = () => {
+    setDescribeText('');
+    setDescribeAnalysisResult(null);
+    setDescribeBaseMacros(null);
+    setDescribePortionMultiplier(1.0);
+    setDescribeScanError(null);
+    setDescribeLoading(false);
+    setDescribeAnalysisPhase('analyzing');
+    if (describePhaseTimerRef.current.t1) clearTimeout(describePhaseTimerRef.current.t1);
+  };
+
   const handleClose = () => {
-    resetAllState();
+    if (photoLoading && photoAbortControllerRef.current) {
+      photoAbortControllerRef.current.abort();
+      photoAbortControllerRef.current = null;
+      setPhotoLoading(false);
+    }
+    if (describeLoading && describeAbortControllerRef.current) {
+      describeAbortControllerRef.current.abort();
+      describeAbortControllerRef.current = null;
+      setDescribeLoading(false);
+    }
+    setShowNutritionFactsModal(false);
     onClose();
   };
 
@@ -482,7 +518,9 @@ export default function AiScanModal({
     };
 
     onAddMealItem(newItem);
-    handleClose();
+    handleClearPhotoAnalysis();
+    setShowNutritionFactsModal(false);
+    onClose();
   };
 
   // =========================================================================
@@ -643,7 +681,9 @@ export default function AiScanModal({
     };
 
     onAddMealItem(newItem);
-    handleClose();
+    handleClearDescribeAnalysis();
+    setShowNutritionFactsModal(false);
+    onClose();
   };
 
   // Active result for the FDA nutrition facts modal
@@ -1293,16 +1333,27 @@ export default function AiScanModal({
                         </View>
                       ) : null}
 
-                      {/* Confirm Action Button */}
-                      <TouchableOpacity
-                        onPress={handleConfirmAndAddPhoto}
-                        activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1"
-                      >
-                        <Text className="text-white font-bold text-sm tracking-wide">
-                          + Add to {MEAL_LABELS[selectedMeal]}
-                        </Text>
-                      </TouchableOpacity>
+                      {/* Confirm & Discard Action Buttons */}
+                      <View className="flex-row gap-2 mt-2">
+                        <TouchableOpacity
+                          onPress={handleClearPhotoAnalysis}
+                          activeOpacity={0.7}
+                          className="flex-1 py-3.5 rounded-2xl items-center justify-center border border-input-border dark:border-input-border-dark bg-input/80 dark:bg-input-dark/80"
+                        >
+                          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
+                            Discard
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleConfirmAndAddPhoto}
+                          activeOpacity={0.8}
+                          className="flex-[2] bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
+                        >
+                          <Text className="text-white font-bold text-sm tracking-wide">
+                            + Add to {MEAL_LABELS[selectedMeal]}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   );
                 })()}
@@ -1715,16 +1766,27 @@ export default function AiScanModal({
                         </View>
                       ) : null}
 
-                      {/* Confirm Action Button */}
-                      <TouchableOpacity
-                        onPress={handleConfirmAndAddDescribe}
-                        activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1"
-                      >
-                        <Text className="text-white font-bold text-sm tracking-wide">
-                          + Add to {MEAL_LABELS[selectedMeal]}
-                        </Text>
-                      </TouchableOpacity>
+                      {/* Confirm & Discard Action Buttons */}
+                      <View className="flex-row gap-2 mt-2">
+                        <TouchableOpacity
+                          onPress={handleClearDescribeAnalysis}
+                          activeOpacity={0.7}
+                          className="flex-1 py-3.5 rounded-2xl items-center justify-center border border-input-border dark:border-input-border-dark bg-input/80 dark:bg-input-dark/80"
+                        >
+                          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
+                            Discard
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleConfirmAndAddDescribe}
+                          activeOpacity={0.8}
+                          className="flex-[2] bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
+                        >
+                          <Text className="text-white font-bold text-sm tracking-wide">
+                            + Add to {MEAL_LABELS[selectedMeal]}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   );
                 })()}

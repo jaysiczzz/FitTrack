@@ -43,25 +43,14 @@ const OnboardingGoalStep: React.FC<OnboardingGoalStepProps> = ({
               key={item.id}
               activeOpacity={0.85}
               onPress={() => onSelectGoal(item.id)}
-              className={`p-3.5 mb-2.5 rounded-xl border transition-all ${
+              className={`p-3.5 mb-2.5 rounded-xl transition-all ${
                 isSelected
-                  ? 'bg-accent/10 dark:bg-accent-dark/15 border-accent dark:border-accent-dark'
-                  : 'bg-surface dark:bg-surface-dark border-input-border/70 dark:border-input-border-dark/70'
+                  ? 'bg-emerald-500/10 dark:bg-emerald-500/15 border-2 border-emerald-500 dark:border-emerald-400'
+                  : 'bg-surface dark:bg-surface-dark border border-input-border/70 dark:border-input-border-dark/70'
               }`}
               style={
-                isSelected
-                  ? Platform.select({
-                      web: {
-                        boxShadow: '0 2px 10px rgba(0, 229, 160, 0.15)',
-                      } as any,
-                      default: {
-                        shadowColor: '#00E5A0',
-                        shadowOffset: { width: 0, height: 2 },
-                        shadowOpacity: 0.15,
-                        shadowRadius: 6,
-                        elevation: 2,
-                      },
-                    })
+                isSelected && Platform.OS === 'web'
+                  ? ({ boxShadow: '0 2px 10px rgba(16, 185, 129, 0.15)' } as any)
                   : undefined
               }
             >

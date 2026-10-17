@@ -22,6 +22,7 @@ import {
   formatDateHeading,
   getSmartFoodBadge,
 } from './foodLogTypes';
+import { screenCache } from '../../utils/screenCache';
 
 type HistoryRange = '7days' | '15days' | 'all';
 
@@ -51,9 +52,19 @@ export default function FoodHistoryTab({
   const { user } = useAuth();
   const userId = user?.id;
   const { showSuccess } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>([]);
-  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const cachedFoodHistory = screenCache.getFoodHistory(userId);
+  const [loading, setLoading] = useState(!cachedFoodHistory);
+  const [historyList, setHistoryList] = useState<DailyFoodHistorySummary[]>(cachedFoodHistory || []);
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>(() => {
+    if (cachedFoodHistory && cachedFoodHistory.length > 0) {
+      const initExpanded: Record<string, boolean> = {};
+      cachedFoodHistory.slice(0, 2).forEach((s: any) => {
+        if (s?.date) initExpanded[s.date] = true;
+      });
+      return initExpanded;
+    }
+    return {};
+  });
   const [selectedRange, setSelectedRange] = useState<HistoryRange>('7days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [dayToDelete, setDayToDelete] = useState<DailyFoodHistorySummary | null>(null);
@@ -70,6 +81,7 @@ export default function FoodHistoryTab({
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setHistoryList(parsed);
+            if (userId) screenCache.setFoodHistory(userId, parsed);
             hasCached = true;
             // Auto-expand first 2
             const initExpanded: Record<string, boolean> = {};
@@ -213,6 +225,7 @@ export default function FoodHistoryTab({
       }
 
       setHistoryList(summaries);
+      if (userId) screenCache.setFoodHistory(userId, summaries);
       AsyncStorage.setItem(summariesCacheKey, JSON.stringify(summaries)).catch(() => {});
 
       // Auto-expand the first 2 dates
@@ -256,6 +269,7 @@ export default function FoodHistoryTab({
     // 1. Instant optimistic update of local state
     const updated = historyList.filter((d) => d.date !== target.date);
     setHistoryList(updated);
+    if (userId) screenCache.setFoodHistory(userId, updated);
 
     // 2. Clean up expanded state
     setExpandedDates((prev) => {
