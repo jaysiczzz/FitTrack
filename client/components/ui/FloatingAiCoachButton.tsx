@@ -28,8 +28,7 @@ export default function FloatingAiCoachButton() {
 
   return (
     <View
-      pointerEvents="box-none"
-      style={[styles.overlayContainer, { bottom: bottomPosition }]}
+      style={[styles.overlayContainer, { bottom: bottomPosition, pointerEvents: 'box-none' }]}
     >
       <TouchableOpacity
         activeOpacity={0.85}

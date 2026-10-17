@@ -60,11 +60,10 @@ export default function AssignRoutineModal({
                     onSelect(null);
                     onClose();
                   }}
-                  className={`p-4 rounded-2xl mb-3 border flex-row items-center justify-between ${
-                    currentRoutineId === null
-                      ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/60'
-                      : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                  }`}
+                  className={`p-4 rounded-2xl mb-3 border flex-row items-center justify-between ${currentRoutineId === null
+                    ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/60'
+                    : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                    }`}
                 >
                   <View className="flex-row items-center gap-3">
                     <View className="w-10 h-10 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 items-center justify-center">
@@ -99,24 +98,30 @@ export default function AssignRoutineModal({
                         onSelect(routine.id);
                         onClose();
                       }}
-                      className={`p-4 rounded-2xl mb-2.5 border flex-row items-center justify-between ${
-                        isSelected
-                          ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/60'
-                          : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
-                      }`}
+                      className={`p-4 rounded-2xl mb-2.5 border flex-row items-center justify-between ${isSelected
+                        ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent/60'
+                        : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                        }`}
                     >
                       <View className="flex-1 mr-2">
                         <View className="flex-row items-center gap-2 mb-1">
                           <Text className="text-sm font-black text-text-primary dark:text-text-primary-dark">
                             {routine.title}
                           </Text>
-                          {routine.isCustom && (
+                          {routine.id.startsWith('ai-routine-') ? (
+                            <View className="bg-accent/20 px-1.5 py-0.5 rounded-md flex-row items-center gap-1">
+                              <Ionicons name="sparkles" size={9} color={colors.accent} />
+                              <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
+                                AI
+                              </Text>
+                            </View>
+                          ) : routine.isCustom ? (
                             <View className="bg-accent/20 px-1.5 py-0.5 rounded-md">
                               <Text className="text-[9px] font-bold text-accent dark:text-accent-dark">
                                 Custom
                               </Text>
                             </View>
-                          )}
+                          ) : null}
                         </View>
                         <Text className="text-[11px] text-text-muted dark:text-text-muted-dark">
                           {routine.exercises.length} Exercises · ~{routine.estimatedDurationMinutes} min · {routine.category}

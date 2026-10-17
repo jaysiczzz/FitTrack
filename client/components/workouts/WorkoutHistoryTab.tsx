@@ -21,6 +21,7 @@ import ConfirmModal from '../ui/ConfirmModal';
 import { CardSkeleton } from '../ui/Skeleton';
 import EmptyState from '../ui/EmptyState';
 import { useWeightUnit, convertFromKg } from '@/constants/units';
+import { screenCache } from '@/utils/screenCache';
 
 interface WorkoutHistoryTabProps {
   onRepeatSession?: (session: CompletedSession) => void;
@@ -41,9 +42,15 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
   const [unit] = useWeightUnit();
   const unitLabel = unit.toLowerCase();
 
-  const [history, setHistory] = useState<CompletedSession[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>({});
+  const cachedWorkoutHistory = screenCache.getWorkoutHistory(userId);
+  const [history, setHistory] = useState<CompletedSession[]>(cachedWorkoutHistory || []);
+  const [loading, setLoading] = useState(!cachedWorkoutHistory);
+  const [expandedDates, setExpandedDates] = useState<Record<string, boolean>>(() => {
+    if (cachedWorkoutHistory && cachedWorkoutHistory.length > 0) {
+      return { [cachedWorkoutHistory[0].id]: true };
+    }
+    return {};
+  });
   const [selectedRange, setSelectedRange] = useState<WorkoutHistoryRange>('7days');
   const [selectedDayFilter, setSelectedDayFilter] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<CompletedSession | null>(null);
@@ -58,6 +65,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
             setHistory(parsed);
+            if (userId) screenCache.setWorkoutHistory(userId, parsed);
             hasCachedData = true;
           }
         } catch {}
@@ -148,6 +156,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
         });
 
         setHistory(formatted);
+        if (userId) screenCache.setWorkoutHistory(userId, formatted);
         await AsyncStorage.setItem(historyKey, JSON.stringify(formatted));
 
         // Auto-expand the first session
@@ -163,7 +172,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [historyKey]);
+  }, [historyKey, userId]);
 
   useEffect(() => {
     fetchHistory();
@@ -192,6 +201,7 @@ const WorkoutHistoryTab: React.FC<WorkoutHistoryTabProps> = ({
     // 1. Instant optimistic update of local state & cache
     const updated = history.filter((s) => s.id !== target.id);
     setHistory(updated);
+    if (userId) screenCache.setWorkoutHistory(userId, updated);
     AsyncStorage.setItem(historyKey, JSON.stringify(updated)).catch((err) =>
       console.log('[Workout History] Failed to save updated history cache:', err)
     );

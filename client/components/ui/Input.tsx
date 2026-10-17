@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/constants/colors';
 import FieldLabel from './FieldLabel';
 
 export { FieldLabel };

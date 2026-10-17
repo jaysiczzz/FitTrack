@@ -44,6 +44,7 @@ import {
   deleteWorkoutExerciseApi,
   completeWorkoutSessionApi,
   getWorkoutHistory,
+  updateWorkoutPlanApi,
 } from '@/api/workout';
 import { COMMON_EXERCISES_CATALOG } from '@/data/commonExercises';
 import { hapticFeedback } from '@/utils/haptics';
@@ -185,12 +186,13 @@ export default function Workouts() {
       setActiveTab(params.tab);
     }
   }, [params.tab]);
-  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>([]);
-  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
+  const cachedWorkouts = screenCache.getWorkoutsSnapshot(user?.id);
+  const [todayExercises, setTodayExercises] = useState<TodayExerciseItem[]>(cachedWorkouts?.todayExercises || []);
+  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(cachedWorkouts?.todayScheduledRoutine || null);
   const [isRestDay, setIsRestDay] = useState(false);
-  const [completedSessionsCount, setCompletedSessionsCount] = useState<number | null>(null);
-  const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
-  const [loading, setLoading] = useState(!screenCache.workoutsLoaded);
+  const [completedSessionsCount, setCompletedSessionsCount] = useState<number | null>(cachedWorkouts?.completedSessionsCount ?? null);
+  const [completedStats, setCompletedStats] = useState<{ duration: number; caloriesBurned: number } | null>(cachedWorkouts?.completedStats || null);
+  const [loading, setLoading] = useState(!screenCache.workoutsLoaded && !cachedWorkouts);
   const [showCompleteModal, setShowCompleteModal] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
   const [exerciseToRemove, setExerciseToRemove] = useState<TodayExerciseItem | null>(null);
@@ -313,12 +315,14 @@ export default function Workouts() {
         if (monthlyEntry.isRestDay) {
           setTodayScheduledRoutine(null);
           setIsRestDay(true);
+          if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayScheduledRoutine: null });
           return;
         }
         if (monthlyEntry.routineId) {
           const matched = templates.find((r) => r.id === monthlyEntry.routineId) || null;
           setTodayScheduledRoutine(matched);
           setIsRestDay(false);
+          if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayScheduledRoutine: matched });
           return;
         }
       }
@@ -329,6 +333,7 @@ export default function Workouts() {
       const matched = templates.find((r) => r.id === routineId) || null;
       setTodayScheduledRoutine(matched);
       setIsRestDay(!matched && routineId === null);
+      if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayScheduledRoutine: matched });
     } catch {
       setTodayScheduledRoutine(null);
       setIsRestDay(false);
@@ -345,7 +350,6 @@ export default function Workouts() {
           const local = localMap.get((item.name || '').toLowerCase());
           return {
             ...item,
-            gifUrl: item.gifUrl || local?.gifUrl || null,
           };
         });
       };
@@ -355,7 +359,9 @@ export default function Workouts() {
         try {
           const parsed = JSON.parse(cached);
           if (Array.isArray(parsed) && parsed.length > 0) {
-            setTodayExercises(enrichWithCatalogGif(parsed));
+            const enriched = enrichWithCatalogGif(parsed);
+            setTodayExercises(enriched);
+            if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayExercises: enriched });
             setLoading(false);
           }
         } catch { }
@@ -407,7 +413,6 @@ export default function Workouts() {
             difficultyPresets: e.difficultyPresets || meta.difficultyPresets || null,
             imageUrl: e.imageUrl || meta.imageUrl || null,
             thumbnailUrl: e.thumbnailUrl || meta.thumbnailUrl || null,
-            gifUrl: e.gifUrl || meta.gifUrl || null,
             sets: (e.sets || []).map((s: any, idx: number) => {
               const isSetBodyweight = Boolean(
                 s.bodyweight ||
@@ -439,9 +444,11 @@ export default function Workouts() {
         });
         setTodayExercises(formatted);
         await AsyncStorage.setItem(cacheKey, JSON.stringify(formatted));
+        if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayExercises: formatted });
       } else {
         setTodayExercises([]);
         await AsyncStorage.removeItem(cacheKey);
+        if (user?.id) screenCache.setWorkoutsSnapshot(user.id, { todayExercises: [] });
       }
     } catch (err) {
       console.log('Using clean active session state');
@@ -456,14 +463,25 @@ export default function Workouts() {
       const res = await getWorkoutHistory();
       if (res.sessions) {
         setCompletedSessionsCount(res.sessions.length);
+        let lastStats = null;
         if (res.sessions.length > 0) {
           const lastSession = res.sessions[0];
-          setCompletedStats({
+          lastStats = {
             duration: lastSession.duration || 35,
             caloriesBurned: lastSession.caloriesBurned || 240,
-          });
+          };
+          setCompletedStats(lastStats);
         } else {
           setCompletedStats(null);
+        }
+        if (user?.id) {
+          screenCache.setWorkoutsSnapshot(user.id, {
+            completedSessionsCount: res.sessions.length,
+            completedStats: lastStats,
+          });
+          if (!screenCache.getWorkoutHistory(user.id)) {
+            screenCache.setWorkoutHistory(user.id, res.sessions);
+          }
         }
       }
     } catch (err) {
@@ -471,6 +489,12 @@ export default function Workouts() {
       setCompletedStats(null);
     }
   };
+
+  useEffect(() => {
+    if (user?.id && todayExercises.length > 0) {
+      screenCache.setWorkoutsSnapshot(user.id, { todayExercises });
+    }
+  }, [todayExercises, user?.id]);
 
   useEffect(() => {
     fetchTodaySession();
@@ -859,7 +883,6 @@ export default function Workouts() {
       difficultyPresets: libEx.difficultyPresets || null,
       imageUrl: libEx.imageUrl || null,
       thumbnailUrl: libEx.thumbnailUrl || null,
-      gifUrl: libEx.gifUrl || null,
       sets: optimisticSets,
     };
 
@@ -953,6 +976,34 @@ export default function Workouts() {
     }
   };
 
+  const handleSaveAiRoutineTemplate = async (template: WorkoutRoutineTemplate) => {
+    try {
+      const templatesKey = authStorage.getScopedKey(user?.id, 'workout_planner_templates');
+      let currentTemplates: WorkoutRoutineTemplate[] = DEFAULT_ROUTINE_TEMPLATES;
+      const cached = await AsyncStorage.getItem(templatesKey);
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed) && parsed.length > 0) {
+            currentTemplates = mergeWithDefaultTemplates(parsed);
+          }
+        } catch {}
+      }
+      const updated = [template, ...currentTemplates.filter((t) => t.id !== template.id)];
+      await AsyncStorage.setItem(templatesKey, JSON.stringify(updated));
+      DeviceEventEmitter.emit('WORKOUT_TEMPLATES_UPDATED', { templates: updated });
+      updateWorkoutPlanApi({ routineTemplates: updated }).catch(() => {});
+      showToast({
+        message: 'Routine Saved! 📋',
+        description: `"${template.title}" added to your Routine Library`,
+        type: 'success',
+        iconName: 'bookmark',
+      });
+    } catch (err) {
+      console.log('Error saving AI routine template:', err);
+    }
+  };
+
   const handleAddAiExercises = async (exercises: AIWorkoutPlan['exercises']) => {
     executeWithRestCheck(() => proceedWithAddAiExercises(exercises));
   };
@@ -998,7 +1049,6 @@ export default function Workouts() {
         tags: meta.tags || ['AI Generated'],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1092,7 +1142,6 @@ export default function Workouts() {
         tags: meta.tags || [],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1218,7 +1267,6 @@ export default function Workouts() {
         tags: meta.tags || [],
         imageUrl: meta.imageUrl || null,
         thumbnailUrl: meta.thumbnailUrl || null,
-        gifUrl: meta.gifUrl || null,
         sets,
       };
     });
@@ -1352,6 +1400,7 @@ export default function Workouts() {
               <WorkoutPlannerTab
                 onStartRoutine={handleStartRoutine}
                 onSwitchToToday={() => setActiveTab('today')}
+                onOpenAiGenerator={() => setShowAiModal(true)}
               />
             )}
 
@@ -1371,6 +1420,7 @@ export default function Workouts() {
           visible={showAiModal}
           onClose={() => setShowAiModal(false)}
           onAddExercises={handleAddAiExercises}
+          onSaveRoutine={handleSaveAiRoutineTemplate}
           userGoal={user?.goal}
         />
       )}

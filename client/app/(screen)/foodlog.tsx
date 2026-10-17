@@ -56,11 +56,12 @@ export default function FoodLog() {
       setActiveTab(params.tab);
     }
   }, [params.tab]);
+  const cachedSnapshot = screenCache.getFoodLogSnapshot(userId);
   const [goal, setGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
-  const [items, setItems] = useState<FoodLogItem[]>([]);
-  const [waterMl, setWaterMl] = useState(0);
-  const [isDayCompleted, setIsDayCompleted] = useState(false);
-  const [loading, setLoading] = useState(!screenCache.foodLogLoaded);
+  const [items, setItems] = useState<FoodLogItem[]>(cachedSnapshot?.items || []);
+  const [waterMl, setWaterMl] = useState(cachedSnapshot?.waterMl || 0);
+  const [isDayCompleted, setIsDayCompleted] = useState(cachedSnapshot?.isDayCompleted || false);
+  const [loading, setLoading] = useState(!screenCache.foodLogLoaded && !cachedSnapshot);
 
   // AI Nutrition Insights State - Local Dynamic vs Gemini Deep AI
   const [loadingAi, setLoadingAi] = useState(false);
@@ -275,10 +276,26 @@ export default function FoodLog() {
       console.log('Error loading initial food log:', err);
     } finally {
       isLoadingRef.current = false;
+      if (userId) {
+        screenCache.setFoodLogSnapshot(userId, {
+          items: itemsRef.current,
+          waterMl: waterMlRef.current,
+        });
+      }
       screenCache.setFoodLogLoaded(true);
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (userId) {
+      screenCache.setFoodLogSnapshot(userId, {
+        items,
+        waterMl,
+        isDayCompleted,
+      });
+    }
+  }, [userId, items, waterMl, isDayCompleted]);
 
   useFocusEffect(
     useCallback(() => {
@@ -1074,22 +1091,20 @@ export default function FoodLog() {
       )}
 
       {/* AI Scan & Photo Modal */}
-      {showScanModal && (
-        <AiScanModal
-          visible={showScanModal}
-          onClose={() => {
-            setShowScanModal(false);
-            setScanTargetMeal(undefined);
-          }}
-          onAddMealItem={handleAddMealItem}
-          initialMealType={scanTargetMeal}
-          initialMode={scanInitialMode}
-          onUpgradePress={() => {
-            setShowScanModal(false);
-            setShowSubscriptionModal(true);
-          }}
-        />
-      )}
+      <AiScanModal
+        visible={showScanModal}
+        onClose={() => {
+          setShowScanModal(false);
+          setScanTargetMeal(undefined);
+        }}
+        onAddMealItem={handleAddMealItem}
+        initialMealType={scanTargetMeal}
+        initialMode={scanInitialMode}
+        onUpgradePress={() => {
+          setShowScanModal(false);
+          setShowSubscriptionModal(true);
+        }}
+      />
 
       {/* Subscription Modal for In-App Upgrades */}
       {showSubscriptionModal && (

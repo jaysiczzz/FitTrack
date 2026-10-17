@@ -24,7 +24,6 @@ export interface LibraryExercise {
   defaultSets: { weight?: string | number; reps?: string | number; duration?: string | number; distance?: string | number; bodyweight?: boolean }[];
   imageUrl?: string | null;
   thumbnailUrl?: string | null;
-  gifUrl?: string | null;
   videoUrl?: string | null;
   safetyInstructions?: string | null;
   injuryPreventionTips?: string | null;
@@ -180,7 +179,6 @@ export const formatRawWorkoutSession = (s: any): CompletedSession => {
     s.dateStr ||
     (s.completedAt ? getDateStringFromTimestamp(s.completedAt) : '') ||
     (s.createdAt ? getDateStringFromTimestamp(s.createdAt) : '') ||
-    (s.startedAt ? getDateStringFromTimestamp(s.startedAt) : '') ||
     getTodayDateString();
 
   const displayDate = s.date || (dateStr ? formatDateHeading(dateStr) : 'Completed');

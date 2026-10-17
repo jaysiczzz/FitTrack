@@ -312,13 +312,13 @@ export default function PhotoCropEditorModal({
 
               {/* Subtle Facebook-style alignment crosshairs */}
               <View
-                pointerEvents="none"
                 style={{
                   position: 'absolute',
                   inset: 0,
                   borderWidth: 1,
                   borderColor: 'rgba(255,255,255,0.15)',
                   borderRadius: viewportSize / 2,
+                  pointerEvents: 'none',
                 }}
               />
             </View>

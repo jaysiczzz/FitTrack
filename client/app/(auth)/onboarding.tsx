@@ -203,9 +203,9 @@ export default function OnboardingScreen() {
           ref={scrollViewRef}
           contentContainerStyle={{
             flexGrow: 1,
-            justifyContent: 'flex-start',
+            justifyContent: 'center',
             alignItems: 'center',
-            paddingTop: isLandscape ? 12 : 28,
+            paddingTop: isLandscape ? 12 : 24,
             paddingBottom: 24,
             paddingHorizontal: 20,
           }}

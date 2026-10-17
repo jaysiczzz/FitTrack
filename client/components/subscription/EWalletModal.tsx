@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,6 +59,7 @@ export default function EWalletModal({
   onBalanceUpdated,
 }: EWalletModalProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
@@ -218,7 +220,7 @@ export default function EWalletModal({
     <>
       <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
         >
           <Pressable
@@ -229,8 +231,11 @@ export default function EWalletModal({
           />
 
           <View
-            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] w-full md:max-w-lg shadow-2xl flex-col"
-            style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg md:h-auto shadow-2xl flex-col"
+            style={{
+              maxHeight: Math.min(740, Math.round(windowHeight * 0.88)),
+              paddingBottom: Math.max(16, insets.bottom + 8),
+            }}
           >
             {/* Header */}
             <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">
@@ -246,14 +251,15 @@ export default function EWalletModal({
             </View>
 
             <ScrollView
-              className="mt-3 flex-1"
+              className="mt-3"
+              style={{ flexShrink: 1 }}
               showsVerticalScrollIndicator={false}
               keyboardShouldPersistTaps="handled"
               keyboardDismissMode="none"
               automaticallyAdjustContentInsets={false}
               contentInsetAdjustmentBehavior="never"
               bounces={false}
-              contentContainerStyle={{ flexGrow: 1, paddingBottom: 16 }}
+              contentContainerStyle={{ flexGrow: 0, paddingBottom: 8 }}
             >
             {/* Balance Card */}
             <View className="p-4 rounded-2xl bg-input/60 dark:bg-input-dark/60 border border-input-border dark:border-input-border-dark mb-4 items-center">

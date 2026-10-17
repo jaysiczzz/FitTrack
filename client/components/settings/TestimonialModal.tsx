@@ -61,6 +61,7 @@ export default function TestimonialModal({
   const insets = useSafeAreaInsets();
 
   const storageKey = `@fittrack_testimonial_votes_${user?.id || 'guest'}`;
+  const myStoriesCacheKey = `@fittrack_user_stories_cache_${user?.id || 'guest'}`;
 
   const [activeTab, setActiveTab] = useState<'feed' | 'write'>(initialTab);
   const [selectedGoalFilter, setSelectedGoalFilter] = useState<'ALL' | 'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('ALL');
@@ -83,6 +84,7 @@ export default function TestimonialModal({
   const [afterImageUrl, setAfterImageUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasExistingReview, setHasExistingReview] = useState<boolean>(false);
+  const [loadingMyReview, setLoadingMyReview] = useState<boolean>(false);
   const [myReviews, setMyReviews] = useState<TestimonialItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isComposing, setIsComposing] = useState<boolean>(false);
@@ -227,28 +229,51 @@ export default function TestimonialModal({
     setActiveTab('write');
   }, []);
 
+  const loadStoredUserStories = useCallback(async () => {
+    try {
+      const raw = await AsyncStorage.getItem(myStoriesCacheKey);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMyReviews(parsed);
+          setHasExistingReview(true);
+        }
+      }
+    } catch {
+      // Ignored
+    }
+  }, [myStoriesCacheKey]);
+
   const fetchMyReview = useCallback(async () => {
     if (!user) return;
     try {
+      setLoadingMyReview(true);
       const res = (await getMyTestimonialApi()) as any;
       const list: TestimonialItem[] = res.testimonials || (res.testimonial ? [res.testimonial] : []);
       setMyReviews(list);
       setHasExistingReview(list.length > 0);
+      AsyncStorage.setItem(myStoriesCacheKey, JSON.stringify(list)).catch(() => {});
+      if (list.length > 0) {
+        setIsComposing(false);
+      }
     } catch {
       // Ignored
+    } finally {
+      setLoadingMyReview(false);
     }
-  }, [user]);
+  }, [user, myStoriesCacheKey]);
 
   // Handle modal opening and initial tab setup
   useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
-      setIsComposing(false);
       loadStoredVotes();
+      loadStoredUserStories();
       fetchFeed(testimonials.length > 0);
       fetchMyReview();
+      setIsComposing(false);
     }
-  }, [visible, initialTab]);
+  }, [visible, initialTab, loadStoredVotes, loadStoredUserStories, fetchFeed, fetchMyReview]);
 
   // Refetch feed when filter or sorting changes
   const isFirstMountRef = useRef(true);
@@ -534,11 +559,10 @@ export default function TestimonialModal({
             <TouchableOpacity
               onPress={() => {
                 setActiveTab('write');
-                if (hasExistingReview) {
+                if (myReviews.length > 0) {
                   setIsComposing(false);
-                } else {
-                  setIsComposing(true);
                 }
+                fetchMyReview();
               }}
               hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
               className={`flex-1 min-h-[44px] py-2 rounded-xl items-center justify-center flex-row gap-1.5 ${
@@ -559,7 +583,7 @@ export default function TestimonialModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                {hasExistingReview ? 'My Stories' : 'Share Story'}
+                {myReviews.length > 0 ? 'My Stories' : 'Share Story'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -609,7 +633,7 @@ export default function TestimonialModal({
                         key={chip.key}
                         onPress={() => setSelectedGoalFilter(chip.key as any)}
                         hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                        className={`min-h-[32px] px-3.5 py-1.5 rounded-full border ${
+                        className={`min-h-[32px] flex justify-center items-center px-3.5 py-1.5 rounded-full border ${
                           isActive
                             ? 'bg-accent/15 border-accent'
                             : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
@@ -643,7 +667,7 @@ export default function TestimonialModal({
                         key={sort.key}
                         onPress={() => setSortBy(sort.key as any)}
                         hitSlop={{ top: 6, bottom: 6, left: 4, right: 4 }}
-                        className={`min-h-[30px] px-3 py-1 rounded-xl border ${
+                        className={`min-h-[30px] flex justify-center items-center px-3 py-1 rounded-xl border ${
                           isCurrent
                             ? 'bg-accent/20 border-accent/40'
                             : 'bg-transparent border-input-border/70 dark:border-input-border-dark/70'
@@ -702,6 +726,79 @@ export default function TestimonialModal({
                   }
                 >
                   <View className="gap-3 pb-4">
+                    {/* User's Own Story Card (if user has submitted stories) */}
+                    {myReviews.length > 0 && (
+                      <View className="p-4 rounded-2xl bg-accent/10 dark:bg-accent-dark/15 border-2 border-accent/40 dark:border-accent-dark/50 mb-3 shadow-xs">
+                        <View className="flex-row items-center justify-between mb-2">
+                          <View className="flex-row items-center gap-1.5">
+                            <Ionicons name="person-circle" size={18} color={colors.accent} />
+                            <Text
+                              className="text-xs font-black"
+                              style={{ color: colors.accent }}
+                            >
+                              Your Milestone Story
+                            </Text>
+                          </View>
+                          {myReviews[0].status === 'APPROVED' && (
+                            <View className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40">
+                              <Text className="text-[10px] font-bold text-emerald-600 dark:text-emerald-400">
+                                ✓ Live & Public
+                              </Text>
+                            </View>
+                          )}
+                          {myReviews[0].status === 'PENDING_APPROVAL' && (
+                            <View className="px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-500/40">
+                              <Text className="text-[10px] font-bold text-amber-600 dark:text-amber-400">
+                                ⏳ Pending Review
+                              </Text>
+                            </View>
+                          )}
+                          {myReviews[0].status === 'REJECTED' && (
+                            <View className="px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-500/40">
+                              <Text className="text-[10px] font-bold text-rose-600 dark:text-rose-400">
+                                ✕ Changes Requested
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+
+                        <Text
+                          className="text-xs italic leading-relaxed mb-2.5"
+                          style={{ color: colors.textPrimary }}
+                          numberOfLines={2}
+                        >
+                          "{myReviews[0].content}"
+                        </Text>
+
+                        <View className="flex-row items-center justify-between pt-2 border-t border-accent/20">
+                          <Text
+                            className="text-[10px] font-medium"
+                            style={{ color: colors.textMuted }}
+                          >
+                            {myReviews.length > 1
+                              ? `You have ${myReviews.length} stories`
+                              : 'Submitted by You'}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => {
+                              setActiveTab('write');
+                              setIsComposing(false);
+                            }}
+                            activeOpacity={0.7}
+                            className="flex-row items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/20 border border-accent/35"
+                          >
+                            <Ionicons name="eye-outline" size={12} color={colors.accent} />
+                            <Text
+                              className="text-[11px] font-bold"
+                              style={{ color: colors.accent }}
+                            >
+                              Manage My Stories
+                            </Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    )}
+
                     {testimonials.map((item) => {
                       const hasUpvoted = votedIds.has(item.id);
                       return (
@@ -885,9 +982,17 @@ export default function TestimonialModal({
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 24 }}
             >
-              <View>
-                {/* List of user's stories (when user has stories and not actively composing) */}
-                {myReviews.length > 0 && !isComposing ? (
+              {loadingMyReview && myReviews.length === 0 ? (
+                <View className="py-16 items-center justify-center">
+                  <ActivityIndicator size="small" color={colors.accent} />
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2 font-medium">
+                    Loading your stories...
+                  </Text>
+                </View>
+              ) : (
+                <View>
+                  {/* List of user's stories (when user has stories and not actively composing) */}
+                  {myReviews.length > 0 && !isComposing ? (
                   <View>
                     {/* Header Row */}
                     <View className="flex-row items-center justify-between mb-3.5">
@@ -1488,10 +1593,11 @@ export default function TestimonialModal({
                   </View>
                 )}
               </View>
-            </ScrollView>
-          )}
-        </View>
-      </KeyboardAvoidingView>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </KeyboardAvoidingView>
 
       {/* Full-Screen Photo Zoom / Lightbox Modal */}
       {previewPhoto && (

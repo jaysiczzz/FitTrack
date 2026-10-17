@@ -47,7 +47,6 @@ const WorkoutLibraryTab: React.FC<WorkoutLibraryTabProps> = ({ onAddExercise }) 
           const local = localMap.get((item.name || '').toLowerCase());
           return {
             ...item,
-            gifUrl: item.gifUrl || null,
             recommendedTempo: item.recommendedTempo || local?.recommendedTempo || '2-0-1-0',
           };
         });

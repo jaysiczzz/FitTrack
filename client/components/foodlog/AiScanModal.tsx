@@ -39,6 +39,7 @@ import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import NutritionFactsModal from './NutritionFactsModal';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import { screenCache } from '@/utils/screenCache';
 
 export type AiScanMode = 'photo' | 'describe';
 
@@ -139,10 +140,29 @@ export default function AiScanModal({
   useEffect(() => {
     if (visible) {
       setSelectedMeal(initialMealType || getSmartMealType());
-      if (initialMode === 'text' || initialMode === 'describe') {
-        setScanMode('describe');
+
+      // Restore any pending AI scan result so users never lose results or quota on modal close
+      const pending = screenCache.getPendingAiScanResult(user?.id);
+      if (pending) {
+        if (pending.type === 'photo' && pending.result) {
+          setScanMode('photo');
+          setPhotoAnalysisResult(pending.result);
+          if (pending.image) setPhotoSelectedImage(pending.image);
+          if (pending.baseMacros) setPhotoBaseMacros(pending.baseMacros);
+          if (pending.portionMultiplier) setPhotoPortionMultiplier(pending.portionMultiplier);
+        } else if (pending.type === 'describe' && pending.result) {
+          setScanMode('describe');
+          setDescribeAnalysisResult(pending.result);
+          if (pending.text) setDescribeText(pending.text);
+          if (pending.baseMacros) setDescribeBaseMacros(pending.baseMacros);
+          if (pending.portionMultiplier) setDescribePortionMultiplier(pending.portionMultiplier);
+        }
       } else {
-        setScanMode('photo');
+        if (initialMode === 'text' || initialMode === 'describe') {
+          setScanMode('describe');
+        } else {
+          setScanMode('photo');
+        }
       }
 
       getCurrentSubscriptionApi()
@@ -218,8 +238,46 @@ export default function AiScanModal({
     setScanMode(initialMode === 'text' || initialMode === 'describe' ? 'describe' : 'photo');
   };
 
+  const handleClearPhotoAnalysis = () => {
+    if (user?.id) screenCache.clearPendingAiScanResult(user.id);
+    setPhotoNotes('');
+    setPhotoSelectedImage(null);
+    setPhotoImageBase64(null);
+    setPhotoImageMimeType('image/jpeg');
+    setPhotoAnalysisResult(null);
+    setPhotoBaseMacros(null);
+    setPhotoPortionMultiplier(1.0);
+    setPhotoScanError(null);
+    setPhotoLoading(false);
+    setPhotoAnalysisPhase('uploading');
+    if (photoPhaseTimerRef.current.t1) clearTimeout(photoPhaseTimerRef.current.t1);
+    if (photoPhaseTimerRef.current.t2) clearTimeout(photoPhaseTimerRef.current.t2);
+  };
+
+  const handleClearDescribeAnalysis = () => {
+    if (user?.id) screenCache.clearPendingAiScanResult(user.id);
+    setDescribeText('');
+    setDescribeAnalysisResult(null);
+    setDescribeBaseMacros(null);
+    setDescribePortionMultiplier(1.0);
+    setDescribeScanError(null);
+    setDescribeLoading(false);
+    setDescribeAnalysisPhase('analyzing');
+    if (describePhaseTimerRef.current.t1) clearTimeout(describePhaseTimerRef.current.t1);
+  };
+
   const handleClose = () => {
-    resetAllState();
+    if (photoLoading && photoAbortControllerRef.current) {
+      photoAbortControllerRef.current.abort();
+      photoAbortControllerRef.current = null;
+      setPhotoLoading(false);
+    }
+    if (describeLoading && describeAbortControllerRef.current) {
+      describeAbortControllerRef.current.abort();
+      describeAbortControllerRef.current = null;
+      setDescribeLoading(false);
+    }
+    setShowNutritionFactsModal(false);
     onClose();
   };
 
@@ -376,8 +434,7 @@ export default function AiScanModal({
         const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
         AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
 
-        setPhotoAnalysisResult(res.data);
-        setPhotoBaseMacros({
+        const baseMacros = {
           calories: Number(res.data.calories) || 0,
           protein: Number(res.data.protein) || 0,
           carbs: Number(res.data.carbs) || 0,
@@ -387,8 +444,19 @@ export default function AiScanModal({
           sodiumMg: res.data.sodiumMg,
           saturatedFat: res.data.saturatedFat,
           servingSize: res.data.servingSize || '1 serving',
-        });
+        };
+        setPhotoAnalysisResult(res.data);
+        setPhotoBaseMacros(baseMacros);
         setPhotoPortionMultiplier(1.0);
+        if (user?.id) {
+          screenCache.setPendingAiScanResult(user.id, {
+            type: 'photo',
+            result: res.data,
+            image: photoSelectedImage,
+            baseMacros,
+            portionMultiplier: 1.0,
+          });
+        }
       } else {
         const errorMsg =
           res.error ||
@@ -482,7 +550,9 @@ export default function AiScanModal({
     };
 
     onAddMealItem(newItem);
-    handleClose();
+    handleClearPhotoAnalysis();
+    setShowNutritionFactsModal(false);
+    onClose();
   };
 
   // =========================================================================
@@ -538,8 +608,7 @@ export default function AiScanModal({
         const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
         AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
 
-        setDescribeAnalysisResult(res.data);
-        setDescribeBaseMacros({
+        const baseMacros = {
           calories: Number(res.data.calories) || 0,
           protein: Number(res.data.protein) || 0,
           carbs: Number(res.data.carbs) || 0,
@@ -549,8 +618,19 @@ export default function AiScanModal({
           sodiumMg: res.data.sodiumMg,
           saturatedFat: res.data.saturatedFat,
           servingSize: res.data.servingSize || '1 serving',
-        });
+        };
+        setDescribeAnalysisResult(res.data);
+        setDescribeBaseMacros(baseMacros);
         setDescribePortionMultiplier(1.0);
+        if (user?.id) {
+          screenCache.setPendingAiScanResult(user.id, {
+            type: 'describe',
+            result: res.data,
+            text: describeText.trim(),
+            baseMacros,
+            portionMultiplier: 1.0,
+          });
+        }
       } else {
         const errorMsg =
           res.error ||
@@ -643,7 +723,9 @@ export default function AiScanModal({
     };
 
     onAddMealItem(newItem);
-    handleClose();
+    handleClearDescribeAnalysis();
+    setShowNutritionFactsModal(false);
+    onClose();
   };
 
   // Active result for the FDA nutrition facts modal
@@ -1293,16 +1375,27 @@ export default function AiScanModal({
                         </View>
                       ) : null}
 
-                      {/* Confirm Action Button */}
-                      <TouchableOpacity
-                        onPress={handleConfirmAndAddPhoto}
-                        activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1"
-                      >
-                        <Text className="text-white font-bold text-sm tracking-wide">
-                          + Add to {MEAL_LABELS[selectedMeal]}
-                        </Text>
-                      </TouchableOpacity>
+                      {/* Confirm & Discard Action Buttons */}
+                      <View className="flex-row gap-2 mt-2">
+                        <TouchableOpacity
+                          onPress={handleClearPhotoAnalysis}
+                          activeOpacity={0.7}
+                          className="flex-1 py-3.5 rounded-2xl items-center justify-center border border-input-border dark:border-input-border-dark bg-input/80 dark:bg-input-dark/80"
+                        >
+                          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
+                            Discard
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleConfirmAndAddPhoto}
+                          activeOpacity={0.8}
+                          className="flex-[2] bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
+                        >
+                          <Text className="text-white font-bold text-sm tracking-wide">
+                            + Add to {MEAL_LABELS[selectedMeal]}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   );
                 })()}
@@ -1715,16 +1808,27 @@ export default function AiScanModal({
                         </View>
                       ) : null}
 
-                      {/* Confirm Action Button */}
-                      <TouchableOpacity
-                        onPress={handleConfirmAndAddDescribe}
-                        activeOpacity={0.8}
-                        className="bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center mt-1"
-                      >
-                        <Text className="text-white font-bold text-sm tracking-wide">
-                          + Add to {MEAL_LABELS[selectedMeal]}
-                        </Text>
-                      </TouchableOpacity>
+                      {/* Confirm & Discard Action Buttons */}
+                      <View className="flex-row gap-2 mt-2">
+                        <TouchableOpacity
+                          onPress={handleClearDescribeAnalysis}
+                          activeOpacity={0.7}
+                          className="flex-1 py-3.5 rounded-2xl items-center justify-center border border-input-border dark:border-input-border-dark bg-input/80 dark:bg-input-dark/80"
+                        >
+                          <Text className="text-text-muted dark:text-text-muted-dark font-bold text-xs">
+                            Discard
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          onPress={handleConfirmAndAddDescribe}
+                          activeOpacity={0.8}
+                          className="flex-[2] bg-accent dark:bg-accent-dark py-3.5 rounded-2xl items-center justify-center shadow-sm"
+                        >
+                          <Text className="text-white font-bold text-sm tracking-wide">
+                            + Add to {MEAL_LABELS[selectedMeal]}
+                          </Text>
+                        </TouchableOpacity>
+                      </View>
                     </View>
                   );
                 })()}

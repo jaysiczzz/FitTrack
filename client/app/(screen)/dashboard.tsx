@@ -47,12 +47,14 @@ export default function Dashboard() {
   const { showToast } = useToast();
 
   const [userName, setUserName] = useState('Athlete');
+  const cachedSnapshot = screenCache.getDashboardSnapshot(userId);
+
   const [userGoal, setUserGoal] = useState<'MUSCLE_GAIN' | 'WEIGHT_LOSS'>('MUSCLE_GAIN');
   const [refreshing, setRefreshing] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(!screenCache.dashboardLoaded);
+  const [initialLoading, setInitialLoading] = useState(!screenCache.dashboardLoaded && !cachedSnapshot);
 
   // Check-In state
-  const [isCheckedIn, setIsCheckedIn] = useState(false);
+  const [isCheckedIn, setIsCheckedIn] = useState(cachedSnapshot?.isCheckedIn ?? false);
 
   // Testimonials & Athlete Stories Modal State
   const [showTestimonialsModal, setShowTestimonialsModal] = useState(false);
@@ -71,26 +73,26 @@ export default function Dashboard() {
   }, [params.modal, params.tab]);
 
   // Nutrition Progress States
-  const [caloriesLogged, setCaloriesLogged] = useState(0);
+  const [caloriesLogged, setCaloriesLogged] = useState(cachedSnapshot?.caloriesLogged ?? 0);
   const [proteinLogged, setProteinLogged] = useState(0);
   const [carbsLogged, setCarbsLogged] = useState(0);
   const [fatLogged, setFatLogged] = useState(0);
-  const [waterMl, setWaterMl] = useState(0);
+  const [waterMl, setWaterMl] = useState(cachedSnapshot?.waterMl ?? 0);
   const [isNutritionDone, setIsNutritionDone] = useState(false);
 
-  const waterMlRef = useRef(0);
+  const waterMlRef = useRef(cachedSnapshot?.waterMl ?? 0);
   const dashboardItemsRef = useRef<FoodLogItem[]>([]);
   const scrollRef = useRef<ScrollView>(null);
 
   // Workout Progress States
-  const [activeMinutesToday, setActiveMinutesToday] = useState(0);
-  const [workoutsThisWeek, setWorkoutsThisWeek] = useState(0);
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>([]);
-  const [workoutSessionDone, setWorkoutSessionDone] = useState(false);
-  const [todayCompletedWorkoutStats, setTodayCompletedWorkoutStats] = useState<{ duration: number; caloriesBurned: number } | null>(null);
-  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(null);
-  const [isTodayRestDay, setIsTodayRestDay] = useState(false);
+  const [activeMinutesToday, setActiveMinutesToday] = useState(cachedSnapshot?.activeMinutesToday ?? 0);
+  const [workoutsThisWeek, setWorkoutsThisWeek] = useState(cachedSnapshot?.workoutsThisWeek ?? 0);
+  const [currentStreak, setCurrentStreak] = useState(cachedSnapshot?.currentStreak ?? 0);
+  const [todayExercises, setTodayExercises] = useState<DashboardWorkoutExercise[]>(cachedSnapshot?.todayExercises ?? []);
+  const [workoutSessionDone, setWorkoutSessionDone] = useState(cachedSnapshot?.workoutSessionDone ?? false);
+  const [todayCompletedWorkoutStats, setTodayCompletedWorkoutStats] = useState<{ duration: number; caloriesBurned: number } | null>(cachedSnapshot?.todayCompletedWorkoutStats ?? null);
+  const [todayScheduledRoutine, setTodayScheduledRoutine] = useState<WorkoutRoutineTemplate | null>(cachedSnapshot?.todayScheduledRoutine ?? null);
+  const [isTodayRestDay, setIsTodayRestDay] = useState(cachedSnapshot?.isTodayRestDay ?? false);
 
   // Dynamic targets based on goal and user personalized body metrics
   const personalizedTargets = useMemo(() => {
@@ -553,6 +555,42 @@ export default function Dashboard() {
       setInitialLoading(false);
     }
   };
+
+  // Sync dashboard state immediately to screenCache snapshot so subsequent visits render instantly with 0ms delay
+  useEffect(() => {
+    if (userId) {
+      screenCache.setDashboardSnapshot(userId, {
+        caloriesLogged,
+        targetCalories,
+        waterMl,
+        targetWater,
+        currentStreak,
+        workoutSessionDone,
+        activeMinutesToday,
+        todayExercises,
+        isTodayRestDay,
+        todayScheduledRoutine,
+        todayCompletedWorkoutStats,
+        workoutsThisWeek,
+        isCheckedIn,
+      });
+    }
+  }, [
+    userId,
+    caloriesLogged,
+    targetCalories,
+    waterMl,
+    targetWater,
+    currentStreak,
+    workoutSessionDone,
+    activeMinutesToday,
+    todayExercises,
+    isTodayRestDay,
+    todayScheduledRoutine,
+    todayCompletedWorkoutStats,
+    workoutsThisWeek,
+    isCheckedIn,
+  ]);
 
   useFocusEffect(
     useCallback(() => {
