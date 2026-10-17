@@ -39,6 +39,7 @@ import { useThemeColors } from '@/constants/colors';
 import ModalCloseButton from '../ui/ModalCloseButton';
 import NutritionFactsModal from './NutritionFactsModal';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
+import { screenCache } from '@/utils/screenCache';
 
 export type AiScanMode = 'photo' | 'describe';
 
@@ -139,10 +140,29 @@ export default function AiScanModal({
   useEffect(() => {
     if (visible) {
       setSelectedMeal(initialMealType || getSmartMealType());
-      if (initialMode === 'text' || initialMode === 'describe') {
-        setScanMode('describe');
+
+      // Restore any pending AI scan result so users never lose results or quota on modal close
+      const pending = screenCache.getPendingAiScanResult(user?.id);
+      if (pending) {
+        if (pending.type === 'photo' && pending.result) {
+          setScanMode('photo');
+          setPhotoAnalysisResult(pending.result);
+          if (pending.image) setPhotoSelectedImage(pending.image);
+          if (pending.baseMacros) setPhotoBaseMacros(pending.baseMacros);
+          if (pending.portionMultiplier) setPhotoPortionMultiplier(pending.portionMultiplier);
+        } else if (pending.type === 'describe' && pending.result) {
+          setScanMode('describe');
+          setDescribeAnalysisResult(pending.result);
+          if (pending.text) setDescribeText(pending.text);
+          if (pending.baseMacros) setDescribeBaseMacros(pending.baseMacros);
+          if (pending.portionMultiplier) setDescribePortionMultiplier(pending.portionMultiplier);
+        }
       } else {
-        setScanMode('photo');
+        if (initialMode === 'text' || initialMode === 'describe') {
+          setScanMode('describe');
+        } else {
+          setScanMode('photo');
+        }
       }
 
       getCurrentSubscriptionApi()
@@ -219,6 +239,7 @@ export default function AiScanModal({
   };
 
   const handleClearPhotoAnalysis = () => {
+    if (user?.id) screenCache.clearPendingAiScanResult(user.id);
     setPhotoNotes('');
     setPhotoSelectedImage(null);
     setPhotoImageBase64(null);
@@ -234,6 +255,7 @@ export default function AiScanModal({
   };
 
   const handleClearDescribeAnalysis = () => {
+    if (user?.id) screenCache.clearPendingAiScanResult(user.id);
     setDescribeText('');
     setDescribeAnalysisResult(null);
     setDescribeBaseMacros(null);
@@ -412,8 +434,7 @@ export default function AiScanModal({
         const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
         AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
 
-        setPhotoAnalysisResult(res.data);
-        setPhotoBaseMacros({
+        const baseMacros = {
           calories: Number(res.data.calories) || 0,
           protein: Number(res.data.protein) || 0,
           carbs: Number(res.data.carbs) || 0,
@@ -423,8 +444,19 @@ export default function AiScanModal({
           sodiumMg: res.data.sodiumMg,
           saturatedFat: res.data.saturatedFat,
           servingSize: res.data.servingSize || '1 serving',
-        });
+        };
+        setPhotoAnalysisResult(res.data);
+        setPhotoBaseMacros(baseMacros);
         setPhotoPortionMultiplier(1.0);
+        if (user?.id) {
+          screenCache.setPendingAiScanResult(user.id, {
+            type: 'photo',
+            result: res.data,
+            image: photoSelectedImage,
+            baseMacros,
+            portionMultiplier: 1.0,
+          });
+        }
       } else {
         const errorMsg =
           res.error ||
@@ -576,8 +608,7 @@ export default function AiScanModal({
         const countKey = authStorage.getScopedKey(user?.id, `daily_ai_scans_${todayStr}`);
         AsyncStorage.setItem(countKey, nextCount.toString()).catch(() => {});
 
-        setDescribeAnalysisResult(res.data);
-        setDescribeBaseMacros({
+        const baseMacros = {
           calories: Number(res.data.calories) || 0,
           protein: Number(res.data.protein) || 0,
           carbs: Number(res.data.carbs) || 0,
@@ -587,8 +618,19 @@ export default function AiScanModal({
           sodiumMg: res.data.sodiumMg,
           saturatedFat: res.data.saturatedFat,
           servingSize: res.data.servingSize || '1 serving',
-        });
+        };
+        setDescribeAnalysisResult(res.data);
+        setDescribeBaseMacros(baseMacros);
         setDescribePortionMultiplier(1.0);
+        if (user?.id) {
+          screenCache.setPendingAiScanResult(user.id, {
+            type: 'describe',
+            result: res.data,
+            text: describeText.trim(),
+            baseMacros,
+            portionMultiplier: 1.0,
+          });
+        }
       } else {
         const errorMsg =
           res.error ||

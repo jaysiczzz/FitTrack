@@ -218,7 +218,7 @@ export default function OnboardingScreen() {
         >
           <View
             style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}
-            className="w-full max-w-[420px] self-center my-auto"
+            className="w-full max-w-[420px] self-center"
           >
             <OnboardingHeader
               step={step}

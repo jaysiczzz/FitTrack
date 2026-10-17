@@ -556,6 +556,42 @@ export default function Dashboard() {
     }
   };
 
+  // Sync dashboard state immediately to screenCache snapshot so subsequent visits render instantly with 0ms delay
+  useEffect(() => {
+    if (userId) {
+      screenCache.setDashboardSnapshot(userId, {
+        caloriesLogged,
+        targetCalories,
+        waterMl,
+        targetWater,
+        currentStreak,
+        workoutSessionDone,
+        activeMinutesToday,
+        todayExercises,
+        isTodayRestDay,
+        todayScheduledRoutine,
+        todayCompletedWorkoutStats,
+        workoutsThisWeek,
+        isCheckedIn,
+      });
+    }
+  }, [
+    userId,
+    caloriesLogged,
+    targetCalories,
+    waterMl,
+    targetWater,
+    currentStreak,
+    workoutSessionDone,
+    activeMinutesToday,
+    todayExercises,
+    isTodayRestDay,
+    todayScheduledRoutine,
+    todayCompletedWorkoutStats,
+    workoutsThisWeek,
+    isCheckedIn,
+  ]);
+
   useFocusEffect(
     useCallback(() => {
       loadAll();

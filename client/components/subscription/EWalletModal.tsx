@@ -11,6 +11,7 @@ import {
   KeyboardAvoidingView,
   Keyboard,
   Platform,
+  useWindowDimensions,
 } from 'react-native';
 import * as Linking from 'expo-linking';
 import { Ionicons } from '@expo/vector-icons';
@@ -58,6 +59,7 @@ export default function EWalletModal({
   onBalanceUpdated,
 }: EWalletModalProps) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
   const { colors } = useThemeColors();
   const { showSuccess, showError, showWarning } = useToast();
 
@@ -229,8 +231,16 @@ export default function EWalletModal({
           />
 
           <View
-            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[88%] md:h-auto md:max-h-[90%] w-full md:max-w-lg shadow-2xl flex-col"
-            style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
+            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg md:h-auto md:max-h-[90%] shadow-2xl flex-col"
+            style={[
+              { paddingBottom: Math.max(20, insets.bottom + 8) },
+              Platform.OS !== 'web'
+                ? {
+                    height: Math.min(740, Math.round(windowHeight * 0.88)),
+                    maxHeight: Math.min(800, Math.round(windowHeight * 0.90)),
+                  }
+                : undefined,
+            ]}
           >
             {/* Header */}
             <View className="flex-row items-center justify-between pb-3 border-b border-input-border dark:border-input-border-dark">

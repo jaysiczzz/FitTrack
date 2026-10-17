@@ -89,6 +89,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   const { colors } = useThemeColors();
 
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
+  const [previewMoodId, setPreviewMoodId] = useState<string>('fire');
   const [isCheckedIn, setIsCheckedIn] = useState(false);
   const quoteIndex = useMemo(() => {
     const now = new Date();
@@ -132,6 +133,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       if (savedLocalCheckin) {
         const parsed = JSON.parse(savedLocalCheckin);
         setSelectedMoodId(parsed.moodId);
+        if (parsed.moodId) setPreviewMoodId(parsed.moodId);
         setIsCheckedIn(true);
         if (parsed.notes) setNotes(parsed.notes);
       }
@@ -153,6 +155,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
       if (todayRes?.success && todayRes.checkIn) {
         setSelectedMoodId(todayRes.checkIn.moodId);
+        if (todayRes.checkIn.moodId) setPreviewMoodId(todayRes.checkIn.moodId);
         setIsCheckedIn(true);
         if (todayRes.checkIn.notes) setNotes(todayRes.checkIn.notes);
 
@@ -245,6 +248,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       description: mood.coachTip,
       type: 'success',
       icon: '✓',
+      duration: 4000,
     });
 
     DeviceEventEmitter.emit('DAILY_CHECKIN_UPDATED', {
@@ -332,6 +336,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
   const currentQuote = MOTIVATION_QUOTES[quoteIndex];
   const selectedMood = MOODS.find((m) => m.id === selectedMoodId);
+  const activePreviewMood = MOODS.find((m) => m.id === (selectedMoodId || previewMoodId)) || MOODS[0];
 
   return (
     <SurfaceCard className="mb-3">
@@ -339,11 +344,17 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       <View className="flex-row justify-between items-center mb-3">
         <View className="flex-1 mr-2">
           <View className="flex-row items-center gap-1.5">
-            <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
+            <Text
+              className="text-text-primary dark:text-text-primary-dark font-black text-sm"
+              style={{ color: colors.textPrimary }}
+            >
               Daily Readiness
             </Text>
           </View>
-          <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
+          <Text
+            className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5"
+            style={{ color: colors.textMuted }}
+          >
             {isCheckedIn && selectedMood && !isEditingMood
               ? `Logged for today • ${selectedMood.label}`
               : isEditingMood
@@ -362,7 +373,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2.5 py-1 rounded-full flex-row items-center"
               >
                 <Ionicons name="close" size={11} color={colors.textMuted} style={{ marginRight: 3 }} />
-                <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px] uppercase tracking-wider">
+                <Text
+                  className="text-text-muted dark:text-text-muted-dark font-bold text-[10px] uppercase tracking-wider"
+                  style={{ color: colors.textMuted }}
+                >
                   Cancel
                 </Text>
               </TouchableOpacity>
@@ -373,7 +387,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 className="bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 px-2.5 py-1 rounded-full flex-row items-center"
               >
                 <Ionicons name="pencil" size={10} color={colors.accent} style={{ marginRight: 3 }} />
-                <Text className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider">
+                <Text
+                  className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider"
+                  style={{ color: colors.accent }}
+                >
                   Change
                 </Text>
               </TouchableOpacity>
@@ -387,13 +404,16 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         <View className="mb-2.5">
           <View className="flex-row items-center gap-1.5">
             {MOODS.map((mood) => {
-              const isSelected = selectedMoodId === mood.id;
+              const isSelected = (selectedMoodId || previewMoodId) === mood.id;
               return (
                 <TouchableOpacity
                   key={mood.id}
                   activeOpacity={0.75}
                   disabled={isSavingMood}
-                  onPress={() => handleSelectMood(mood)}
+                  onPress={() => {
+                    setPreviewMoodId(mood.id);
+                    handleSelectMood(mood);
+                  }}
                   className={`flex-1 py-2.5 px-0.5 rounded-xl items-center justify-center border ${
                     isSelected
                       ? 'border-transparent shadow-xs'
@@ -420,6 +440,33 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
               );
             })}
           </View>
+
+          {/* Persistent Coach Tip preview before checking in */}
+          {activePreviewMood ? (
+            <View
+              className="mt-2.5 p-3 rounded-2xl border flex-row items-start gap-2.5"
+              style={{
+                backgroundColor: `${activePreviewMood.color}15`,
+                borderColor: `${activePreviewMood.color}35`,
+              }}
+            >
+              <Text className="text-xl">{activePreviewMood.emoji}</Text>
+              <View className="flex-1">
+                <Text
+                  className="text-xs font-bold"
+                  style={{ color: activePreviewMood.color }}
+                >
+                  {activePreviewMood.label} Guidance
+                </Text>
+                <Text
+                  className="text-xs font-medium leading-relaxed mt-0.5"
+                  style={{ color: colors.textPrimary }}
+                >
+                  {activePreviewMood.coachTip}
+                </Text>
+              </View>
+            </View>
+          ) : null}
         </View>
       ) : selectedMood ? (
         /* Checked-In Active Recommendation Box */
@@ -437,7 +484,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             <View className="flex-1">
               <View className="flex-row items-center justify-between">
                 <View className="flex-1 mr-2">
-                  <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
+                  <Text
+                    className="text-text-primary dark:text-text-primary-dark font-black text-sm"
+                    style={{ color: colors.textPrimary }}
+                  >
                     {selectedMood.label}
                   </Text>
                 </View>
@@ -451,7 +501,10 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-relaxed mt-1.5 font-medium">
+              <Text
+                className="text-text-muted dark:text-text-muted-dark text-xs leading-relaxed mt-1.5 font-medium"
+                style={{ color: colors.textMuted }}
+              >
                 {selectedMood.coachTip}
               </Text>
             </View>
@@ -530,14 +583,23 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         <View className="flex-1">
           <View className="flex-row items-center gap-1.5 mb-1">
             <Ionicons name="sparkles" size={11} color={colors.accent} />
-            <Text className="text-[10px] font-bold uppercase tracking-wider text-accent dark:text-accent-mint">
+            <Text
+              className="text-[10px] font-bold uppercase tracking-wider text-accent dark:text-accent-mint"
+              style={{ color: colors.accent }}
+            >
               Daily Motivation
             </Text>
           </View>
-          <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
+          <Text
+            className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug"
+            style={{ color: colors.textPrimary }}
+          >
             “{currentQuote.quote}”
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-1 font-semibold">
+          <Text
+            className="text-text-muted dark:text-text-muted-dark text-[10px] mt-1 font-semibold"
+            style={{ color: colors.textMuted }}
+          >
             — {currentQuote.author}
           </Text>
         </View>

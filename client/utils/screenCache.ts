@@ -45,6 +45,7 @@ class ScreenCacheManager {
   private _workoutsSnapshots = new Map<string, WorkoutsSnapshot>();
   private _foodHistoryCache = new Map<string, any[]>();
   private _workoutHistoryCache = new Map<string, any[]>();
+  private _pendingAiScanResult = new Map<string, any>();
 
   get dashboardLoaded(): boolean {
     return this._dashboardLoaded;
@@ -157,6 +158,22 @@ class ScreenCacheManager {
     this._workoutHistoryCache.set(userId, list);
   }
 
+  // Pending AI Scan Result
+  getPendingAiScanResult(userId?: string): any | null {
+    if (!userId) return null;
+    return this._pendingAiScanResult.get(userId) || null;
+  }
+
+  setPendingAiScanResult(userId: string, result: any) {
+    if (!userId) return;
+    this._pendingAiScanResult.set(userId, result);
+  }
+
+  clearPendingAiScanResult(userId?: string) {
+    if (!userId) return;
+    this._pendingAiScanResult.delete(userId);
+  }
+
   /**
    * Reset all session load flags upon user logout or account switch.
    */
@@ -170,6 +187,7 @@ class ScreenCacheManager {
     this._workoutsSnapshots.clear();
     this._foodHistoryCache.clear();
     this._workoutHistoryCache.clear();
+    this._pendingAiScanResult.clear();
   }
 }
 
