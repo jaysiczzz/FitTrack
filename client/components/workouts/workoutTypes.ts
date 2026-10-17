@@ -60,6 +60,7 @@ export interface WorkoutRoutineTemplate {
   title: string;
   description?: string;
   category: string;
+  difficulty?: 'Beginner' | 'Intermediate' | 'Advanced';
   targetMuscleGroup?: string;
   estimatedDurationMinutes: number;
   exercises: RoutineExercise[];

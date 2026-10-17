@@ -189,13 +189,21 @@ export default function VerifyEmailScreen() {
           contentContainerStyle={{
             flexGrow: 1,
             justifyContent: isLandscape ? 'flex-start' : 'center',
+            alignItems: 'center',
             paddingVertical: 24,
             paddingHorizontal: 20,
           }}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          automaticallyAdjustContentInsets={false}
+          contentInsetAdjustmentBehavior="never"
           showsVerticalScrollIndicator={false}
+          bounces={false}
         >
-          <View className="w-full max-w-[420px] mx-auto">
+          <View
+            style={{ width: '100%', maxWidth: 420, alignSelf: 'center' }}
+            className="w-full max-w-[420px] self-center"
+          >
             {/* Back to register link */}
             <TouchableOpacity
               onPress={handleChangeEmail}

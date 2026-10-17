@@ -22,6 +22,7 @@ model User {
   targetWeight    Float?           // kg
   age             Int
   goal            Goal
+  activityLevel   ActivityLevel?   @default(LIGHTLY_ACTIVE)
   createdAt       DateTime         @default(now())
   workoutSessions WorkoutSession[]
   dailyFoodLogs   DailyFoodLog[]
@@ -42,6 +43,13 @@ model User {
   aiRoutineLogs   AiRoutineLog[]
   inAppNotifications InAppNotification[]
   featureUsages      FeatureUsage[]
+}
+
+enum ActivityLevel {
+  SEDENTARY
+  LIGHTLY_ACTIVE
+  MODERATELY_ACTIVE
+  VERY_ACTIVE
 }
 
 enum Goal {

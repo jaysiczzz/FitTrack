@@ -2,6 +2,7 @@ import React, { useState, useRef } from 'react';
 import { View, Text, TouchableOpacity, Modal, Pressable, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useThemeColors } from '@/constants/colors';
+import { getDifficultyStyle } from '@/constants/difficulty';
 
 interface DifficultySelectorPillProps {
   selectedDifficulty: string;
@@ -16,7 +17,7 @@ export default function DifficultySelectorPill({
   onSelectDifficulty,
   compact = false,
 }: DifficultySelectorPillProps) {
-  const { colors } = useThemeColors();
+  const { colors, isDark } = useThemeColors();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const buttonRef = useRef<View>(null);
   const [buttonLayout, setButtonLayout] = useState<{ x: number; y: number; width: number; height: number } | null>(null);
@@ -36,6 +37,7 @@ export default function DifficultySelectorPill({
   const windowWidth = Dimensions.get('window').width;
 
   const displayLabel = selectedDifficulty === 'All' ? 'All Levels' : selectedDifficulty;
+  const activeStyle = selectedDifficulty !== 'All' ? getDifficultyStyle(selectedDifficulty) : null;
 
   return (
     <>
@@ -48,6 +50,16 @@ export default function DifficultySelectorPill({
           compact ? 'px-2.5 py-1.5' : 'px-3.5 py-1.5'
         }`}
       >
+        {activeStyle && (
+          <View
+            style={{
+              width: 7,
+              height: 7,
+              borderRadius: 4,
+              backgroundColor: isDark ? activeStyle.darkHexColor : activeStyle.hexColor,
+            }}
+          />
+        )}
         <Text
           numberOfLines={1}
           className="text-xs font-bold text-text-primary dark:text-text-primary-dark"
@@ -97,6 +109,7 @@ export default function DifficultySelectorPill({
             <View className="gap-1">
               {DIFFICULTIES.map((diff) => {
                 const isSelected = selectedDifficulty === diff;
+                const diffStyle = diff !== 'All' ? getDifficultyStyle(diff) : null;
                 return (
                   <TouchableOpacity
                     key={diff}
@@ -110,15 +123,37 @@ export default function DifficultySelectorPill({
                         : 'bg-transparent border-transparent'
                     }`}
                   >
-                    <Text
-                      className={`text-xs ${
-                        isSelected
-                          ? 'text-accent dark:text-accent-dark font-extrabold'
-                          : 'text-text-primary dark:text-text-primary-dark font-medium'
-                      }`}
-                    >
-                      {diff}
-                    </Text>
+                    <View className="flex-row items-center gap-2">
+                      {diffStyle ? (
+                        <View
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: 4,
+                            backgroundColor: isDark ? diffStyle.darkHexColor : diffStyle.hexColor,
+                          }}
+                        />
+                      ) : (
+                        <View
+                          style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: 4,
+                            backgroundColor: colors.textMuted,
+                            opacity: 0.35,
+                          }}
+                        />
+                      )}
+                      <Text
+                        className={`text-xs ${
+                          isSelected
+                            ? 'text-accent dark:text-accent-dark font-extrabold'
+                            : 'text-text-primary dark:text-text-primary-dark font-medium'
+                        }`}
+                      >
+                        {diff}
+                      </Text>
+                    </View>
 
                     {isSelected && (
                       <Ionicons

@@ -11,6 +11,7 @@ import {
   Pressable,
   useWindowDimensions,
   LayoutChangeEvent,
+  Keyboard,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -21,6 +22,7 @@ import FieldLabel from '../ui/FieldLabel';
 import { capitalizeWords, formatGoalLabel } from '@/utils/formatters';
 import { updateUserProfile } from '@/api/user';
 import { useAuth } from '@/context/AuthContext';
+import { ACTIVITY_LEVEL_OPTIONS, ActivityLevel } from '@/constants/activityLevels';
 import { useToast } from '@/context/ToastContext';
 import { hapticFeedback } from '@/utils/haptics';
 import { getFriendlyErrorMessage } from '@/utils/errorMapper';
@@ -65,6 +67,7 @@ export default function EditProfileModal({
   const [age, setAge] = useState('');
   const [goal, setGoal] = useState<'muscle' | 'loss'>('muscle');
   const [gender, setGender] = useState<'MALE' | 'FEMALE'>('MALE');
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>('LIGHTLY_ACTIVE');
 
   const [firstNameError, setFirstNameError] = useState<string | null>(null);
   const [lastNameError, setLastNameError] = useState<string | null>(null);
@@ -115,6 +118,9 @@ export default function EditProfileModal({
       }
       if (user.gender) {
         setGender(user.gender);
+      }
+      if (user.activityLevel) {
+        setActivityLevel(user.activityLevel);
       }
       setFirstNameError(null);
       setLastNameError(null);
@@ -227,6 +233,7 @@ export default function EditProfileModal({
         age: Math.round(aNum),
         goal: mappedGoal,
         gender,
+        activityLevel,
       });
 
       const updatedUserData = {
@@ -238,6 +245,7 @@ export default function EditProfileModal({
         age: Math.round(aNum),
         goal: mappedGoal,
         gender,
+        activityLevel,
       };
 
       await updateUser(updatedUserData as any);
@@ -255,21 +263,28 @@ export default function EditProfileModal({
     }
   };
 
+  // Clicking outside / on the backdrop dismisses the keyboard, but NEVER closes the modal
+  const handleBackdropPress = () => {
+    Keyboard.dismiss();
+  };
+
   return (
     <Modal
       visible={visible}
       animationType="slide"
       transparent
       onRequestClose={onClose}
+      statusBarTranslucent
     >
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
       >
         <Pressable
-          className="flex-1 w-full"
-          onPress={onClose}
-          accessibilityLabel="Dismiss modal backdrop"
+          className="absolute inset-0"
+          style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+          onPress={handleBackdropPress}
+          accessible={false}
         />
 
         <View className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl border-t md:border border-input-border dark:border-input-border-dark w-full md:max-w-lg h-[88%] md:h-[90%] max-h-[90%] shadow-2xl flex-col">
@@ -289,6 +304,10 @@ export default function EditProfileModal({
           <ScrollView
             className="flex-1 px-5 pt-4"
             keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="none"
+            automaticallyAdjustContentInsets={false}
+            contentInsetAdjustmentBehavior="never"
+            bounces={false}
             contentContainerStyle={{ paddingBottom: Math.max(insets.bottom, 16) + 24 }}
           >
             <View onLayout={handleContentLayout} className="w-full">
@@ -547,6 +566,69 @@ export default function EditProfileModal({
                             color={colors.accent}
                           />
                         )}
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+
+              {/* Daily Activity Level Section */}
+              <View className="mb-4">
+                <FieldLabel>Daily Activity Level</FieldLabel>
+                <View
+                  accessibilityRole="radiogroup"
+                  accessibilityLabel="Daily Activity Level"
+                  className="flex-row flex-wrap gap-2"
+                >
+                  {ACTIVITY_LEVEL_OPTIONS.map((opt) => {
+                    const isSelected = activityLevel === opt.key;
+                    return (
+                      <TouchableOpacity
+                        key={opt.key}
+                        activeOpacity={0.7}
+                        accessibilityRole="radio"
+                        accessibilityState={{ selected: isSelected, checked: isSelected }}
+                        accessibilityLabel={opt.label}
+                        onPress={() => {
+                          hapticFeedback.light();
+                          setActivityLevel(opt.key);
+                        }}
+                        className={`${
+                          isStacked ? 'w-full' : 'flex-1 min-w-[47%]'
+                        } min-h-[52px] p-2.5 rounded-xl border flex-col justify-center ${
+                          isSelected
+                            ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark'
+                            : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
+                        }`}
+                      >
+                        <View className="flex-row items-center justify-between mb-0.5">
+                          <View className="flex-row items-center gap-1.5 flex-1 mr-1">
+                            <Text className="text-sm">{opt.icon}</Text>
+                            <Text
+                              numberOfLines={1}
+                              className={`text-xs font-bold ${
+                                isSelected
+                                  ? 'text-accent dark:text-accent-dark'
+                                  : 'text-text-primary dark:text-text-primary-dark'
+                              }`}
+                            >
+                              {opt.label}
+                            </Text>
+                          </View>
+                          {isSelected && (
+                            <Ionicons
+                              name="checkmark-circle"
+                              size={14}
+                              color={colors.accent}
+                            />
+                          )}
+                        </View>
+                        <Text
+                          numberOfLines={1}
+                          className="text-[10px] text-text-muted dark:text-text-muted-dark"
+                        >
+                          {opt.description}
+                        </Text>
                       </TouchableOpacity>
                     );
                   })}

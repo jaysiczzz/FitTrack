@@ -55,7 +55,7 @@ export default function TodayWorkoutCard({
           </View>
 
           <TouchableOpacity
-            onPress={() => router.push('/(screen)/workouts' as any)}
+            onPress={() => router.push({ pathname: '/(screen)/workouts', params: { tab: 'planner' } } as any)}
             activeOpacity={0.8}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="bg-accent/10 dark:bg-accent-dark/15 min-h-[44px] justify-center items-center px-3.5 py-2 rounded-xl border border-accent/30 dark:border-accent-dark/30"
@@ -83,7 +83,7 @@ export default function TodayWorkoutCard({
           </View>
 
           <TouchableOpacity
-            onPress={() => router.push('/(screen)/workouts' as any)}
+            onPress={() => router.push({ pathname: '/(screen)/workouts', params: { tab: 'history' } } as any)}
             activeOpacity={0.7}
             hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             className="px-3.5 py-2 min-h-[44px] justify-center items-center rounded-xl bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark"

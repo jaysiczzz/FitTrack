@@ -114,6 +114,40 @@ export default function Settings() {
   const [walletBalance, setWalletBalance] = useState<number>(0);
   const [walletCurrency, setWalletCurrency] = useState<string>('PHP');
 
+  const subCacheKey = authStorage.getScopedKey(user?.id, 'fittrack_user_subscription_cache');
+  const walletCacheKey = authStorage.getScopedKey(user?.id, 'fittrack_user_wallet_cache');
+
+  // 1. Instant local cache load (0ms - eliminates pop-in delay)
+  useEffect(() => {
+    let isMounted = true;
+    async function loadCachedBilling() {
+      try {
+        const [cachedSub, cachedWallet] = await Promise.all([
+          AsyncStorage.getItem(subCacheKey),
+          AsyncStorage.getItem(walletCacheKey),
+        ]);
+        if (cachedSub && isMounted) {
+          const parsedSub = JSON.parse(cachedSub);
+          if (parsedSub) setCurrentSub(parsedSub);
+        }
+        if (cachedWallet && isMounted) {
+          const parsedWallet = JSON.parse(cachedWallet);
+          if (parsedWallet && typeof parsedWallet.balance === 'number') {
+            setWalletBalance(parsedWallet.balance);
+            if (parsedWallet.currency) {
+              setWalletCurrency(parsedWallet.currency.toUpperCase());
+            }
+          }
+        }
+      } catch {}
+    }
+    loadCachedBilling();
+    return () => {
+      isMounted = false;
+    };
+  }, [subCacheKey, walletCacheKey]);
+
+  // 2. Background fresh fetch from API server (Stale-While-Revalidate)
   const loadBillingSummary = useCallback(async () => {
     try {
       const [subRes, walletRes] = await Promise.all([
@@ -122,17 +156,19 @@ export default function Settings() {
       ]);
       if (subRes?.success && subRes.subscription) {
         setCurrentSub(subRes.subscription);
+        AsyncStorage.setItem(subCacheKey, JSON.stringify(subRes.subscription)).catch(() => {});
       }
       if (walletRes?.success && walletRes.wallet) {
         setWalletBalance(walletRes.wallet.balance);
         if (walletRes.wallet.currency) {
           setWalletCurrency(walletRes.wallet.currency.toUpperCase());
         }
+        AsyncStorage.setItem(walletCacheKey, JSON.stringify(walletRes.wallet)).catch(() => {});
       }
     } catch {
       // Non-critical background fetch
     }
-  }, []);
+  }, [subCacheKey, walletCacheKey]);
 
   useEffect(() => {
     loadBillingSummary();

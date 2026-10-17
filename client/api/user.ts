@@ -10,6 +10,7 @@ export interface UserProfilePayload {
   goal?: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
   gender?: 'MALE' | 'FEMALE';
   avatarUrl?: string | null;
+  activityLevel?: string;
 }
 
 export const getUserProfile = () => apiRequest('/api/user/profile');

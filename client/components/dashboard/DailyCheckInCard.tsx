@@ -99,6 +99,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   const [showNotesInput, setShowNotesInput] = useState(false);
   const [savingNote, setSavingNote] = useState(false);
   const [isSavingMood, setIsSavingMood] = useState(false);
+  const [isEditingMood, setIsEditingMood] = useState(false);
 
   // Streak state
   const [streakStats, setStreakStats] = useState<CheckInStreakStats>({
@@ -193,6 +194,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   const handleSelectMood = async (mood: MoodOption) => {
     setSelectedMoodId(mood.id);
     setIsCheckedIn(true);
+    setIsEditingMood(false);
     setIsSavingMood(true);
 
     const checkinKey = authStorage.getScopedKey(userId, `daily_checkin_${todayKey}`);
@@ -297,6 +299,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
   const handleResetCheckIn = async () => {
     setIsCheckedIn(false);
+    setIsEditingMood(false);
     setSelectedMoodId(null);
     setNotes('');
     setShowNotesInput(false);
@@ -333,7 +336,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   return (
     <SurfaceCard className="mb-3">
       {/* Header Row: Title & Streaks */}
-      <View className="flex-row justify-between items-center mb-2.5">
+      <View className="flex-row justify-between items-center mb-3">
         <View className="flex-1 mr-2">
           <View className="flex-row items-center gap-1.5">
             <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
@@ -341,57 +344,75 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             </Text>
           </View>
           <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5">
-            {isCheckedIn && selectedMood
-              ? `Today: ${selectedMood.label}`
-              : 'Log morning energy'}
+            {isCheckedIn && selectedMood && !isEditingMood
+              ? `Logged for today • ${selectedMood.label}`
+              : isEditingMood
+              ? 'Select your updated readiness'
+              : 'How are you feeling today?'}
           </Text>
         </View>
 
-        {/* Toggle / Edit Action */}
+        {/* Right Actions: Change/Cancel button */}
         <View className="flex-row items-center gap-1.5">
           {isCheckedIn ? (
-            <TouchableOpacity
-              onPress={() => setIsCheckedIn(false)}
-              activeOpacity={0.7}
-              className="bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 rounded-full flex-row items-center"
-            >
-              <Ionicons name="checkmark" size={12} color="#10B981" style={{ marginRight: 4 }} />
-              <Text className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider">
-                Edit
-              </Text>
-            </TouchableOpacity>
+            isEditingMood ? (
+              <TouchableOpacity
+                onPress={() => setIsEditingMood(false)}
+                activeOpacity={0.7}
+                className="bg-input dark:bg-input-dark border border-input-border dark:border-input-border-dark px-2.5 py-1 rounded-full flex-row items-center"
+              >
+                <Ionicons name="close" size={11} color={colors.textMuted} style={{ marginRight: 3 }} />
+                <Text className="text-text-muted dark:text-text-muted-dark font-bold text-[10px] uppercase tracking-wider">
+                  Cancel
+                </Text>
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                onPress={() => setIsEditingMood(true)}
+                activeOpacity={0.7}
+                className="bg-accent/10 dark:bg-accent-dark/15 border border-accent/25 dark:border-accent-dark/30 px-2.5 py-1 rounded-full flex-row items-center"
+              >
+                <Ionicons name="pencil" size={10} color={colors.accent} style={{ marginRight: 3 }} />
+                <Text className="text-accent dark:text-accent-dark font-bold text-[10px] uppercase tracking-wider">
+                  Change
+                </Text>
+              </TouchableOpacity>
+            )
           ) : null}
         </View>
       </View>
 
-      {/* Mood Selector Buttons */}
-      {!isCheckedIn ? (
-        <View className="mb-2">
-          <View className="flex-row flex-wrap justify-between gap-1.5 mb-2">
+      {/* Mood Selector Buttons: 5 items in a single responsive row */}
+      {!isCheckedIn || isEditingMood ? (
+        <View className="mb-2.5">
+          <View className="flex-row items-center gap-1.5">
             {MOODS.map((mood) => {
               const isSelected = selectedMoodId === mood.id;
               return (
                 <TouchableOpacity
                   key={mood.id}
-                  activeOpacity={0.8}
+                  activeOpacity={0.75}
                   disabled={isSavingMood}
                   onPress={() => handleSelectMood(mood)}
-                  className={`w-[31%] min-w-[80px] sm:w-auto sm:flex-1 py-2 px-1 rounded-xl items-center justify-center border transition-all ${
+                  className={`flex-1 py-2.5 px-0.5 rounded-xl items-center justify-center border ${
                     isSelected
-                      ? 'bg-accent/15 dark:bg-accent-dark/20 border-accent dark:border-accent-dark shadow-xs'
+                      ? 'border-transparent shadow-xs'
                       : 'bg-input dark:bg-input-dark border-input-border dark:border-input-border-dark'
                   }`}
+                  style={{
+                    backgroundColor: isSelected ? `${mood.color}25` : undefined,
+                    borderColor: isSelected ? mood.color : undefined,
+                  }}
                 >
-                  <Text className="text-base mb-0.5">{mood.emoji}</Text>
+                  <Text className="text-xl mb-1">{mood.emoji}</Text>
                   <Text
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    minimumFontScale={0.8}
-                    className={`text-[10px] font-bold text-center leading-tight ${
-                      isSelected
-                        ? 'text-accent dark:text-accent-dark'
-                        : 'text-text-muted dark:text-text-muted-dark'
-                    }`}
+                    minimumFontScale={0.75}
+                    className="text-[10px] font-bold text-center leading-tight"
+                    style={{
+                      color: isSelected ? mood.color : colors.textMuted,
+                    }}
                   >
                     {mood.label}
                   </Text>
@@ -403,31 +424,34 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       ) : selectedMood ? (
         /* Checked-In Active Recommendation Box */
         <View className="bg-input dark:bg-input-dark rounded-2xl p-3.5 mb-2.5 border border-input-border dark:border-input-border-dark">
-          <View className="flex-row items-start mb-2">
+          <View className="flex-row items-start mb-2.5">
             <View
-              className="w-10 h-10 rounded-xl items-center justify-center mr-3 border"
+              className="w-11 h-11 rounded-xl items-center justify-center mr-3 border"
               style={{
                 backgroundColor: `${selectedMood.color}15`,
-                borderColor: `${selectedMood.color}30`,
+                borderColor: `${selectedMood.color}35`,
               }}
             >
               <Text className="text-2xl">{selectedMood.emoji}</Text>
             </View>
             <View className="flex-1">
               <View className="flex-row items-center justify-between">
-                <Text className="text-text-primary dark:text-text-primary-dark font-black text-xs">
-                  {selectedMood.label} Focus
-                </Text>
+                <View className="flex-1 mr-2">
+                  <Text className="text-text-primary dark:text-text-primary-dark font-black text-sm">
+                    {selectedMood.label}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   onPress={handleResetCheckIn}
+                  activeOpacity={0.7}
                   className="px-2 py-0.5 rounded-md bg-danger/10 border border-danger/20"
                 >
                   <Text className="text-[10px] font-bold text-danger dark:text-danger-dark">
-                    Reset
+                    Clear
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-4 mt-1">
+              <Text className="text-text-secondary dark:text-text-secondary-dark text-xs leading-4 mt-1.5">
                 {selectedMood.coachTip}
               </Text>
             </View>
@@ -435,19 +459,22 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
           {/* Optional Reflection Note Section */}
           {showNotesInput ? (
-            <View className="mt-2 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50">
+            <View className="mt-2.5 pt-2.5 border-t border-input-border/60 dark:border-input-border-dark/60">
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 placeholder="Optional: How did you sleep? Any soreness?"
                 placeholderTextColor={colors.textMuted}
                 maxLength={200}
-                className="bg-surface dark:bg-surface-dark p-2 rounded-xl text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2"
+                multiline
+                numberOfLines={2}
+                className="bg-surface dark:bg-surface-dark p-2.5 rounded-xl text-text-primary dark:text-text-primary-dark text-xs border border-input-border dark:border-input-border-dark mb-2 min-h-[52px]"
+                textAlignVertical="top"
               />
               <View className="flex-row justify-end gap-2">
                 <TouchableOpacity
                   onPress={() => setShowNotesInput(false)}
-                  className="px-2.5 py-1 rounded-lg border border-input-border dark:border-input-border-dark"
+                  className="px-3 py-1.5 rounded-lg border border-input-border dark:border-input-border-dark"
                 >
                   <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
                     Cancel
@@ -456,7 +483,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                 <TouchableOpacity
                   onPress={handleSaveNote}
                   disabled={savingNote}
-                  className="px-3 py-1 rounded-lg bg-accent dark:bg-accent-dark flex-row items-center"
+                  className="px-3 py-1.5 rounded-lg bg-accent dark:bg-accent-dark flex-row items-center"
                 >
                   {savingNote ? (
                     <ActivityIndicator size="small" color="#FFFFFF" className="mr-1" />
@@ -471,27 +498,26 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowNotesInput(true)}
-              className="mt-2 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row items-center justify-between"
+              className="mt-2 pt-2 border-t border-input-border/60 dark:border-input-border-dark/60 flex-row items-start justify-between"
             >
-              <View className="flex-row items-center flex-1 mr-2">
-                <Ionicons name="create-outline" size={13} color={colors.accent} style={{ marginRight: 5 }} />
+              <View className="flex-row items-start flex-1 mr-2">
+                <Ionicons name="chatbubble-ellipses-outline" size={13} color={colors.accent} style={{ marginRight: 5, marginTop: 1 }} />
                 <Text
-                  className="text-xs italic text-text-primary dark:text-text-primary-dark"
-                  numberOfLines={1}
+                  className="text-xs italic text-text-primary dark:text-text-primary-dark leading-4 flex-1"
                 >
                   "{notes}"
                 </Text>
               </View>
-              <Text className="text-[10px] text-accent dark:text-accent-dark font-bold">Edit</Text>
+              <Text className="text-[10px] text-accent dark:text-accent-dark font-bold ml-1">Edit</Text>
             </TouchableOpacity>
           ) : (
             <TouchableOpacity
               activeOpacity={0.7}
               onPress={() => setShowNotesInput(true)}
-              className="mt-1 pt-1.5 border-t border-input-border/40 dark:border-input-border-dark/40 flex-row items-center"
+              className="mt-1.5 pt-2 border-t border-input-border/50 dark:border-input-border-dark/50 flex-row items-center"
             >
-              <Ionicons name="add-circle-outline" size={14} color={colors.textMuted} style={{ marginRight: 4 }} />
-              <Text className="text-[10px] font-bold text-text-muted dark:text-text-muted-dark">
+              <Ionicons name="add-circle-outline" size={14} color={colors.textMuted} style={{ marginRight: 5 }} />
+              <Text className="text-[11px] font-medium text-text-muted dark:text-text-muted-dark">
                 Add morning reflection note...
               </Text>
             </TouchableOpacity>
@@ -505,7 +531,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
           <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
             “{currentQuote.quote}”
           </Text>
-          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-0.5 font-semibold">
+          <Text className="text-text-muted dark:text-text-muted-dark text-[10px] mt-1 font-semibold">
             — {currentQuote.author}
           </Text>
         </View>

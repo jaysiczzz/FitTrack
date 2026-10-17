@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TextInputProps, TouchableOpacity, Pressable } from 'react-native';
+import { View, Text, TextInput, TextInputProps, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from 'nativewind';
 import FieldLabel from './FieldLabel';
@@ -71,14 +71,9 @@ const Input = React.forwardRef<TextInput, InputProps>(
     return (
       <View className="w-full mb-3">
         {label ? (
-          <Pressable
-            onPress={() => inputRef.current?.focus()}
-            hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
-          >
-            <FieldLabel className={labelClassName}>
-              {label}
-            </FieldLabel>
-          </Pressable>
+          <FieldLabel className={labelClassName}>
+            {label}
+          </FieldLabel>
         ) : null}
 
         <View
@@ -86,7 +81,7 @@ const Input = React.forwardRef<TextInput, InputProps>(
             error
               ? 'border-danger dark:border-danger-dark'
               : isFocused
-              ? 'border-accent dark:border-accent-dark ring-1 ring-accent/30'
+              ? 'border-accent dark:border-accent-dark'
               : 'border-input-border dark:border-input-border-dark'
           }`}
         >

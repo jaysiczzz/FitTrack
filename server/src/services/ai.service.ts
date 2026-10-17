@@ -1,8 +1,19 @@
 import 'dotenv/config'
 import { GoogleGenAI, Type } from '@google/genai'
 
-function getAI() {
-  const apiKey = process.env.GEMINI_API_KEY
+function getApiKeys(): string[] {
+  const keys: string[] = []
+  if (process.env.GEMINI_API_KEY) {
+    keys.push(...process.env.GEMINI_API_KEY.split(',').map((k) => k.trim()).filter(Boolean))
+  }
+  if (process.env.GEMINI_BACKUP_API_KEY) {
+    keys.push(...process.env.GEMINI_BACKUP_API_KEY.split(',').map((k) => k.trim()).filter(Boolean))
+  }
+  return Array.from(new Set(keys))
+}
+
+function getAI(customKey?: string) {
+  const apiKey = customKey || getApiKeys()[0]
   if (!apiKey) {
     throw new Error('GEMINI_API_KEY is not configured on the server. Please set GEMINI_API_KEY in your environment variables.')
   }
@@ -10,45 +21,60 @@ function getAI() {
 }
 
 const CANDIDATE_MODELS = [
+  'gemini-3.7-flash',
+  'gemini-3.5-flash-lite',
+  'gemini-flash-lite-latest',
   'gemini-3.5-flash',
   'gemini-3.6-flash',
-  'gemini-3.5-flash-lite',
-  'gemini-flash-latest',
 ]
 
 async function generateWithFallback(
   contents: any,
   config: any
 ) {
-  const ai = getAI()
+  const apiKeys = getApiKeys()
+  if (apiKeys.length === 0) {
+    throw new Error('GEMINI_API_KEY is not configured on the server. Please set GEMINI_API_KEY in your environment variables.')
+  }
+
   const primaryModel = process.env.GEMINI_MODEL || CANDIDATE_MODELS[0]
   const modelsToTry = [primaryModel, ...CANDIDATE_MODELS.filter((m) => m !== primaryModel)]
 
   let lastError: any = null
-  for (const model of modelsToTry) {
-    for (let attempt = 1; attempt <= 2; attempt++) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-          config,
-        })
-        if (response && response.text) {
-          return response.text
-        }
-      } catch (err: any) {
-        lastError = err
-        const is503 = err?.status === 503 || (err?.message && (err.message.includes('503') || err.message.includes('high demand')))
-        console.warn(`[AI Service] Model ${model} (attempt ${attempt}) failed: ${err.message || err}`)
-        if (is503 && attempt === 1) {
-          await new Promise((resolve) => setTimeout(resolve, 1500))
-        } else {
-          break
+
+  for (const apiKey of apiKeys) {
+    const ai = new GoogleGenAI({ apiKey })
+
+    for (const model of modelsToTry) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model,
+            contents,
+            config,
+          })
+          if (response && response.text) {
+            return response.text
+          }
+        } catch (err: any) {
+          lastError = err
+          const is503 = err?.status === 503 || (err?.message && (err.message.includes('503') || err.message.includes('high demand')))
+          const is429 = err?.status === 429 || (err?.message && (err.message.includes('429') || err.message.includes('quota') || err.message.includes('RESOURCE_EXHAUSTED')))
+          console.warn(`[AI Service] Model ${model} (attempt ${attempt}) failed: ${err.message || err}`)
+          if (is429) {
+            // Immediately skip retrying this exhausted model and move to the next candidate model
+            break
+          }
+          if (is503 && attempt === 1) {
+            await new Promise((resolve) => setTimeout(resolve, 1500))
+          } else {
+            break
+          }
         }
       }
+      // Brief pause before trying next fallback model
+      await new Promise((resolve) => setTimeout(resolve, 300))
     }
-    // Brief pause before trying next fallback model
-    await new Promise((resolve) => setTimeout(resolve, 600))
   }
 
   if (lastError?.message && (lastError.message.includes('503') || lastError.message.includes('high demand'))) {
@@ -305,17 +331,48 @@ export async function generateAIWorkout(userProfile: {
   goal: string
   gender?: string
   targetArea?: string
+  activityLevel?: string
+  personalRecords?: Array<{ exerciseName: string; weight: number; reps: number; record?: string }>
+  workoutsCompletedThisWeek?: number
+  lastWorkoutTitle?: string
+  lastWorkoutExercises?: string[]
 }): Promise<AIWorkoutPlan> {
+  const prText = userProfile.personalRecords && userProfile.personalRecords.length > 0
+    ? userProfile.personalRecords
+        .slice(0, 12)
+        .map((p) => `${p.exerciseName}: ${p.weight > 0 ? `${p.weight}kg` : 'Bodyweight'} × ${p.reps} reps`)
+        .join(', ')
+    : 'None logged yet (beginner baseline calibration)'
+
+  const recentHistoryText = userProfile.lastWorkoutTitle
+    ? `Completed ${userProfile.workoutsCompletedThisWeek || 0} workout sessions in the last 7 days. Most recent workout was "${userProfile.lastWorkoutTitle}"${userProfile.lastWorkoutExercises && userProfile.lastWorkoutExercises.length > 0 ? ` (${userProfile.lastWorkoutExercises.slice(0, 4).join(', ')})` : ''}.`
+    : `Completed ${userProfile.workoutsCompletedThisWeek || 0} workout sessions in the last 7 days.`
+
   const prompt = `Design a customized workout routine for a user with:
 - Fitness Goal: ${userProfile.goal}
 - Target focus: ${userProfile.targetArea || 'Full Body'}
+- Daily Activity Level: ${userProfile.activityLevel || 'LIGHTLY_ACTIVE'}
 - Weight: ${userProfile.weight}kg, Height: ${userProfile.height}cm, Sex: ${userProfile.gender || 'Not specified'}.
+- Recent Training Frequency & History: ${recentHistoryText}
+- User's Verified Personal Records (Past Best Lifts): ${prText}
+
+Exercise Programming & Weight Prescription Guidelines:
+1. Progressive Overload Calibration:
+   - If the user has logged Personal Records for an exercise (or similar movement pattern, e.g. Bench Press PR for any chest press), calibrate suggestedWeightKg directly based on their past best performance:
+     * Working weight for Hypertrophy/Strength (6-12 reps): Prescribe approximately 70% to 85% of their logged PR weight for working sets.
+     * If no PR is recorded for an exercise, prescribe a safe, evidence-based starting weight calibrated to their body weight (${userProfile.weight}kg) and activity level.
+2. Activity Level Tuning:
+   - If SEDENTARY: Prioritize core/posture stability, mobility warm-ups, lighter starting weights, and 12-15 controlled reps to prevent excessive soreness.
+   - If LIGHTLY_ACTIVE / MODERATELY_ACTIVE: Prescribe balanced progressive overload with 8-12 reps per set and classic compound lifts.
+   - If VERY_ACTIVE: Prescribe high-intensity progression, challenging compound lifts, 6-10 rep strength/hypertrophy sets, and optional supersets.
+3. Fatigue & Recovery:
+   - Avoid over-fatiguing muscles that were heavily taxed in their most recent workout session.
 
 Return a JSON object containing:
 - title: Name of the workout session
 - estimatedDurationMinutes: Estimated duration in minutes
 - targetMuscleGroup: Main muscle group targeted
-- exercises: Array of 4-5 exercises with name, category, sets, reps, and optional suggestedWeightKg.`
+- exercises: Array of 4-5 exercises with name, category, sets, reps, and optional suggestedWeightKg (realistic working weight in kg).`
 
   const text = await generateWithFallback(prompt, {
     responseMimeType: 'application/json',
@@ -514,6 +571,7 @@ export interface UserChatContext {
   todayCheckInMood?: string
   todayCheckInNotes?: string
   checkInStreak?: number
+  activityLevel?: string
 }
 
 export async function chatWithAICoach(
@@ -533,6 +591,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
 - Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
+- Baseline Activity Level: ${context.activityLevel || 'LIGHTLY_ACTIVE'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal
@@ -591,6 +650,7 @@ You are conversing directly with ${context.firstName || 'the user'}.
 === User Real-Time Profile & Daily Context ===
 - Fitness Goal: ${goalDisplay}
 - Physical Stats: ${context.weight ? `${context.weight} kg` : 'N/A'}, ${context.height ? `${context.height} cm` : 'N/A'}, ${context.age ? `${context.age} years old` : 'N/A'}, Sex: ${context.gender || 'Not specified'}
+- Baseline Activity Level: ${context.activityLevel || 'LIGHTLY_ACTIVE'}
 - Today's Readiness Check-In: ${context.todayCheckInMood ? `${context.todayCheckInMood}${context.todayCheckInNotes ? ` (Notes: "${context.todayCheckInNotes}")` : ''}` : 'Not checked in yet today'}
 - Daily Check-In Streak: ${context.checkInStreak ? `${context.checkInStreak} days 🔥` : 'Active'}
 - Nutrition Today: ${context.caloriesLoggedToday ?? 0} / ${context.targetCalories || 2000} kcal

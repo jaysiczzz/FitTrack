@@ -1,5 +1,5 @@
 import { prisma } from '../config/db'
-import { Goal, Gender } from '@prisma/client'
+import { Goal, Gender, ActivityLevel } from '@prisma/client'
 
 export const findByEmail = (email: string) => {
     return prisma.user.findUnique({ where: { email } })
@@ -21,6 +21,7 @@ export const findById = (id: string) => {
             targetWeight: true,
             age: true,
             goal: true,
+            activityLevel: true,
             createdAt: true,
             subscription: {
                 select: {
@@ -43,6 +44,7 @@ export const createUser = (data: {
     targetWeight?: number;
     age: number;
     goal: Goal;
+    activityLevel?: ActivityLevel;
 }) => {
     return prisma.user.create({ data })
 }
@@ -59,6 +61,7 @@ export const updateUser = (
         targetWeight?: number | null;
         age?: number;
         goal?: Goal;
+        activityLevel?: ActivityLevel;
     }
 ) => {
     return prisma.user.update({
@@ -77,6 +80,7 @@ export const updateUser = (
             targetWeight: true,
             age: true,
             goal: true,
+            activityLevel: true,
             createdAt: true,
             subscription: {
                 select: {

@@ -10,6 +10,7 @@ export const registerUser = (payload: {
   weight: number;
   age: number;
   goal: 'MUSCLE_GAIN' | 'WEIGHT_LOSS';
+  activityLevel?: string;
 }) => apiRequest('/api/auth/register', { method: 'POST', body: payload as any });
 
 export const loginUser = (payload: { email: string; password: string }) =>

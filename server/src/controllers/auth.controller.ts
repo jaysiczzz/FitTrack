@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import * as userModel from '../models/user.model'
-import { Goal, Gender } from '@prisma/client'
+import { Goal, Gender, ActivityLevel } from '@prisma/client'
 import { hashPassword, comparePassword, validatePasswordStrength } from '../utils/password.utils'
 import { signAccessToken, createRefreshToken, rotateRefreshToken, revokeRefreshToken, revokeAllUserTokens, recordPasswordChangeTimestamp } from '../utils/jwt.utils'
 import { asyncHandler } from '../utils/asyncHandler.utils'
@@ -62,12 +62,13 @@ export const login = asyncHandler(async (req: Request, res: Response) => {
             lastName: capitalizeWords(user.lastName),
             role: user.role,
             gender: user.gender,
+            activityLevel: user.activityLevel,
         },
     })
 })
 
 export const register = asyncHandler(async (req: Request, res: Response) => {
-    const { firstName, lastName, email, password, goal, gender } = req.body
+    const { firstName, lastName, email, password, goal, gender, activityLevel } = req.body
 
     if (!firstName || !lastName || !email || !password ||
         req.body.height === undefined || req.body.weight === undefined ||
@@ -114,6 +115,11 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         }
     }
 
+    let userActivityLevel: ActivityLevel = ActivityLevel.LIGHTLY_ACTIVE
+    if (activityLevel && Object.values(ActivityLevel).includes(activityLevel)) {
+        userActivityLevel = activityLevel as ActivityLevel
+    }
+
     const existingUser = await userModel.findByEmail(normalizedEmail)
     if (existingUser) {
         return res.status(409).json({ error: 'An account with this email already exists' })
@@ -151,6 +157,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
         weight,
         age,
         goal: goal as Goal,
+        activityLevel: userActivityLevel,
     })
 
     // Dispatch a one-time onboarding welcome notification
@@ -188,6 +195,7 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
             weight: user.weight,
             age: user.age,
             goal: user.goal,
+            activityLevel: user.activityLevel,
         },
     })
 })
@@ -297,10 +305,11 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
     })
 
     // Generate 6-digit numeric OTP code
+    // Generate 6-digit numeric OTP code
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes validity
 
-    await prisma.passwordResetToken.create({
+    const resetTokenRecord = await prisma.passwordResetToken.create({
         data: {
             email: normalizedEmail,
             code,
@@ -308,16 +317,23 @@ export const requestPasswordReset = asyncHandler(async (req: Request, res: Respo
         },
     })
 
-    // Dispatch email asynchronously without blocking the user response
-    sendPasswordResetEmail(normalizedEmail, code, user.firstName).catch((err) => {
-        console.error('[EMAIL ERROR] Async password reset code delivery failed:', err?.message || err)
-    })
+    // Dispatch email and await delivery status
+    const deliveryResult = await sendPasswordResetEmail(normalizedEmail, code, user.firstName)
+
+    if (process.env.NODE_ENV === 'production' && !deliveryResult.delivered) {
+        // Remove token if delivery failed so user is not blocked or confused
+        await prisma.passwordResetToken.delete({ where: { id: resetTokenRecord.id } }).catch(() => {})
+        return res.status(500).json({
+            error: 'Failed to send password reset email. Please try again shortly or contact support.',
+        })
+    }
 
     res.json({
         success: true,
         message: 'A 6-digit verification code has been sent to your email.',
         email: normalizedEmail,
-        delivered: true,
+        delivered: deliveryResult.delivered,
+        ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
     })
 })
 
@@ -479,7 +495,7 @@ export const sendVerification = asyncHandler(async (req: Request, res: Response)
     const code = Math.floor(100000 + Math.random() * 900000).toString()
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000) // 15 minutes validity
 
-    await prisma.emailVerification.create({
+    const verificationRecord = await prisma.emailVerification.create({
         data: {
             email: normalizedEmail,
             code,
@@ -488,22 +504,23 @@ export const sendVerification = asyncHandler(async (req: Request, res: Response)
         },
     })
 
-    // Dispatch email asynchronously without blocking the user response
-    sendEmailVerificationEmail(normalizedEmail, code, firstName)
-        .then((deliveryResult) => {
-            if (!deliveryResult.delivered) {
-                console.warn(`[AUTH] Email to ${normalizedEmail} was simulated or could not be delivered by SMTP provider.`)
-            }
+    // 6. Dispatch email and await delivery status
+    const deliveryResult = await sendEmailVerificationEmail(normalizedEmail, code, firstName)
+
+    if (process.env.NODE_ENV === 'production' && !deliveryResult.delivered) {
+        // Clean up record if delivery failed so user can immediately retry without 30s cooldown
+        await prisma.emailVerification.delete({ where: { id: verificationRecord.id } }).catch(() => {})
+        return res.status(500).json({
+            error: 'Failed to deliver verification email. Please check your email address or try again shortly.',
+            field: 'email',
         })
-        .catch((err) => {
-            console.error('[EMAIL ERROR] Async verification email delivery failed:', err?.message || err)
-        })
+    }
 
     res.json({
         success: true,
         message: 'A 6-digit verification code has been sent to your email.',
         email: normalizedEmail,
-        delivered: true,
+        delivered: deliveryResult.delivered,
         ...(process.env.NODE_ENV !== 'production' ? { devCode: code } : {}),
     })
 })

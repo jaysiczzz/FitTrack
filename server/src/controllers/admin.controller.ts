@@ -217,6 +217,7 @@ export const getAdminUsers = asyncHandler(async (req: AuthRequest, res: Response
       email: true,
       firstName: true,
       lastName: true,
+      avatarUrl: true,
       role: true,
       isSuspended: true,
       suspendedReason: true,
@@ -235,8 +236,17 @@ export const getAdminUsers = asyncHandler(async (req: AuthRequest, res: Response
       },
       _count: {
         select: {
-          workoutSessions: true,
-          dailyFoodLogs: true,
+          workoutSessions: {
+            where: { completed: true },
+          },
+          dailyFoodLogs: {
+            where: {
+              OR: [
+                { isCompleted: true },
+                { meals: { some: {} } },
+              ],
+            },
+          },
         },
       },
     },

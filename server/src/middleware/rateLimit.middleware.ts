@@ -1,22 +1,104 @@
-import rateLimit, { ipKeyGenerator } from 'express-rate-limit'
+import rateLimit, { ipKeyGenerator, MemoryStore } from 'express-rate-limit'
+import type { Store, Options, IncrementResponse } from 'express-rate-limit'
 import { RedisStore } from 'rate-limit-redis'
 import jwt from 'jsonwebtoken'
-import { AuthRequest } from './auth.middleware'
 import { getRedisClient, isRedisConfigured } from '../config/redis'
 
 /**
- * Creates a distributed RedisStore instance if REDIS_URL is configured,
- * otherwise returns undefined so express-rate-limit falls back to memory store.
+ * Resilient Store that delegates to Redis when connected,
+ * and seamlessly falls back to in-memory tracking if Redis is unreachable or reconnecting.
+ * This ensures that Redis downtime or network blips never crash user requests or return 500 errors.
  */
-function getDistributedStore(prefix: string) {
-  if (!isRedisConfigured()) return undefined
-  const client = getRedisClient()
-  if (!client) return undefined
-  return new RedisStore({
-    // @ts-expect-error - ioredis call compatibility
-    sendCommand: (...args: string[]) => client.call(...args),
-    prefix: `rl:${prefix}:`,
-  })
+class ResilientRateLimitStore implements Store {
+  public prefix: string
+  public localKeys = false
+  private memoryStore: MemoryStore
+  private redisStore: RedisStore | null = null
+
+  constructor(prefix: string) {
+    this.prefix = prefix
+    this.memoryStore = new MemoryStore()
+    if (isRedisConfigured()) {
+      const client = getRedisClient()
+      if (client) {
+        this.redisStore = new RedisStore({
+          sendCommand: (...args: string[]) => {
+            if (!client || client.status !== 'ready') {
+              return Promise.reject(new Error('Redis connection is not ready'))
+            }
+            return (client as any).call(...args)
+          },
+          prefix: `rl:${prefix}:`,
+        })
+      }
+    }
+  }
+
+  async init(options: Options): Promise<void> {
+    this.memoryStore.init(options)
+    if (this.redisStore) {
+      try {
+        await this.redisStore.init(options)
+      } catch {
+        // Suppress init error if Redis is offline during server start; scripts will load on demand
+      }
+    }
+  }
+
+  async increment(key: string): Promise<IncrementResponse> {
+    const client = getRedisClient()
+    if (this.redisStore && client?.status === 'ready') {
+      try {
+        const timeoutPromise = new Promise<never>((_, reject) =>
+          setTimeout(() => reject(new Error('Redis timeout')), 1000)
+        )
+        return await Promise.race([this.redisStore.increment(key), timeoutPromise])
+      } catch {
+        // Fall back to memoryStore so athlete requests are never rejected or stalled
+      }
+    }
+    return this.memoryStore.increment(key)
+  }
+
+  async decrement(key: string): Promise<void> {
+    const client = getRedisClient()
+    if (this.redisStore && client?.status === 'ready') {
+      try {
+        await this.redisStore.decrement(key)
+      } catch {
+        // Ignore fallback error
+      }
+    }
+    return this.memoryStore.decrement(key)
+  }
+
+  async resetKey(key: string): Promise<void> {
+    const client = getRedisClient()
+    if (this.redisStore && client?.status === 'ready') {
+      try {
+        await this.redisStore.resetKey(key)
+      } catch {
+        // Ignore fallback error
+      }
+    }
+    return this.memoryStore.resetKey(key)
+  }
+
+  async resetAll(): Promise<void> {
+    const client = getRedisClient()
+    if (this.redisStore && client?.status === 'ready') {
+      try {
+        await (this.redisStore as any).resetAll?.()
+      } catch {
+        // Ignore fallback error
+      }
+    }
+    return this.memoryStore.resetAll?.()
+  }
+}
+
+function getRateLimitStore(prefix: string): Store {
+  return new ResilientRateLimitStore(prefix)
 }
 
 /**
@@ -54,7 +136,8 @@ export const authLimiter = rateLimit({
   max: process.env.NODE_ENV === 'production' ? 20 : 500, // 20 in production, generous in local development
   standardHeaders: true,
   legacyHeaders: false,
-  store: getDistributedStore('auth'),
+  passOnStoreError: true,
+  store: getRateLimitStore('auth'),
   message: {
     error: 'Too many authentication attempts from this IP. Please try again after 15 minutes.',
   },
@@ -71,11 +154,12 @@ export const aiLimiter = rateLimit({
   max: 15, // 15 AI requests per minute per user
   standardHeaders: true,
   legacyHeaders: false,
+  passOnStoreError: true,
   keyGenerator: (req) => getClientIdentifier(req),
   validate: {
     keyGeneratorIpFallback: false,
   },
-  store: getDistributedStore('ai'),
+  store: getRateLimitStore('ai'),
   message: {
     error: 'AI request quota reached for this minute. Please wait a moment before trying again.',
   },
@@ -96,10 +180,12 @@ export const generalApiLimiter = rateLimit({
   validate: {
     keyGeneratorIpFallback: false,
   },
-  store: getDistributedStore('general'),
+  passOnStoreError: true,
+  store: getRateLimitStore('general'),
   standardHeaders: true,
   legacyHeaders: false,
   message: {
     error: 'Too many requests. Please try again later.',
   },
 })
+
