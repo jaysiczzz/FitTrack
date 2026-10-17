@@ -11,7 +11,6 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useColorScheme } from 'nativewind';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { authStorage } from '@/utils/authStorage';
@@ -52,8 +51,7 @@ import { useWeightUnit, useHeightUnit } from '@/constants/units';
 
 export default function Settings() {
   const router = useRouter();
-  const { colorScheme, setColorScheme } = useColorScheme();
-  const { colors } = useThemeColors();
+  const { colors, isDark, setColorScheme } = useThemeColors();
   const { user, logout, refreshProfile } = useAuth();
   const { showSuccess, showWarning, showError } = useToast();
   const [weightUnit, setWeightUnit] = useWeightUnit();
@@ -66,19 +64,9 @@ export default function Settings() {
     refreshProfile().catch(() => {});
   }, [refreshProfile]);
 
-  // Optimistic Theme State
-  const [isDarkLocal, setIsDarkLocal] = useState(colorScheme === 'dark');
-
-  useEffect(() => {
-    setIsDarkLocal(colorScheme === 'dark');
-  }, [colorScheme]);
-
-  const handleToggleTheme = (isDark: boolean) => {
+  const handleToggleTheme = (nextDark: boolean) => {
     hapticFeedback.light();
-    setIsDarkLocal(isDark);
-    const newTheme = isDark ? 'dark' : 'light';
-    setColorScheme(newTheme);
-    AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
+    setColorScheme(nextDark ? 'dark' : 'light');
   };
 
   // Modals
@@ -902,12 +890,12 @@ export default function Settings() {
                 Dark Mode
               </Text>
               <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-0.5">
-                {isDarkLocal ? 'Dark theme enabled' : 'Light theme enabled'}
+                {isDark ? 'Dark theme enabled' : 'Light theme enabled'}
               </Text>
             </View>
 
             <Switch
-              value={isDarkLocal}
+              value={isDark}
               onValueChange={handleToggleTheme}
               thumbColor={colors.surface}
               trackColor={{

@@ -2,7 +2,7 @@ import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ProgressBar from '@/components/ui/ProgressBar';
-import { useColorScheme } from 'nativewind';
+import { useColorScheme } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
 import { hapticFeedback } from '@/utils/haptics';
 import {

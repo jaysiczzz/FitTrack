@@ -14,7 +14,7 @@ import { ToastProvider } from "../context/ToastContext";
 import { AuthProvider } from "../context/AuthContext";
 import { SocketProvider } from "../context/SocketContext";
 import { WorkoutTimerProvider } from "../context/WorkoutTimerContext";
-import { useColorScheme } from "nativewind";
+import { useThemeColors, initAppTheme } from "@/constants/colors";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { StatusBar } from "expo-status-bar";
 import { initWebAriaFix } from "@/utils/webAriaFix";
@@ -60,7 +60,7 @@ export function ErrorBoundary({ error, retry }: { error: Error; retry: () => voi
 }
 
 export default function RootLayout() {
-  const { colorScheme, setColorScheme } = useColorScheme();
+  const { colorScheme } = useThemeColors();
   const [fontsLoaded] = useFonts({
     Baloo2_400Regular,
     Baloo2_500Medium,
@@ -69,15 +69,7 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    AsyncStorage.getItem(THEME_STORAGE_KEY)
-      .then((savedTheme) => {
-        if (savedTheme === 'dark' || savedTheme === 'light') {
-          if (savedTheme !== colorScheme) {
-            setColorScheme(savedTheme);
-          }
-        }
-      })
-      .catch(() => {});
+    initAppTheme().catch(() => {});
   }, []);
 
   const router = useRouter();

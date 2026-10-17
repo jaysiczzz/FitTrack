@@ -74,7 +74,91 @@ export const COLORS = {
   },
 };
 
-import { useColorScheme } from 'nativewind';
+import { useState, useEffect } from 'react';
+import { Appearance, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useColorScheme as useNativeWindColorScheme } from 'nativewind';
+
+export const THEME_STORAGE_KEY = 'fittrack_theme_preference';
+
+export type AppColorScheme = 'light' | 'dark';
+
+// Global synchronous theme state for instant 0ms access across the app
+let activeTheme: AppColorScheme = (Appearance.getColorScheme() === 'dark' ? 'dark' : 'light');
+let themeHasBeenSet = false;
+
+const themeListeners = new Set<(theme: AppColorScheme) => void>();
+
+/**
+ * Synchronously notifies react-native-css-interop observable so all
+ * Tailwind `dark:` variant classes update in 0ms without waiting for
+ * the slow asynchronous Android native bridge event.
+ */
+function notifyNativeWindObservable(theme: AppColorScheme) {
+  if (Platform.OS !== 'web') {
+    try {
+      const appearanceObservables = require('react-native-css-interop/dist/runtime/native/appearance-observables');
+      if (appearanceObservables?.systemColorScheme && typeof appearanceObservables.systemColorScheme.set === 'function') {
+        appearanceObservables.systemColorScheme.set(theme);
+      }
+    } catch {
+      // Ignored if bundled differently
+    }
+  }
+}
+
+/**
+ * Sets the app theme instantaneously (0ms delay).
+ * Synchronously notifies all React components, updates NativeWind observables,
+ * syncs native Appearance, and persists the choice to AsyncStorage.
+ */
+export function setAppTheme(newTheme: AppColorScheme) {
+  if (activeTheme === newTheme && themeHasBeenSet) return;
+  activeTheme = newTheme;
+  themeHasBeenSet = true;
+
+  // 1. Instant synchronous notification to NativeWind / css-interop observable
+  notifyNativeWindObservable(newTheme);
+
+  // 2. Instant synchronous notification to all React hooks/components
+  themeListeners.forEach((listener) => {
+    try {
+      listener(newTheme);
+    } catch {}
+  });
+
+  // 3. Sync native OS status bar and Android configuration
+  try {
+    Appearance.setColorScheme(newTheme);
+  } catch {}
+
+  // 4. Save to persistent storage in background
+  AsyncStorage.setItem(THEME_STORAGE_KEY, newTheme).catch(() => {});
+}
+
+/**
+ * Initialize theme from storage on app launch
+ */
+export async function initAppTheme(): Promise<AppColorScheme> {
+  try {
+    const saved = await AsyncStorage.getItem(THEME_STORAGE_KEY);
+    if (saved === 'dark' || saved === 'light') {
+      activeTheme = saved;
+      themeHasBeenSet = true;
+      notifyNativeWindObservable(saved);
+      try {
+        Appearance.setColorScheme(saved);
+      } catch {}
+      themeListeners.forEach((listener) => {
+        try {
+          listener(saved);
+        } catch {}
+      });
+      return saved;
+    }
+  } catch {}
+  return activeTheme;
+}
 
 export function getThemeColors(isDark: boolean) {
   return {
@@ -95,12 +179,44 @@ export function getThemeColors(isDark: boolean) {
 }
 
 export function useThemeColors() {
-  const { colorScheme } = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const nativeWind = useNativeWindColorScheme();
+  const [theme, setTheme] = useState<AppColorScheme>(activeTheme);
+
+  useEffect(() => {
+    const handler = (newTheme: AppColorScheme) => {
+      setTheme(newTheme);
+    };
+    themeListeners.add(handler);
+    return () => {
+      themeListeners.delete(handler);
+    };
+  }, []);
+
+  // Sync if system changes outside our app controls
+  useEffect(() => {
+    if (nativeWind.colorScheme === 'dark' || nativeWind.colorScheme === 'light') {
+      if (nativeWind.colorScheme !== activeTheme && !themeHasBeenSet) {
+        activeTheme = nativeWind.colorScheme;
+        setTheme(nativeWind.colorScheme);
+      }
+    }
+  }, [nativeWind.colorScheme]);
+
+  const isDark = theme === 'dark';
 
   return {
     isDark,
-    colorScheme,
+    colorScheme: theme,
     colors: getThemeColors(isDark),
+    setColorScheme: setAppTheme,
+  };
+}
+
+export function useColorScheme() {
+  const { colorScheme, setColorScheme } = useThemeColors();
+  return {
+    colorScheme,
+    setColorScheme,
+    toggleColorScheme: () => setColorScheme(colorScheme === 'dark' ? 'light' : 'dark'),
   };
 }
