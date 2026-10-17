@@ -94,10 +94,7 @@ function RootLayoutContent() {
         <AuthProvider>
           <SocketProvider>
             <WorkoutTimerProvider>
-              <View
-                className="flex-1 min-h-0 bg-background dark:bg-background-dark"
-                style={{ backgroundColor: colors.background }}
-              >
+              <View className="flex-1 min-h-0 bg-background dark:bg-background-dark">
                 <View className="flex-1 min-h-0 w-full">
                   <Slot />
                 </View>

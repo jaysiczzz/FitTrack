@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { ScrollView, View, Text, RefreshControl, DeviceEventEmitter, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useFocusEffect, useRouter, useLocalSearchParams } from 'expo-router';
 import { hapticFeedback } from '@/utils/haptics';
+import { LAYOUT } from '@/constants/layout';
 
 import DailyCheckInCard from '@/components/dashboard/DailyCheckInCard';
 import DailyGoalsCard from '@/components/dashboard/DailyGoalsCard';
@@ -19,6 +20,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { WorkoutRoutineTemplate, WeeklySplit } from '@/components/workouts/workoutTypes';
 import { DEFAULT_ROUTINE_TEMPLATES, DEFAULT_WEEKLY_SPLIT, getTodayDayOfWeek } from '@/components/workouts/plannerPresets';
 import { mergeWithDefaultTemplates } from '@/components/workouts/WorkoutPlannerTab';
+import { getFirstSessionState } from '@/components/workouts/firstSessionHelper';
 
 import { getTodayWorkoutSession, getWorkoutHistory, ApiWorkoutSession, ApiWorkoutExercise } from '@/api/workout';
 import { getCheckInHistoryApi } from '@/api/checkin';
@@ -41,6 +43,7 @@ import {
 export default function Dashboard() {
   const { colors, isDark } = useThemeColors();
   const { isTablet } = useResponsive();
+  const insets = useSafeAreaInsets();
   const router = useRouter();
   const { user } = useAuth();
   const userId = user?.id;
@@ -97,7 +100,7 @@ export default function Dashboard() {
   // Dynamic targets based on goal and user personalized body metrics
   const personalizedTargets = useMemo(() => {
     return calculatePersonalizedTargets(user, userGoal);
-  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, userGoal]);
+  }, [user?.weight, user?.height, user?.age, user?.gender, user?.goal, user?.activityLevel, userGoal]);
 
   const targetCalories = personalizedTargets.calories;
   const targetProtein = personalizedTargets.protein;
@@ -373,9 +376,11 @@ export default function Dashboard() {
           }
         }
 
+        let totalSessionsCount: number | null = null;
         if (cachedHistoryRaw) {
           const sessions: ApiWorkoutSession[] = JSON.parse(cachedHistoryRaw);
           if (Array.isArray(sessions)) {
+            totalSessionsCount = sessions.length;
             const now = new Date();
             const startOfWeek = new Date(now);
             startOfWeek.setDate(now.getDate() - now.getDay());
@@ -441,8 +446,14 @@ export default function Dashboard() {
         const matchedRoutine = templates.find((r) => r.id === routineId) || null;
         const isRest = !matchedRoutine && (routineId === null || routineId === undefined);
 
-        setTodayScheduledRoutine(matchedRoutine);
-        setIsTodayRestDay(isRest);
+        const firstSession = getFirstSessionState(totalSessionsCount, user?.goal);
+        if (firstSession.isFirstSession && firstSession.starterPlan) {
+          setTodayScheduledRoutine(firstSession.starterPlan);
+          setIsTodayRestDay(false);
+        } else {
+          setTodayScheduledRoutine(matchedRoutine);
+          setIsTodayRestDay(isRest);
+        }
       } catch (cacheErr) {
         console.log('Error reading local workout cache:', cacheErr);
       }
@@ -454,6 +465,13 @@ export default function Dashboard() {
         sessions = historyRes.sessions || [];
         // Persist fresh history cache unconditionally (including empty array on session deletions)
         AsyncStorage.setItem(cachedHistoryKey, JSON.stringify(sessions)).catch(() => {});
+
+        // Re-evaluate first session status with fresh database session count
+        const freshFirstSession = getFirstSessionState(sessions.length, user?.goal);
+        if (freshFirstSession.isFirstSession && freshFirstSession.starterPlan) {
+          setTodayScheduledRoutine(freshFirstSession.starterPlan);
+          setIsTodayRestDay(false);
+        }
       } catch (e) {
         // Offline
       }
@@ -731,11 +749,11 @@ export default function Dashboard() {
     : 'Active recovery';
 
   return (
-    <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         ref={scrollRef}
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 125 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: LAYOUT.getTabBarPadding(insets.bottom) }}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}

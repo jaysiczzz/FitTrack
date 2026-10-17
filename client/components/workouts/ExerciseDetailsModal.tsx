@@ -386,10 +386,7 @@ export const ExerciseDetailsModal: React.FC<ExerciseDetailsModalProps> = ({
 
                       {similarList.length > 0 ? (
                         <View className="p-2.5 rounded-xl bg-input dark:bg-input-dark">
-                          <Text
-                            className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark mb-0.5"
-                            style={{ color: isDark ? '#F8FAFC' : '#0F172A' }}
-                          >
+                          <Text className="text-[11px] font-bold text-text-primary dark:text-text-primary-dark mb-0.5">
                             Similar Movements:
                           </Text>
                           <Text className="text-xs text-text-muted dark:text-text-muted-dark leading-5">

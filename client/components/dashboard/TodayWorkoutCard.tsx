@@ -175,11 +175,19 @@ export default function TodayWorkoutCard({
           ) : scheduledRoutine ? (
             <>
               <View className="flex-1 mr-3">
+                {scheduledRoutine.id?.startsWith('starter-plan') ? (
+                  <View className="flex-row items-center gap-1 mb-1">
+                    <Ionicons name="sparkles" size={12} color={colors.accent} />
+                    <Text className="text-accent dark:text-accent-dark font-extrabold text-[10px] uppercase tracking-wider">
+                      Day 1 Starter
+                    </Text>
+                  </View>
+                ) : null}
                 <Text className="text-text-primary dark:text-text-primary-dark font-bold text-xs" numberOfLines={1}>
                   {scheduledRoutine.title}
                 </Text>
                 <Text className="text-text-muted dark:text-text-muted-dark text-xs mt-0.5" numberOfLines={1}>
-                  {scheduledRoutine.exercises?.length || 4} exercises · {scheduledRoutine.targetMuscleGroup || 'Training'} · {scheduledRoutine.estimatedDurationMinutes || 45}m
+                  {scheduledRoutine.exercises?.length || 4} exercises · {scheduledRoutine.targetMuscleGroup || 'Foundations'} · ~{scheduledRoutine.estimatedDurationMinutes || 30}m
                 </Text>
               </View>
               <View className="bg-accent dark:bg-accent-dark px-3.5 py-1.5 rounded-xl items-center justify-center">

@@ -72,8 +72,8 @@ export const register = asyncHandler(async (req: Request, res: Response) => {
 
     if (!firstName || !lastName || !email || !password ||
         req.body.height === undefined || req.body.weight === undefined ||
-        req.body.age === undefined || !goal) {
-        return res.status(400).json({ error: 'All fields are required' })
+        req.body.age === undefined || !goal || !gender || !activityLevel) {
+        return res.status(400).json({ error: 'All fields are required (including gender and activity level)' })
     }
 
     const normalizedEmail = email.trim().toLowerCase()

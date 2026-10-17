@@ -1,20 +1,22 @@
 import React from 'react';
 import { ScrollView, View, Text, TouchableOpacity } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import UnifiedFitnessCalendar from '@/components/calendar/UnifiedFitnessCalendar';
 import { useThemeColors } from '@/constants/colors';
+import { LAYOUT } from '@/constants/layout';
 
 export default function CalendarScreen() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { colors } = useThemeColors();
 
   return (
     <SafeAreaView edges={['top', 'bottom', 'left', 'right']} className="flex-1 bg-background dark:bg-background-dark">
       <ScrollView
         className="flex-1"
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 115 }}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: LAYOUT.getScreenBottomPadding(insets.bottom) }}
       >
         <View className="w-full max-w-5xl self-center mx-auto">
           {/* Top Header with Back Navigation */}

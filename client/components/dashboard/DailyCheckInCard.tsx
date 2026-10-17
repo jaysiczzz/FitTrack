@@ -13,6 +13,7 @@ import { useToast } from '../../context/ToastContext';
 import { useAuth } from '../../context/AuthContext';
 import { authStorage } from '../../utils/authStorage';
 import { useThemeColors } from '../../constants/colors';
+import { hapticFeedback } from '../../utils/haptics';
 import SurfaceCard from '../ui/SurfaceCard';
 import {
   getTodayCheckInApi,
@@ -192,6 +193,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   }, [loadCheckInData]);
 
   const handleSelectMood = async (mood: MoodOption) => {
+    hapticFeedback.selection();
     setSelectedMoodId(mood.id);
     setIsCheckedIn(true);
     setIsEditingMood(false);
@@ -289,6 +291,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
         isCheckedIn: true,
       });
 
+      hapticFeedback.success();
       showSuccess('Reflection Saved', 'Your morning check-in note was updated.');
       setShowNotesInput(false);
     } catch (err) {
@@ -299,6 +302,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
   };
 
   const handleResetCheckIn = async () => {
+    hapticFeedback.light();
     setIsCheckedIn(false);
     setIsEditingMood(false);
     setSelectedMoodId(null);
@@ -592,13 +596,13 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
 
       {/* Daily Motivation Quote */}
       <View
-        className="pt-2.5 mt-1"
+        className="pt-2.5 mt-1 w-full"
         style={{
           borderTopWidth: 1,
           borderTopColor: isDark ? '#334155' : '#E2E8F0',
         }}
       >
-        <View className="flex-1">
+        <View className="w-full">
           <View className="flex-row items-center gap-1.5 mb-1">
             <Ionicons name="sparkles" size={11} color={colors.accent} />
             <Text

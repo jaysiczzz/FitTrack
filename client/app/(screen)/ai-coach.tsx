@@ -590,10 +590,9 @@ export default function AiCoachScreen() {
   };
 
   return (
-    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark" style={{ flex: 1 }}>
+    <SafeAreaView edges={['top']} className="flex-1 bg-background dark:bg-background-dark">
       <KeyboardAvoidingView
         className="flex-1"
-        style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}
       >
