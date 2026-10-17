@@ -172,7 +172,7 @@ export default function ForgotPasswordModal({
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={handleClose} statusBarTranslucent>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         className="flex-1 justify-end md:justify-center items-center bg-black/50 p-0 md:p-4"
       >
         <Pressable
@@ -183,7 +183,7 @@ export default function ForgotPasswordModal({
         />
 
         <View
-          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] shadow-2xl flex-col"
+          className="w-full md:max-w-md bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[85%] md:h-auto md:max-h-[90%] shadow-2xl flex-col"
           style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
         >
           {/* Header */}

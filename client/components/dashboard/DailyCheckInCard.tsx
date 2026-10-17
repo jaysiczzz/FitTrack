@@ -451,7 +451,7 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
                   </Text>
                 </TouchableOpacity>
               </View>
-              <Text className="text-text-secondary dark:text-text-secondary-dark text-xs leading-4 mt-1.5">
+              <Text className="text-text-muted dark:text-text-muted-dark text-xs leading-relaxed mt-1.5 font-medium">
                 {selectedMood.coachTip}
               </Text>
             </View>
@@ -528,6 +528,12 @@ export default function DailyCheckInCard({ onCheckInCompleted }: DailyCheckInCar
       {/* Daily Motivation Quote */}
       <View className="pt-2.5 mt-1 border-t border-input-border/50 dark:border-input-border-dark/50">
         <View className="flex-1">
+          <View className="flex-row items-center gap-1.5 mb-1">
+            <Ionicons name="sparkles" size={11} color={colors.accent} />
+            <Text className="text-[10px] font-bold uppercase tracking-wider text-accent dark:text-accent-mint">
+              Daily Motivation
+            </Text>
+          </View>
           <Text className="text-text-primary dark:text-text-primary-dark text-xs italic font-medium leading-snug">
             “{currentQuote.quote}”
           </Text>

@@ -13,6 +13,7 @@ import { useToast } from '@/context/ToastContext';
 import { authStorage } from '@/utils/authStorage';
 import { useThemeColors } from '@/constants/colors';
 import SurfaceCard from '../ui/SurfaceCard';
+import { screenCache } from '@/utils/screenCache';
 
 export type CalendarFilterType = 'all' | 'workouts' | 'nutrition';
 
@@ -91,8 +92,10 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
   const [expandedSessionIds, setExpandedSessionIds] = useState<Record<string, boolean>>({});
 
   // Self-managed data fallbacks if not passed in props
-  const [localWorkouts, setLocalWorkouts] = useState<CompletedSession[]>([]);
-  const [localNutrition, setLocalNutrition] = useState<DailyFoodHistorySummary[]>([]);
+  const cachedWorkouts = screenCache.getWorkoutHistory(userId);
+  const cachedNutrition = screenCache.getFoodHistory(userId);
+  const [localWorkouts, setLocalWorkouts] = useState<CompletedSession[]>(cachedWorkouts || []);
+  const [localNutrition, setLocalNutrition] = useState<DailyFoodHistorySummary[]>(cachedNutrition || []);
   const [localCheckIns, setLocalCheckIns] = useState<Record<string, CheckInRecord>>({});
   
 
@@ -202,7 +205,9 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
           const cachedW = await AsyncStorage.getItem(workoutCacheKey);
           if (cachedW && isMounted) {
             try {
-              setLocalWorkouts(JSON.parse(cachedW));
+              const parsedW = JSON.parse(cachedW);
+              setLocalWorkouts(parsedW);
+              if (userId) screenCache.setWorkoutHistory(userId, parsedW);
             } catch {}
           }
           const res = await getWorkoutHistory();
@@ -251,6 +256,7 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
               }),
             }));
             setLocalWorkouts(formatted);
+            if (userId) screenCache.setWorkoutHistory(userId, formatted);
           }
         } catch (e) {
           console.log('[Unified Calendar] Workout fallback used');
@@ -346,7 +352,10 @@ export const UnifiedFitnessCalendar: React.FC<UnifiedFitnessCalendarProps> = ({
             });
           }
 
-          if (isMounted) setLocalNutrition(summaries);
+          if (isMounted) {
+            setLocalNutrition(summaries);
+            if (userId) screenCache.setFoodHistory(userId, summaries);
+          }
         } catch (e) {
           console.log('[Unified Calendar] Nutrition fallback used');
         }

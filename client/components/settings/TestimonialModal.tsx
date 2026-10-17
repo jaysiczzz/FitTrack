@@ -83,6 +83,7 @@ export default function TestimonialModal({
   const [afterImageUrl, setAfterImageUrl] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
   const [hasExistingReview, setHasExistingReview] = useState<boolean>(false);
+  const [loadingMyReview, setLoadingMyReview] = useState<boolean>(false);
   const [myReviews, setMyReviews] = useState<TestimonialItem[]>([]);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isComposing, setIsComposing] = useState<boolean>(false);
@@ -230,12 +231,18 @@ export default function TestimonialModal({
   const fetchMyReview = useCallback(async () => {
     if (!user) return;
     try {
+      setLoadingMyReview(true);
       const res = (await getMyTestimonialApi()) as any;
       const list: TestimonialItem[] = res.testimonials || (res.testimonial ? [res.testimonial] : []);
       setMyReviews(list);
       setHasExistingReview(list.length > 0);
+      if (list.length > 0) {
+        setIsComposing(false);
+      }
     } catch {
       // Ignored
+    } finally {
+      setLoadingMyReview(false);
     }
   }, [user]);
 
@@ -243,7 +250,11 @@ export default function TestimonialModal({
   useEffect(() => {
     if (visible) {
       setActiveTab(initialTab);
-      setIsComposing(false);
+      if (initialTab === 'write') {
+        setIsComposing(myReviews.length === 0);
+      } else {
+        setIsComposing(false);
+      }
       loadStoredVotes();
       fetchFeed(testimonials.length > 0);
       fetchMyReview();
@@ -534,9 +545,9 @@ export default function TestimonialModal({
             <TouchableOpacity
               onPress={() => {
                 setActiveTab('write');
-                if (hasExistingReview) {
+                if (myReviews.length > 0) {
                   setIsComposing(false);
-                } else {
+                } else if (!hasExistingReview && !loadingMyReview) {
                   setIsComposing(true);
                 }
               }}
@@ -559,7 +570,7 @@ export default function TestimonialModal({
                     : 'text-text-muted dark:text-text-muted-dark'
                 }`}
               >
-                {hasExistingReview ? 'My Stories' : 'Share Story'}
+                {myReviews.length > 0 ? 'My Stories' : 'Share Story'}
               </Text>
             </TouchableOpacity>
           </View>
@@ -885,9 +896,17 @@ export default function TestimonialModal({
               keyboardShouldPersistTaps="handled"
               contentContainerStyle={{ paddingBottom: 24 }}
             >
-              <View>
-                {/* List of user's stories (when user has stories and not actively composing) */}
-                {myReviews.length > 0 && !isComposing ? (
+              {loadingMyReview && myReviews.length === 0 ? (
+                <View className="py-16 items-center justify-center">
+                  <ActivityIndicator size="small" color={colors.accent} />
+                  <Text className="text-xs text-text-muted dark:text-text-muted-dark mt-2 font-medium">
+                    Loading your stories...
+                  </Text>
+                </View>
+              ) : (
+                <View>
+                  {/* List of user's stories (when user has stories and not actively composing) */}
+                  {myReviews.length > 0 && !isComposing ? (
                   <View>
                     {/* Header Row */}
                     <View className="flex-row items-center justify-between mb-3.5">
@@ -1488,10 +1507,11 @@ export default function TestimonialModal({
                   </View>
                 )}
               </View>
-            </ScrollView>
-          )}
-        </View>
-      </KeyboardAvoidingView>
+            )}
+          </ScrollView>
+        )}
+      </View>
+    </KeyboardAvoidingView>
 
       {/* Full-Screen Photo Zoom / Lightbox Modal */}
       {previewPhoto && (

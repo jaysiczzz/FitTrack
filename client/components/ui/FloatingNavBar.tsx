@@ -204,7 +204,7 @@ export default function FloatingNavBar() {
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
                     if (!isActive) {
-                      router.push(item.route as any);
+                      router.replace(item.route as any);
                     }
                   }}
                   className="flex-1 items-center justify-center min-h-[48px] py-1.5"
@@ -270,7 +270,7 @@ export default function FloatingNavBar() {
                   hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
                   onPress={() => {
                     if (!isActive) {
-                      router.push(item.route as any);
+                      router.replace(item.route as any);
                     }
                   }}
                   className="flex-1 items-center justify-center min-h-[48px] py-1.5"

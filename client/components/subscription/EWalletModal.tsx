@@ -218,7 +218,7 @@ export default function EWalletModal({
     <>
       <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose} statusBarTranslucent>
         <KeyboardAvoidingView
-          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
           className="flex-1 justify-end md:justify-center md:items-center bg-black/60 p-0 md:p-4"
         >
           <Pressable
@@ -229,7 +229,7 @@ export default function EWalletModal({
           />
 
           <View
-            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark max-h-[88%] md:max-h-[90%] w-full md:max-w-lg shadow-2xl flex-col"
+            className="bg-surface dark:bg-surface-dark rounded-t-3xl md:rounded-3xl p-5 border-t md:border border-input-border dark:border-input-border-dark h-[88%] md:h-auto md:max-h-[90%] w-full md:max-w-lg shadow-2xl flex-col"
             style={{ paddingBottom: Math.max(20, insets.bottom + 8) }}
           >
             {/* Header */}
